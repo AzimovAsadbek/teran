@@ -33,9 +33,9 @@ export interface FormSubmission {
 /**
  * Submission flow shared by every form: client-side validation with the same Zod contract the API
  * uses, server issues mapped onto the same fields, an announced summary and focus on the first
- * invalid field. The caller owns the form ref (attach it to the <form>).
+ * invalid field. The caller owns the ref (attach it to the <form> or the element holding the fields).
  */
-export function useFormSubmission(formRef: RefObject<HTMLFormElement | null>): FormSubmission {
+export function useFormSubmission(formRef: RefObject<HTMLElement | null>): FormSubmission {
   const tv = useTranslations('Validation');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [summary, setSummary] = useState<string | null>(null);

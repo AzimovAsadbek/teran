@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import {
   assertDisposableDatabase,
+  E2E_ADMIN,
   E2E_DATABASE_URL,
   E2E_UPLOADS_DIR,
   stackEnv,
@@ -64,3 +65,9 @@ runInApi(['exec', 'prisma', 'migrate', 'deploy'], env);
 await truncateAll(E2E_DATABASE_URL);
 rmSync(E2E_UPLOADS_DIR, { recursive: true, force: true });
 runInApi(['exec', 'prisma', 'db', 'seed'], env);
+// The administrator used by the admin journeys, created exactly as an operator would.
+runInApi(['admin:create', '--first-name', 'E2E'], {
+  ...env,
+  ADMIN_EMAIL: E2E_ADMIN.email,
+  ADMIN_PASSWORD: E2E_ADMIN.password,
+});

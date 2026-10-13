@@ -54,6 +54,21 @@ export const VALIDATION_KEYS = [
   'terms_required',
   'contact_required',
   'passwords_mismatch',
+  'invalid_money',
+  'money_negative',
+  'invalid_slug',
+  'invalid_sku',
+  'invalid_barcode',
+  'compare_at_not_above_price',
+  'variant_size_required',
+  'brew_time_order',
+  'duplicate_sku',
+  'delta_zero',
+  'internal_path_only',
+  'invalid_telegram',
+  'invalid_instagram',
+  'invalid_code',
+  'cancel_reason_required',
 ] as const;
 export type ValidationKey = (typeof VALIDATION_KEYS)[number];
 

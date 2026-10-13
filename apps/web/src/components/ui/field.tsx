@@ -238,10 +238,10 @@ export function FormErrorSummary({ message }: { message: string | null }) {
   );
 }
 
-/** Moves focus to the first invalid control inside `form` (after React has rendered the errors). */
-export function focusFirstInvalid(form: HTMLFormElement | null): void {
+/** Moves focus to the first invalid control inside `container` (after React has rendered the errors). */
+export function focusFirstInvalid(container: HTMLElement | null): void {
   requestAnimationFrame(() => {
-    const target = form?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    const target = container?.querySelector<HTMLElement>('[aria-invalid="true"]');
     target?.focus();
   });
 }

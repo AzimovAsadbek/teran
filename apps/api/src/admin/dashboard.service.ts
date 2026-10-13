@@ -120,7 +120,8 @@ export class AdminDashboardService {
       ordersAwaitingAction: awaiting,
       revenueLast30Days: toMoney(revenue),
       ordersLast30Days: orders,
-      averageOrderValue: toMoney(orders > 0 ? revenue.dividedBy(orders).toDecimalPlaces(2) : ZERO),
+      // Whole sums: tiyin are not used in practice.
+      averageOrderValue: toMoney(orders > 0 ? revenue.dividedBy(orders).toDecimalPlaces(0) : ZERO),
       newInquiries: contactNew + wholesaleNew,
       lowStock: lowStock.map(toInventoryRow),
       recentOrders: recent.map(toOrderListItem),

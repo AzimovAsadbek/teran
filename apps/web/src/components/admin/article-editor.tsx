@@ -62,7 +62,7 @@ export function ArticleEditor({ article }: { article: AdminArticle | null }) {
       ref={formRef}
       onSubmit={onSubmit}
       noValidate
-      className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start"
+      className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start"
     >
       <div className="space-y-4 rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5 sm:p-6">
         <FormErrorSummary message={form.summary} />

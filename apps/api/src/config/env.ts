@@ -27,7 +27,11 @@ const envObjectSchema = z.object({
   CORS_EXTRA_ORIGINS: commaList.pipe(z.array(z.url({ protocol: /^https?$/ }))),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 
-  /** Server-side secret for HMAC derivations (e.g. guest order links). Rotate to invalidate links. */
+  /**
+   * Server-side HMAC key for guest order links and newsletter unsubscribe links. Rotating it
+   * invalidates unsubscribe links already sent; issued order links keep working (only their hash
+   * is stored).
+   */
   APP_SECRET: z.string().min(32),
 
   /**
@@ -114,6 +118,13 @@ export const envSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['WEB_ORIGIN'],
+          message: 'must use https in production',
+        });
+      }
+      if (env.CORS_EXTRA_ORIGINS.some((origin) => !origin.startsWith('https://'))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CORS_EXTRA_ORIGINS'],
           message: 'must use https in production',
         });
       }

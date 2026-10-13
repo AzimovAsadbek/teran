@@ -110,7 +110,7 @@ export default async function WholesalePage() {
         </div>
       </section>
 
-      <div className="container-page grid gap-12 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16">
+      <div className="container-page grid grid-cols-1 gap-12 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16">
         <section
           id="request"
           aria-labelledby="request-title"

@@ -33,7 +33,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, grepInvert: /@mobile/ },
     { name: 'mobile', use: { ...devices['Pixel 7'] }, grep: /@mobile/ },
   ],
   webServer: external

@@ -97,7 +97,7 @@ export async function FeaturedCollectionSection() {
 
   return (
     <section aria-labelledby="featured-collection-title" className="container-page pb-16 lg:pb-24">
-      <Reveal className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.2fr)]">
+      <Reveal className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.2fr)]">
         <div className="on-dark flex flex-col justify-between rounded-[var(--radius-panel)] bg-forest-900 p-8 text-ivory-50 sm:p-10">
           <div>
             <p className="text-eyebrow text-gold-300">{t('featuredEyebrow')}</p>

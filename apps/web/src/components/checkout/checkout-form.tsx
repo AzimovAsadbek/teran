@@ -290,7 +290,7 @@ export function CheckoutForm({
   const canSubmit = cart.isCheckoutReady && !submitting;
 
   return (
-    <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-12">
+    <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-12">
       {/* Mobile: the order summary collapses above the form. */}
       <details className="group rounded-[var(--radius-card)] bg-white px-5 py-4 lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-forest-900 [&::-webkit-details-marker]:hidden">
@@ -621,7 +621,10 @@ function PolicyLink({ href, children }: { href: '/terms' | '/privacy'; children:
 
 function CheckoutSkeleton() {
   return (
-    <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12" aria-hidden>
+    <div
+      className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12"
+      aria-hidden
+    >
       <div className="space-y-6">
         <Skeleton className="h-72 rounded-[var(--radius-card)]" />
         <Skeleton className="h-96 rounded-[var(--radius-card)]" />

@@ -106,6 +106,18 @@ describe('authentication and HTTP security', () => {
     expect(response.body).toEqual({ accepted: true });
   });
 
+  it('issues a reset token for an existing account only after answering', async () => {
+    const user = await createUser(ctx.prisma, 'CUSTOMER', 'forgot@example.com');
+    const response = await agent()
+      .post(`${API}/auth/password/forgot`)
+      .send({ email: 'forgot@example.com' })
+      .expect(202);
+    expect(response.body).toEqual({ accepted: true });
+    await vi.waitFor(async () => {
+      expect(await ctx.prisma.passwordResetToken.count({ where: { userId: user.id } })).toBe(1);
+    });
+  });
+
   it('resets a password once with a valid token and signs out other sessions', async () => {
     const user = await createUser(ctx.prisma, 'CUSTOMER', 'reset@example.com');
     const browser = agent();

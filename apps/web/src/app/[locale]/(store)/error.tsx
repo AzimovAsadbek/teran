@@ -6,10 +6,10 @@ import { Button, ButtonLink } from '@/components/ui/button';
 
 /** Route-level error boundary: a friendly message, never the error details. */
 export default function StoreError({
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   const t = useTranslations('Errors');
   const tc = useTranslations('Common');
@@ -20,7 +20,7 @@ export default function StoreError({
       <h1 className="text-display-lg text-forest-900">{t('serverTitle')}</h1>
       <p className="mt-4 max-w-md text-lg text-ink-700">{t('serverText')}</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Button onClick={reset}>
+        <Button onClick={retry}>
           <RotateCcw aria-hidden className="h-4 w-4" />
           {tc('retry')}
         </Button>

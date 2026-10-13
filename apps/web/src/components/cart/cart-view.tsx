@@ -54,7 +54,7 @@ export function CartView() {
   }
 
   return (
-    <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-12">
+    <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-12">
       <section
         aria-label={t('drawerTitle')}
         className="rounded-[var(--radius-panel)] bg-white px-5 py-2 sm:px-8"
@@ -115,7 +115,10 @@ export function CartView() {
 
 function CartSkeleton() {
   return (
-    <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12" aria-hidden>
+    <div
+      className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12"
+      aria-hidden
+    >
       <div className="space-y-4 rounded-[var(--radius-panel)] bg-white p-6">
         {[0, 1, 2].map((index) => (
           <div key={index} className="flex gap-4">

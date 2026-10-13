@@ -15,7 +15,7 @@ export async function StorySection() {
 
   return (
     <section aria-labelledby="story-title" className="bg-ivory-100">
-      <Reveal className="container-page grid items-center gap-12 py-20 lg:grid-cols-[1fr_1.1fr] lg:py-28">
+      <Reveal className="container-page grid grid-cols-1 items-center gap-12 py-20 lg:grid-cols-[1fr_1.1fr] lg:py-28">
         <div className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center">
           <span aria-hidden className="absolute inset-0 rounded-full border border-gold-500/40" />
           <span aria-hidden className="absolute inset-6 rounded-full border border-gold-500/25" />

@@ -49,8 +49,8 @@ export default async function AboutPage() {
       </section>
 
       {range ? (
-        <section aria-labelledby="range-title" className="bg-forest-900 text-ivory-50">
-          <div className="container-page grid items-center gap-8 py-16 sm:py-20 md:grid-cols-[minmax(0,1fr)_auto]">
+        <section aria-labelledby="range-title" className="on-dark bg-forest-900 text-ivory-50">
+          <div className="container-page grid grid-cols-1 items-center gap-8 py-16 sm:py-20 md:grid-cols-[minmax(0,1fr)_auto]">
             <div className="max-w-2xl">
               <h2 id="range-title" className="text-display-md text-ivory-50">
                 {range.heading}

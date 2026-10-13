@@ -17,6 +17,7 @@ import { ContentModule } from './content/content.module.js';
 import { CoreModule } from './core/core.module.js';
 import { HealthModule } from './health/health.module.js';
 import { InquiriesModule } from './inquiries/inquiries.module.js';
+import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
@@ -89,6 +90,7 @@ function requestId(request: IncomingMessage): string {
     AuthModule,
     InquiriesModule,
     AdminModule,
+    MaintenanceModule,
   ],
   providers: [
     // Order matters: rate limiting runs before authorization.

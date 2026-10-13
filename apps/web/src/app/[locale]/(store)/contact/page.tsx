@@ -134,7 +134,7 @@ export default async function ContactPage() {
         intro={t('contactDescription')}
         illustration="mint"
       />
-      <div className="container-page grid gap-10 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-16">
+      <div className="container-page grid grid-cols-1 gap-10 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-16">
         <section
           aria-labelledby="message-title"
           className="rounded-[var(--radius-panel)] bg-white p-6 sm:p-10"

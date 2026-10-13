@@ -243,6 +243,20 @@ describe('admin API', () => {
       expect(withImage.images).toHaveLength(1);
       expect(withImage.images[0]?.widths).toEqual([320]);
 
+      // sharp identifies AVIF as "heif" with AV1 compression; it is accepted like the others.
+      const avif = await sharp({
+        create: { width: 700, height: 500, channels: 3, background: { r: 200, g: 150, b: 60 } },
+      })
+        .avif()
+        .toBuffer();
+      const withAvif = (
+        await agent
+          .post(`${API}/admin/products/${product.id}/images`)
+          .attach('file', avif, { filename: 'tea.avif', contentType: 'image/avif' })
+          .expect(201)
+      ).body as AdminProductDetail;
+      expect(withAvif.images.map((image) => image.widths)).toEqual([[320], [320, 640]]);
+
       await agent
         .post(`${API}/admin/products/${product.id}/images`)
         .attach('file', Buffer.from('<?php echo 1; ?>'), {
@@ -258,7 +272,7 @@ describe('admin API', () => {
       const removed = await agent
         .delete(`${API}/admin/products/${product.id}/images/${withImage.images[0]!.id}`)
         .expect(200);
-      expect((removed.body as AdminProductDetail).images).toHaveLength(0);
+      expect((removed.body as AdminProductDetail).images).toHaveLength(1);
     });
 
     it('never lets an adjustment take stock below zero', async () => {

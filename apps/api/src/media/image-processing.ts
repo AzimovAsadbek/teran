@@ -6,7 +6,7 @@ import sharp, { type Metadata } from 'sharp';
 /** Widths generated for every stored image; the storefront picks the smallest sufficient one. */
 export const IMAGE_WIDTHS = [320, 640, 960, 1280, 1600] as const;
 
-const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp', 'avif']);
+const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp']);
 const MIN_DIMENSION = 200;
 /** Rejects decompression bombs (e.g. a tiny PNG that expands to gigapixels). */
 const MAX_INPUT_PIXELS = 40_000_000;
@@ -18,6 +18,12 @@ export class ImageRejectedError extends Error {
   constructor(readonly reason: ImageRejectionReason) {
     super(`Image rejected: ${reason}`);
   }
+}
+
+/** JPEG, PNG, WebP and AVIF. sharp reports AVIF as "heif" with AV1 compression (HEIC is refused). */
+function isAcceptedFormat(metadata: Metadata): boolean {
+  if (metadata.format === 'heif') return metadata.compression === 'av1';
+  return metadata.format !== undefined && ACCEPTED_FORMATS.has(metadata.format);
 }
 
 export interface StoredImage {
@@ -46,7 +52,7 @@ export async function storeImage(
   } catch {
     throw new ImageRejectedError('unreadable');
   }
-  if (!metadata.format || !ACCEPTED_FORMATS.has(metadata.format)) {
+  if (!isAcceptedFormat(metadata)) {
     throw new ImageRejectedError('unsupported_format');
   }
   const rotated = (metadata.orientation ?? 1) >= 5;

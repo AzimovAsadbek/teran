@@ -68,7 +68,7 @@ export default async function AdminOrderPage({
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
         <div className="space-y-6">
           <Panel title={t('orders.itemsSection')}>
             <div className="overflow-x-auto">

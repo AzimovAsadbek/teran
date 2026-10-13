@@ -10,6 +10,7 @@ import { ProductCard } from '@/components/catalog/product-card';
 import { ProductGallery } from '@/components/product/product-gallery';
 import { DeliveryInfo, ProductInfo } from '@/components/product/product-info';
 import { PurchasePanel } from '@/components/product/purchase-panel';
+import { DemoNotice } from '@/components/ui/demo-notice';
 import { ProductGridSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { getProduct, getRelatedProducts } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
@@ -105,7 +106,7 @@ async function ProductView({
           { label: product.name },
         ]}
       />
-      <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16">
+      <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16">
         <ProductGallery
           images={product.images}
           illustrationKey={product.illustrationKey}
@@ -130,6 +131,7 @@ async function ProductView({
               initialVariantId={initialVariant.id}
             />
           </div>
+          <DemoNotice className="mt-6" />
           <div className="mt-6">
             <DeliveryInfo options={options} />
           </div>
@@ -183,7 +185,7 @@ function ProductSkeleton() {
 /**
  * The shell (header, breadcrumbs skeleton) streams first; the product resolves inside Suspense. An
  * unknown slug therefore renders the not-found UI with `noindex` and a 200 status — Next.js commits
- * the status before streaming (docs/architecture/decisions.md, ADR on soft 404s).
+ * the status before streaming (docs/architecture/decisions.md, ADR-010).
  */
 export default function ProductPage({
   params,

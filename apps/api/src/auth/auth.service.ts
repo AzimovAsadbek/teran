@@ -38,12 +38,15 @@ export function toCurrentUser(user: User): CurrentUserDto {
 const invalidCredentials = () =>
   new ApiException(HttpStatus.UNAUTHORIZED, 'INVALID_CREDENTIALS', 'Invalid e-mail or password');
 
-/** Indistinguishable from IP rate limiting, so a lockout does not confirm the account exists. */
+/**
+ * Same status, code and message as IP rate limiting, so the response does not single out a locked
+ * account. (Whether an e-mail is registered is not secret: registration reports EMAIL_TAKEN.)
+ */
 const tooManyAttempts = () =>
   new ApiException(
     HttpStatus.TOO_MANY_REQUESTS,
     'RATE_LIMITED',
-    'Too many attempts, please try again later',
+    'Too many requests, please try again later',
   );
 
 @Injectable()
@@ -92,6 +95,10 @@ export class AuthService {
         role: 'CUSTOMER',
       },
     });
+    // A browser that was signed in to another account starts clean, as on login.
+    if (request.auth) {
+      await this.sessions.destroy(request.auth.sessionId, response);
+    }
     await this.startSession(request, response, user);
     return toCurrentUser(user);
   }
@@ -104,6 +111,8 @@ export class AuthService {
       throw invalidCredentials();
     }
     if (user.lockedUntil && user.lockedUntil > new Date()) {
+      // Verify anyway (the result is ignored) so a locked account answers as slowly as any other.
+      await verifyPassword(user.passwordHash, input.password);
       throw tooManyAttempts();
     }
 
@@ -196,32 +205,42 @@ export class AuthService {
         'Password reset is not available',
       );
     }
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    // Same response whether or not the account exists.
-    if (!user || !user.isActive) return;
-
-    const token = generateToken();
-    await this.prisma.$transaction(async (tx) => {
-      await tx.passwordResetToken.deleteMany({ where: { userId: user.id, usedAt: null } });
-      await tx.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          tokenHash: sha256(token),
-          expiresAt: new Date(Date.now() + RESET_TOKEN_MINUTES * 60_000),
-        },
-      });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, isActive: true },
     });
-    const link = this.mail.webUrl(
-      locale,
-      `/account/reset-password?token=${encodeURIComponent(token)}`,
-    );
+    // Same response, and the same response time, whether or not the account exists: the token
+    // and the e-mail are produced after the response has been sent.
+    if (!user || !user.isActive) return;
+    void this.issuePasswordReset(user, locale);
+  }
+
+  private async issuePasswordReset(
+    user: { id: string; email: string },
+    locale: Locale,
+  ): Promise<void> {
     try {
+      const token = generateToken();
+      await this.prisma.$transaction(async (tx) => {
+        await tx.passwordResetToken.deleteMany({ where: { userId: user.id, usedAt: null } });
+        await tx.passwordResetToken.create({
+          data: {
+            userId: user.id,
+            tokenHash: sha256(token),
+            expiresAt: new Date(Date.now() + RESET_TOKEN_MINUTES * 60_000),
+          },
+        });
+      });
+      const link = this.mail.webUrl(
+        locale,
+        `/account/reset-password?token=${encodeURIComponent(token)}`,
+      );
       await this.mail.send({
         to: user.email,
         ...passwordResetEmail(locale, { link, minutes: RESET_TOKEN_MINUTES }),
       });
     } catch (error) {
-      this.logger.error({ err: error, userId: user.id }, 'Password reset e-mail could not be sent');
+      this.logger.error({ err: error, userId: user.id }, 'Password reset could not be issued');
     }
   }
 

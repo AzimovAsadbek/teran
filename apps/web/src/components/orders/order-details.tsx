@@ -76,7 +76,7 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
     .join(', ');
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <section
         aria-labelledby="order-items"
         className="rounded-[var(--radius-panel)] bg-white p-5 sm:p-7"

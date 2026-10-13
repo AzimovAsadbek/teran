@@ -629,7 +629,7 @@ model AuditLog {
   id          String   @id @default(uuid(7)) @db.Uuid
   actorUserId String?  @db.Uuid
   actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
-  /// Dotted action name, e.g. "product.updated", "order.status_changed".
+  /// Dotted action name, e.g. "product.update", "order.status", "inventory.adjust".
   action      String
   entityType  String
   entityId    String?

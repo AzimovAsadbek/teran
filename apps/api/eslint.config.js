@@ -3,7 +3,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'src/generated/**', 'storage/**', 'coverage/**'] },
+  { ignores: ['dist/**', '.nest-dev/**', 'src/generated/**', 'storage/**', 'coverage/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {

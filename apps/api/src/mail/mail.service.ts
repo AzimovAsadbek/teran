@@ -29,10 +29,13 @@ export class MailService {
     this.webOrigin = config.get('WEB_ORIGIN', { infer: true }).replace(/\/$/, '');
     if (this.mode === 'smtp') {
       const user = config.get('SMTP_USER', { infer: true });
+      const secure = config.get('SMTP_SECURE', { infer: true });
       this.transporter = nodemailer.createTransport({
         host: config.get('SMTP_HOST', { infer: true }),
         port: config.get('SMTP_PORT', { infer: true }),
-        secure: config.get('SMTP_SECURE', { infer: true }),
+        secure,
+        // Without implicit TLS, production refuses to send (and to log in) over plain text.
+        requireTLS: !secure && config.get('NODE_ENV', { infer: true }) === 'production',
         auth: user ? { user, pass: config.get('SMTP_PASSWORD', { infer: true }) } : undefined,
         connectionTimeout: 10_000,
         greetingTimeout: 10_000,

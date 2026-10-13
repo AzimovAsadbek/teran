@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { fontVariables } from '@/styles/fonts';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
  */
 export default function GlobalNotFound() {
   return (
-    <html lang="uz">
+    <html lang="uz" className={fontVariables}>
       <body className="flex min-h-dvh items-center justify-center bg-ivory-50 p-6 text-center">
         <main className="max-w-md">
           <p className="text-eyebrow text-gold-700">404</p>

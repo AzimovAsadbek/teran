@@ -5,6 +5,7 @@ import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
+import { DemoNotice } from '@/components/ui/demo-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCheckoutOptions } from '@/lib/data/content';
@@ -41,9 +42,13 @@ export default async function CheckoutPage() {
   return (
     <div className="container-page pt-10 pb-24">
       <h1 className="text-display-lg text-forest-900">{t('title')}</h1>
+      <DemoNotice className="mt-4 max-w-3xl" />
       <Suspense
         fallback={
-          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12" aria-hidden>
+          <div
+            className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12"
+            aria-hidden
+          >
             <Skeleton className="h-96 rounded-[var(--radius-card)]" />
             <Skeleton className="hidden h-80 rounded-[var(--radius-panel)] lg:block" />
           </div>

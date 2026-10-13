@@ -90,7 +90,10 @@ export class SessionService {
     response.clearCookie(this.cookie, clearCookieOptions(this.secure));
   }
 
-  /** Signs a user out everywhere (password reset, role change, deactivation). */
+  /**
+   * Signs a user out everywhere: password change or reset, staff deactivation, and changes made
+   * with the admin CLI. Role changes need no sign-out because the role is read on every request.
+   */
   async destroyAllForUser(userId: string): Promise<void> {
     await this.prisma.session.deleteMany({ where: { userId } });
   }

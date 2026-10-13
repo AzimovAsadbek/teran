@@ -222,7 +222,7 @@ export function ProductEditor({
       ref={formRef}
       onSubmit={onSubmit}
       noValidate
-      className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start"
+      className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start"
     >
       <div className="space-y-6">
         <FormErrorSummary message={form.summary} />

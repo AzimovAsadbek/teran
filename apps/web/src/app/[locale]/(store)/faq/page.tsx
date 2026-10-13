@@ -55,7 +55,7 @@ export default async function FaqPage() {
         intro={t('faqDescription')}
         illustration="oolong"
       />
-      <div className="container-page grid gap-12 py-14 sm:py-20 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16">
+      <div className="container-page grid grid-cols-1 gap-12 py-14 sm:py-20 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16">
         <nav aria-label={t('onThisPage')} className="hidden lg:block">
           <ol className="sticky top-28 space-y-2 border-l border-ivory-300 text-sm">
             {groups.map((group) => (

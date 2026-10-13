@@ -147,7 +147,7 @@ export async function FilterBar({
         ) : null}
       </div>
 
-      <div className="flex items-center justify-between gap-3 lg:justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 lg:justify-end">
         <MobileFilters
           basePath={basePath}
           formAction={formAction}

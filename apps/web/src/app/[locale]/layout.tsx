@@ -1,24 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { hasLocale } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import { Cormorant_Garamond, Manrope } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { routing } from '@/i18n/routing';
 import { isDemoContent, ogLocales, siteUrl } from '@/lib/site';
+import { fontVariables } from '@/styles/fonts';
 import '@/styles/globals.css';
-
-const display = Cormorant_Garamond({
-  subsets: ['latin', 'cyrillic'],
-  variable: '--font-cormorant',
-  display: 'swap',
-});
-
-const sans = Manrope({
-  subsets: ['latin', 'cyrillic'],
-  variable: '--font-manrope',
-  display: 'swap',
-});
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -60,7 +48,7 @@ export default async function LocaleLayout({ children }: LayoutProps<'/[locale]'
   }
 
   return (
-    <html lang={locale} className={`${display.variable} ${sans.variable}`}>
+    <html lang={locale} className={fontVariables}>
       <body className="flex min-h-dvh flex-col">{children}</body>
     </html>
   );

@@ -95,6 +95,7 @@ function isActive(pathname: string, href: string): boolean {
 /** Staff area chrome: grouped navigation (administrator-only items hidden from managers). */
 export function AdminShell({ user, children }: { user: CurrentUserDto; children: ReactNode }) {
   const t = useTranslations('Admin');
+  const tc = useTranslations('Common');
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const isAdmin = user.role === 'ADMIN';
@@ -140,6 +141,12 @@ export function AdminShell({ user, children }: { user: CurrentUserDto; children:
 
   return (
     <div className="min-h-dvh bg-ivory-50 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-full bg-forest-900 px-5 py-3 font-semibold text-ivory-50 focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        {tc('skipToContent')}
+      </a>
       <aside
         className={cn(
           'border-ivory-200 bg-white lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto lg:border-r',

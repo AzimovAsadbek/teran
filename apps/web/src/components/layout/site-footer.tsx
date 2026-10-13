@@ -103,7 +103,7 @@ export async function SiteFooter() {
   return (
     <footer className="on-dark mt-auto bg-forest-950 text-ivory-100">
       <div className="rule-gold opacity-60" />
-      <div className="container-page grid gap-12 py-16 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1.6fr]">
+      <div className="container-page grid grid-cols-1 gap-12 py-16 lg:grid-cols-[1.3fr_1fr_1fr_1fr_1.6fr]">
         <div className="space-y-5">
           <LogoPlate />
           <p className="max-w-xs font-display text-xl leading-snug text-ivory-50">{t('tagline')}</p>

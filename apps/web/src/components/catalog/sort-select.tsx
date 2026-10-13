@@ -14,8 +14,9 @@ export function SortSelect({ value, query }: { value: ProductSort; query: string
   const [pending, startTransition] = useTransition();
 
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor={id} className="text-sm text-ink-700">
+    <div className="flex min-w-0 items-center gap-2">
+      {/* Visible from the small breakpoint up; phones keep it for assistive technology only. */}
+      <label htmlFor={id} className="sr-only text-sm text-ink-700 sm:not-sr-only">
         {t('sort')}
       </label>
       <select
@@ -33,7 +34,7 @@ export function SortSelect({ value, query }: { value: ProductSort; query: string
             router.replace(search ? `${pathname}?${search}` : pathname, { scroll: false });
           });
         }}
-        className="h-11 rounded-full border border-sage-500 bg-white px-4 pr-9 text-sm font-medium text-forest-900"
+        className="h-11 max-w-full min-w-0 rounded-full border border-sage-500 bg-white px-4 pr-9 text-sm font-medium text-forest-900"
       >
         {PRODUCT_SORTS.map((sort) => (
           <option key={sort} value={sort}>

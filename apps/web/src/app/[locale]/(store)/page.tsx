@@ -88,7 +88,7 @@ export default async function HomePage() {
       </Suspense>
       <StorySection />
       <section aria-labelledby="brewing-title" className="container-page py-16 lg:py-24">
-        <Reveal className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:items-center">
+        <Reveal className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.4fr] lg:items-center">
           <div>
             <p className="text-eyebrow text-gold-700">{t('brewingEyebrow')}</p>
             <h2 id="brewing-title" className="text-display-lg mt-4 text-forest-900">

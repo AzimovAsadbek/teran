@@ -75,7 +75,7 @@ async function Dashboard() {
         </div>
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start">
+      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start">
         <Panel title={t('orders')}>
           {!orders || orders.items.length === 0 ? (
             <div>

@@ -27,6 +27,7 @@ describe('validateEnv', () => {
       MAIL_TRANSPORT: 'log',
       APP_SECRET: 'replace-with-a-long-random-string-at-least-32-chars',
       THROTTLE_DISABLED: 'true',
+      CORS_EXTRA_ORIGINS: 'http://admin.example.com',
     };
     const error = (() => {
       try {
@@ -41,6 +42,7 @@ describe('validateEnv', () => {
       'MAIL_TRANSPORT',
       'APP_SECRET',
       'WEB_ORIGIN',
+      'CORS_EXTRA_ORIGINS',
       'THROTTLE_DISABLED',
     ]) {
       expect(error).toContain(key);

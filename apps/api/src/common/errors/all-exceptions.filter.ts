@@ -10,6 +10,7 @@ import { ThrottlerException } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { ApiErrorBody, ErrorCode } from '@teran/contracts';
 import { Prisma } from '../../generated/prisma/client.js';
+import { redactUrl } from '../security/internal-request.js';
 import { ApiException } from './api-exception.js';
 
 const STATUS_CODES: Partial<Record<number, ErrorCode>> = {
@@ -57,7 +58,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (body.statusCode >= 500) {
       this.logger.error(
-        { err: exception, requestId: body.requestId, path: request.originalUrl },
+        { err: exception, requestId: body.requestId, path: redactUrl(request.originalUrl) },
         'Unhandled error while processing request',
       );
     }

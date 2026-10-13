@@ -69,7 +69,12 @@ export function LongForm({
   aside?: ReactNode;
 }) {
   return (
-    <div className={cn('grid gap-10', tocLabel && 'lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16')}>
+    <div
+      className={cn(
+        'grid grid-cols-1 gap-10',
+        tocLabel && 'lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16',
+      )}
+    >
       {tocLabel ? (
         <nav aria-label={tocLabel} className="hidden lg:block">
           <div className="sticky top-28">

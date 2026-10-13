@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { emailSchema, localeSchema, moneySchema, optionalText } from './common.js';
-import { illustrationKeySchema, imageSchema } from './catalog.js';
+import { illustrationKeySchema, imageSchema, productFormatSchema } from './catalog.js';
 import { regionCodeSchema, uzPhoneSchema } from './uzbekistan.js';
 
 export const ORDER_STATUSES = [
@@ -117,6 +117,7 @@ export type CheckoutQuoteDto = z.infer<typeof checkoutQuoteResultSchema>;
 export const orderItemSchema = z.object({
   productName: z.string(),
   productSlug: z.string(),
+  format: productFormatSchema,
   sku: z.string(),
   weightGrams: z.number().int().nullable(),
   unitCount: z.number().int().nullable(),

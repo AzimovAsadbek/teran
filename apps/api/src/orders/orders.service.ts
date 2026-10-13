@@ -234,6 +234,7 @@ export class OrdersService {
             variantId: line.variantId,
             productName: line.productName,
             productSlug: line.productSlug,
+            format: line.format,
             sku: line.sku,
             weightGrams: line.weightGrams,
             unitCount: line.unitCount,

@@ -17,7 +17,9 @@
     "learnMore": "Batafsil",
     "optional": "ixtiyoriy",
     "required": "majburiy",
-    "currency": { "UZS": "soʻm" },
+    "currency": {
+      "UZS": "soʻm"
+    },
     "priceFrom": "{price} dan",
     "demoNotice": "Namoyish katalogi: mahsulotlar, narxlar va rasmlar vaqtinchalik. Haqiqiy maʼlumotlar bilan almashtiriladi.",
     "home": "Bosh sahifa",
@@ -27,13 +29,23 @@
     "nextPage": "Keyingi sahifa",
     "pageN": "{page}-sahifa",
     "pause": "Toʻxtatish",
-    "play": "Davom ettirish"
+    "play": "Davom ettirish",
+    "compareAtLabel": "Avvalgi narx",
+    "demoNoticeShort": "Namoyish katalogi — maʼlumotlar vaqtinchalik"
   },
   "Language": {
     "label": "Til",
     "change": "Tilni oʻzgartirish",
-    "names": { "uz": "Oʻzbekcha", "ru": "Русский", "en": "English" },
-    "short": { "uz": "UZ", "ru": "RU", "en": "EN" }
+    "names": {
+      "uz": "Oʻzbekcha",
+      "ru": "Русский",
+      "en": "English"
+    },
+    "short": {
+      "uz": "UZ",
+      "ru": "RU",
+      "en": "EN"
+    }
   },
   "Nav": {
     "main": "Asosiy menyu",
@@ -69,7 +81,7 @@
     "privacy": "Maxfiylik siyosati",
     "terms": "Foydalanish shartlari",
     "returns": "Qaytarish va pulni qaytarish",
-    "rights": "© {year} TERAN. Barcha huquqlar himoyalangan.",
+    "rights": "Barcha huquqlar himoyalangan.",
     "contactUs": "Biz bilan bogʻlaning",
     "followUs": "Ijtimoiy tarmoqlar",
     "trademark": "TERAN® — roʻyxatdan oʻtgan savdo belgisi."
@@ -82,8 +94,7 @@
     "submit": "Obuna boʻlish",
     "submitting": "Yuborilmoqda…",
     "success": "Rahmat! Obunangiz qabul qilindi.",
-    "consent": "Obuna boʻlish orqali siz {privacy}ga rozilik bildirasiz. Istalgan vaqtda obunani bekor qilishingiz mumkin.",
-    "privacyLink": "maxfiylik siyosati"
+    "consent": "Obuna boʻlish orqali siz <privacy>maxfiylik siyosati</privacy> shartlariga rozilik bildirasiz. Istalgan vaqtda obunani bekor qilishingiz mumkin."
   },
   "Home": {
     "metaTitle": "TERAN — premium choy onlayn doʻkoni",
@@ -279,7 +290,20 @@
     "serverText": "Kutilmagan xatolik yuz berdi. Iltimos, birozdan soʻng qayta urinib koʻring.",
     "network": "Server bilan aloqa yoʻq. Internet aloqasini tekshiring.",
     "rateLimited": "Juda koʻp soʻrov yuborildi. Birozdan soʻng qayta urinib koʻring.",
-    "generic": "Xatolik yuz berdi. Qayta urinib koʻring."
+    "generic": "Xatolik yuz berdi. Qayta urinib koʻring.",
+    "codes": {
+      "INSUFFICIENT_STOCK": "Omborda yetarli miqdor yoʻq.",
+      "CART_ITEM_UNAVAILABLE": "Bu mahsulot hozir sotuvda emas.",
+      "CART_EMPTY": "Savatingiz boʻsh.",
+      "PRICE_CHANGED": "Narxlar oʻzgardi. Yangi summani tekshirib, buyurtmani qayta tasdiqlang.",
+      "DELIVERY_METHOD_UNAVAILABLE": "Tanlangan yetkazib berish usuli bu hudud uchun mavjud emas.",
+      "PAYMENT_METHOD_UNAVAILABLE": "Bu toʻlov usuli hozir mavjud emas.",
+      "INVALID_CREDENTIALS": "Elektron pochta yoki parol notoʻgʻri.",
+      "EMAIL_TAKEN": "Bu elektron pochta bilan hisob allaqachon mavjud.",
+      "INVALID_TOKEN": "Havola yaroqsiz yoki muddati tugagan.",
+      "FEATURE_DISABLED": "Bu imkoniyat hozircha mavjud emas.",
+      "VALIDATION_FAILED": "Iltimos, kiritilgan maʼlumotlarni tekshiring."
+    }
   },
   "Validation": {
     "required": "Bu maydon toʻldirilishi shart",
@@ -294,5 +318,154 @@
     "passwords_mismatch": "Parollar mos kelmadi",
     "invalid": "Qiymat notoʻgʻri",
     "fixErrors": "Iltimos, belgilangan maydonlarni tekshiring"
+  },
+  "Wholesale": {
+    "segments": {
+      "CAFE_RESTAURANT": "Kafe va restoranlar",
+      "HOTEL": "Mehmonxonalar",
+      "RETAIL": "Doʻkonlar",
+      "DISTRIBUTOR": "Distributorlar",
+      "CORPORATE": "Korporativ sovgʻalar",
+      "OTHER": "Boshqa"
+    }
+  },
+  "Checkout": {
+    "title": "Buyurtmani rasmiylashtirish",
+    "metaTitle": "Buyurtmani rasmiylashtirish",
+    "contactSection": "Aloqa maʼlumotlari",
+    "deliverySection": "Yetkazib berish",
+    "paymentSection": "Toʻlov",
+    "noteSection": "Izoh",
+    "name": "Ism va familiya",
+    "phone": "Telefon raqami",
+    "phoneHint": "Buyurtmani tasdiqlash uchun qoʻngʻiroq qilamiz.",
+    "email": "Elektron pochta",
+    "emailHint": "Buyurtma havolasini yuborish uchun (ixtiyoriy).",
+    "region": "Viloyat",
+    "regionPlaceholder": "Viloyatni tanlang",
+    "city": "Shahar yoki tuman",
+    "address": "Manzil",
+    "addressHint": "Koʻcha, uy, xonadon.",
+    "landmark": "Moʻljal",
+    "landmarkHint": "Masalan: maktab yonida, 2-podyezd.",
+    "note": "Buyurtmaga izoh",
+    "notePlaceholder": "Kuryer uchun qoʻshimcha maʼlumot (ixtiyoriy)",
+    "deliveryMethod": "Yetkazib berish usuli",
+    "chooseRegionFirst": "Avval viloyatni tanlang.",
+    "noMethodsForRegion": "Bu viloyat uchun yetkazib berish usuli hozircha sozlanmagan. Biz bilan bogʻlaning.",
+    "free": "Bepul",
+    "freeFrom": "{amount} dan bepul",
+    "paymentMethods": {
+      "CASH_ON_DELIVERY": "Yetkazib berishda naqd pul bilan"
+    },
+    "paymentDescriptions": {
+      "CASH_ON_DELIVERY": "Buyurtmani qabul qilganingizda kuryerga toʻlaysiz."
+    },
+    "summary": "Buyurtma tarkibi",
+    "subtotal": "Mahsulotlar",
+    "delivery": "Yetkazib berish",
+    "deliveryTbd": "Hudud tanlangach hisoblanadi",
+    "total": "Jami",
+    "placeOrder": "Buyurtma berish",
+    "placing": "Yuborilmoqda…",
+    "acceptTerms": "Men <terms>foydalanish shartlari</terms> va <privacy>maxfiylik siyosati</privacy> bilan tanishdim va roziman.",
+    "priceChanged": "Narxlar yangilandi. Yangi jami: {total}. Tasdiqlash uchun buyurtmani yana bir bor yuboring.",
+    "emptyTitle": "Rasmiylashtirish uchun savat boʻsh",
+    "editCart": "Savatni tahrirlash",
+    "loadError": "Maʼlumotlarni yuklab boʻlmadi. Sahifani yangilang.",
+    "thankYou": "Rahmat! Buyurtmangiz qabul qilindi",
+    "orderNumber": "Buyurtma raqami",
+    "orderPlacedText": "Yetkazib berishni tasdiqlash uchun tez orada siz bilan bogʻlanamiz.",
+    "saveLinkHint": "Ushbu sahifa havolasini saqlab qoʻying — u orqali buyurtma holatini kuzatishingiz mumkin.",
+    "statusTitle": "Buyurtma holati",
+    "orderDetails": "Buyurtma tafsilotlari",
+    "deliveryTo": "Yetkazib berish manzili",
+    "contact": "Aloqa",
+    "placedAt": "Buyurtma sanasi",
+    "payment": "Toʻlov",
+    "statuses": {
+      "PENDING": "Qabul qilindi",
+      "CONFIRMED": "Tasdiqlandi",
+      "PROCESSING": "Tayyorlanmoqda",
+      "SHIPPED": "Yoʻlda",
+      "DELIVERED": "Yetkazildi",
+      "CANCELLED": "Bekor qilindi"
+    },
+    "paymentStatuses": {
+      "PENDING": "Toʻlov kutilmoqda",
+      "PAID": "Toʻlangan",
+      "FAILED": "Toʻlov amalga oshmadi",
+      "REFUNDED": "Qaytarildi",
+      "CANCELLED": "Bekor qilindi"
+    },
+    "orderNotFound": "Buyurtma topilmadi yoki havola notoʻgʻri.",
+    "continueShopping": "Xaridni davom ettirish",
+    "quantityShort": "{count} dona"
+  },
+  "Forms": {
+    "name": "Ismingiz",
+    "phone": "Telefon",
+    "email": "Elektron pochta",
+    "subject": "Mavzu",
+    "message": "Xabar",
+    "companyName": "Kompaniya nomi",
+    "contactName": "Masʼul shaxs",
+    "businessType": "Faoliyat turi",
+    "businessTypePlaceholder": "Tanlang",
+    "region": "Viloyat",
+    "city": "Shahar",
+    "monthlyVolume": "Taxminiy oylik hajm",
+    "monthlyVolumeHint": "Masalan: 20 kg yoki 500 qadoq",
+    "send": "Yuborish",
+    "sending": "Yuborilmoqda…",
+    "successTitle": "Xabaringiz yuborildi",
+    "successText": "Rahmat! Jamoamiz tez orada siz bilan bogʻlanadi.",
+    "sendAnother": "Yana xabar yuborish",
+    "contactHint": "Telefon yoki elektron pochtadan kamida birini kiriting.",
+    "optional": "ixtiyoriy"
+  },
+  "Account": {
+    "title": "Shaxsiy kabinet",
+    "metaTitle": "Shaxsiy kabinet",
+    "loginTitle": "Hisobga kirish",
+    "login": "Kirish",
+    "loggingIn": "Kirilmoqda…",
+    "registerTitle": "Roʻyxatdan oʻtish",
+    "register": "Hisob yaratish",
+    "registering": "Yaratilmoqda…",
+    "logout": "Chiqish",
+    "email": "Elektron pochta",
+    "password": "Parol",
+    "passwordHint": "Kamida 10 ta belgi.",
+    "confirmPassword": "Parolni takrorlang",
+    "firstName": "Ism",
+    "lastName": "Familiya",
+    "phone": "Telefon",
+    "forgotPassword": "Parolni unutdingizmi?",
+    "forgotTitle": "Parolni tiklash",
+    "forgotText": "Elektron pochtangizni kiriting — parolni tiklash havolasini yuboramiz.",
+    "forgotSubmit": "Havolani yuborish",
+    "forgotSent": "Agar bu manzil bilan hisob mavjud boʻlsa, unga havola yuborildi.",
+    "resetTitle": "Yangi parol",
+    "resetSubmit": "Parolni saqlash",
+    "resetDone": "Parol yangilandi. Endi yangi parol bilan kiring.",
+    "resetMissingToken": "Havola toʻliq emas. Parolni tiklashni qaytadan soʻrang.",
+    "resetUnavailable": "Parolni tiklash hozircha mavjud emas. Iltimos, biz bilan bogʻlaning.",
+    "noAccount": "Hisobingiz yoʻqmi?",
+    "haveAccount": "Hisobingiz bormi?",
+    "guestNote": "Buyurtma berish uchun roʻyxatdan oʻtish shart emas.",
+    "welcome": "Xush kelibsiz, {name}!",
+    "orders": "Buyurtmalarim",
+    "noOrders": "Hozircha buyurtmalar yoʻq.",
+    "viewOrder": "Batafsil",
+    "profile": "Profil",
+    "saveProfile": "Saqlash",
+    "saved": "Saqlandi",
+    "changePassword": "Parolni oʻzgartirish",
+    "currentPassword": "Joriy parol",
+    "newPassword": "Yangi parol",
+    "passwordChanged": "Parol oʻzgartirildi",
+    "staffArea": "Boshqaruv paneli",
+    "language": "Afzal til"
   }
 }

@@ -1,6 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MAX_LINE_QUANTITY, type CartDto, type CartLineDto, type Locale } from '@teran/contracts';
+import {
+  MAX_LINE_QUANTITY,
+  type CartDto,
+  type CartLineDto,
+  type Locale,
+  type ProductFormat,
+} from '@teran/contracts';
 import type { Request, Response } from 'express';
 import { Prisma } from '../generated/prisma/client.js';
 import type { Env } from '../config/env.js';
@@ -43,6 +49,7 @@ export interface OrderableLine {
   unitPrice: Prisma.Decimal;
   productName: string;
   productSlug: string;
+  format: ProductFormat;
   sku: string;
   weightGrams: number | null;
   unitCount: number | null;
@@ -228,6 +235,7 @@ export class CartService {
           pickTranslation(item.variant.product.translations, locale)?.name ??
           item.variant.product.slug,
         productSlug: item.variant.product.slug,
+        format: item.variant.product.format,
         sku: item.variant.sku,
         weightGrams: item.variant.weightGrams,
         unitCount: item.variant.unitCount,
@@ -278,6 +286,7 @@ export class CartService {
         variantId: variant.id,
         productSlug: variant.product.slug,
         productName: name,
+        format: variant.product.format,
         sku: variant.sku,
         weightGrams: variant.weightGrams,
         unitCount: variant.unitCount,

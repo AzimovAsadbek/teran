@@ -42,6 +42,7 @@ export function toOrderDto(order: OrderWithItems): OrderDto {
       return {
         productName: item.productName,
         productSlug: item.productSlug,
+        format: item.format,
         sku: item.sku,
         weightGrams: item.weightGrams,
         unitCount: item.unitCount,

@@ -54,6 +54,8 @@
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 
   --animate-reveal: reveal 700ms var(--ease-soft) both;
+  /* Transform-only entrance: content stays fully opaque, so it never delays LCP. */
+  --animate-rise: rise 900ms var(--ease-soft) both;
   --animate-fade-in: fade-in 400ms var(--ease-soft) both;
   --animate-marquee: marquee 48s linear infinite;
 
@@ -64,6 +66,15 @@
     }
     to {
       opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes rise {
+    from {
+      transform: translateY(14px);
+    }
+    to {
       transform: none;
     }
   }

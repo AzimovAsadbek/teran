@@ -466,6 +466,7 @@ model OrderItem {
   // Purchase-time snapshot, independent of later catalogue edits.
   productName String
   productSlug String
+  format      ProductFormat   @default(LOOSE_LEAF)
   sku         String
   weightGrams Int?
   unitCount   Int?

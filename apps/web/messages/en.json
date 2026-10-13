@@ -17,7 +17,9 @@
     "learnMore": "Learn more",
     "optional": "optional",
     "required": "required",
-    "currency": { "UZS": "UZS" },
+    "currency": {
+      "UZS": "UZS"
+    },
     "priceFrom": "from {price}",
     "demoNotice": "Demonstration catalogue: products, prices and images are placeholders and will be replaced with real data.",
     "home": "Home",
@@ -27,13 +29,23 @@
     "nextPage": "Next page",
     "pageN": "Page {page}",
     "pause": "Pause",
-    "play": "Play"
+    "play": "Play",
+    "compareAtLabel": "Previous price",
+    "demoNoticeShort": "Demo catalogue — data is temporary"
   },
   "Language": {
     "label": "Language",
     "change": "Change language",
-    "names": { "uz": "Oʻzbekcha", "ru": "Русский", "en": "English" },
-    "short": { "uz": "UZ", "ru": "RU", "en": "EN" }
+    "names": {
+      "uz": "Oʻzbekcha",
+      "ru": "Русский",
+      "en": "English"
+    },
+    "short": {
+      "uz": "UZ",
+      "ru": "RU",
+      "en": "EN"
+    }
   },
   "Nav": {
     "main": "Main menu",
@@ -69,7 +81,7 @@
     "privacy": "Privacy policy",
     "terms": "Terms of use",
     "returns": "Returns & refunds",
-    "rights": "© {year} TERAN. All rights reserved.",
+    "rights": "All rights reserved.",
     "contactUs": "Contact us",
     "followUs": "Follow us",
     "trademark": "TERAN® is a registered trademark."
@@ -82,8 +94,7 @@
     "submit": "Subscribe",
     "submitting": "Sending…",
     "success": "Thank you! You are subscribed.",
-    "consent": "By subscribing you agree to our {privacy}. You can unsubscribe at any time.",
-    "privacyLink": "privacy policy"
+    "consent": "By subscribing you agree to our <privacy>privacy policy</privacy>. You can unsubscribe at any time."
   },
   "Home": {
     "metaTitle": "TERAN — premium tea online store",
@@ -203,7 +214,12 @@
     "brewing": "Brewing",
     "details": "Details",
     "caffeine": "Caffeine",
-    "caffeineLevels": { "NONE": "Caffeine-free", "LOW": "Low", "MEDIUM": "Medium", "HIGH": "High" },
+    "caffeineLevels": {
+      "NONE": "Caffeine-free",
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High"
+    },
     "sku": "SKU",
     "netWeight": "Net weight",
     "format": "Format",
@@ -274,7 +290,20 @@
     "serverText": "An unexpected error occurred. Please try again shortly.",
     "network": "No connection to the server. Please check your internet connection.",
     "rateLimited": "Too many requests. Please try again shortly.",
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "codes": {
+      "INSUFFICIENT_STOCK": "There is not enough stock.",
+      "CART_ITEM_UNAVAILABLE": "This product is not available right now.",
+      "CART_EMPTY": "Your bag is empty.",
+      "PRICE_CHANGED": "Prices have changed. Please review the new total and confirm your order again.",
+      "DELIVERY_METHOD_UNAVAILABLE": "The selected delivery method is not available for this region.",
+      "PAYMENT_METHOD_UNAVAILABLE": "This payment method is not available right now.",
+      "INVALID_CREDENTIALS": "Incorrect e-mail or password.",
+      "EMAIL_TAKEN": "An account with this e-mail already exists.",
+      "INVALID_TOKEN": "This link is invalid or has expired.",
+      "FEATURE_DISABLED": "This feature is not available yet.",
+      "VALIDATION_FAILED": "Please check the information you entered."
+    }
   },
   "Validation": {
     "required": "This field is required",
@@ -289,5 +318,154 @@
     "passwords_mismatch": "Passwords do not match",
     "invalid": "Invalid value",
     "fixErrors": "Please check the highlighted fields"
+  },
+  "Wholesale": {
+    "segments": {
+      "CAFE_RESTAURANT": "Cafés & restaurants",
+      "HOTEL": "Hotels",
+      "RETAIL": "Retail stores",
+      "DISTRIBUTOR": "Distributors",
+      "CORPORATE": "Corporate gifts",
+      "OTHER": "Other"
+    }
+  },
+  "Checkout": {
+    "title": "Checkout",
+    "metaTitle": "Checkout",
+    "contactSection": "Contact details",
+    "deliverySection": "Delivery",
+    "paymentSection": "Payment",
+    "noteSection": "Note",
+    "name": "Full name",
+    "phone": "Phone number",
+    "phoneHint": "We will call to confirm your order.",
+    "email": "Email",
+    "emailHint": "To send you the order link (optional).",
+    "region": "Region",
+    "regionPlaceholder": "Choose a region",
+    "city": "City or district",
+    "address": "Address",
+    "addressHint": "Street, building, apartment.",
+    "landmark": "Landmark",
+    "landmarkHint": "For example: next to the school, entrance 2.",
+    "note": "Order note",
+    "notePlaceholder": "Extra information for the courier (optional)",
+    "deliveryMethod": "Delivery method",
+    "chooseRegionFirst": "Choose a region first.",
+    "noMethodsForRegion": "Delivery to this region is not set up yet. Please contact us.",
+    "free": "Free",
+    "freeFrom": "Free from {amount}",
+    "paymentMethods": {
+      "CASH_ON_DELIVERY": "Cash on delivery"
+    },
+    "paymentDescriptions": {
+      "CASH_ON_DELIVERY": "Pay the courier when you receive your order."
+    },
+    "summary": "Your order",
+    "subtotal": "Products",
+    "delivery": "Delivery",
+    "deliveryTbd": "Calculated once you choose a region",
+    "total": "Total",
+    "placeOrder": "Place order",
+    "placing": "Sending…",
+    "acceptTerms": "I have read and agree to the <terms>terms of use</terms> and the <privacy>privacy policy</privacy>.",
+    "priceChanged": "Prices were updated. New total: {total}. Submit the order again to confirm.",
+    "emptyTitle": "There is nothing to check out",
+    "editCart": "Edit bag",
+    "loadError": "The data could not be loaded. Please refresh the page.",
+    "thankYou": "Thank you! Your order has been received",
+    "orderNumber": "Order number",
+    "orderPlacedText": "We will contact you shortly to confirm delivery.",
+    "saveLinkHint": "Keep the link to this page — you can follow your order status here.",
+    "statusTitle": "Order status",
+    "orderDetails": "Order details",
+    "deliveryTo": "Delivery address",
+    "contact": "Contact",
+    "placedAt": "Order date",
+    "payment": "Payment",
+    "statuses": {
+      "PENDING": "Received",
+      "CONFIRMED": "Confirmed",
+      "PROCESSING": "Being prepared",
+      "SHIPPED": "On its way",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled"
+    },
+    "paymentStatuses": {
+      "PENDING": "Awaiting payment",
+      "PAID": "Paid",
+      "FAILED": "Payment failed",
+      "REFUNDED": "Refunded",
+      "CANCELLED": "Cancelled"
+    },
+    "orderNotFound": "Order not found, or the link is incorrect.",
+    "continueShopping": "Continue shopping",
+    "quantityShort": "{count} pcs"
+  },
+  "Forms": {
+    "name": "Your name",
+    "phone": "Phone",
+    "email": "Email",
+    "subject": "Subject",
+    "message": "Message",
+    "companyName": "Company name",
+    "contactName": "Contact person",
+    "businessType": "Type of business",
+    "businessTypePlaceholder": "Choose",
+    "region": "Region",
+    "city": "City",
+    "monthlyVolume": "Estimated monthly volume",
+    "monthlyVolumeHint": "For example: 20 kg or 500 packs",
+    "send": "Send",
+    "sending": "Sending…",
+    "successTitle": "Your message has been sent",
+    "successText": "Thank you! Our team will get back to you soon.",
+    "sendAnother": "Send another message",
+    "contactHint": "Enter a phone number or an email address.",
+    "optional": "optional"
+  },
+  "Account": {
+    "title": "Account",
+    "metaTitle": "Account",
+    "loginTitle": "Sign in",
+    "login": "Sign in",
+    "loggingIn": "Signing in…",
+    "registerTitle": "Create an account",
+    "register": "Create account",
+    "registering": "Creating…",
+    "logout": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least 10 characters.",
+    "confirmPassword": "Repeat password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "forgotPassword": "Forgot your password?",
+    "forgotTitle": "Reset your password",
+    "forgotText": "Enter your email and we will send you a link to reset your password.",
+    "forgotSubmit": "Send link",
+    "forgotSent": "If an account exists for this address, we have sent it a link.",
+    "resetTitle": "Choose a new password",
+    "resetSubmit": "Save password",
+    "resetDone": "Your password was updated. Sign in with the new password.",
+    "resetMissingToken": "This link is incomplete. Please request a new password reset.",
+    "resetUnavailable": "Password reset is not available yet. Please contact us.",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "guestNote": "You do not need an account to place an order.",
+    "welcome": "Welcome, {name}!",
+    "orders": "My orders",
+    "noOrders": "No orders yet.",
+    "viewOrder": "Details",
+    "profile": "Profile",
+    "saveProfile": "Save",
+    "saved": "Saved",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "passwordChanged": "Password changed",
+    "staffArea": "Administration",
+    "language": "Preferred language"
   }
 }

@@ -417,6 +417,7 @@ export interface AdminOrderDetail {
   items: {
     productName: string;
     productSlug: string;
+    format: ProductFormat;
     sku: string;
     weightGrams: number | null;
     unitCount: number | null;

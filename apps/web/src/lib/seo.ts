@@ -33,7 +33,8 @@ export function pageMetadata({
   images,
   noIndex = false,
 }: {
-  title: string;
+  /** Page title; use { absolute } to bypass the "%s — TERAN" template (e.g. the home page). */
+  title: string | { absolute: string };
   description?: string;
   href: Href;
   locale: Locale;
@@ -46,7 +47,7 @@ export function pageMetadata({
     description,
     alternates: noIndex ? undefined : alternates(href, locale),
     openGraph: {
-      title,
+      title: typeof title === 'string' ? title : title.absolute,
       description,
       url,
       siteName: 'TERAN',

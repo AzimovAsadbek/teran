@@ -4,6 +4,7 @@ import {
   MAX_LINE_QUANTITY,
   imageSchema,
   illustrationKeySchema,
+  productFormatSchema,
   stockLevelSchema,
 } from './catalog.js';
 
@@ -35,6 +36,7 @@ export const cartLineSchema = z.object({
   variantId: z.uuid(),
   productSlug: z.string(),
   productName: z.string(),
+  format: productFormatSchema,
   sku: z.string(),
   weightGrams: z.number().int().nullable(),
   unitCount: z.number().int().nullable(),

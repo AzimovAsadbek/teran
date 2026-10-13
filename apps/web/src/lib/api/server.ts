@@ -20,6 +20,20 @@ export async function apiGet<T>(path: string, init: { cookie?: string } = {}): P
   return (await response.json()) as T;
 }
 
+/**
+ * GET that resolves to null on 404. Use it inside `'use cache'` loaders: an error thrown there is
+ * serialised across the cache boundary and loses its ApiError class, so callers could not tell
+ * "not found" from a failure.
+ */
+export async function apiGetOrNull<T>(path: string): Promise<T | null> {
+  try {
+    return await apiGet<T>(path);
+  } catch (error) {
+    if (error instanceof ApiError && error.isNotFound) return null;
+    throw error;
+  }
+}
+
 /** GET on behalf of the current visitor (account and admin pages); returns null when unauthenticated. */
 export async function apiGetAsVisitor<T>(path: string): Promise<T | null> {
   const cookieHeader = (await cookies()).toString();

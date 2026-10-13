@@ -5,7 +5,7 @@ import { ArrowRight, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
-import { Link, usePathname } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 
 export interface NavCategory {
@@ -39,13 +39,7 @@ export function DesktopNav({
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const rootRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
   const panelId = useId();
-
-  // Any navigation closes the menus.
-  useEffect(() => {
-    setOpenMenu(null);
-  }, [pathname]);
 
   useEffect(() => {
     if (!openMenu) return;
@@ -98,6 +92,10 @@ export function DesktopNav({
       className="hidden lg:block"
       onPointerLeave={(event) => event.pointerType === 'mouse' && schedule(null, CLOSE_DELAY_MS)}
       onPointerEnter={() => clearTimeout(timer.current)}
+      // Following any link inside the menus closes them (no need to watch the URL).
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest('a')) setOpenMenu(null);
+      }}
     >
       <nav aria-label={t('main')}>
         <ul className="flex items-center gap-0.5">

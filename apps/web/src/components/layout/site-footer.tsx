@@ -9,7 +9,7 @@ import { NewsletterForm } from '@/components/forms/newsletter-form';
 import { Link } from '@/i18n/navigation';
 import { getCategories } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
-import { LanguageSwitcher } from './language-switcher';
+import { LanguageSwitcherSlot } from './language-switcher';
 
 async function CurrentYear() {
   'use cache';
@@ -197,7 +197,7 @@ export async function SiteFooter() {
             <Link href="/terms" className="hover:text-gold-300">
               {t('terms')}
             </Link>
-            <LanguageSwitcher />
+            <LanguageSwitcherSlot />
           </div>
         </div>
       </div>

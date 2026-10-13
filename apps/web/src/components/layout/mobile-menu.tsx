@@ -2,12 +2,12 @@
 
 import { ChevronRight, Menu, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
 import { Sheet } from '@/components/ui/sheet';
-import { Link, usePathname } from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import type { NavCategory, NavCollection } from './desktop-nav';
-import { LanguageSwitcher } from './language-switcher';
+import { LanguageSwitcherSlot } from './language-switcher';
 
 /** Mobile drawer: visual tea-type tiles first (the way shoppers browse), then everything else. */
 export function MobileMenu({
@@ -20,11 +20,10 @@ export function MobileMenu({
   const t = useTranslations('Nav');
   const tc = useTranslations('Common');
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+  // Following any link closes the drawer (no need to watch the URL).
+  const closeOnLink = (event: MouseEvent) => {
+    if ((event.target as HTMLElement).closest('a')) setOpen(false);
+  };
 
   const links = [
     ['/wholesale', t('wholesale')],
@@ -61,11 +60,11 @@ export function MobileMenu({
               <UserRound aria-hidden className="h-5 w-5" />
               {t('account')}
             </Link>
-            <LanguageSwitcher tone="light" />
+            <LanguageSwitcherSlot tone="light" />
           </div>
         }
       >
-        <div className="space-y-7 px-5 py-5">
+        <div className="space-y-7 px-5 py-5" onClick={closeOnLink}>
           <section>
             <h3 className="text-eyebrow text-gold-700">{t('shopByType')}</h3>
             <ul className="mt-3 grid grid-cols-2 gap-3">

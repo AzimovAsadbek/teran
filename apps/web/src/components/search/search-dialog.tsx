@@ -20,41 +20,43 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchSuggestionsDto | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState<{ query: string; data: SearchSuggestionsDto } | null>(
+    null,
+  );
+  const [pending, setPending] = useState(false);
   const trimmed = query.trim();
+  const searchable = trimmed.length >= 2;
 
   useEffect(() => {
     if (open) requestAnimationFrame(() => inputRef.current?.focus());
   }, [open]);
 
+  // Suggestions are derived from the last response; nothing is reset synchronously in the effect.
   useEffect(() => {
-    if (trimmed.length < 2) {
-      setResults(null);
-      return;
-    }
+    if (!searchable) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      setLoading(true);
+      setPending(true);
       apiRequest<SearchSuggestionsDto>(
         `/catalog/search/suggest?locale=${locale}&q=${encodeURIComponent(trimmed)}`,
-        {
-          signal: controller.signal,
-        },
+        { signal: controller.signal },
       )
-        .then(setResults)
+        .then((data) => setFetched({ query: trimmed, data }))
         .catch(() => {
-          if (!controller.signal.aborted) setResults(null);
+          if (!controller.signal.aborted) setFetched(null);
         })
         .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
+          if (!controller.signal.aborted) setPending(false);
         });
     }, DEBOUNCE_MS);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [trimmed, locale]);
+  }, [searchable, trimmed, locale]);
+
+  const results = searchable ? (fetched?.data ?? null) : null;
+  const loading = searchable && pending;
 
   const close = () => {
     onClose();
@@ -111,7 +113,9 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
           ) : null}
           {loading && !results ? <p className="text-sm text-ink-500">{tc('loading')}</p> : null}
           {results && results.products.length === 0 && results.categories.length === 0 ? (
-            <p className="text-sm text-ink-700">{t('noResults', { query: trimmed })}</p>
+            <p className="text-sm text-ink-700">
+              {t('noResults', { query: fetched?.query ?? trimmed })}
+            </p>
           ) : null}
         </div>
 

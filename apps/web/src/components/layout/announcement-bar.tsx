@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { Link } from '@/i18n/navigation';
 import { getPublicSettings } from '@/lib/data/content';
 import { isDemoContent } from '@/lib/site';
-import { LanguageSwitcher } from './language-switcher';
+import { LanguageSwitcherSlot } from './language-switcher';
 
 async function AnnouncementMessage() {
   await connection();
@@ -36,7 +36,7 @@ export function AnnouncementBar() {
             <AnnouncementMessage />
           </Suspense>
         </p>
-        <LanguageSwitcher className="hidden lg:flex" />
+        <LanguageSwitcherSlot className="hidden lg:flex" />
       </div>
     </div>
   );

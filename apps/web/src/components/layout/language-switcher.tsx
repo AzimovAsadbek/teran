@@ -2,24 +2,20 @@
 
 import type { Locale } from '@teran/contracts';
 import { useLocale, useTranslations } from 'next-intl';
+import { Suspense } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { cn } from '@/lib/cn';
+
+type Tone = 'dark' | 'light';
 
 /**
  * Plain links (not a script-driven select): crawlable, works without JavaScript, and each link
  * declares the language it leads to.
  */
-export function LanguageSwitcher({
-  tone = 'dark',
-  className,
-}: {
-  tone?: 'dark' | 'light';
-  className?: string;
-}) {
+function LocaleLinks({ pathname, tone, className }: { pathname: string; tone: Tone; className?: string }) {
   const t = useTranslations('Language');
   const current = useLocale();
-  const pathname = usePathname();
 
   return (
     <nav aria-label={t('change')} className={cn('flex items-center', className)}>
@@ -54,5 +50,22 @@ export function LanguageSwitcher({
         })}
       </ul>
     </nav>
+  );
+}
+
+function CurrentPageLocaleLinks({ tone, className }: { tone: Tone; className?: string }) {
+  const pathname = usePathname();
+  return <LocaleLinks pathname={pathname} tone={tone} className={className} />;
+}
+
+/**
+ * Switches language while staying on the same page. The current path is URL data, so on dynamic
+ * routes it streams in; until then the links point to each language's home page.
+ */
+export function LanguageSwitcherSlot({ tone = 'dark', className }: { tone?: Tone; className?: string }) {
+  return (
+    <Suspense fallback={<LocaleLinks pathname="/" tone={tone} className={className} />}>
+      <CurrentPageLocaleLinks tone={tone} className={className} />
+    </Suspense>
   );
 }

@@ -8,7 +8,7 @@ import type {
   PublicSettingsDto,
 } from '@teran/contracts';
 import { cacheLife, cacheTag } from 'next/cache';
-import { apiGet } from '@/lib/api/server';
+import { apiGet, apiGetOrNull } from '@/lib/api/server';
 
 export async function getPublicSettings(locale: Locale): Promise<PublicSettingsDto> {
   'use cache';
@@ -30,11 +30,14 @@ export async function getArticles(
   );
 }
 
-export async function getArticle(locale: Locale, slug: string): Promise<ArticleDetailDto> {
+/** Null when no published article has this slug. */
+export async function getArticle(locale: Locale, slug: string): Promise<ArticleDetailDto | null> {
   'use cache';
   cacheLife('hours');
   cacheTag('content');
-  return apiGet<ArticleDetailDto>(`/content/articles/${encodeURIComponent(slug)}?locale=${locale}`);
+  return apiGetOrNull<ArticleDetailDto>(
+    `/content/articles/${encodeURIComponent(slug)}?locale=${locale}`,
+  );
 }
 
 export async function getCheckoutOptions(locale: Locale): Promise<CheckoutOptionsDto> {

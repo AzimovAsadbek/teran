@@ -58,3 +58,16 @@ export function packLabel(
   }
   return parts.join(' · ');
 }
+
+/**
+ * Exact money × quantity on decimal strings (via integer minor units), for display totals.
+ * Never uses floating point; authoritative totals always come from the API.
+ */
+export function multiplyMoney(amount: Money, quantity: number): Money {
+  const match = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(amount);
+  if (!match || !Number.isInteger(quantity)) throw new Error(`Invalid money amount: ${amount}`);
+  const [, sign = '', whole = '0', fraction = ''] = match;
+  const minor = BigInt(`${whole}${fraction.padEnd(2, '0')}`) * BigInt(quantity);
+  const digits = minor.toString().padStart(3, '0');
+  return `${sign}${digits.slice(0, -2)}.${digits.slice(-2)}`;
+}

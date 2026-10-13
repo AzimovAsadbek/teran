@@ -9,7 +9,7 @@ import type {
   SitemapEntriesDto,
 } from '@teran/contracts';
 import { cacheLife, cacheTag } from 'next/cache';
-import { apiGet } from '@/lib/api/server';
+import { apiGet, apiGetOrNull } from '@/lib/api/server';
 
 /*
  * Catalogue loaders. Results are cached across requests and invalidated on demand: the API calls
@@ -41,11 +41,14 @@ export async function getProductList(locale: Locale, query: string): Promise<Pro
   return apiGet<ProductListDto>(`/catalog/products?locale=${locale}${separator}${query}`);
 }
 
-export async function getProduct(locale: Locale, slug: string): Promise<ProductDetailDto> {
+/** Null when no public product has this slug (unknown, draft, archived or unpublished). */
+export async function getProduct(locale: Locale, slug: string): Promise<ProductDetailDto | null> {
   'use cache';
   cacheLife('hours');
   cacheTag('catalog');
-  return apiGet<ProductDetailDto>(`/catalog/products/${encodeURIComponent(slug)}?locale=${locale}`);
+  return apiGetOrNull<ProductDetailDto>(
+    `/catalog/products/${encodeURIComponent(slug)}?locale=${locale}`,
+  );
 }
 
 export async function getRelatedProducts(

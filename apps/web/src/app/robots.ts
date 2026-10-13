@@ -3,7 +3,15 @@ import { routing } from '@/i18n/routing';
 import { isDemoContent, siteUrl } from '@/lib/site';
 
 /** Personal, transactional and internal-search pages are not for search engines. */
-const PRIVATE_PATHS = ['/account', '/cart', '/checkout', '/orders', '/search', '/admin'];
+const PRIVATE_PATHS = [
+  '/account',
+  '/cart',
+  '/checkout',
+  '/orders',
+  '/search',
+  '/admin',
+  '/newsletter',
+];
 
 export default function robots(): MetadataRoute.Robots {
   // A demonstration catalogue (placeholder products and prices) must never be indexed.

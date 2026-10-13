@@ -18,7 +18,7 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "admin:create": "tsx scripts/create-admin.ts"
+    "admin:create": "tsx src/cli/create-admin.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.1.3",

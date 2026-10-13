@@ -95,7 +95,12 @@
     "submit": "Obuna boʻlish",
     "submitting": "Yuborilmoqda…",
     "success": "Rahmat! Obunangiz qabul qilindi.",
-    "consent": "Obuna boʻlish orqali siz <privacy>maxfiylik siyosati</privacy> shartlariga rozilik bildirasiz. Istalgan vaqtda obunani bekor qilishingiz mumkin."
+    "consent": "Obuna boʻlish orqali siz <privacy>maxfiylik siyosati</privacy> shartlariga rozilik bildirasiz. Istalgan vaqtda obunani bekor qilishingiz mumkin.",
+    "unsubscribeTitle": "Rassilkadan voz kechish",
+    "unsubscribeText": "TERAN yangiliklarini endi olishni istamasangiz, quyidagi tugmani bosing.",
+    "unsubscribeButton": "Obunani bekor qilish",
+    "unsubscribeDone": "Siz rassilkadan chiqdingiz. Boshqa xat yubormaymiz.",
+    "unsubscribeInvalid": "Bu havola notoʻgʻri yoki eskirgan."
   },
   "Home": {
     "metaTitle": "TERAN — premium choy onlayn doʻkoni",

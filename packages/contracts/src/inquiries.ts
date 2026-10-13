@@ -88,7 +88,9 @@ export const newsletterSubscribeSchema = z.object({
 });
 export type NewsletterSubscribeInput = z.infer<typeof newsletterSubscribeSchema>;
 
+/** Both values come from the unsubscribe link (see the API's newsletterUnsubscribeToken). */
 export const newsletterUnsubscribeSchema = z.object({
+  id: z.uuid(),
   token: z.string().min(20).max(200),
 });
 

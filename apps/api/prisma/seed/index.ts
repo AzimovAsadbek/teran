@@ -12,9 +12,10 @@ import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { LOCALES, buildSearchText, type Locale } from '@teran/contracts';
+import { LOCALES, type Locale } from '@teran/contracts';
 import { Prisma, PrismaClient } from '../../src/generated/prisma/client.js';
 import { refreshMinPrice } from '../../src/catalog/product-pricing.js';
+import { productSearchText } from '../../src/catalog/product-search.js';
 import { productImagePrefix, storeImage } from '../../src/media/image-processing.js';
 import { renderLeafStudy, renderPackshot } from './demo-art.js';
 import {
@@ -166,11 +167,11 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct): Promise<s
             name: demo.name[locale],
             shortDescription: demo.shortDescription[locale],
             description: demo.description[locale],
-            searchText: buildSearchText([
-              demo.name[locale],
-              demo.shortDescription[locale],
-              demo.description[locale],
-            ]),
+            searchText: productSearchText({
+              name: demo.name[locale],
+              shortDescription: demo.shortDescription[locale],
+              description: demo.description[locale],
+            }),
           })),
         },
         collections: { create: collections.map((collection) => ({ collectionId: collection.id })) },

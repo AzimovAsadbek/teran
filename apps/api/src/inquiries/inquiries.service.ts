@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type {
   contactInquirySchema,
   newsletterSubscribeSchema,
   wholesaleInquirySchema,
 } from '@teran/contracts';
 import type { z } from 'zod';
-import { generateToken, sha256 } from '../common/crypto.js';
+import { digestsEqual, newsletterUnsubscribeToken, sha256 } from '../common/crypto.js';
 import { ApiException } from '../common/errors/api-exception.js';
+import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 type ContactInput = z.output<typeof contactInquirySchema>;
@@ -21,7 +23,14 @@ type SubscribeInput = z.output<typeof newsletterSubscribeSchema>;
 export class InquiriesService {
   private readonly logger = new Logger(InquiriesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly appSecret: string;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    config: ConfigService<Env, true>,
+  ) {
+    this.appSecret = config.get('APP_SECRET', { infer: true });
+  }
 
   async createContact(input: ContactInput): Promise<void> {
     if (input.website) return;
@@ -83,21 +92,23 @@ export class InquiriesService {
         email: input.email,
         locale: input.locale,
         source: input.source ?? null,
-        unsubscribeTokenHash: sha256(generateToken()),
       },
     });
   }
 
-  async unsubscribe(token: string): Promise<void> {
-    const result = await this.prisma.newsletterSubscriber.updateMany({
-      where: { unsubscribeTokenHash: sha256(token), status: 'SUBSCRIBED' },
+  /** Idempotent; an unknown subscriber and a wrong token get the same answer. */
+  async unsubscribe(id: string, token: string): Promise<void> {
+    const subscriber = await this.prisma.newsletterSubscriber.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    const expected = newsletterUnsubscribeToken(this.appSecret, id);
+    if (!subscriber || !digestsEqual(sha256(token), sha256(expected))) {
+      throw ApiException.badRequest('INVALID_TOKEN', 'This link is invalid');
+    }
+    await this.prisma.newsletterSubscriber.updateMany({
+      where: { id, status: 'SUBSCRIBED' },
       data: { status: 'UNSUBSCRIBED', unsubscribedAt: new Date() },
     });
-    if (result.count === 0) {
-      const known = await this.prisma.newsletterSubscriber.count({
-        where: { unsubscribeTokenHash: sha256(token) },
-      });
-      if (known === 0) throw ApiException.badRequest('INVALID_TOKEN', 'This link is invalid');
-    }
   }
 }

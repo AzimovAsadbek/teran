@@ -5,6 +5,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage } from 'node:http';
+import { AdminModule } from './admin/admin.module.js';
 import { validateEnv, type Env } from './config/env.js';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter.js';
 import { isInternalRequest, redactUrl } from './common/security/internal-request.js';
@@ -87,6 +88,7 @@ function requestId(request: IncomingMessage): string {
     OrdersModule,
     AuthModule,
     InquiriesModule,
+    AdminModule,
   ],
   providers: [
     // Order matters: rate limiting runs before authorization.

@@ -54,13 +54,13 @@ export class InquiriesController {
 
   @Post('newsletter/unsubscribe')
   @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({ summary: 'Unsubscribe with the token from a newsletter e-mail' })
+  @ApiOperation({ summary: 'Unsubscribe with the id and token from a newsletter link' })
   @ApiOkResponse({ description: 'AcceptedDto' })
   async unsubscribe(
     @Body({ schema: newsletterUnsubscribeSchema })
     body: z.output<typeof newsletterUnsubscribeSchema>,
   ): Promise<AcceptedDto> {
-    await this.inquiries.unsubscribe(body.token);
+    await this.inquiries.unsubscribe(body.id, body.token);
     return ACCEPTED;
   }
 }

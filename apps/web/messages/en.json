@@ -95,7 +95,12 @@
     "submit": "Subscribe",
     "submitting": "Sending…",
     "success": "Thank you! You are subscribed.",
-    "consent": "By subscribing you agree to our <privacy>privacy policy</privacy>. You can unsubscribe at any time."
+    "consent": "By subscribing you agree to our <privacy>privacy policy</privacy>. You can unsubscribe at any time.",
+    "unsubscribeTitle": "Unsubscribe",
+    "unsubscribeText": "If you no longer want to receive news from TERAN, press the button below.",
+    "unsubscribeButton": "Unsubscribe",
+    "unsubscribeDone": "You have been unsubscribed. We will not send you any more e-mails.",
+    "unsubscribeInvalid": "This link is invalid or has expired."
   },
   "Home": {
     "metaTitle": "TERAN — premium tea online store",

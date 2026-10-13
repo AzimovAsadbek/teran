@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 
 /** 256-bit opaque token for cookies and links. Only its SHA-256 is ever stored. */
 export function generateToken(): string {
@@ -29,4 +29,15 @@ export function generateOrderNumber(): string {
     code += ORDER_ALPHABET[randomInt(ORDER_ALPHABET.length)];
   }
   return `TRN-${code}`;
+}
+
+/**
+ * Unsubscribe token for a newsletter subscriber, derived from the server secret so it never has to
+ * be stored and every e-mail (or export) can include a working link. Rotating APP_SECRET
+ * invalidates old links.
+ */
+export function newsletterUnsubscribeToken(appSecret: string, subscriberId: string): string {
+  return createHmac('sha256', appSecret)
+    .update(`newsletter-unsubscribe:${subscriberId}`)
+    .digest('base64url');
 }

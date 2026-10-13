@@ -538,3 +538,14 @@ export interface AdminDashboard {
   salesByDay: SalesDay[];
   topProducts: { productName: string; quantity: number; revenue: Money }[];
 }
+
+export interface AdminAuditEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  actorName: string | null;
+  metadata: unknown;
+  ipAddress: string | null;
+  createdAt: string;
+}

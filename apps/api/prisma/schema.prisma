@@ -579,7 +579,6 @@ model NewsletterSubscriber {
   locale               Locale
   status               NewsletterStatus @default(SUBSCRIBED)
   source               String?
-  unsubscribeTokenHash String           @unique
   subscribedAt         DateTime         @default(now())
   unsubscribedAt       DateTime?
 

@@ -1,17 +1,37 @@
 import 'server-only';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { ApiError, readErrorBody } from './errors';
 
 const API_URL = (process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000').replace(/\/$/, '');
+const INTERNAL_KEY = process.env.API_INTERNAL_KEY;
 const TIMEOUT_MS = 8_000;
 
+/** The visitor a server-side request is made for: their cookies and their client IP. */
+interface VisitorContext {
+  cookie: string;
+  forwardedFor: string | null;
+}
+
 /**
- * Server-to-server GET against the API. Never cached by fetch itself: callers decide caching
- * with `'use cache'`, and personal requests forward the visitor's cookies explicitly.
+ * Server-to-server GET against the API. Never cached by fetch itself: callers decide caching with
+ * `'use cache'`.
+ *
+ * - Without a visitor (cached catalogue/content loads shared by everyone) the request carries the
+ *   internal key, so the API does not count it against one IP's rate limit.
+ * - With a visitor (account pages, order status) it forwards their cookies and client IP instead,
+ *   so per-visitor limits and authorisation apply exactly as for a browser request.
  */
-export async function apiGet<T>(path: string, init: { cookie?: string } = {}): Promise<T> {
+export async function apiGet<T>(path: string, visitor?: VisitorContext): Promise<T> {
+  const requestHeaders: Record<string, string> = { Accept: 'application/json' };
+  if (visitor) {
+    if (visitor.cookie) requestHeaders.Cookie = visitor.cookie;
+    if (visitor.forwardedFor) requestHeaders['X-Forwarded-For'] = visitor.forwardedFor;
+  } else if (INTERNAL_KEY) {
+    requestHeaders['X-Internal-Key'] = INTERNAL_KEY;
+  }
+
   const response = await fetch(`${API_URL}/api/v1${path}`, {
-    headers: { Accept: 'application/json', ...(init.cookie ? { Cookie: init.cookie } : {}) },
+    headers: requestHeaders,
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -34,13 +54,27 @@ export async function apiGetOrNull<T>(path: string): Promise<T | null> {
   }
 }
 
+async function visitorContext(): Promise<VisitorContext> {
+  const [cookieStore, headerList] = await Promise.all([cookies(), headers()]);
+  return { cookie: cookieStore.toString(), forwardedFor: headerList.get('x-forwarded-for') };
+}
+
 /** GET on behalf of the current visitor (account and admin pages); returns null when unauthenticated. */
 export async function apiGetAsVisitor<T>(path: string): Promise<T | null> {
-  const cookieHeader = (await cookies()).toString();
   try {
-    return await apiGet<T>(path, { cookie: cookieHeader });
+    return await apiGet<T>(path, await visitorContext());
   } catch (error) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return null;
+    throw error;
+  }
+}
+
+/** Per-visitor GET where 400/404 mean "no such resource for this visitor" (e.g. a guest order link). */
+export async function apiFindAsVisitor<T>(path: string): Promise<T | null> {
+  try {
+    return await apiGet<T>(path, await visitorContext());
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 400 || error.status === 404)) return null;
     throw error;
   }
 }

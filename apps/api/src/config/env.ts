@@ -30,6 +30,12 @@ const envObjectSchema = z.object({
   /** Server-side secret for HMAC derivations (e.g. guest order links). Rotate to invalidate links. */
   APP_SECRET: z.string().min(32),
 
+  /**
+   * Shared with the storefront server. Its cached catalogue/content requests send this key and are
+   * exempt from per-IP rate limits (they serve every visitor from a single IP). Required in production.
+   */
+  INTERNAL_API_KEY: z.string().min(32).optional(),
+
   COOKIE_SECURE: flag.default(false),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   STAFF_SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(72).default(12),
@@ -88,7 +94,14 @@ export const envSchema = z
           message: '"log" is not allowed in production',
         });
       }
-      for (const key of ['APP_SECRET', 'REVALIDATE_SECRET'] as const) {
+      if (!env.INTERNAL_API_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['INTERNAL_API_KEY'],
+          message: 'is required in production (shared with the web server)',
+        });
+      }
+      for (const key of ['APP_SECRET', 'REVALIDATE_SECRET', 'INTERNAL_API_KEY'] as const) {
         if (env[key]?.includes('replace-with')) {
           ctx.addIssue({
             code: 'custom',

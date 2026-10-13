@@ -7,6 +7,7 @@ import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage } from 'node:http';
 import { validateEnv, type Env } from './config/env.js';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter.js';
+import { isInternalRequest, redactUrl } from './common/security/internal-request.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
 import { SessionMiddleware } from './auth/session.middleware.js';
@@ -54,7 +55,7 @@ function requestId(request: IncomingMessage): string {
               req: (request: { id: string; method: string; url: string }) => ({
                 id: request.id,
                 method: request.method,
-                url: request.url,
+                url: redactUrl(request.url),
               }),
               res: (response: { statusCode: number }) => ({ statusCode: response.statusCode }),
             },
@@ -70,7 +71,12 @@ function requestId(request: IncomingMessage): string {
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => ({
         throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
-        skipIf: () => config.get('THROTTLE_DISABLED', { infer: true }),
+        skipIf: (context) =>
+          config.get('THROTTLE_DISABLED', { infer: true }) ||
+          isInternalRequest(
+            context.switchToHttp().getRequest<IncomingMessage>(),
+            config.get('INTERNAL_API_KEY', { infer: true }),
+          ),
       }),
     }),
     PrismaModule,

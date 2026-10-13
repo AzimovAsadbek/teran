@@ -102,6 +102,10 @@ Before a release, or after changing anything in `docker/`, the Dockerfiles or th
    access-log token redaction and the backup and restore commands from the deployment guide.
 6. `docker compose -p teran-smoke … down -v` removes everything.
 
+Production rate limits stay on during the rehearsal. Registration allows 5 per hour per IP and a
+full run registers three accounts, so a second run within the hour needs
+`docker compose -p teran-smoke … restart api` first (the counters live in memory).
+
 This rehearsal has been run for the current release: all browser journeys passed over HTTPS with
 secure cookies, forged `X-Forwarded-For` headers could not bypass rate limits, and the documented
 backup and restore commands worked.

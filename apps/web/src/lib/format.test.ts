@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatAmount, formatGrams, multiplyMoney, packLabel } from './format';
+import {
+  formatAmount,
+  formatDate,
+  formatDateTime,
+  formatGrams,
+  multiplyMoney,
+  packLabel,
+} from './format';
 
 describe('money formatting', () => {
   it('multiplies decimal strings exactly', () => {
@@ -10,17 +17,36 @@ describe('money formatting', () => {
   });
 
   it('formats whole soʻm without decimals and keeps real fractions', () => {
-    expect(formatAmount('85000.00', 'uz').replace(/\s/g, ' ')).toBe('85 000');
+    expect(formatAmount('85000.00', 'uz')).toBe('85\u00a0000');
     expect(formatAmount('85000.50', 'en')).toBe('85,000.50');
+    expect(formatAmount('1234567.5', 'ru')).toBe('1\u00a0234\u00a0567,50');
+    expect(formatAmount('0.00', 'uz')).toBe('0');
+    expect(formatAmount('999.00', 'en')).toBe('999');
+  });
+
+  it('formats every locale the same way on the server and in any browser', () => {
+    // Chromium has no Uzbek data, so these must not depend on Intl (see format.ts).
+    expect(formatAmount('56000.00', 'uz')).toBe('56\u00a0000');
+    expect(formatDate('2026-10-04T19:05:00.000Z', 'uz')).toBe('5-oktabr, 2026');
+    expect(formatDateTime('2026-10-04T19:05:00.000Z', 'uz')).toBe('5-okt, 2026, 00:05');
+    expect(formatDateTime('2026-01-31T10:30:00.000Z', 'uz')).toBe('31-yan, 2026, 15:30');
+  });
+
+  it('uses CLDR date patterns for Russian and English in Tashkent time', () => {
+    expect(formatDate('2026-10-04T19:05:00.000Z', 'ru')).toBe('5 октября 2026 г.');
+    expect(formatDate('2026-10-04T19:05:00.000Z', 'en')).toBe('October 5, 2026');
   });
 });
 
 describe('pack labels', () => {
   const units = (key: string, values: { count: number }) => `${values.count} ${key}`;
 
-  it('localises grams through Intl', () => {
+  it('localises grams', () => {
     expect(formatGrams(100, 'ru')).toBe('100 г');
     expect(formatGrams(100, 'uz')).toBe('100 g');
+    expect(formatGrams(1500, 'uz')).toBe('1\u00a0500 g');
+    expect(formatGrams(1500, 'en')).toBe('1,500 g');
+    expect(formatGrams(2.5, 'ru')).toBe('2,5 г');
   });
 
   it('combines unit counts and weight', () => {

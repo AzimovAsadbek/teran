@@ -162,6 +162,7 @@
     "description": "Каталог чая TERAN: выбирайте по виду, формату и цене.",
     "metaTitle": "Каталог чая",
     "results": "{count, plural, =0 {Товары не найдены} one {# товар} few {# товара} many {# товаров} other {# товара}}",
+    "productsHeading": "Товары",
     "filters": "Фильтры",
     "filterBy": "Сортировка и фильтры",
     "showResults": "{count, plural, =0 {Нет результатов} one {Показать # товар} few {Показать # товара} many {Показать # товаров} other {Показать # товара}}",

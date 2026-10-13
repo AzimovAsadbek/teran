@@ -162,6 +162,7 @@
     "description": "The TERAN tea catalogue: browse by type, format and price.",
     "metaTitle": "Tea catalogue",
     "results": "{count, plural, =0 {No products} one {# product} other {# products}}",
+    "productsHeading": "Products",
     "filters": "Filters",
     "filterBy": "Sort and filter",
     "showResults": "{count, plural, =0 {No results} one {Show # product} other {Show # products}}",

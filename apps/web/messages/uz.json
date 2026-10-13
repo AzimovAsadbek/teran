@@ -162,6 +162,7 @@
     "description": "TERAN choylari katalogi: choy turi, shakli va narxi boʻyicha saralang.",
     "metaTitle": "Choylar katalogi",
     "results": "{count, plural, =0 {Mahsulot topilmadi} other {# ta mahsulot}}",
+    "productsHeading": "Mahsulotlar",
     "filters": "Filtrlar",
     "filterBy": "Saralash va filtrlash",
     "showResults": "{count, plural, =0 {Natija yoʻq} other {# ta mahsulotni koʻrsatish}}",

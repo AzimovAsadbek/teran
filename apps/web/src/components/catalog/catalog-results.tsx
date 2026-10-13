@@ -67,13 +67,17 @@ export async function CatalogResults({
           </ButtonLink>
         </div>
       ) : (
-        <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-6 md:grid-cols-3 xl:grid-cols-4">
-          {list.items.map((product, index) => (
-            <li key={product.id}>
-              <ProductCard product={product} priority={index < 4} />
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Keeps the outline in order: page title (h1), this list (h2), product names (h3). */}
+          <h2 className="sr-only">{t('productsHeading')}</h2>
+          <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-6 md:grid-cols-3 xl:grid-cols-4">
+            {list.items.map((product, index) => (
+              <li key={product.id}>
+                <ProductCard product={product} priority={index < 4} />
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       <Pagination page={list.page} totalPages={list.totalPages} hrefFor={hrefFor} />
     </>

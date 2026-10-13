@@ -1,41 +1,130 @@
 import type { Locale, Money, ProductFormat } from '@teran/contracts';
 
-const NUMBER_LOCALES: Record<Locale, string> = { uz: 'uz', ru: 'ru', en: 'en' };
+/*
+ * Numbers, and dates in Uzbek, are formatted here rather than by Intl. Chromium (Chrome, Android
+ * WebView) ships without Uzbek locale data and falls back to root formats ("1,234.5",
+ * "2026 M10 14"): Uzbek shoppers would see foreign formatting, and text rendered on the server
+ * (Node.js has full ICU data) would differ from the browser's, which breaks hydration. The
+ * patterns are CLDR's, as Node.js produces them.
+ */
+
+const SEPARATORS: Record<Locale, { group: string; decimal: string }> = {
+  uz: { group: '\u00a0', decimal: ',' },
+  ru: { group: '\u00a0', decimal: ',' },
+  en: { group: ',', decimal: '.' },
+};
+
+const GRAM_UNIT: Record<Locale, string> = { uz: 'g', ru: 'г', en: 'g' };
+
+/** Uzbek month names in dates ("5-oktabr, 2026"; stand-alone forms are capitalised). */
+const UZ_MONTHS = [
+  'yanvar',
+  'fevral',
+  'mart',
+  'aprel',
+  'may',
+  'iyun',
+  'iyul',
+  'avgust',
+  'sentabr',
+  'oktabr',
+  'noyabr',
+  'dekabr',
+];
+const UZ_MONTHS_SHORT = [
+  'yan',
+  'fev',
+  'mar',
+  'apr',
+  'may',
+  'iyn',
+  'iyl',
+  'avg',
+  'sen',
+  'okt',
+  'noy',
+  'dek',
+];
+
+const TIME_ZONE = 'Asia/Tashkent';
+
+function groupDigits(digits: string, separator: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+}
 
 /**
- * Formats an exact decimal money string. Intl accepts numeric strings, so no floating-point
- * conversion happens; whole soʻm amounts are shown without decimals.
+ * Formats an exact decimal money string without floating point; whole soʻm amounts are shown
+ * without decimals, real fractions with two.
  */
 export function formatAmount(amount: Money, locale: Locale): string {
-  const hasFraction = /\.\d*[1-9]/.test(amount);
-  return new Intl.NumberFormat(NUMBER_LOCALES[locale], {
-    minimumFractionDigits: hasFraction ? 2 : 0,
-    maximumFractionDigits: 2,
-  }).format(amount as Intl.StringNumericLiteral);
+  const match = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(amount);
+  if (!match) throw new Error(`Invalid money amount: ${amount}`);
+  const [, sign = '', whole = '0', fraction = ''] = match;
+  const { group, decimal } = SEPARATORS[locale];
+  const integer = groupDigits(whole.replace(/^0+(?=\d)/, ''), group);
+  return /[1-9]/.test(fraction)
+    ? `${sign}${integer}${decimal}${fraction.padEnd(2, '0')}`
+    : `${sign}${integer}`;
 }
 
 export function formatMoney(amount: Money, locale: Locale, currencyLabel: string): string {
-  return `${formatAmount(amount, locale)} ${currencyLabel}`;
+  return `${formatAmount(amount, locale)} ${currencyLabel}`;
 }
 
 export function formatGrams(grams: number, locale: Locale): string {
-  return new Intl.NumberFormat(NUMBER_LOCALES[locale], { style: 'unit', unit: 'gram' }).format(
-    grams,
+  const [integer = '0', fraction] = String(Math.abs(grams)).split('.');
+  const { group, decimal } = SEPARATORS[locale];
+  const number = `${groupDigits(integer, group)}${fraction ? `${decimal}${fraction}` : ''}`;
+  return `${grams < 0 ? '-' : ''}${number} ${GRAM_UNIT[locale]}`;
+}
+
+/** Calendar fields in Tashkent time, read through the en-US data every runtime ships. */
+function tashkentParts(iso: string): {
+  year: number;
+  month: number;
+  day: number;
+  time: string;
+} {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso));
+  const field = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  return {
+    year: Number(field('year')),
+    month: Number(field('month')) - 1,
+    day: Number(field('day')),
+    time: `${field('hour')}:${field('minute')}`,
+  };
+}
+
+/** "5-oktabr, 2026" · "5 октября 2026 г." · "October 5, 2026" (Tashkent time). */
+export function formatDate(iso: string, locale: Locale): string {
+  if (locale === 'uz') {
+    const { year, month, day } = tashkentParts(iso);
+    return `${day}-${UZ_MONTHS[month]}, ${year}`;
+  }
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: TIME_ZONE }).format(
+    new Date(iso),
   );
 }
 
-export function formatDate(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(NUMBER_LOCALES[locale], {
-    dateStyle: 'long',
-    timeZone: 'Asia/Tashkent',
-  }).format(new Date(iso));
-}
-
+/** "5-okt, 2026, 14:05" · "5 окт. 2026 г., 14:05" · "Oct 5, 2026, 2:05 PM" (Tashkent time). */
 export function formatDateTime(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(NUMBER_LOCALES[locale], {
+  if (locale === 'uz') {
+    const { year, month, day, time } = tashkentParts(iso);
+    return `${day}-${UZ_MONTHS_SHORT[month]}, ${year}, ${time}`;
+  }
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
-    timeZone: 'Asia/Tashkent',
+    timeZone: TIME_ZONE,
   }).format(new Date(iso));
 }
 

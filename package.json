@@ -1,0 +1,30 @@
+{
+  "name": "teran-tea-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TERAN premium tea e-commerce platform (Next.js web, NestJS API, PostgreSQL)",
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @teran/contracts build && pnpm --parallel --filter @teran/contracts --filter @teran/api --filter @teran/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm --filter @teran/contracts build && pnpm -r typecheck",
+    "test": "pnpm --filter @teran/contracts build && pnpm -r test",
+    "test:integration": "pnpm --filter @teran/api test:integration",
+    "test:e2e": "pnpm --filter @teran/e2e test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @teran/api prisma:migrate:dev",
+    "db:seed": "pnpm --filter @teran/api db:seed",
+    "audit:prod": "pnpm audit --prod --audit-level high"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}

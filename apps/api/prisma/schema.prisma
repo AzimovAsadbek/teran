@@ -1,0 +1,639 @@
+// TERAN data model. See docs/architecture/database.md for the reasoning behind these decisions.
+//
+// Conventions
+// - Primary keys are UUIDv7 (time-ordered, index friendly, not guessable like serial ids).
+// - Money is NUMERIC(12,2) with an explicit ISO-4217 currency column (UZS by default).
+// - Quantities are integers. Invariants that Prisma cannot express (non-negative stock,
+//   positive quantities, price ordering) are enforced with CHECK constraints in migrations.
+// - Localised content lives in *Translation tables keyed by (entity, locale).
+// - Orders snapshot every purchase-time value they depend on.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Locale {
+  uz
+  ru
+  en
+}
+
+enum UserRole {
+  CUSTOMER
+  MANAGER
+  ADMIN
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProductFormat {
+  LOOSE_LEAF
+  TEA_BAGS
+  PYRAMIDS
+  GIFT_SET
+  ACCESSORY
+}
+
+enum CaffeineLevel {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+}
+
+enum InventoryReason {
+  INITIAL_STOCK
+  RESTOCK
+  MANUAL_ADJUSTMENT
+  ORDER_PLACED
+  ORDER_CANCELLED
+  RETURN
+}
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  SPAM
+}
+
+enum BusinessType {
+  CAFE_RESTAURANT
+  HOTEL
+  RETAIL
+  DISTRIBUTOR
+  CORPORATE
+  OTHER
+}
+
+enum NewsletterStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// ─── Identity & access ──────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  /// Always stored trimmed and lower-cased.
+  email            String    @unique
+  passwordHash     String
+  role             UserRole  @default(CUSTOMER)
+  firstName        String
+  lastName         String?
+  /// E.164 format, e.g. +998901234567.
+  phone            String?
+  locale           Locale    @default(uz)
+  isActive         Boolean   @default(true)
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  carts               Cart[]
+  orders              Order[]
+  orderEvents         OrderStatusEvent[]
+  inventoryMovements  InventoryMovement[]
+  confirmedPayments   Payment[]
+  auditLogs           AuditLog[]
+
+  @@index([role])
+}
+
+model Session {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  /// SHA-256 of the opaque session token; the raw token only ever lives in the HttpOnly cookie.
+  tokenHash  String   @unique
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  tokenHash String    @unique
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ─── Catalogue ──────────────────────────────────────────────────────────────
+
+model Category {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  slug            String   @unique
+  position        Int      @default(0)
+  isActive        Boolean  @default(true)
+  /// Built-in illustration used when no photo is uploaded (e.g. "black", "green", "herbal").
+  illustrationKey String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  translations CategoryTranslation[]
+  products     Product[]
+
+  @@index([isActive, position])
+}
+
+model CategoryTranslation {
+  categoryId     String   @db.Uuid
+  category       Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale         Locale
+  name           String
+  description    String?
+  seoTitle       String?
+  seoDescription String?
+
+  @@id([categoryId, locale])
+}
+
+model Collection {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  slug            String   @unique
+  position        Int      @default(0)
+  isActive        Boolean  @default(true)
+  illustrationKey String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  translations CollectionTranslation[]
+  products     ProductCollection[]
+
+  @@index([isActive, position])
+}
+
+model CollectionTranslation {
+  collectionId   String     @db.Uuid
+  collection     Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  locale         Locale
+  name           String
+  description    String?
+  seoTitle       String?
+  seoDescription String?
+
+  @@id([collectionId, locale])
+}
+
+model ProductCollection {
+  collectionId String     @db.Uuid
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  productId    String     @db.Uuid
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  position     Int        @default(0)
+
+  @@id([collectionId, productId])
+  @@index([productId])
+}
+
+model Product {
+  id                 String         @id @default(uuid(7)) @db.Uuid
+  slug               String         @unique
+  status             ProductStatus  @default(DRAFT)
+  categoryId         String         @db.Uuid
+  category           Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  format             ProductFormat  @default(LOOSE_LEAF)
+  isFeatured         Boolean        @default(false)
+  /// Only set when the value is known for the product; never guessed.
+  caffeineLevel      CaffeineLevel?
+  brewTempCelsius    Int?
+  brewTimeMinSeconds Int?
+  brewTimeMaxSeconds Int?
+  /// Grams of tea per 250 ml of water.
+  brewAmountGrams    Decimal?       @db.Decimal(4, 1)
+  /// Built-in artwork used for demo imagery when no photo is uploaded.
+  illustrationKey    String?
+  publishedAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  translations ProductTranslation[]
+  variants     ProductVariant[]
+  images       ProductImage[]
+  collections  ProductCollection[]
+
+  @@index([status, categoryId])
+  @@index([status, publishedAt])
+  @@index([categoryId])
+}
+
+model ProductTranslation {
+  productId        String  @db.Uuid
+  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locale           Locale
+  name             String
+  shortDescription String?
+  description      String?
+  ingredients      String?
+  tastingNotes     String?
+  /// Only filled in when the origin has been verified by TERAN.
+  origin           String?
+  seoTitle         String?
+  seoDescription   String?
+  /// Lower-cased, apostrophe-normalised text used for search (name + descriptions + ingredients).
+  searchText       String
+
+  @@id([productId, locale])
+  @@index([locale])
+  /// Trigram index for substring search (requires the pg_trgm extension, created in migration).
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+model ProductVariant {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  productId         String   @db.Uuid
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku               String   @unique
+  /// Net weight in grams (e.g. 100). Variant labels are generated from structured data per locale.
+  weightGrams       Int?
+  /// Number of tea bags / pyramids / items in the pack.
+  unitCount         Int?
+  price             Decimal  @db.Decimal(12, 2)
+  compareAtPrice    Decimal? @db.Decimal(12, 2)
+  currency          String   @default("UZS") @db.Char(3)
+  stockQuantity     Int      @default(0)
+  lowStockThreshold Int      @default(5)
+  /// Optional GTIN/EAN; only stored when it is a real assigned code.
+  barcode           String?  @unique
+  isActive          Boolean  @default(true)
+  position          Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([productId, isActive, position])
+}
+
+model ProductImage {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  productId  String   @db.Uuid
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Storage prefix; files live at <storageKey>/<width>.webp.
+  storageKey String   @unique
+  widths     Int[]
+  width      Int
+  height     Int
+  /// Optional alt text override; otherwise the localised product name is used.
+  altText    String?
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([productId, position])
+}
+
+// ─── Shopping cart ──────────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(uuid(7)) @db.Uuid
+  /// SHA-256 of the opaque cart token stored in the HttpOnly cart cookie.
+  tokenHash String     @unique
+  userId    String?    @db.Uuid
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  expiresAt DateTime
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  cartId    String         @db.Uuid
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId String         @db.Uuid
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([cartId, variantId])
+  @@index([variantId])
+}
+
+// ─── Delivery ───────────────────────────────────────────────────────────────
+
+model DeliveryMethod {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  code            String   @unique
+  isActive        Boolean  @default(true)
+  position        Int      @default(0)
+  price           Decimal  @db.Decimal(12, 2)
+  /// Order subtotal from which delivery becomes free; null = never free.
+  freeFromAmount  Decimal? @db.Decimal(12, 2)
+  currency        String   @default("UZS") @db.Char(3)
+  /// Region codes this method serves; empty = every region.
+  regionCodes     String[]
+  /// False for pickup-style methods that do not need a street address.
+  requiresAddress Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  translations DeliveryMethodTranslation[]
+  orders       Order[]
+
+  @@index([isActive, position])
+}
+
+model DeliveryMethodTranslation {
+  deliveryMethodId String         @db.Uuid
+  deliveryMethod   DeliveryMethod @relation(fields: [deliveryMethodId], references: [id], onDelete: Cascade)
+  locale           Locale
+  name             String
+  description      String?
+  /// Human-readable delivery time estimate, as configured by TERAN.
+  estimate         String?
+
+  @@id([deliveryMethodId, locale])
+}
+
+// ─── Orders & payments ──────────────────────────────────────────────────────
+
+model Order {
+  id                 String          @id @default(uuid(7)) @db.Uuid
+  /// Public, non-sequential order number (e.g. TRN-7K4Q2M9X).
+  number             String          @unique
+  status             OrderStatus     @default(PENDING)
+  paymentStatus      PaymentStatus   @default(PENDING)
+  paymentMethod      PaymentMethod
+  locale             Locale
+  userId             String?         @db.Uuid
+  user               User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName       String
+  customerPhone      String
+  customerEmail      String?
+  deliveryMethodId   String?         @db.Uuid
+  deliveryMethod     DeliveryMethod? @relation(fields: [deliveryMethodId], references: [id], onDelete: SetNull)
+  deliveryMethodName String
+  regionCode         String
+  city               String
+  addressLine        String?
+  landmark           String?
+  customerNote       String?
+  currency           String          @default("UZS") @db.Char(3)
+  subtotal           Decimal         @db.Decimal(12, 2)
+  deliveryFee        Decimal         @db.Decimal(12, 2)
+  discountTotal      Decimal         @default(0) @db.Decimal(12, 2)
+  total              Decimal         @db.Decimal(12, 2)
+  /// Client-generated key that makes order submission idempotent.
+  idempotencyKey     String          @unique
+  /// SHA-256 of the token in the guest order-status link.
+  accessTokenHash    String
+  cancelReason       String?
+  confirmedAt        DateTime?
+  shippedAt          DateTime?
+  deliveredAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  items    OrderItem[]
+  events   OrderStatusEvent[]
+  payments Payment[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([customerPhone])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  orderId     String          @db.Uuid
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId   String?         @db.Uuid
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  // Purchase-time snapshot, independent of later catalogue edits.
+  productName String
+  productSlug String
+  sku         String
+  weightGrams Int?
+  unitCount   Int?
+  unitPrice   Decimal         @db.Decimal(12, 2)
+  quantity    Int
+  lineTotal   Decimal         @db.Decimal(12, 2)
+
+  @@index([orderId])
+  @@index([variantId])
+}
+
+model OrderStatusEvent {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  orderId       String         @db.Uuid
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus    OrderStatus?
+  toStatus      OrderStatus
+  paymentStatus PaymentStatus?
+  note          String?
+  actorUserId   String?        @db.Uuid
+  actor         User?          @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+model Payment {
+  id                String        @id @default(uuid(7)) @db.Uuid
+  orderId           String        @db.Uuid
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method            PaymentMethod
+  status            PaymentStatus @default(PENDING)
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @default("UZS") @db.Char(3)
+  /// Transaction id from an online provider (unused for cash on delivery).
+  providerReference String?
+  confirmedAt       DateTime?
+  /// Staff member who recorded a manual confirmation (e.g. cash collected on delivery).
+  confirmedById     String?       @db.Uuid
+  confirmedBy       User?         @relation(fields: [confirmedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([method, providerReference])
+  @@index([orderId])
+}
+
+// ─── Inventory ledger ───────────────────────────────────────────────────────
+
+model InventoryMovement {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  variantId     String          @db.Uuid
+  variant       ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  delta         Int
+  quantityAfter Int
+  reason        InventoryReason
+  orderId       String?         @db.Uuid
+  actorUserId   String?         @db.Uuid
+  actor         User?           @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  note          String?
+  createdAt     DateTime        @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([orderId])
+}
+
+// ─── Inquiries & marketing ──────────────────────────────────────────────────
+
+model ContactInquiry {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  name         String
+  email        String?
+  phone        String?
+  subject      String?
+  message      String
+  locale       Locale
+  status       InquiryStatus @default(NEW)
+  internalNote String?
+  handledAt    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model WholesaleInquiry {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  companyName   String
+  contactName   String
+  phone         String
+  email         String?
+  businessType  BusinessType
+  regionCode    String?
+  city          String?
+  monthlyVolume String?
+  message       String?
+  locale        Locale
+  status        InquiryStatus @default(NEW)
+  internalNote  String?
+  handledAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model NewsletterSubscriber {
+  id                   String           @id @default(uuid(7)) @db.Uuid
+  email                String           @unique
+  locale               Locale
+  status               NewsletterStatus @default(SUBSCRIBED)
+  source               String?
+  unsubscribeTokenHash String           @unique
+  subscribedAt         DateTime         @default(now())
+  unsubscribedAt       DateTime?
+
+  @@index([status])
+}
+
+// ─── Content ────────────────────────────────────────────────────────────────
+
+model SiteSetting {
+  key         String   @id
+  /// Shape is validated per key by the API (see SettingsService).
+  value       Json
+  updatedById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+}
+
+model Article {
+  id              String        @id @default(uuid(7)) @db.Uuid
+  slug            String        @unique
+  status          ArticleStatus @default(DRAFT)
+  illustrationKey String?
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  translations ArticleTranslation[]
+
+  @@index([status, publishedAt])
+}
+
+model ArticleTranslation {
+  articleId      String  @db.Uuid
+  article        Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  locale         Locale
+  title          String
+  excerpt        String?
+  /// Plain-text body; paragraphs are separated by blank lines (rendered without HTML).
+  body           String
+  seoTitle       String?
+  seoDescription String?
+
+  @@id([articleId, locale])
+}
+
+// ─── Audit trail ────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  actorUserId String?  @db.Uuid
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  /// Dotted action name, e.g. "product.updated", "order.status_changed".
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+  @@index([createdAt])
+}

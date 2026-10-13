@@ -1,0 +1,19 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+
+# Dependency install scripts are blocked unless explicitly reviewed here.
+#  - prisma / @prisma/engines: official CLI; downloads the schema engine used by `prisma migrate`.
+#  - @scarf/scarf: install-time telemetry pulled in by swagger-ui-dist -> denied.
+#  - sharp, @swc/core, esbuild, @parcel/watcher, unrs-resolver: ship prebuilt platform binaries
+#    through optional dependencies, so their fallback build scripts are not needed.
+allowBuilds:
+  '@parcel/watcher': false
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  '@swc/core': false
+  esbuild: false
+  prisma: true
+  sharp: false
+  unrs-resolver: false

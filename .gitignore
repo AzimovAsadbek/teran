@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated code
+apps/api/src/generated/
+
+# Environment & secrets (only .env.example files are committed)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data
+apps/api/storage/
+uploads/
+*.log
+logs/
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+e2e/.auth/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Vercel / misc
+.vercel
+.turbo

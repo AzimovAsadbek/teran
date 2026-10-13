@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { E2E_ADMIN } from '../scripts/e2e-env.ts';
 

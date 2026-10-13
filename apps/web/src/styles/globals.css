@@ -189,7 +189,7 @@
    * Without backdrop-filter support they fall back to an opaque surface, so text stays readable.
    */
   .glass {
-    background-color: rgb(252 250 244 / 0.74);
+    background-color: rgb(252 250 244 / 0.86);
     -webkit-backdrop-filter: blur(18px) saturate(1.5);
     backdrop-filter: blur(18px) saturate(1.5);
     border: 1px solid rgb(255 255 255 / 0.55);
@@ -204,6 +204,16 @@
   }
 
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background-color: var(--color-ivory-50);
+    }
+    .glass-dark {
+      background-color: var(--color-forest-900);
+    }
+  }
+
+  /* People who ask for less transparency get solid surfaces. */
+  @media (prefers-reduced-transparency: reduce) {
     .glass {
       background-color: var(--color-ivory-50);
     }

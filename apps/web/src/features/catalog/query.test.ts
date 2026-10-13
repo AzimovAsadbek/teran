@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { hasRefinements, parseCatalogFilters, toApiQuery, toSearchParams, toggleFormat } from './query';
+import {
+  hasRefinements,
+  parseCatalogFilters,
+  toApiQuery,
+  toSearchParams,
+  toggleFormat,
+} from './query';
 
 describe('catalogue URL filters', () => {
   it('parses valid values and ignores malformed ones', () => {
@@ -43,8 +49,16 @@ describe('catalogue URL filters', () => {
   });
 
   it('builds a canonical API query so equal filters share a cache entry', () => {
-    const a = toApiQuery(parseCatalogFilters({ format: 'TEA_BAGS,LOOSE_LEAF' }), { category: 'black-tea' }, 24);
-    const b = toApiQuery(parseCatalogFilters({ format: 'LOOSE_LEAF,TEA_BAGS' }), { category: 'black-tea' }, 24);
+    const a = toApiQuery(
+      parseCatalogFilters({ format: 'TEA_BAGS,LOOSE_LEAF' }),
+      { category: 'black-tea' },
+      24,
+    );
+    const b = toApiQuery(
+      parseCatalogFilters({ format: 'LOOSE_LEAF,TEA_BAGS' }),
+      { category: 'black-tea' },
+      24,
+    );
     expect(a).toBe(b);
     expect(a).toContain('category=black-tea');
   });

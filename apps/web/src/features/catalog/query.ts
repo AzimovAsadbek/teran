@@ -33,7 +33,9 @@ export function parseCatalogFilters(params: RawSearchParams): CatalogFilters {
   const rawFormats = Array.isArray(params.format) ? params.format : [params.format ?? ''];
   const formats = rawFormats
     .flatMap((value) => value.split(','))
-    .filter((value): value is ProductFormat => (PRODUCT_FORMATS as readonly string[]).includes(value));
+    .filter((value): value is ProductFormat =>
+      (PRODUCT_FORMATS as readonly string[]).includes(value),
+    );
   const sort = first(params.sort);
   const page = Number(first(params.page));
   let minPrice = toPrice(first(params.minPrice));
@@ -46,7 +48,10 @@ export function parseCatalogFilters(params: RawSearchParams): CatalogFilters {
     minPrice,
     maxPrice,
     inStock: first(params.inStock) === 'true',
-    sort: sort && (PRODUCT_SORTS as readonly string[]).includes(sort) ? (sort as ProductSort) : 'featured',
+    sort:
+      sort && (PRODUCT_SORTS as readonly string[]).includes(sort)
+        ? (sort as ProductSort)
+        : 'featured',
     page: Number.isInteger(page) && page > 1 && page <= 1000 ? page : 1,
   };
 }
@@ -63,7 +68,10 @@ export function hasRefinements(filters: CatalogFilters): boolean {
 }
 
 /** Storefront URL query (only non-default values), e.g. "format=TEA_BAGS&sort=price_asc". */
-export function toSearchParams(filters: CatalogFilters, extra: Record<string, string> = {}): string {
+export function toSearchParams(
+  filters: CatalogFilters,
+  extra: Record<string, string> = {},
+): string {
   const params = new URLSearchParams(extra);
   if (filters.format.length > 0) params.set('format', [...filters.format].sort().join(','));
   if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));

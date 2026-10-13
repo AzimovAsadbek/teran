@@ -1,0 +1,56 @@
+import type { CurrentUserDto, Locale } from '@teran/contracts';
+import type { Metadata } from 'next';
+import { getLocale, getTranslations } from 'next-intl/server';
+import * as rootParams from 'next/root-params';
+import { connection } from 'next/server';
+import { Suspense } from 'react';
+import { CheckoutForm } from '@/components/checkout/checkout-form';
+import { Skeleton } from '@/components/ui/skeleton';
+import { apiGetAsVisitor } from '@/lib/api/server';
+import { getCheckoutOptions } from '@/lib/data/content';
+import { pageMetadata } from '@/lib/seo';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = (await rootParams.locale()) as Locale;
+  const t = await getTranslations({ locale, namespace: 'Checkout' });
+  return pageMetadata({ title: t('metaTitle'), href: '/checkout', locale, noIndex: true });
+}
+
+async function CheckoutLoader() {
+  await connection();
+  const locale = await getLocale();
+  const t = await getTranslations('Checkout');
+  const [options, user] = await Promise.all([
+    getCheckoutOptions(locale).catch(() => null),
+    // Prefill for signed-in customers only; a guest (or an API hiccup) simply gets empty fields.
+    apiGetAsVisitor<CurrentUserDto>('/auth/me').catch(() => null),
+  ]);
+
+  if (!options) {
+    return (
+      <p role="alert" className="mt-8 rounded-2xl bg-danger-100 px-5 py-4 text-danger-700">
+        {t('loadError')}
+      </p>
+    );
+  }
+  return <CheckoutForm options={options} user={user} />;
+}
+
+export default async function CheckoutPage() {
+  const t = await getTranslations('Checkout');
+  return (
+    <div className="container-page pt-10 pb-24">
+      <h1 className="text-display-lg text-forest-900">{t('title')}</h1>
+      <Suspense
+        fallback={
+          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12" aria-hidden>
+            <Skeleton className="h-96 rounded-[var(--radius-card)]" />
+            <Skeleton className="hidden h-80 rounded-[var(--radius-panel)] lg:block" />
+          </div>
+        }
+      >
+        <CheckoutLoader />
+      </Suspense>
+    </div>
+  );
+}

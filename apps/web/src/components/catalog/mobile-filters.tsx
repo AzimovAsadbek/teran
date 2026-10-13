@@ -36,7 +36,9 @@ export function MobileFilters({
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const activeCount =
-    filters.format.length + (filters.inStock ? 1 : 0) + (filters.minPrice !== undefined || filters.maxPrice !== undefined ? 1 : 0);
+    filters.format.length +
+    (filters.inStock ? 1 : 0) +
+    (filters.minPrice !== undefined || filters.maxPrice !== undefined ? 1 : 0);
 
   // With JavaScript, build a clean URL (no empty or default values); without it the GET form still works.
   function applyFilters(event: FormEvent<HTMLFormElement>) {
@@ -45,7 +47,10 @@ export function MobileFilters({
     for (const [key, value] of new FormData(event.currentTarget)) {
       if (typeof value !== 'string' || value === '') continue;
       const existing = raw[key];
-      raw[key] = existing === undefined ? value : [...(Array.isArray(existing) ? existing : [existing]), value];
+      raw[key] =
+        existing === undefined
+          ? value
+          : [...(Array.isArray(existing) ? existing : [existing]), value];
     }
     const query = toSearchParams({ ...parseCatalogFilters(raw), page: 1 });
     setOpen(false);
@@ -67,8 +72,19 @@ export function MobileFilters({
           </span>
         ) : null}
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} side="left" title={t('filterBy')} closeLabel={tc('close')}>
-        <form action={formAction} method="get" className="flex h-full flex-col" onSubmit={(event) => applyFilters(event)}>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        side="left"
+        title={t('filterBy')}
+        closeLabel={tc('close')}
+      >
+        <form
+          action={formAction}
+          method="get"
+          className="flex h-full flex-col"
+          onSubmit={(event) => applyFilters(event)}
+        >
           <div className="flex-1 space-y-8 px-5 py-6">
             <fieldset>
               <legend className="text-eyebrow text-gold-700">{t('format')}</legend>
@@ -80,17 +96,35 @@ export function MobileFilters({
               <div className="mt-3 flex items-center gap-2">
                 <label className="flex-1 text-sm text-ink-700">
                   {t('minPrice')}
-                  <input name="minPrice" inputMode="numeric" pattern="[0-9]*" defaultValue={filters.minPrice} className="mt-1 h-12 w-full rounded-xl border border-sage-500 bg-white px-3" />
+                  <input
+                    name="minPrice"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    defaultValue={filters.minPrice}
+                    className="mt-1 h-12 w-full rounded-xl border border-sage-500 bg-white px-3"
+                  />
                 </label>
                 <label className="flex-1 text-sm text-ink-700">
                   {t('maxPrice')}
-                  <input name="maxPrice" inputMode="numeric" pattern="[0-9]*" defaultValue={filters.maxPrice} className="mt-1 h-12 w-full rounded-xl border border-sage-500 bg-white px-3" />
+                  <input
+                    name="maxPrice"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    defaultValue={filters.maxPrice}
+                    className="mt-1 h-12 w-full rounded-xl border border-sage-500 bg-white px-3"
+                  />
                 </label>
               </div>
             </fieldset>
 
             <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-ink-900">
-              <input type="checkbox" name="inStock" value="true" defaultChecked={filters.inStock} className="h-5 w-5 accent-forest-900" />
+              <input
+                type="checkbox"
+                name="inStock"
+                value="true"
+                defaultChecked={filters.inStock}
+                className="h-5 w-5 accent-forest-900"
+              />
               {t('inStockOnly')}
             </label>
 
@@ -98,8 +132,17 @@ export function MobileFilters({
               <legend className="text-eyebrow text-gold-700">{t('sort')}</legend>
               <div className="mt-3 space-y-1">
                 {PRODUCT_SORTS.map((sort) => (
-                  <label key={sort} className="flex min-h-11 items-center gap-3 text-sm text-ink-900">
-                    <input type="radio" name="sort" value={sort} defaultChecked={filters.sort === sort} className="h-5 w-5 accent-forest-900" />
+                  <label
+                    key={sort}
+                    className="flex min-h-11 items-center gap-3 text-sm text-ink-900"
+                  >
+                    <input
+                      type="radio"
+                      name="sort"
+                      value={sort}
+                      defaultChecked={filters.sort === sort}
+                      className="h-5 w-5 accent-forest-900"
+                    />
                     {t(`sortOptions.${sort}`)}
                   </label>
                 ))}
@@ -107,7 +150,10 @@ export function MobileFilters({
             </fieldset>
           </div>
           <div className="sticky bottom-0 border-t border-ivory-200 bg-ivory-50 px-5 py-4">
-            <button type="submit" className="h-12 w-full rounded-full bg-forest-900 text-sm font-semibold text-ivory-50">
+            <button
+              type="submit"
+              className="h-12 w-full rounded-full bg-forest-900 text-sm font-semibold text-ivory-50"
+            >
               {t('showResults', { count: total })}
             </button>
           </div>
@@ -127,7 +173,13 @@ function FormatCheckboxes({ facets, selected }: { facets: FacetsDto; selected: s
     <div className="mt-3 space-y-1">
       {facets.formats.map(({ value, count }) => (
         <label key={value} className="flex min-h-11 items-center gap-3 text-sm text-ink-900">
-          <input type="checkbox" name="format" value={value} defaultChecked={selected.includes(value)} className="h-5 w-5 accent-forest-900" />
+          <input
+            type="checkbox"
+            name="format"
+            value={value}
+            defaultChecked={selected.includes(value)}
+            className="h-5 w-5 accent-forest-900"
+          />
           <span className="flex-1">{t(`formats.${value}`)}</span>
           <span className="text-xs text-ink-500">{count}</span>
         </label>

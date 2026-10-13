@@ -33,7 +33,13 @@ export function ProductGallery({
   return (
     <section aria-label={t('gallery')} className="lg:sticky lg:top-28" onKeyDown={onKeyDown}>
       <div className="relative aspect-square overflow-hidden rounded-[var(--radius-panel)] bg-ivory-100">
-        <ProductImage image={current} illustrationKey={illustrationKey} name={name} sizes={MAIN_SIZES} priority />
+        <ProductImage
+          image={current}
+          illustrationKey={illustrationKey}
+          name={name}
+          sizes={MAIN_SIZES}
+          priority
+        />
         {count > 1 ? (
           <>
             <button
@@ -66,10 +72,17 @@ export function ProductGallery({
                 aria-current={imageIndex === index ? 'true' : undefined}
                 className={cn(
                   'h-20 w-20 overflow-hidden rounded-xl border-2 bg-ivory-100 transition-colors',
-                  imageIndex === index ? 'border-forest-900' : 'border-transparent hover:border-ivory-300',
+                  imageIndex === index
+                    ? 'border-forest-900'
+                    : 'border-transparent hover:border-ivory-300',
                 )}
               >
-                <ProductImage image={image} illustrationKey={illustrationKey} name={name} sizes="80px" />
+                <ProductImage
+                  image={image}
+                  illustrationKey={illustrationKey}
+                  name={name}
+                  sizes="80px"
+                />
               </button>
             </li>
           ))}

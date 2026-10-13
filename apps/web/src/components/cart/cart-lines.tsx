@@ -8,7 +8,7 @@ import { Price } from '@/components/ui/price';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { packLabel } from '@/lib/format';
+import { formatMoney, packLabel } from '@/lib/format';
 import { QuantityStepper } from './quantity-stepper';
 
 export function CartLines({ cart, compact = false }: { cart: CartDto; compact?: boolean }) {
@@ -105,7 +105,7 @@ export function FreeDeliveryProgress({ cart }: { cart: CartDto }) {
   const remaining = Number(hint.remaining);
   const percent =
     threshold > 0 ? Math.min(100, Math.round(((threshold - remaining) / threshold) * 100)) : 100;
-  const amount = `${new Intl.NumberFormat(locale).format(hint.remaining as Intl.StringNumericLiteral)} ${tc('currency.UZS')}`;
+  const amount = formatMoney(hint.remaining, locale, tc('currency.UZS'));
 
   return (
     <div className="rounded-2xl bg-leaf-100/70 px-4 py-3">

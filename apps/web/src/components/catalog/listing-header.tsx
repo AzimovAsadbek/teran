@@ -20,7 +20,10 @@ export function ListingHeader({
         <h1 className="text-display-lg mt-2 text-forest-900">{title}</h1>
         {description ? <p className="mt-3 text-lg text-ink-700">{description}</p> : null}
       </div>
-      <span aria-hidden className="absolute -top-6 -right-6 hidden h-52 w-52 opacity-90 sm:block lg:right-10">
+      <span
+        aria-hidden
+        className="absolute -top-6 -right-6 hidden h-52 w-52 opacity-90 sm:block lg:right-10"
+      >
         <TeaTypeArt kind={illustrationKey ?? 'green'} />
       </span>
     </header>
@@ -28,5 +31,10 @@ export function ListingHeader({
 }
 
 export function ListingHeaderSkeleton() {
-  return <div aria-hidden className="mt-5 mb-8 h-44 animate-pulse rounded-[var(--radius-panel)] bg-ivory-100 motion-reduce:animate-none" />;
+  return (
+    <div
+      aria-hidden
+      className="mt-5 mb-8 h-44 animate-pulse rounded-[var(--radius-panel)] bg-ivory-100 motion-reduce:animate-none"
+    />
+  );
 }

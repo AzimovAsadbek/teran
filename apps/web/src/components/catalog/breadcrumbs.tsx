@@ -31,9 +31,14 @@ export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: L
       <ol className="flex flex-wrap items-center gap-1.5 text-ink-500">
         {trail.map((crumb, index) => (
           <li key={`${crumb.label}-${index}`} className="flex items-center gap-1.5">
-            {index > 0 ? <ChevronRight aria-hidden className="h-3.5 w-3.5 text-ink-500/70" /> : null}
+            {index > 0 ? (
+              <ChevronRight aria-hidden className="h-3.5 w-3.5 text-ink-500/70" />
+            ) : null}
             {crumb.href && index < trail.length - 1 ? (
-              <Link href={crumb.href} className="transition-colors hover:text-forest-900 hover:underline">
+              <Link
+                href={crumb.href}
+                className="transition-colors hover:text-forest-900 hover:underline"
+              >
                 {crumb.label}
               </Link>
             ) : (

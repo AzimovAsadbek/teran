@@ -3,7 +3,12 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import { ButtonLink } from '@/components/ui/button';
 import { getProductList } from '@/lib/data/catalog';
-import { parseCatalogFilters, toApiQuery, toSearchParams, type RawSearchParams } from '@/features/catalog/query';
+import {
+  parseCatalogFilters,
+  toApiQuery,
+  toSearchParams,
+  type RawSearchParams,
+} from '@/features/catalog/query';
 import { FilterBar } from './filter-bar';
 import { Pagination } from './pagination';
 import { ProductCard } from './product-card';
@@ -21,9 +26,15 @@ export async function CatalogResults({
   searchParams: Promise<RawSearchParams>;
 }) {
   await connection();
-  const [locale, params, t] = await Promise.all([getLocale(), searchParams, getTranslations('Catalog')]);
+  const [locale, params, t] = await Promise.all([
+    getLocale(),
+    searchParams,
+    getTranslations('Catalog'),
+  ]);
   const filters = parseCatalogFilters(params);
-  const list = await getProductList(locale, toApiQuery(filters, scope, PAGE_SIZE)).catch(() => null);
+  const list = await getProductList(locale, toApiQuery(filters, scope, PAGE_SIZE)).catch(
+    () => null,
+  );
 
   if (!list) {
     return (
@@ -47,7 +58,9 @@ export async function CatalogResults({
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-ivory-100 text-forest-900">
             <SearchX aria-hidden className="h-7 w-7" />
           </span>
-          <h2 className="mt-5 font-display text-3xl font-semibold text-forest-900">{t('emptyTitle')}</h2>
+          <h2 className="mt-5 font-display text-3xl font-semibold text-forest-900">
+            {t('emptyTitle')}
+          </h2>
           <p className="mt-2 max-w-md text-ink-700">{t('emptyText')}</p>
           <ButtonLink href="/catalog" variant="secondary" className="mt-6">
             {t('title')}

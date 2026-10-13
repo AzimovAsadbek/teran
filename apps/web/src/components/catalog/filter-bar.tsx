@@ -34,7 +34,10 @@ export async function FilterBar({
   };
   const currentQuery = toSearchParams(filters);
   const refined =
-    filters.format.length > 0 || filters.inStock || filters.minPrice !== undefined || filters.maxPrice !== undefined;
+    filters.format.length > 0 ||
+    filters.inStock ||
+    filters.minPrice !== undefined ||
+    filters.maxPrice !== undefined;
 
   return (
     <div className="flex flex-col gap-4 border-y border-ivory-200 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -50,12 +53,16 @@ export async function FilterBar({
               aria-pressed={active}
               className={cn(
                 chip,
-                active ? 'border-forest-900 bg-forest-900 text-ivory-50' : 'border-ivory-300 bg-white text-forest-900 hover:border-forest-900/40',
+                active
+                  ? 'border-forest-900 bg-forest-900 text-ivory-50'
+                  : 'border-ivory-300 bg-white text-forest-900 hover:border-forest-900/40',
               )}
             >
               {active ? <Check aria-hidden className="h-4 w-4" /> : null}
               {t(`formats.${value as ProductFormat}`)}
-              <span className={cn('text-xs', active ? 'text-ivory-100/80' : 'text-ink-500')}>{count}</span>
+              <span className={cn('text-xs', active ? 'text-ivory-100/80' : 'text-ink-500')}>
+                {count}
+              </span>
             </Link>
           );
         })}
@@ -66,16 +73,22 @@ export async function FilterBar({
           aria-pressed={filters.inStock}
           className={cn(
             chip,
-            filters.inStock ? 'border-forest-900 bg-forest-900 text-ivory-50' : 'border-ivory-300 bg-white text-forest-900 hover:border-forest-900/40',
+            filters.inStock
+              ? 'border-forest-900 bg-forest-900 text-ivory-50'
+              : 'border-ivory-300 bg-white text-forest-900 hover:border-forest-900/40',
           )}
         >
           {filters.inStock ? <Check aria-hidden className="h-4 w-4" /> : null}
           {t('inStockOnly')}
         </Link>
         <form action={formAction} method="get" className="flex items-center gap-1.5">
-          {filters.format.length > 0 ? <input type="hidden" name="format" value={[...filters.format].sort().join(',')} /> : null}
+          {filters.format.length > 0 ? (
+            <input type="hidden" name="format" value={[...filters.format].sort().join(',')} />
+          ) : null}
           {filters.inStock ? <input type="hidden" name="inStock" value="true" /> : null}
-          {filters.sort !== 'featured' ? <input type="hidden" name="sort" value={filters.sort} /> : null}
+          {filters.sort !== 'featured' ? (
+            <input type="hidden" name="sort" value={filters.sort} />
+          ) : null}
           <span className="pl-2 text-sm text-ink-700">{t('price')}</span>
           <label className="sr-only" htmlFor="filter-min-price">
             {t('price')} — {t('minPrice')}
@@ -86,10 +99,14 @@ export async function FilterBar({
             inputMode="numeric"
             pattern="[0-9]*"
             defaultValue={filters.minPrice}
-            placeholder={facets.priceRange ? String(Math.floor(Number(facets.priceRange.min))) : t('minPrice')}
+            placeholder={
+              facets.priceRange ? String(Math.floor(Number(facets.priceRange.min))) : t('minPrice')
+            }
             className="h-10 w-28 rounded-full border border-ivory-300 bg-white px-3 text-sm"
           />
-          <span aria-hidden className="text-ink-500">–</span>
+          <span aria-hidden className="text-ink-500">
+            –
+          </span>
           <label className="sr-only" htmlFor="filter-max-price">
             {t('price')} — {t('maxPrice')}
           </label>
@@ -99,16 +116,28 @@ export async function FilterBar({
             inputMode="numeric"
             pattern="[0-9]*"
             defaultValue={filters.maxPrice}
-            placeholder={facets.priceRange ? String(Math.ceil(Number(facets.priceRange.max))) : t('maxPrice')}
+            placeholder={
+              facets.priceRange ? String(Math.ceil(Number(facets.priceRange.max))) : t('maxPrice')
+            }
             className="h-10 w-28 rounded-full border border-ivory-300 bg-white px-3 text-sm"
           />
-          <button type="submit" className="h-10 rounded-full bg-forest-900 px-4 text-sm font-semibold text-ivory-50 hover:bg-forest-800">
+          <button
+            type="submit"
+            className="h-10 rounded-full bg-forest-900 px-4 text-sm font-semibold text-ivory-50 hover:bg-forest-800"
+          >
             {t('apply')}
           </button>
         </form>
         {refined ? (
           <Link
-            href={href({ ...filters, format: [], inStock: false, minPrice: undefined, maxPrice: undefined, page: 1 })}
+            href={href({
+              ...filters,
+              format: [],
+              inStock: false,
+              minPrice: undefined,
+              maxPrice: undefined,
+              page: 1,
+            })}
             rel="nofollow"
             className="inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm font-semibold text-danger-700 hover:bg-danger-100"
           >

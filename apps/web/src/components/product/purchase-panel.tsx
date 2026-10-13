@@ -52,7 +52,9 @@ export function PurchasePanel({
   useEffect(() => {
     const button = buttonRef.current;
     if (!button) return;
-    const observer = new IntersectionObserver(([entry]) => setButtonVisible(entry?.isIntersecting ?? true));
+    const observer = new IntersectionObserver(([entry]) =>
+      setButtonVisible(entry?.isIntersecting ?? true),
+    );
     observer.observe(button);
     return () => observer.disconnect();
   }, []);
@@ -61,7 +63,8 @@ export function PurchasePanel({
   const soldOut = variant.stockLevel === 'out_of_stock';
   const pending = pendingKey === `add:${variant.id}`;
   const lineTotalMoney = multiplyMoney(variant.price, quantity);
-  const units = (key: 'TEA_BAGS' | 'PYRAMIDS' | 'default', values: { count: number }) => t(`units.${key}`, values);
+  const units = (key: 'TEA_BAGS' | 'PYRAMIDS' | 'default', values: { count: number }) =>
+    t(`units.${key}`, values);
 
   async function add() {
     if (!variant) return;
@@ -95,7 +98,9 @@ export function PurchasePanel({
                   key={option.id}
                   className={cn(
                     'relative flex cursor-pointer flex-col rounded-2xl border-2 px-4 py-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest-700',
-                    selected ? 'border-forest-900 bg-white' : 'border-ivory-300 bg-white/60 hover:border-forest-900/40',
+                    selected
+                      ? 'border-forest-900 bg-white'
+                      : 'border-ivory-300 bg-white/60 hover:border-forest-900/40',
                     optionSoldOut && 'opacity-60',
                   )}
                 >
@@ -110,10 +115,20 @@ export function PurchasePanel({
                     }}
                     className="sr-only"
                   />
-                  <span className="font-semibold text-forest-900">{packLabel(option, format, locale, units)}</span>
-                  <Price amount={option.price} compareAt={option.compareAtPrice} className="text-sm" />
-                  {optionSoldOut ? <span className="mt-0.5 text-xs text-ink-500">{t('outOfStock')}</span> : null}
-                  {selected ? <Check aria-hidden className="absolute top-3 right-3 h-4 w-4 text-forest-900" /> : null}
+                  <span className="font-semibold text-forest-900">
+                    {packLabel(option, format, locale, units)}
+                  </span>
+                  <Price
+                    amount={option.price}
+                    compareAt={option.compareAtPrice}
+                    className="text-sm"
+                  />
+                  {optionSoldOut ? (
+                    <span className="mt-0.5 text-xs text-ink-500">{t('outOfStock')}</span>
+                  ) : null}
+                  {selected ? (
+                    <Check aria-hidden className="absolute top-3 right-3 h-4 w-4 text-forest-900" />
+                  ) : null}
                 </label>
               );
             })}
@@ -139,18 +154,24 @@ export function PurchasePanel({
           disabled={soldOut || pending}
           className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-forest-900 px-6 text-sm font-semibold text-ivory-50 shadow-soft transition-colors hover:bg-forest-800 disabled:opacity-60"
         >
-          {pending ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <ShoppingBag aria-hidden className="h-4 w-4" />}
+          {pending ? (
+            <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+          ) : (
+            <ShoppingBag aria-hidden className="h-4 w-4" />
+          )}
           {pending ? t('adding') : addLabel}
         </button>
       </div>
       <p aria-live="polite" className="min-h-5 text-sm">
         {justAdded ? <span className="font-semibold text-leaf-600">{t('added')}</span> : null}
-        {errorMessage && !justAdded ? <span className="text-danger-700">{errorMessage}</span> : null}
+        {errorMessage && !justAdded ? (
+          <span className="text-danger-700">{errorMessage}</span>
+        ) : null}
       </p>
 
       {/* Sticky mobile purchase bar (the reference has none). */}
       {!soldOut && !buttonVisible ? (
-        <div className="glass fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-x-0 border-b-0 px-4 py-3 lg:hidden">
+        <div className="glass fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-x-0 border-b-0 bg-ivory-50/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-forest-900">{productName}</p>
             <Price amount={variant.price} className="text-sm" />
@@ -170,7 +191,13 @@ export function PurchasePanel({
   );
 }
 
-function StockStatus({ level, maxQuantity }: { level: VariantDto['stockLevel']; maxQuantity: number }) {
+function StockStatus({
+  level,
+  maxQuantity,
+}: {
+  level: VariantDto['stockLevel'];
+  maxQuantity: number;
+}) {
   const t = useTranslations('Product');
   const styles = {
     in_stock: 'bg-leaf-100 text-leaf-600',
@@ -178,9 +205,18 @@ function StockStatus({ level, maxQuantity }: { level: VariantDto['stockLevel']; 
     out_of_stock: 'bg-sage-200 text-ink-700',
   } as const;
   const label =
-    level === 'in_stock' ? t('inStock') : level === 'low_stock' ? t('lowStockCount', { count: maxQuantity }) : t('outOfStock');
+    level === 'in_stock'
+      ? t('inStock')
+      : level === 'low_stock'
+        ? t('lowStockCount', { count: maxQuantity })
+        : t('outOfStock');
   return (
-    <p className={cn('inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold', styles[level])}>
+    <p
+      className={cn(
+        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold',
+        styles[level],
+      )}
+    >
       <span aria-hidden className="h-2 w-2 rounded-full bg-current" />
       {label}
     </p>

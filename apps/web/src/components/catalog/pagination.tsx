@@ -5,7 +5,9 @@ import { cn } from '@/lib/cn';
 
 /** Pages to show: first, last, current ±1, with gaps marked as null. */
 export function pageWindow(current: number, total: number): (number | null)[] {
-  const pages = new Set([1, total, current - 1, current, current + 1].filter((page) => page >= 1 && page <= total));
+  const pages = new Set(
+    [1, total, current - 1, current, current + 1].filter((page) => page >= 1 && page <= total),
+  );
   const sorted = [...pages].sort((a, b) => a - b);
   const result: (number | null)[] = [];
   for (const [index, page] of sorted.entries()) {
@@ -28,14 +30,19 @@ export async function Pagination({
 }) {
   if (totalPages <= 1) return null;
   const t = await getTranslations('Common');
-  const item = 'inline-flex h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors';
+  const item =
+    'inline-flex h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors';
 
   return (
     <nav aria-label={t('pagination')} className="mt-14 flex justify-center">
       <ul className="flex items-center gap-1">
         <li>
           {page > 1 ? (
-            <Link href={hrefFor(page - 1)} className={cn(item, 'text-forest-900 hover:bg-forest-900/[0.06]')} aria-label={t('previousPage')}>
+            <Link
+              href={hrefFor(page - 1)}
+              className={cn(item, 'text-forest-900 hover:bg-forest-900/[0.06]')}
+              aria-label={t('previousPage')}
+            >
               <ChevronLeft aria-hidden className="h-4 w-4" />
             </Link>
           ) : null}
@@ -51,7 +58,12 @@ export async function Pagination({
                 href={hrefFor(entry)}
                 aria-current={entry === page ? 'page' : undefined}
                 aria-label={t('pageN', { page: entry })}
-                className={cn(item, entry === page ? 'bg-forest-900 text-ivory-50' : 'text-forest-900 hover:bg-forest-900/[0.06]')}
+                className={cn(
+                  item,
+                  entry === page
+                    ? 'bg-forest-900 text-ivory-50'
+                    : 'text-forest-900 hover:bg-forest-900/[0.06]',
+                )}
               >
                 {entry}
               </Link>
@@ -60,7 +72,11 @@ export async function Pagination({
         )}
         <li>
           {page < totalPages ? (
-            <Link href={hrefFor(page + 1)} className={cn(item, 'text-forest-900 hover:bg-forest-900/[0.06]')} aria-label={t('nextPage')}>
+            <Link
+              href={hrefFor(page + 1)}
+              className={cn(item, 'text-forest-900 hover:bg-forest-900/[0.06]')}
+              aria-label={t('nextPage')}
+            >
               <ChevronRight aria-hidden className="h-4 w-4" />
             </Link>
           ) : null}

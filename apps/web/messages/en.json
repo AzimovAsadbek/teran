@@ -31,7 +31,8 @@
     "pause": "Pause",
     "play": "Play",
     "compareAtLabel": "Previous price",
-    "demoNoticeShort": "Demo catalogue — data is temporary"
+    "demoNoticeShort": "Demo catalogue — data is temporary",
+    "opensInNewTab": "opens in a new tab"
   },
   "Language": {
     "label": "Language",
@@ -265,7 +266,9 @@
     "notReady": "Please review the messages in your bag before checking out.",
     "loadError": "Your bag could not be loaded.",
     "updateError": "Your bag could not be updated. Please try again.",
-    "metaTitle": "Bag"
+    "metaTitle": "Bag",
+    "summary": "Order summary",
+    "itemCount": "{count, plural, one {# item} other {# items}}"
   },
   "Search": {
     "title": "Search",
@@ -340,7 +343,7 @@
     "phone": "Phone number",
     "phoneHint": "We will call to confirm your order.",
     "email": "Email",
-    "emailHint": "To send you the order link (optional).",
+    "emailHint": "To send you the order link.",
     "region": "Region",
     "regionPlaceholder": "Choose a region",
     "city": "City or district",
@@ -349,7 +352,7 @@
     "landmark": "Landmark",
     "landmarkHint": "For example: next to the school, entrance 2.",
     "note": "Order note",
-    "notePlaceholder": "Extra information for the courier (optional)",
+    "notePlaceholder": "Extra information for the courier",
     "deliveryMethod": "Delivery method",
     "chooseRegionFirst": "Choose a region first.",
     "noMethodsForRegion": "Delivery to this region is not set up yet. Please contact us.",
@@ -400,7 +403,14 @@
     },
     "orderNotFound": "Order not found, or the link is incorrect.",
     "continueShopping": "Continue shopping",
-    "quantityShort": "{count} pcs"
+    "quantityShort": "{count, plural, one {# pc} other {# pcs}}",
+    "quoteError": "The delivery cost could not be calculated. Please try again.",
+    "orderTitle": "Order {number}",
+    "progressLabel": "Order progress",
+    "cancelledText": "This order has been cancelled. Please contact us if you have any questions.",
+    "accountHint": "Have an account? <login>Sign in</login> to keep your orders in one place.",
+    "contactSummary": "Recipient",
+    "discount": "Discount"
   },
   "Forms": {
     "name": "Your name",

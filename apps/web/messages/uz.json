@@ -31,7 +31,8 @@
     "pause": "Toʻxtatish",
     "play": "Davom ettirish",
     "compareAtLabel": "Avvalgi narx",
-    "demoNoticeShort": "Namoyish katalogi — maʼlumotlar vaqtinchalik"
+    "demoNoticeShort": "Namoyish katalogi — maʼlumotlar vaqtinchalik",
+    "opensInNewTab": "yangi oynada ochiladi"
   },
   "Language": {
     "label": "Til",
@@ -265,7 +266,9 @@
     "notReady": "Davom etishdan oldin savatdagi xabarlarni koʻrib chiqing.",
     "loadError": "Savatni yuklab boʻlmadi.",
     "updateError": "Savatni yangilab boʻlmadi. Qayta urinib koʻring.",
-    "metaTitle": "Savat"
+    "metaTitle": "Savat",
+    "summary": "Buyurtma summasi",
+    "itemCount": "{count} ta mahsulot"
   },
   "Search": {
     "title": "Qidiruv",
@@ -340,7 +343,7 @@
     "phone": "Telefon raqami",
     "phoneHint": "Buyurtmani tasdiqlash uchun qoʻngʻiroq qilamiz.",
     "email": "Elektron pochta",
-    "emailHint": "Buyurtma havolasini yuborish uchun (ixtiyoriy).",
+    "emailHint": "Buyurtma havolasini yuborish uchun.",
     "region": "Viloyat",
     "regionPlaceholder": "Viloyatni tanlang",
     "city": "Shahar yoki tuman",
@@ -349,7 +352,7 @@
     "landmark": "Moʻljal",
     "landmarkHint": "Masalan: maktab yonida, 2-podyezd.",
     "note": "Buyurtmaga izoh",
-    "notePlaceholder": "Kuryer uchun qoʻshimcha maʼlumot (ixtiyoriy)",
+    "notePlaceholder": "Kuryer uchun qoʻshimcha maʼlumot",
     "deliveryMethod": "Yetkazib berish usuli",
     "chooseRegionFirst": "Avval viloyatni tanlang.",
     "noMethodsForRegion": "Bu viloyat uchun yetkazib berish usuli hozircha sozlanmagan. Biz bilan bogʻlaning.",
@@ -400,7 +403,14 @@
     },
     "orderNotFound": "Buyurtma topilmadi yoki havola notoʻgʻri.",
     "continueShopping": "Xaridni davom ettirish",
-    "quantityShort": "{count} dona"
+    "quantityShort": "{count} dona",
+    "quoteError": "Yetkazib berish narxini hisoblab boʻlmadi. Qayta urinib koʻring.",
+    "orderTitle": "{number} buyurtma",
+    "progressLabel": "Buyurtma bosqichlari",
+    "cancelledText": "Bu buyurtma bekor qilingan. Savollaringiz boʻlsa, biz bilan bogʻlaning.",
+    "accountHint": "Hisobingiz bormi? <login>Kiring</login> — buyurtmalaringiz bir joyda saqlanadi.",
+    "contactSummary": "Qabul qiluvchi",
+    "discount": "Chegirma"
   },
   "Forms": {
     "name": "Ismingiz",

@@ -13,7 +13,15 @@ type Tone = 'dark' | 'light';
  * Plain links (not a script-driven select): crawlable, works without JavaScript, and each link
  * declares the language it leads to.
  */
-function LocaleLinks({ pathname, tone, className }: { pathname: string; tone: Tone; className?: string }) {
+function LocaleLinks({
+  pathname,
+  tone,
+  className,
+}: {
+  pathname: string;
+  tone: Tone;
+  className?: string;
+}) {
   const t = useTranslations('Language');
   const current = useLocale();
 
@@ -62,7 +70,13 @@ function CurrentPageLocaleLinks({ tone, className }: { tone: Tone; className?: s
  * Switches language while staying on the same page. The current path is URL data, so on dynamic
  * routes it streams in; until then the links point to each language's home page.
  */
-export function LanguageSwitcherSlot({ tone = 'dark', className }: { tone?: Tone; className?: string }) {
+export function LanguageSwitcherSlot({
+  tone = 'dark',
+  className,
+}: {
+  tone?: Tone;
+  className?: string;
+}) {
   return (
     <Suspense fallback={<LocaleLinks pathname="/" tone={tone} className={className} />}>
       <CurrentPageLocaleLinks tone={tone} className={className} />

@@ -24,8 +24,14 @@ describe('pack labels', () => {
   });
 
   it('combines unit counts and weight', () => {
-    expect(packLabel({ weightGrams: 50, unitCount: 25 }, 'TEA_BAGS', 'en', units)).toBe('25 TEA_BAGS · 50 g');
-    expect(packLabel({ weightGrams: null, unitCount: 3 }, 'GIFT_SET', 'en', units)).toBe('3 default');
-    expect(packLabel({ weightGrams: 100, unitCount: null }, 'LOOSE_LEAF', 'en', units)).toBe('100 g');
+    expect(packLabel({ weightGrams: 50, unitCount: 25 }, 'TEA_BAGS', 'en', units)).toBe(
+      '25 TEA_BAGS · 50 g',
+    );
+    expect(packLabel({ weightGrams: null, unitCount: 3 }, 'GIFT_SET', 'en', units)).toBe(
+      '3 default',
+    );
+    expect(packLabel({ weightGrams: 100, unitCount: null }, 'LOOSE_LEAF', 'en', units)).toBe(
+      '100 g',
+    );
   });
 });

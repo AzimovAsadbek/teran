@@ -11,9 +11,10 @@
   "scripts": {
     "dev": "pnpm --filter @teran/contracts build && pnpm --parallel --filter @teran/contracts --filter @teran/api --filter @teran/web dev",
     "build": "pnpm -r build",
+    "generate": "pnpm --filter @teran/contracts build && pnpm --filter @teran/api prisma:generate",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm --filter @teran/contracts build && pnpm -r typecheck",
-    "test": "pnpm --filter @teran/contracts build && pnpm -r test",
+    "test": "pnpm --filter @teran/contracts build && pnpm -r --filter \"!@teran/e2e\" test",
     "test:integration": "pnpm --filter @teran/api test:integration",
     "test:e2e": "pnpm --filter @teran/e2e test",
     "format": "prettier --write .",

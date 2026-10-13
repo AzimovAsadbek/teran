@@ -9,6 +9,8 @@ import { E2E_API_URL, E2E_WEB_URL, stackEnv } from './scripts/e2e-env.ts';
  *   The web app must have been built for that stack: `pnpm --filter @teran/e2e build:stack`.
  * - `E2E_BASE_URL=http://localhost:3000`: run against an already running stack instead (for
  *   example the dev servers). Tests place real orders in whatever database that stack uses.
+ * - `E2E_IGNORE_HTTPS_ERRORS=true`: accept a local certificate authority, for a smoke test of
+ *   the production Compose stack on https://localhost (docs/testing/test-strategy.md).
  */
 const external = process.env.E2E_BASE_URL;
 const isCI = Boolean(process.env.CI);
@@ -25,6 +27,7 @@ export default defineConfig({
   reporter: isCI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: external ?? E2E_WEB_URL,
+    ignoreHTTPSErrors: process.env.E2E_IGNORE_HTTPS_ERRORS === 'true',
     locale: 'en-US',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

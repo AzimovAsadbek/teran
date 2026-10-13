@@ -15,3 +15,6 @@ apps/web/AGENTS.md
 *.webp
 *.png
 *.ico
+
+# Owned by pnpm.
+pnpm-lock.yaml

@@ -1,0 +1,19 @@
+{
+  "name": "@teran/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:stack": "node scripts/build-stack.ts",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "pg": "8.23.1",
+    "typescript": "6.0.3"
+  }
+}

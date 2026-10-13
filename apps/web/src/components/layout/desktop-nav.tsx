@@ -3,7 +3,7 @@
 import type { IllustrationKey } from '@teran/contracts';
 import { ArrowRight, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Suspense, use, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
@@ -19,6 +19,11 @@ export interface NavCollection {
   name: string;
 }
 
+export interface Navigation {
+  categories: NavCategory[];
+  collections: NavCollection[];
+}
+
 type MenuId = 'teas' | 'collections' | 'about';
 
 const OPEN_DELAY_MS = 120;
@@ -27,14 +32,9 @@ const CLOSE_DELAY_MS = 220;
 /**
  * Desktop navigation with mega menus (WAI-ARIA disclosure pattern): real <button> triggers with
  * aria-expanded, open on click/Enter/Space or after a short hover, Esc closes and returns focus.
+ * The triggers work before the navigation data arrives; only the panel lists stream in.
  */
-export function DesktopNav({
-  categories,
-  collections,
-}: {
-  categories: NavCategory[];
-  collections: NavCollection[];
-}) {
+export function DesktopNav({ navigation }: { navigation: Promise<Navigation> }) {
   const t = useTranslations('Nav');
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -115,68 +115,18 @@ export function DesktopNav({
 
       <MegaPanel id={`${panelId}-teas`} open={openMenu === 'teas'}>
         <div className="grid grid-cols-[1.5fr_1fr_1.1fr] gap-10">
-          <div>
-            <p className="text-eyebrow text-gold-700">{t('shopByType')}</p>
-            <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1">
-              {categories.map((category) => (
-                <li key={category.slug}>
-                  <Link
-                    href={`/catalog/${category.slug}`}
-                    className="group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-ivory-100"
-                  >
-                    <span className="h-10 w-10 shrink-0">
-                      <TeaTypeArt kind={category.illustrationKey} />
-                    </span>
-                    <span className="font-medium text-ink-900 group-hover:text-forest-900">
-                      {category.name}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="text-eyebrow text-gold-700">{t('featured')}</p>
-            <ul className="mt-4 space-y-1">
-              {collections.map((collection) => (
-                <li key={collection.slug}>
-                  <Link
-                    href={`/collections/${collection.slug}`}
-                    className="block rounded-lg px-2 py-2 text-ink-900 transition-colors hover:bg-ivory-100 hover:text-forest-900"
-                  >
-                    {collection.name}
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <Link
-                  href="/catalog"
-                  className="mt-2 inline-flex items-center gap-2 px-2 py-2 font-semibold text-forest-900 hover:underline"
-                >
-                  {t('allTeas')} <ArrowRight aria-hidden className="h-4 w-4" />
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <Suspense fallback={<TeaLists categories={[]} collections={[]} />}>
+            <StreamedTeaLists navigation={navigation} />
+          </Suspense>
           <FeatureCard title={t('discoverTitle')} text={t('discoverText')} cta={t('allTeas')} />
         </div>
       </MegaPanel>
 
       <MegaPanel id={`${panelId}-collections`} open={openMenu === 'collections'}>
         <div className="grid grid-cols-[2fr_1.1fr] gap-10">
-          <ul className="grid grid-cols-2 gap-3">
-            {collections.map((collection) => (
-              <li key={collection.slug}>
-                <Link
-                  href={`/collections/${collection.slug}`}
-                  className="flex h-full items-center justify-between rounded-2xl border border-ivory-200 bg-white/60 px-5 py-4 font-display text-xl font-semibold text-forest-900 transition-colors hover:border-gold-500/60 hover:bg-white"
-                >
-                  {collection.name}
-                  <ArrowRight aria-hidden className="h-4 w-4 text-gold-600" />
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <Suspense fallback={<CollectionTiles collections={[]} />}>
+            <StreamedCollectionTiles navigation={navigation} />
+          </Suspense>
           <FeatureCard title={t('discoverTitle')} text={t('discoverText')} cta={t('allTeas')} />
         </div>
       </MegaPanel>
@@ -243,5 +193,84 @@ function FeatureCard({ title, text, cta }: { title: string; text: string; cta: s
         />
       </span>
     </Link>
+  );
+}
+
+function StreamedTeaLists({ navigation }: { navigation: Promise<Navigation> }) {
+  return <TeaLists {...use(navigation)} />;
+}
+
+/** Tea types and featured collections in the "Teas" panel (empty while data is on its way). */
+function TeaLists({ categories, collections }: Navigation) {
+  const t = useTranslations('Nav');
+  return (
+    <>
+      <div>
+        <p className="text-eyebrow text-gold-700">{t('shopByType')}</p>
+        <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1">
+          {categories.map((category) => (
+            <li key={category.slug}>
+              <Link
+                href={`/catalog/${category.slug}`}
+                className="group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-ivory-100"
+              >
+                <span className="h-10 w-10 shrink-0">
+                  <TeaTypeArt kind={category.illustrationKey} />
+                </span>
+                <span className="font-medium text-ink-900 group-hover:text-forest-900">
+                  {category.name}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <p className="text-eyebrow text-gold-700">{t('featured')}</p>
+        <ul className="mt-4 space-y-1">
+          {collections.map((collection) => (
+            <li key={collection.slug}>
+              <Link
+                href={`/collections/${collection.slug}`}
+                className="block rounded-lg px-2 py-2 text-ink-900 transition-colors hover:bg-ivory-100 hover:text-forest-900"
+              >
+                {collection.name}
+              </Link>
+            </li>
+          ))}
+          <li>
+            <Link
+              href="/catalog"
+              className="mt-2 inline-flex items-center gap-2 px-2 py-2 font-semibold text-forest-900 hover:underline"
+            >
+              {t('allTeas')} <ArrowRight aria-hidden className="h-4 w-4" />
+            </Link>
+          </li>
+        </ul>
+      </div>
+    </>
+  );
+}
+
+function StreamedCollectionTiles({ navigation }: { navigation: Promise<Navigation> }) {
+  return <CollectionTiles collections={use(navigation).collections} />;
+}
+
+/** Collection tiles in the "Collections" panel (empty while data is on its way). */
+function CollectionTiles({ collections }: Pick<Navigation, 'collections'>) {
+  return (
+    <ul className="grid grid-cols-2 gap-3">
+      {collections.map((collection) => (
+        <li key={collection.slug}>
+          <Link
+            href={`/collections/${collection.slug}`}
+            className="flex h-full items-center justify-between rounded-2xl border border-ivory-200 bg-white/60 px-5 py-4 font-display text-xl font-semibold text-forest-900 transition-colors hover:border-gold-500/60 hover:bg-white"
+          >
+            {collection.name}
+            <ArrowRight aria-hidden className="h-4 w-4 text-gold-600" />
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

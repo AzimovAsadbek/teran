@@ -1,0 +1,111 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+import { E2E_ADMIN } from '../scripts/e2e-env.ts';
+
+/** Automated WCAG 2.0, 2.1 and 2.2 level A and AA rules. Manual review still applies. */
+const WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+
+/** Runs axe on what is currently rendered and lists every violation with its first targets. */
+async function expectAccessible(page: Page, label: string): Promise<void> {
+  const results = await new AxeBuilder({ page }).withTags(WCAG_AA).analyze();
+  const violations = results.violations.map(
+    (violation) =>
+      `${violation.id} [${violation.impact ?? 'n/a'}] ${violation.help}: ${violation.nodes
+        .slice(0, 3)
+        .map((node) => node.target.join(' '))
+        .join(' | ')}`,
+  );
+  // Soft, so one run reports every page with problems instead of stopping at the first.
+  expect.soft(violations, `axe violations on ${label}`).toEqual([]);
+}
+
+async function visit(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  await page.waitForLoadState('networkidle');
+}
+
+test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
+  test('storefront pages', async ({ page }) => {
+    const paths = [
+      '/',
+      '/ru',
+      '/en',
+      '/en/catalog',
+      '/en/catalog/black-tea',
+      '/en/collections/everyday-classics',
+      '/en/products/classic-black-tea',
+      '/en/search?q=tea',
+      '/en/cart',
+      '/en/about',
+      '/en/wholesale',
+      '/en/journal',
+      '/en/contact',
+      '/en/faq',
+      '/en/delivery',
+      '/en/returns',
+      '/en/privacy',
+      '/en/terms',
+      '/en/account/login',
+      '/en/account/register',
+      '/en/account/forgot-password',
+      '/en/products/does-not-exist',
+    ];
+    for (const path of paths) {
+      await visit(page, path);
+      await expectAccessible(page, path);
+    }
+  });
+
+  test('bag drawer, checkout and form errors', async ({ page }) => {
+    await visit(page, '/en/products/classic-black-tea');
+    await page.getByRole('button', { name: /^Add to bag · / }).click();
+    await expect(page.getByRole('dialog', { name: 'Your bag' })).toBeVisible();
+    await expectAccessible(page, 'open bag drawer');
+
+    await visit(page, '/en/checkout');
+    await expect(page.getByLabel('Full name')).toBeVisible();
+    await expectAccessible(page, 'checkout');
+    await page.getByRole('button', { name: /^Place order/ }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'highlighted' })).toBeVisible();
+    await expectAccessible(page, 'checkout with errors');
+
+    await visit(page, '/en/contact');
+    await page.getByRole('main').getByRole('button', { name: /send/i }).click();
+    await expectAccessible(page, 'contact form with errors');
+  });
+
+  test('administration', async ({ page }) => {
+    await visit(page, '/en/account/login?next=/admin');
+    await page.getByRole('main').getByLabel('Email').fill(E2E_ADMIN.email);
+    await page.getByRole('main').getByLabel('Password').fill(E2E_ADMIN.password);
+    await page.getByRole('main').getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/en\/admin$/);
+    for (const path of [
+      '/en/admin',
+      '/en/admin/orders',
+      '/en/admin/products',
+      '/en/admin/products/new',
+      '/en/admin/inventory',
+      '/en/admin/customers',
+      '/en/admin/inquiries',
+      '/en/admin/delivery',
+      '/en/admin/settings',
+      '/en/admin/staff',
+      '/en/admin/audit',
+    ]) {
+      await visit(page, path);
+      await expectAccessible(page, path);
+    }
+  });
+
+  test('phone menu drawer and filters @mobile', async ({ page }) => {
+    await visit(page, '/en/catalog');
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await expect(page.getByRole('dialog', { name: 'Explore' })).toBeVisible();
+    await expectAccessible(page, 'open menu drawer');
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await expect(page.getByRole('dialog', { name: 'Sort and filter' })).toBeVisible();
+    await expectAccessible(page, 'open filters');
+  });
+});

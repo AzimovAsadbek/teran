@@ -8,7 +8,12 @@ import { fileURLToPath } from 'node:url';
 export const E2E_API_PORT = 4100;
 export const E2E_WEB_PORT = 3100;
 export const E2E_API_URL = `http://127.0.0.1:${E2E_API_PORT}`;
-export const E2E_WEB_URL = `http://127.0.0.1:${E2E_WEB_PORT}`;
+/**
+ * The web server binds to "localhost", not 127.0.0.1: Next.js 16 addresses proxy rewrites to
+ * "localhost", and when the server listens on 127.0.0.1 it treats them as external and proxies
+ * them back through the proxy, so every unprefixed (Uzbek) URL redirects to itself.
+ */
+export const E2E_WEB_URL = `http://localhost:${E2E_WEB_PORT}`;
 
 /** Docker compose's Postgres by default; CI points this at its service container. */
 export const E2E_DATABASE_URL =
@@ -73,7 +78,7 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
       return {
         ...stackEnv('web-build'),
         NODE_ENV: 'production',
-        HOSTNAME: '127.0.0.1',
+        HOSTNAME: 'localhost',
         PORT: String(E2E_WEB_PORT),
         API_INTERNAL_KEY: INTERNAL_API_KEY,
         REVALIDATE_SECRET,

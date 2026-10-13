@@ -50,7 +50,6 @@ export async function FilterBar({
               href={href(toggleFormat(filters, value))}
               rel="nofollow"
               scroll={false}
-              aria-pressed={active}
               className={cn(
                 chip,
                 active
@@ -60,6 +59,8 @@ export async function FilterBar({
             >
               {active ? <Check aria-hidden className="h-4 w-4" /> : null}
               {t(`formats.${value as ProductFormat}`)}
+              {/* Links cannot be "pressed"; the state is part of the accessible name instead. */}
+              {active ? <span className="sr-only">({t('filterApplied')})</span> : null}
               <span className={cn('text-xs', active ? 'text-ivory-100/80' : 'text-ink-500')}>
                 {count}
               </span>
@@ -70,7 +71,6 @@ export async function FilterBar({
           href={href({ ...filters, inStock: !filters.inStock, page: 1 })}
           rel="nofollow"
           scroll={false}
-          aria-pressed={filters.inStock}
           className={cn(
             chip,
             filters.inStock
@@ -80,6 +80,7 @@ export async function FilterBar({
         >
           {filters.inStock ? <Check aria-hidden className="h-4 w-4" /> : null}
           {t('inStockOnly')}
+          {filters.inStock ? <span className="sr-only">({t('filterApplied')})</span> : null}
         </Link>
         <form action={formAction} method="get" className="flex items-center gap-1.5">
           {filters.format.length > 0 ? (

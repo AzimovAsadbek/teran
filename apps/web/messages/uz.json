@@ -166,6 +166,7 @@
     "filterBy": "Saralash va filtrlash",
     "showResults": "{count, plural, =0 {Natija yoʻq} other {# ta mahsulotni koʻrsatish}}",
     "clearFilters": "Filtrlarni tozalash",
+    "filterApplied": "filtr tanlangan",
     "category": "Choy turi",
     "allCategories": "Barcha turlar",
     "format": "Shakli",

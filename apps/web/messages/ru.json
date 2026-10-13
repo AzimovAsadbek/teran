@@ -166,6 +166,7 @@
     "filterBy": "Сортировка и фильтры",
     "showResults": "{count, plural, =0 {Нет результатов} one {Показать # товар} few {Показать # товара} many {Показать # товаров} other {Показать # товара}}",
     "clearFilters": "Сбросить фильтры",
+    "filterApplied": "фильтр выбран",
     "category": "Вид чая",
     "allCategories": "Все виды",
     "format": "Формат",

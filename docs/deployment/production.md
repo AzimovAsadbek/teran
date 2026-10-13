@@ -239,11 +239,12 @@ one rate limit (too few).
 
 ## Troubleshooting
 
-| Symptom                                               | Check                                                                                                   |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `required variable … is missing a value`              | The named variable is empty in `.env.production`.                                                       |
-| `migrate` exits with an error                         | `teran logs migrate`. The API does not start until migrations succeed.                                  |
-| API restarts with `Invalid environment configuration` | `teran logs api` lists every invalid variable.                                                          |
-| Certificate not issued                                | DNS must point at the server and ports 80/443 must be reachable from the internet (`teran logs caddy`). |
-| Pages load but admin changes appear late              | `REVALIDATE_SECRET` differs between services; restart both with the same value.                         |
-| Every visitor gets `429 RATE_LIMITED`                 | A proxy in front of Caddy is not configured as trusted (see above).                                     |
+| Symptom                                               | Check                                                                                                                                                                                |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `required variable … is missing a value`              | The named variable is empty in `.env.production`.                                                                                                                                    |
+| `migrate` exits with an error                         | `teran logs migrate`. The API does not start until migrations succeed.                                                                                                               |
+| API restarts with `Invalid environment configuration` | `teran logs api` lists every invalid variable.                                                                                                                                       |
+| Certificate not issued                                | DNS must point at the server and ports 80/443 must be reachable from the internet (`teran logs caddy`).                                                                              |
+| Pages load but admin changes appear late              | `REVALIDATE_SECRET` differs between services; restart both with the same value.                                                                                                      |
+| Every visitor gets `429 RATE_LIMITED`                 | A proxy in front of Caddy is not configured as trusted (see above).                                                                                                                  |
+| Every unprefixed (Uzbek) page redirects to itself     | The Next.js server was started with `HOSTNAME=127.0.0.1`. Use `0.0.0.0` (as the image does) or `localhost`; with `127.0.0.1`, Next.js 16 treats its own locale rewrites as external. |

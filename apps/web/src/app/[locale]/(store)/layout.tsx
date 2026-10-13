@@ -21,6 +21,7 @@ const CLIENT_NAMESPACES = [
   'Checkout',
   'Forms',
   'Account',
+  'Wholesale',
 ] as const satisfies readonly (keyof Messages)[];
 
 export default async function StoreLayout({ children }: LayoutProps<'/[locale]'>) {

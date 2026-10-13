@@ -476,6 +476,44 @@
     "newPassword": "Yangi parol",
     "passwordChanged": "Parol oʻzgartirildi",
     "staffArea": "Boshqaruv paneli",
-    "language": "Afzal til"
+    "language": "Afzal til",
+    "registrationClosed": "Hozircha yangi hisob ochib boʻlmaydi. Roʻyxatdan oʻtmasdan buyurtma berishingiz mumkin.",
+    "backToAccount": "Hisobga qaytish",
+    "profileText": "Bu maʼlumotlar buyurtma berishda avtomatik toʻldiriladi.",
+    "passwordText": "Parol oʻzgartirilgach, boshqa qurilmalardagi seanslar yakunlanadi.",
+    "signInToSee": "Buyurtmalaringizni koʻrish uchun hisobingizga kiring."
+  },
+  "Pages": {
+    "onThisPage": "Ushbu sahifada",
+    "draftNotice": "Qoralama: bu matn hali TERAN va yurist tomonidan tekshirilmagan. Belgilangan joylar tasdiqlanishi kerak boʻlgan maʼlumotlardir.",
+    "legalEyebrow": "Huquqiy maʼlumot",
+    "helpEyebrow": "Yordam",
+    "stillQuestions": "Savollaringiz qoldimi?",
+    "stillQuestionsText": "Biz bilan bogʻlaning — javob berishdan xursandmiz.",
+    "faqTitle": "Savol va javoblar",
+    "faqDescription": "Buyurtma, toʻlov, yetkazib berish va choy haqida savollarga javoblar.",
+    "contactTitle": "Aloqa",
+    "contactDescription": "Buyurtma, choylarimiz yoki hamkorlik boʻyicha savollar? Bizga yozing.",
+    "channelsTitle": "Biz bilan bogʻlanish",
+    "channels": {
+      "phone": "Telefon",
+      "email": "Elektron pochta",
+      "telegram": "Telegram",
+      "instagram": "Instagram",
+      "address": "Manzil",
+      "workingHours": "Ish vaqti"
+    },
+    "messageTitle": "Xabar yuborish",
+    "businessLink": "Biznes uchun soʻrov? <link>Biznes sahifasi</link>dan foydalaning.",
+    "journalTitle": "Choy jurnali",
+    "journalDescription": "Choyni damlash, saqlash va undan zavqlanish haqida eslatmalar.",
+    "journalEmpty": "Hozircha maqolalar yoʻq.",
+    "backToJournal": "Barcha maqolalar",
+    "published": "Eʼlon qilingan: {date}",
+    "moreArticles": "Boshqa maqolalar",
+    "shopTeas": "Choylarni koʻrish",
+    "estimate": "Taxminiy muddat",
+    "freeDelivery": "Bepul yetkazib berish",
+    "coverage": "Hududlar"
   }
 }

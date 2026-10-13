@@ -5,7 +5,7 @@ import { Cormorant_Garamond, Manrope } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { routing } from '@/i18n/routing';
-import { ogLocales, siteUrl } from '@/lib/site';
+import { isDemoContent, ogLocales, siteUrl } from '@/lib/site';
 import '@/styles/globals.css';
 
 const display = Cormorant_Garamond({
@@ -42,6 +42,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: { card: 'summary_large_image' },
     formatDetection: { telephone: false, address: false, email: false },
+    // Placeholder products and prices must never appear in search results.
+    ...(isDemoContent ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

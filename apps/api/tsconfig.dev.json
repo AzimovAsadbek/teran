@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    // The watch server compiles here so `pnpm build` (dist/) can run while it is up.
+    "outDir": "./.nest-dev"
+  }
+}

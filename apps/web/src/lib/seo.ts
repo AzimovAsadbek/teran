@@ -63,7 +63,8 @@ export function pageMetadata({
       type: 'website',
       ...(images ? { images } : {}),
     },
-    robots: noIndex ? { index: false, follow: true } : undefined,
+    // Only set when needed: an explicit `robots: undefined` would override the layout's default.
+    ...(noIndex ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

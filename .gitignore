@@ -43,3 +43,4 @@ Thumbs.db
 # Vercel / misc
 .vercel
 .turbo
+.nest-dev/

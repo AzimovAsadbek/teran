@@ -1,5 +1,6 @@
 'use client';
 
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@teran/contracts';
 import { useTranslations } from 'next-intl';
 import { isValidationKey, type FieldIssue } from './forms';
 
@@ -15,6 +16,12 @@ export function useValidationMessage(): (
   return (issue, value) => {
     if (!issue) return undefined;
     if (isValidationKey(issue.message)) return t(issue.message);
+    if (issue.message === 'password_too_short') {
+      return t('password_too_short', { min: issue.minimum ?? PASSWORD_MIN_LENGTH });
+    }
+    if (issue.message === 'password_too_long') {
+      return t('too_long', { max: issue.maximum ?? PASSWORD_MAX_LENGTH });
+    }
     if (issue.code === 'too_small' && value !== undefined && value.trim() === '') {
       return t('required');
     }

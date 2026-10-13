@@ -53,7 +53,7 @@ function Label({
   return (
     <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-semibold text-forest-900">
       {children}
-      {required ? null : <span className="ml-1.5 font-normal text-ink-500">({t('optional')})</span>}
+      {required ? null : <span className="font-normal text-ink-500"> ({t('optional')})</span>}
     </label>
   );
 }

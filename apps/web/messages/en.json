@@ -476,6 +476,44 @@
     "newPassword": "New password",
     "passwordChanged": "Password changed",
     "staffArea": "Administration",
-    "language": "Preferred language"
+    "language": "Preferred language",
+    "registrationClosed": "New accounts cannot be created at the moment. You can still order as a guest.",
+    "backToAccount": "Back to account",
+    "profileText": "These details are filled in for you at checkout.",
+    "passwordText": "Changing your password signs you out on other devices.",
+    "signInToSee": "Sign in to see your orders."
+  },
+  "Pages": {
+    "onThisPage": "On this page",
+    "draftNotice": "Draft: this text has not yet been reviewed by TERAN and a lawyer. Highlighted parts are details that still need to be confirmed.",
+    "legalEyebrow": "Legal",
+    "helpEyebrow": "Help",
+    "stillQuestions": "Still have questions?",
+    "stillQuestionsText": "Get in touch — we are happy to help.",
+    "faqTitle": "Help & FAQ",
+    "faqDescription": "Answers about ordering, payment, delivery and tea.",
+    "contactTitle": "Contact us",
+    "contactDescription": "Questions about an order, our teas or working together? Write to us.",
+    "channelsTitle": "Ways to reach us",
+    "channels": {
+      "phone": "Phone",
+      "email": "Email",
+      "telegram": "Telegram",
+      "instagram": "Instagram",
+      "address": "Address",
+      "workingHours": "Opening hours"
+    },
+    "messageTitle": "Send a message",
+    "businessLink": "A business enquiry? Use the <link>For business page</link>.",
+    "journalTitle": "Tea journal",
+    "journalDescription": "Notes on brewing, storing and enjoying tea.",
+    "journalEmpty": "No articles yet.",
+    "backToJournal": "All articles",
+    "published": "Published {date}",
+    "moreArticles": "More from the journal",
+    "shopTeas": "Shop teas",
+    "estimate": "Estimated time",
+    "freeDelivery": "Free delivery",
+    "coverage": "Regions"
   }
 }

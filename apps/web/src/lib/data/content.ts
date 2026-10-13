@@ -1,6 +1,7 @@
 import 'server-only';
 import type {
   ArticleDetailDto,
+  AuthFeaturesDto,
   ArticleSummaryDto,
   CheckoutOptionsDto,
   Locale,
@@ -45,4 +46,12 @@ export async function getCheckoutOptions(locale: Locale): Promise<CheckoutOption
   cacheLife('minutes');
   cacheTag('settings');
   return apiGet<CheckoutOptionsDto>(`/checkout/options?locale=${locale}`);
+}
+
+/** Which account features the API can offer (password reset needs outgoing e-mail). */
+export async function getAuthFeatures(): Promise<AuthFeaturesDto> {
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('settings');
+  return apiGet<AuthFeaturesDto>('/auth/features');
 }

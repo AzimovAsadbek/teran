@@ -207,6 +207,14 @@ Loyalty points, ambassador programme, gift cards, store locator (no verified ret
 
 Before the homepage is declared complete it must be compared against both references:
 
-- [ ] Structure/UX recognisably follows DAVIDsTEA's flow (utility bar → header with centred logo → hero → product showcase with tabs → category tiles → feature block → story/education → business CTA → newsletter/footer).
-- [ ] Nothing reproduces the TERAN concept screenshot's composition (no text-left/product-right hero, no side slogan, no three class cards, no copied nav layout).
-- [ ] No DAVIDsTEA copy, imagery, illustration style or palette is reused.
+- [x] Structure/UX recognisably follows DAVIDsTEA's flow (utility bar → header with centred logo → hero → product showcase with tabs → category tiles → feature block → story/education → business CTA → newsletter/footer).
+- [x] Nothing reproduces the TERAN concept screenshot's composition (no text-left/product-right hero, no side slogan, no three class cards, no copied nav layout).
+- [x] No DAVIDsTEA copy, imagery, illustration style or palette is reused.
+
+**Result (2026-10-14, production build, desktop 1440 px and Pixel 7):** all three checks pass.
+The homepage runs announcement bar → header (category menus left, centred logo, utilities right)
+→ inset hero panel with an illustrated landscape and a frosted message card → tea-type ribbon →
+tabbed showcase → tea-type tiles → featured collection → story → brewing guide (in place of a
+certifications band) → business call to action → journal → footer with newsletter. There is no
+product photography beside the headline, no side slogan and no row of three class cards; colours,
+illustrations and copy are TERAN's own.

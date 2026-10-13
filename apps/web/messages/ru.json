@@ -95,7 +95,7 @@
     "ribbonLabel": "Виды чая",
     "showcaseTitle": "Выберите свой любимый чай",
     "showcaseTabs": "Подборки товаров",
-    "tabBestsellers": "Бестселлеры",
+    "tabFeatured": "Рекомендуем",
     "tabNew": "Новинки",
     "categoriesTitle": "По виду чая",
     "categoriesText": "Чёрный, зелёный, белый или травяной — найдите чай под настроение.",
@@ -162,8 +162,7 @@
       "featured": "Рекомендуемые",
       "newest": "Новинки",
       "price_asc": "Сначала дешевле",
-      "price_desc": "Сначала дороже",
-      "name_asc": "По названию (А–Я)"
+      "price_desc": "Сначала дороже"
     },
     "formats": {
       "LOOSE_LEAF": "Листовой чай",

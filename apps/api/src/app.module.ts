@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Module } from '@nestjs/common';
+import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -7,7 +7,15 @@ import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage } from 'node:http';
 import { validateEnv, type Env } from './config/env.js';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter.js';
+import { AuthGuard } from './auth/auth.guard.js';
+import { AuthModule } from './auth/auth.module.js';
+import { SessionMiddleware } from './auth/session.middleware.js';
+import { CatalogModule } from './catalog/catalog.module.js';
+import { ContentModule } from './content/content.module.js';
+import { CoreModule } from './core/core.module.js';
 import { HealthModule } from './health/health.module.js';
+import { InquiriesModule } from './inquiries/inquiries.module.js';
+import { OrdersModule } from './orders/orders.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
@@ -58,15 +66,31 @@ function requestId(request: IncomingMessage): string {
         };
       },
     }),
-    ThrottlerModule.forRoot({
-      throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
+        skipIf: () => config.get('THROTTLE_DISABLED', { infer: true }),
+      }),
     }),
     PrismaModule,
+    CoreModule,
     HealthModule,
+    CatalogModule,
+    ContentModule,
+    OrdersModule,
+    AuthModule,
+    InquiriesModule,
   ],
   providers: [
+    // Order matters: rate limiting runs before authorization.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(SessionMiddleware).forRoutes('{*splat}');
+  }
+}

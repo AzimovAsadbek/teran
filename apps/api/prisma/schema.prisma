@@ -255,6 +255,9 @@ model Product {
   brewAmountGrams    Decimal?       @db.Decimal(4, 1)
   /// Built-in artwork used for demo imagery when no photo is uploaded.
   illustrationKey    String?
+  /// Lowest active variant price, denormalised for sorting and price filtering.
+  /// Maintained by ProductPricing.refreshMinPrice whenever variants change.
+  minPrice           Decimal?       @db.Decimal(12, 2)
   publishedAt        DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -266,6 +269,7 @@ model Product {
 
   @@index([status, categoryId])
   @@index([status, publishedAt])
+  @@index([status, minPrice])
   @@index([categoryId])
 }
 

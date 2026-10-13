@@ -95,7 +95,7 @@
     "ribbonLabel": "Tea types",
     "showcaseTitle": "Choose your favourite tea",
     "showcaseTabs": "Product selections",
-    "tabBestsellers": "Bestsellers",
+    "tabFeatured": "Our picks",
     "tabNew": "New",
     "categoriesTitle": "Shop by type",
     "categoriesText": "Black, green, white or herbal — find the tea that suits your mood.",
@@ -162,8 +162,7 @@
       "featured": "Featured",
       "newest": "Newest",
       "price_asc": "Price: low to high",
-      "price_desc": "Price: high to low",
-      "name_asc": "Name (A–Z)"
+      "price_desc": "Price: high to low"
     },
     "formats": {
       "LOOSE_LEAF": "Loose leaf",

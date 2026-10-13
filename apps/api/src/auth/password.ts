@@ -1,0 +1,30 @@
+import { hash, verify } from '@node-rs/argon2';
+
+/**
+ * Argon2id (the library default algorithm) with OWASP's recommended minimum parameters:
+ * 19 MiB memory, 2 iterations, 1 degree of parallelism.
+ */
+const ARGON2_OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 } as const;
+
+export function hashPassword(password: string): Promise<string> {
+  return hash(password, ARGON2_OPTIONS);
+}
+
+export async function verifyPassword(passwordHash: string, password: string): Promise<boolean> {
+  try {
+    return await verify(passwordHash, password);
+  } catch {
+    // Malformed hash: treat as a failed verification rather than a server error.
+    return false;
+  }
+}
+
+/**
+ * A valid hash of a random value, verified when a login targets an unknown e-mail so that
+ * response time does not reveal whether the account exists.
+ */
+let dummyHash: Promise<string> | undefined;
+export function timingSafeDummyHash(): Promise<string> {
+  dummyHash ??= hashPassword(`dummy-${Math.random().toString(36)}-${Date.now()}`);
+  return dummyHash;
+}

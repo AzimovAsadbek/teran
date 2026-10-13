@@ -27,6 +27,9 @@ const envObjectSchema = z.object({
   CORS_EXTRA_ORIGINS: commaList.pipe(z.array(z.url({ protocol: /^https?$/ }))),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 
+  /** Server-side secret for HMAC derivations (e.g. guest order links). Rotate to invalidate links. */
+  APP_SECRET: z.string().min(32),
+
   COOKIE_SECURE: flag.default(false),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   STAFF_SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(72).default(12),
@@ -39,6 +42,9 @@ const envObjectSchema = z.object({
   REVALIDATE_SECRET: z.string().min(32).optional(),
 
   SWAGGER_ENABLED: flag.default(false),
+
+  /** Test-only escape hatch so integration suites can exceed rate limits; rejected elsewhere. */
+  THROTTLE_DISABLED: flag.default(false),
 
   MAIL_TRANSPORT: z.enum(['disabled', 'log', 'smtp']).default('disabled'),
   SMTP_HOST: z.string().optional(),
@@ -82,6 +88,15 @@ export const envSchema = z
           message: '"log" is not allowed in production',
         });
       }
+      for (const key of ['APP_SECRET', 'REVALIDATE_SECRET'] as const) {
+        if (env[key]?.includes('replace-with')) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: 'still contains the .env.example placeholder',
+          });
+        }
+      }
       if (!env.WEB_ORIGIN.startsWith('https://')) {
         ctx.addIssue({
           code: 'custom',
@@ -89,6 +104,13 @@ export const envSchema = z
           message: 'must use https in production',
         });
       }
+    }
+    if (env.THROTTLE_DISABLED && env.NODE_ENV !== 'test') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['THROTTLE_DISABLED'],
+        message: 'may only be enabled when NODE_ENV=test',
+      });
     }
     if (env.MAIL_TRANSPORT === 'smtp' && (!env.SMTP_HOST || !env.MAIL_FROM)) {
       ctx.addIssue({

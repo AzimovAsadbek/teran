@@ -15,7 +15,7 @@ export const CAFFEINE_LEVELS = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const;
 export const caffeineLevelSchema = z.enum(CAFFEINE_LEVELS);
 export type CaffeineLevel = z.infer<typeof caffeineLevelSchema>;
 
-export const PRODUCT_SORTS = ['featured', 'newest', 'price_asc', 'price_desc', 'name_asc'] as const;
+export const PRODUCT_SORTS = ['featured', 'newest', 'price_asc', 'price_desc'] as const;
 export const productSortSchema = z.enum(PRODUCT_SORTS);
 export type ProductSort = z.infer<typeof productSortSchema>;
 

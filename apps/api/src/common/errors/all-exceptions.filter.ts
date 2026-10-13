@@ -137,7 +137,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = exception.getResponse();
     if (typeof response === 'string') return response;
     if (typeof response === 'object' && 'message' in response) {
-      const { message } = response as { message: unknown };
+      const { message } = response;
       if (typeof message === 'string') return message;
       if (Array.isArray(message)) return message.map(String).join('; ');
     }

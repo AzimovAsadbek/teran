@@ -1,4 +1,5 @@
 import { mkdirSync } from 'node:fs';
+import type { ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import { VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -79,7 +80,8 @@ export function configureApp(app: NestExpressApplication): void {
     dotfiles: 'deny',
     immutable: true,
     maxAge: '365d',
-    setHeaders: (response) => response.setHeader('X-Content-Type-Options', 'nosniff'),
+    setHeaders: (response: ServerResponse) =>
+      response.setHeader('X-Content-Type-Options', 'nosniff'),
   });
 
   app.setGlobalPrefix(API_PREFIX);

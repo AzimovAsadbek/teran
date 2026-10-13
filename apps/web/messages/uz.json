@@ -95,7 +95,7 @@
     "ribbonLabel": "Choy turlari",
     "showcaseTitle": "Sevimli choylaringizni tanlang",
     "showcaseTabs": "Mahsulotlar toʻplami",
-    "tabBestsellers": "Bestsellerlar",
+    "tabFeatured": "Tavsiya etamiz",
     "tabNew": "Yangi",
     "categoriesTitle": "Choy turi boʻyicha",
     "categoriesText": "Qora, yashil, oq yoki giyohli — kayfiyatingizga mosini toping.",
@@ -162,8 +162,7 @@
       "featured": "Tavsiya etilgan",
       "newest": "Eng yangi",
       "price_asc": "Arzonroq",
-      "price_desc": "Qimmatroq",
-      "name_asc": "Nomi (A–Z)"
+      "price_desc": "Qimmatroq"
     },
     "formats": {
       "LOOSE_LEAF": "Bargli choy",

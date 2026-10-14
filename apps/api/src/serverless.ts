@@ -18,11 +18,13 @@ type RequestListener = (request: IncomingMessage, response: ServerResponse) => v
 let server: Promise<RequestListener> | undefined;
 
 async function createServer(): Promise<RequestListener> {
-  // Loaded lazily, after the DATABASE_URL choice above.
+  // Loaded lazily, after the DATABASE_URL choice above. The Express adapter is passed explicitly
+  // so the bundle contains it (NestFactory would otherwise require() it by name at runtime).
   const { NestFactory } = await import('@nestjs/core');
+  const { ExpressAdapter } = await import('@nestjs/platform-express');
   const { AppModule } = await import('./app.module.js');
   const { configureApp } = await import('./configure-app.js');
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter(), {
     bufferLogs: true,
     bodyParser: false,
   });

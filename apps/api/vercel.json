@@ -7,10 +7,20 @@
     "api/index.js": {
       "maxDuration": 30,
       "memory": 1024,
-      "includeFiles": "dist/**"
+      "includeFiles": "dist/vercel/**"
     }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }],
-  "crons": [{ "path": "/api/v1/internal/jobs/run", "schedule": "15 3 * * *" }],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/v1/internal/jobs/run",
+      "schedule": "15 3 * * *"
+    }
+  ],
   "regions": ["fra1"]
 }

@@ -7,18 +7,22 @@ reference for a self-hosted shop.
 
 ## Projects
 
-| Project     | Root directory | What runs                                                                    |
-| ----------- | -------------- | ---------------------------------------------------------------------------- |
-| `teran-api` | `apps/api`     | `api/index.js` → `dist/serverless.js`: the whole NestJS API in one function  |
-| `teran-web` | `apps/web`     | The Next.js storefront and admin; `/api/v1/*` and `/uploads/*` are rewritten |
+| Project     | Root directory | What runs                                                                                  |
+| ----------- | -------------- | ------------------------------------------------------------------------------------------ |
+| `teran-api` | `apps/api`     | `api/index.js` → `dist/vercel/handler.mjs`: the whole NestJS API, bundled, in one function |
+| `teran-web` | `apps/web`     | The Next.js storefront and admin; `/api/v1/*` and `/uploads/*` are rewritten               |
 
 Both use region `fra1` (Frankfurt) next to the Neon database, and build from the repository root
 because they share the `@teran/contracts` workspace package (see each `vercel.json`).
 
 - **API build** (`pnpm run vercel-build`): `prisma generate`, `prisma migrate deploy` against the
-  direct database address, `nest build`. Every request is rewritten to the function, which creates
-  the Nest application once per instance (`src/serverless.ts`, about 1 s on a cold start) with the
-  same `configureApp` as the container.
+  direct database address, `nest build`, then `scripts/bundle-serverless.ts` bundles
+  `dist/serverless.js` into one ES module (`dist/vercel/handler.mjs`). The bundle is needed because
+  Vercel's function runtime cannot `require()` an ES module from CommonJS, and two dependencies
+  (`@nestjs/throttler`, `nestjs-pino`) are CommonJS packages that require the ESM-only NestJS 12;
+  native modules (sharp, argon2) stay external. Every request is rewritten to the function, which
+  creates the Nest application once per instance (`src/serverless.ts`, about 0.5 s on a cold start)
+  with the same `configureApp` as the container.
 - **Web build**: the standard Next.js build; `output: 'standalone'` is only used outside Vercel.
 - The browser only ever talks to the storefront's origin: API calls and images go through its
   rewrites, so cookies stay first-party and the CSP is unchanged.

@@ -72,7 +72,6 @@
     "discoverText": "Choy turi, shakli va taʼm yoʻnalishi boʻyicha tanlang."
   },
   "Footer": {
-    "tagline": "Tabiiylik, sifat va nafislik — har bir piyolada.",
     "shop": "Doʻkon",
     "company": "Kompaniya",
     "help": "Yordam",
@@ -102,9 +101,6 @@
   },
   "Home": {
     "metaTitle": "TERAN — premium choy onlayn doʻkoni",
-    "heroEyebrow": "Tabiiy · Sifat · Nafislik",
-    "heroTitle": "Har bir piyolada — tabiat nafosati",
-    "heroText": "Sokin lahzalar, iliq suhbatlar va kundalik marosimlar uchun TERAN choylari.",
     "heroCta": "Choylarni koʻrish",
     "heroSecondaryCta": "Biznes uchun",
     "showcaseTitle": "Sevimli choylaringizni tanlang",
@@ -115,16 +111,7 @@
     "showcaseNext": "Yana choylar",
     "categoriesTitle": "Choy turi boʻyicha",
     "storyEyebrow": "TERAN falsafasi",
-    "storyTitle": "Choy — bu shoshilmaslik sanʼati",
-    "storyText": "Biz uchun choy shunchaki ichimlik emas. U kunni sekinlashtiradigan, odamlarni bir dasturxonga yigʻadigan va oddiy lahzani marosimga aylantiradigan odatdir. TERAN shu tuygʻuni har bir qadoqqa olib kirishga intiladi.",
     "storyCta": "TERAN haqida",
-    "valuesTitle": "Bizning qadriyatlarimiz",
-    "valueNatural": "Tabiiylik",
-    "valueNaturalText": "Tabiat bergan taʼm va xushboʻylikni hurmat qilamiz.",
-    "valueQuality": "Sifat",
-    "valueQualityText": "Har bir mahsulotga eʼtibor bilan yondashamiz.",
-    "valueElegance": "Nafislik",
-    "valueEleganceText": "Kundalik choy marosimiga nafosat olib kiramiz.",
     "featuredEyebrow": "Kolleksiya",
     "featuredCta": "Kolleksiyani koʻrish",
     "brewingEyebrow": "Choy maktabi",
@@ -132,8 +119,6 @@
     "brewingText": "Har bir choy turi oʻz haroratini va vaqtini talab qiladi. Umumiy tavsiyalar quyida — aniq koʻrsatmalar har bir mahsulot sahifasida berilgan.",
     "brewingNote": "Umumiy tavsiyalar. Qadoqdagi koʻrsatmalarga amal qiling.",
     "businessEyebrow": "Biznes uchun",
-    "businessTitle": "Kafe, restoran, mehmonxona va doʻkonlar uchun TERAN",
-    "businessText": "Ulgurji xaridlar va hamkorlik boʻyicha soʻrov qoldiring — jamoamiz siz bilan bogʻlanadi.",
     "businessCta": "Hamkorlik soʻrovi",
     "journalTitle": "Choy jurnali",
     "journalCta": "Barcha maqolalar"
@@ -144,7 +129,7 @@
       "black": "Qora choy",
       "white": "Oq choy",
       "oolong": "Ulun",
-      "herbal": "Giyohli damlama"
+      "puerh": "Pu-erh"
     },
     "temperature": "Harorat",
     "time": "Vaqt",
@@ -544,6 +529,8 @@
     "coverage": "Hududlar"
   },
   "Admin": {
+    "demoBadge": "Namoyish",
+    "demoMode": "Namoyish rejimi: namunaviy mahsulotlar, buyurtmalar va mijozlar toʻqima.",
     "metaTitle": "Boshqaruv paneli",
     "brand": "TERAN boshqaruv",
     "nav": {

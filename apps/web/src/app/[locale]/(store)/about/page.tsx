@@ -2,10 +2,12 @@ import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
-import { TeaTypeArt } from '@/components/brand/illustrations';
+import { Emblem } from '@/components/brand/logo';
+import { BrandPrinciples } from '@/components/content/brand-principles';
 import { Blocks } from '@/components/content/long-form';
 import { PageHeader } from '@/components/content/page-header';
 import { ButtonLink } from '@/components/ui/button';
+import { BRAND, brandCopy } from '@/content/brand';
 import { aboutPage } from '@/content/pages/about';
 import { pageMetadata } from '@/lib/seo';
 
@@ -15,35 +17,64 @@ export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({ title: page.title, description: page.description, href: '/about', locale });
 }
 
-const VALUE_ART = { nature: 'green', quality: 'black', elegance: 'white' } as const;
-
+/**
+ * About TERAN: the official brand story and philosophy (content/brand.ts), the range in general
+ * terms, and a placeholder for the history and photographs TERAN has yet to supply.
+ */
 export default async function AboutPage() {
   const locale = (await rootParams.locale()) as Locale;
   const page = aboutPage[locale];
+  const copy = brandCopy[locale];
   const tn = await getTranslations('Nav');
   const tp = await getTranslations('Pages');
-  const values = page.sections.filter((section) => section.id in VALUE_ART);
   const range = page.sections.find((section) => section.id === 'range');
-  const story = page.sections.find((section) => section.id === 'story');
+  const history = page.sections.find((section) => section.id === 'history');
 
   return (
     <>
-      <PageHeader eyebrow="TERAN" title={page.title} intro={page.intro} illustration="green" />
+      <PageHeader
+        eyebrow={`${BRAND.name}® · ${BRAND.descriptor}`}
+        title={page.title}
+        intro={copy.description}
+        illustration="green"
+      />
 
-      <section aria-label={page.title} className="container-page py-section-sm">
-        <ul className="grid gap-6 md:grid-cols-3">
-          {values.map((value) => (
-            <li key={value.id} className="rounded-panel border border-line bg-surface p-7 sm:p-8">
-              <span aria-hidden className="block h-16 w-16">
-                <TeaTypeArt kind={VALUE_ART[value.id as keyof typeof VALUE_ART]} />
-              </span>
-              <h2 className="mt-5 text-display-sm text-forest-900">{value.heading}</h2>
-              <div className="mt-3 space-y-3 text-body text-fg-muted">
-                <Blocks blocks={value.blocks} />
-              </div>
-            </li>
-          ))}
-        </ul>
+      <section aria-labelledby="story-title" className="container-page py-section-sm">
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-16">
+          <div
+            aria-hidden
+            className="relative mx-auto flex aspect-square w-full max-w-[16rem] items-center justify-center lg:col-span-4 lg:max-w-[20rem]"
+          >
+            <span className="absolute inset-0 rounded-full border border-gold-500/35" />
+            <span className="absolute inset-[8%] rounded-full bg-surface shadow-soft" />
+            <Emblem className="relative w-[48%]" sizes="(min-width: 1024px) 160px, 40vw" />
+          </div>
+          <div className="lg:col-span-8">
+            <h2 id="story-title" className="text-display-lg text-forest-900">
+              {copy.story.heading}
+            </h2>
+            <div className="mt-6 max-w-2xl space-y-4 text-body-lg text-fg-muted">
+              {copy.story.paragraphs.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="philosophy-title"
+        className="border-y border-line-subtle bg-surface"
+      >
+        <div className="container-page grid grid-cols-1 gap-10 py-section-sm lg:grid-cols-12 lg:gap-16">
+          <h2
+            id="philosophy-title"
+            className="max-w-[16ch] text-display-lg text-forest-900 lg:col-span-4"
+          >
+            {copy.philosophy.heading}
+          </h2>
+          <BrandPrinciples locale={locale} className="lg:col-span-8" />
+        </div>
       </section>
 
       {range ? (
@@ -72,14 +103,14 @@ export default async function AboutPage() {
         </section>
       ) : null}
 
-      {story ? (
-        <section aria-labelledby="story-title" className="container-page py-section-sm">
+      {history ? (
+        <section aria-labelledby="history-title" className="container-page py-section-sm">
           <div className="max-w-3xl">
-            <h2 id="story-title" className="text-display-md text-forest-900">
-              {story.heading}
+            <h2 id="history-title" className="text-display-md text-forest-900">
+              {history.heading}
             </h2>
             <div className="mt-5 space-y-4 text-body-lg text-fg-muted">
-              <Blocks blocks={story.blocks} />
+              <Blocks blocks={history.blocks} />
             </div>
           </div>
         </section>

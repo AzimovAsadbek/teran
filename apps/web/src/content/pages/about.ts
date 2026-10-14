@@ -1,38 +1,16 @@
 import type { Localized, LongFormContent } from '../types';
 
 /**
- * About page. Brand values only (from TERAN's own slogan "nature, quality, elegance"); no history,
- * origins, certifications or figures are stated until TERAN provides verified facts.
+ * About page sections that are not part of the official brand copy. The brand story and the three
+ * principles come from content/brand.ts (supplied by TERAN); history, production and photographs
+ * are still to be supplied, so they appear as a highlighted placeholder.
  */
 export const aboutPage: Localized<LongFormContent> = {
   en: {
     title: 'About TERAN',
     description:
-      'TERAN is a tea manufacturer from Uzbekistan. Nature, quality and elegance — in every cup.',
-    intro:
-      'TERAN is a tea manufacturer from Uzbekistan. We make tea for everyday rituals and for the moments worth celebrating — from the first cup of the morning to a long conversation over a pot of tea.',
+      'TERAN® — premium Chinese tea. In every cup, the rich traditions of Chinese tea culture meet the spirit of Uzbek hospitality.',
     sections: [
-      {
-        id: 'nature',
-        heading: 'Nature',
-        blocks: [
-          'Good tea starts with the leaf. We respect it, and let its colour, aroma and taste speak for themselves.',
-        ],
-      },
-      {
-        id: 'quality',
-        heading: 'Quality',
-        blocks: [
-          'We pay attention to every step that brings tea to your cup, and to packing it so that it reaches you as it should.',
-        ],
-      },
-      {
-        id: 'elegance',
-        heading: 'Elegance',
-        blocks: [
-          'Tea is part of hospitality. Our packaging, gift sets and this store are made to make sharing tea feel special.',
-        ],
-      },
       {
         id: 'range',
         heading: 'Something for every cup',
@@ -41,44 +19,21 @@ export const aboutPage: Localized<LongFormContent> = {
         ],
       },
       {
-        id: 'story',
-        heading: 'Our story',
+        id: 'history',
+        heading: 'Our history',
         blocks: [
           {
-            note: '[TERAN’s history, production and photographs will be added here once TERAN provides them.]',
+            note: '[TERAN’s history and photographs will be added here once TERAN provides them.]',
           },
         ],
       },
     ],
   },
   ru: {
-    title: 'О TERAN',
+    title: 'О TERAN',
     description:
-      'TERAN — производитель чая из Узбекистана. Природа, качество и элегантность — в каждой чашке.',
-    intro:
-      'TERAN — производитель чая из Узбекистана. Мы делаем чай для ежедневных ритуалов и для особых моментов — от первой утренней чашки до долгой беседы за чайником.',
+      'TERAN® — премиальный китайский чай. В каждой пиале традиции китайской чайной культуры соединяются с узбекским гостеприимством.',
     sections: [
-      {
-        id: 'nature',
-        heading: 'Природа',
-        blocks: [
-          'Хороший чай начинается с листа. Мы бережно относимся к нему и позволяем его цвету, аромату и вкусу говорить самим за себя.',
-        ],
-      },
-      {
-        id: 'quality',
-        heading: 'Качество',
-        blocks: [
-          'Мы внимательны к каждому шагу на пути чая к вашей чашке — и к упаковке, чтобы он дошёл до вас таким, каким должен быть.',
-        ],
-      },
-      {
-        id: 'elegance',
-        heading: 'Элегантность',
-        blocks: [
-          'Чай — часть гостеприимства. Наша упаковка, подарочные наборы и этот магазин созданы, чтобы делиться чаем было особенно приятно.',
-        ],
-      },
       {
         id: 'range',
         heading: 'Для каждой чашки',
@@ -87,11 +42,11 @@ export const aboutPage: Localized<LongFormContent> = {
         ],
       },
       {
-        id: 'story',
+        id: 'history',
         heading: 'Наша история',
         blocks: [
           {
-            note: '[История TERAN, сведения о производстве и фотографии появятся здесь, когда TERAN их предоставит.]',
+            note: '[История TERAN и фотографии появятся здесь, когда TERAN их предоставит.]',
           },
         ],
       },
@@ -100,31 +55,8 @@ export const aboutPage: Localized<LongFormContent> = {
   uz: {
     title: 'TERAN haqida',
     description:
-      'TERAN — Oʻzbekistondagi choy ishlab chiqaruvchisi. Tabiat, sifat va nafosat — har bir piyolada.',
-    intro:
-      'TERAN — Oʻzbekistondagi choy ishlab chiqaruvchisi. Biz kundalik odatlar va alohida lahzalar uchun choy tayyorlaymiz — ertalabki birinchi piyoladan tortib choynak atrofidagi uzoq suhbatgacha.',
+      'TERAN® — premium Xitoy choyi. Har bir piyolada Xitoy choy madaniyatining boy an’analari va o‘zbekona mehmondo‘stlik ruhi uyg‘unlashadi.',
     sections: [
-      {
-        id: 'nature',
-        heading: 'Tabiat',
-        blocks: [
-          'Yaxshi choy bargdan boshlanadi. Biz unga ehtiyotkorlik bilan munosabatda boʻlamiz va uning rangi, xushboʻyligi va taʼmi oʻzi gapirishiga imkon beramiz.',
-        ],
-      },
-      {
-        id: 'quality',
-        heading: 'Sifat',
-        blocks: [
-          'Biz choyning piyolangizgacha boʻlgan har bir bosqichiga va u sizga kerakli holatda yetib borishi uchun qadoqlashga eʼtibor beramiz.',
-        ],
-      },
-      {
-        id: 'elegance',
-        heading: 'Nafosat',
-        blocks: [
-          'Choy — mehmondoʻstlikning bir qismi. Qadoqlarimiz, sovgʻa toʻplamlarimiz va ushbu doʻkon choy bilan boʻlishishni yanada yoqimli qilish uchun yaratilgan.',
-        ],
-      },
       {
         id: 'range',
         heading: 'Har bir piyola uchun',
@@ -133,11 +65,11 @@ export const aboutPage: Localized<LongFormContent> = {
         ],
       },
       {
-        id: 'story',
+        id: 'history',
         heading: 'Bizning tariximiz',
         blocks: [
           {
-            note: '[TERAN tarixi, ishlab chiqarish haqidagi maʼlumotlar va suratlar TERAN ularni taqdim etgach shu yerda paydo boʻladi.]',
+            note: '[TERAN tarixi va suratlari TERAN ularni taqdim etgach shu yerda paydo boʻladi.]',
           },
         ],
       },

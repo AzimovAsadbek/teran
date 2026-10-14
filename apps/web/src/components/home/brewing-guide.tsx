@@ -11,7 +11,7 @@ export const BREWING_GUIDE = [
   { type: 'black', temperature: 95, minMinutes: 3, maxMinutes: 5, grams: 2.5 },
   { type: 'white', temperature: 85, minMinutes: 3, maxMinutes: 5, grams: 2.5 },
   { type: 'oolong', temperature: 90, minMinutes: 3, maxMinutes: 5, grams: 3 },
-  { type: 'herbal', temperature: 100, minMinutes: 5, maxMinutes: 7, grams: 2 },
+  { type: 'puerh', temperature: 95, minMinutes: 3, maxMinutes: 5, grams: 3 },
 ] as const;
 
 export function BrewingGuide() {

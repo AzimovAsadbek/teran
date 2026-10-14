@@ -1,11 +1,13 @@
-import { formatUzPhone } from '@teran/contracts';
-import { Mail, MapPin, Phone, Send } from 'lucide-react';
+import { formatUzPhone, type Locale } from '@teran/contracts';
+import { ExternalLink, Mail, MapPin, Phone, Send } from 'lucide-react';
 import { cacheLife } from 'next/cache';
 import { getLocale, getTranslations } from 'next-intl/server';
+import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense, type ReactNode } from 'react';
 import { LogoPlate } from '@/components/brand/logo';
 import { NewsletterForm } from '@/components/forms/newsletter-form';
+import { BRAND, brandCopy } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { getCategories } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
@@ -107,9 +109,12 @@ function LinkGroup({ title, children }: { title: string; children: ReactNode }) 
 }
 
 export async function SiteFooter() {
+  const locale = (await rootParams.locale()) as Locale;
+  const copy = brandCopy[locale];
   const t = await getTranslations('Footer');
   const tn = await getTranslations('Nav');
   const tl = await getTranslations('Newsletter');
+  const tc = await getTranslations('Common');
 
   return (
     <footer className="on-dark mt-auto bg-surface-inverse-deep text-ivory-100">
@@ -117,7 +122,23 @@ export async function SiteFooter() {
       <div className="container-page grid grid-cols-1 gap-12 py-14 lg:grid-cols-12 lg:py-16">
         <div className="lg:col-span-4">
           <LogoPlate className="px-5 py-4" logoClassName="w-32" />
-          <p className="mt-6 max-w-xs text-display-xs text-ivory-50">{t('tagline')}</p>
+          {/* The descriptor, not the tagline: the homepage already leads with the tagline. */}
+          <p className="mt-6 text-eyebrow text-accent-on-inverse">
+            {BRAND.name}® · {BRAND.descriptor}
+          </p>
+          <p className="mt-3 text-body-sm text-ivory-100/80">
+            {BRAND.company} · {copy.location}
+          </p>
+          <a
+            href={BRAND.website.href}
+            target="_blank"
+            rel="noopener"
+            className={`${linkClass} mt-1 inline-flex items-center gap-1 text-body-sm`}
+          >
+            {BRAND.website.label}
+            <ExternalLink aria-hidden className="h-3.5 w-3.5" />
+            <span className="sr-only"> ({tc('opensInNewTab')})</span>
+          </a>
           <Suspense fallback={null}>
             <ContactChannels />
           </Suspense>

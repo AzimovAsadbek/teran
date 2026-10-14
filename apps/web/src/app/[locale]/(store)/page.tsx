@@ -9,23 +9,23 @@ import { Hero } from '@/components/home/hero';
 import {
   CategoryRailFallback,
   CategoryRailSection,
-  FeaturedCollectionSection,
+  CollectionSection,
   JournalSection,
   ShowcaseFallback,
   ShowcaseSection,
 } from '@/components/home/home-sections';
 import { StorySection } from '@/components/home/story-section';
 import { Reveal } from '@/components/ui/reveal';
+import { brandCopy } from '@/content/brand';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { siteUrl } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations({ locale, namespace: 'Home' });
-  const meta = await getTranslations({ locale, namespace: 'Meta' });
   return pageMetadata({
     title: { absolute: t('metaTitle') },
-    description: meta('defaultDescription'),
+    description: brandCopy[locale].description,
     href: '/',
     locale,
   });
@@ -71,13 +71,11 @@ export default async function HomePage() {
       <Suspense fallback={<CategoryRailFallback />}>
         <CategoryRailSection />
       </Suspense>
+      <CollectionSection />
+      <StorySection />
       <Suspense fallback={<ShowcaseFallback />}>
         <ShowcaseSection />
       </Suspense>
-      <Suspense fallback={null}>
-        <FeaturedCollectionSection />
-      </Suspense>
-      <StorySection />
       <section aria-labelledby="brewing-title" className="container-page pt-section">
         <Reveal className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-16">
           <div className="lg:col-span-5">

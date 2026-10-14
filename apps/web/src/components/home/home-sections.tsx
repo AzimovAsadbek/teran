@@ -1,6 +1,9 @@
 import { ArrowRight } from 'lucide-react';
+import type { Locale } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
+import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
+import { Suspense } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
 import { ProductCard } from '@/components/catalog/product-card';
 import { ArticleCard } from '@/components/content/article-card';
@@ -8,6 +11,7 @@ import { ButtonLink } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { ProductCardSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { brandCopy, COLLECTION_CODES, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { getCategories, getCollections, getProductList } from '@/lib/data/catalog';
 import { getArticles } from '@/lib/data/content';
@@ -124,64 +128,105 @@ export function ShowcaseFallback() {
   );
 }
 
-export async function FeaturedCollectionSection() {
-  await connection();
-  const locale = await getLocale();
+const COLLECTION_GRID =
+  '-mx-gutter mt-8 flex snap-x snap-mandatory scroll-px-gutter gap-4 overflow-x-auto px-gutter py-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-6 sm:overflow-visible sm:px-0 sm:py-0 lg:grid-cols-5';
+const COLLECTION_ITEM = 'w-[62%] shrink-0 snap-start sm:w-auto';
+
+/**
+ * The TERAN premium collection (official copy): heading, supporting line and the five identifiers
+ * exactly as supplied are part of the static page; the link and the matching products stream in,
+ * each into a placeholder of the same size.
+ */
+export async function CollectionSection() {
+  const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
-  const collections = await getCollections(locale).catch(() => []);
-  const collection = collections.find((candidate) => candidate.productCount > 0);
-  if (!collection) return null;
-  const products = await getProductList(
-    locale,
-    `collection=${collection.slug}&pageSize=3&sort=featured`,
-  ).catch(() => null);
-  if (!products || products.items.length === 0) return null;
+  const copy = brandCopy[locale];
 
   return (
-    <section aria-labelledby="featured-collection-title" className="container-page pb-section">
-      <Reveal className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
-        <div className="on-dark relative isolate flex min-h-80 flex-col overflow-hidden rounded-panel bg-surface-inverse p-7 text-fg-inverse sm:p-10 lg:col-span-4">
-          <span aria-hidden className="absolute top-6 right-6 h-20 w-20 opacity-90 sm:h-24 sm:w-24">
-            <TeaTypeArt kind={collection.illustrationKey} />
-          </span>
+    <section aria-labelledby="collection-title" className="container-page pt-section-sm pb-section">
+      <Reveal>
+        <div className="on-dark relative isolate overflow-hidden rounded-panel bg-surface-inverse px-6 py-10 text-fg-inverse sm:px-10 lg:px-14 lg:py-14">
           <span
             aria-hidden
-            className="absolute -right-24 -bottom-24 -z-10 h-72 w-72 rounded-full border border-gold-300/20"
+            className="absolute -top-28 -right-28 -z-10 h-80 w-80 rounded-full border border-gold-300/20"
           />
           <span
             aria-hidden
-            className="absolute -right-12 -bottom-12 -z-10 h-48 w-48 rounded-full border border-gold-300/15"
+            className="absolute -top-14 -right-14 -z-10 h-52 w-52 rounded-full border border-gold-300/15"
           />
-          <p className="text-eyebrow text-accent-on-inverse">{t('featuredEyebrow')}</p>
-          <h2
-            id="featured-collection-title"
-            className="mt-auto pt-16 text-display-md text-fg-inverse"
-          >
-            {collection.name}
-          </h2>
-          {collection.description ? (
-            <p className="mt-3 max-w-sm text-body text-ivory-100/85">{collection.description}</p>
-          ) : null}
-          <ButtonLink
-            href={`/collections/${collection.slug}`}
-            variant="accent"
-            className="mt-8 self-start"
-          >
-            {t('featuredCta')} <ArrowRight aria-hidden className="h-4 w-4" />
-          </ButtonLink>
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-eyebrow text-accent-on-inverse">{t('featuredEyebrow')}</p>
+              <h2 id="collection-title" className="mt-4 text-display-lg">
+                {copy.collection.heading}
+              </h2>
+              <p className="mt-4 text-body-lg text-ivory-100/85">{copy.collection.text}</p>
+            </div>
+            <Suspense fallback={<div aria-hidden className="h-11 w-56" />}>
+              <CollectionLink label={t('featuredCta')} />
+            </Suspense>
+          </div>
+          <p className="mt-10 border-t border-line-inverse pt-8 font-display text-[1.625rem] leading-snug tracking-[0.04em] text-accent-on-inverse sm:text-[2rem]">
+            {COLLECTION_CODES.join(' · ')}
+          </p>
         </div>
-        <ul className="-mx-gutter flex snap-x snap-mandatory scroll-px-gutter gap-4 overflow-x-auto px-gutter pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 lg:col-span-8">
-          {products.items.map((product) => (
-            <li key={product.id} className="w-[62%] shrink-0 snap-start sm:w-auto">
-              <ProductCard
-                product={product}
-                sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 62vw"
-              />
-            </li>
-          ))}
-        </ul>
+        <Suspense
+          fallback={
+            <div aria-hidden className={COLLECTION_GRID}>
+              {COLLECTION_CODES.map((code) => (
+                <div key={code} className={COLLECTION_ITEM}>
+                  <ProductCardSkeleton />
+                </div>
+              ))}
+            </div>
+          }
+        >
+          <CollectionProducts />
+        </Suspense>
       </Reveal>
     </section>
+  );
+}
+
+/** To the collection page when the catalogue has it, otherwise to all teas. */
+async function CollectionLink({ label }: { label: string }) {
+  await connection();
+  const locale = await getLocale();
+  const collections = await getCollections(locale).catch(() => []);
+  const ready = collections.some(
+    (collection) => collection.slug === PREMIUM_COLLECTION_SLUG && collection.productCount > 0,
+  );
+  return (
+    <ButtonLink
+      href={ready ? `/collections/${PREMIUM_COLLECTION_SLUG}` : '/catalog'}
+      variant="accent"
+      className="self-start lg:self-auto"
+    >
+      {label} <ArrowRight aria-hidden className="h-4 w-4" />
+    </ButtonLink>
+  );
+}
+
+async function CollectionProducts() {
+  await connection();
+  const locale = await getLocale();
+  const products = await getProductList(
+    locale,
+    `collection=${PREMIUM_COLLECTION_SLUG}&pageSize=5&sort=featured`,
+  ).catch(() => null);
+  const items = products?.items ?? [];
+  if (items.length === 0) return null;
+  return (
+    <ul className={COLLECTION_GRID}>
+      {items.map((product) => (
+        <li key={product.id} className={COLLECTION_ITEM}>
+          <ProductCard
+            product={product}
+            sizes="(min-width: 1024px) 18vw, (min-width: 640px) 30vw, 62vw"
+          />
+        </li>
+      ))}
+    </ul>
   );
 }
 

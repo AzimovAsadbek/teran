@@ -10,6 +10,7 @@ import {
   CategoryChipsLoader,
   ListingHeader,
 } from '@/components/catalog/listing-header';
+import { PremiumCollectionBand } from '@/components/catalog/premium-collection-band';
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
 import { pageMetadata } from '@/lib/seo';
 
@@ -46,6 +47,10 @@ export default async function CatalogPage({ searchParams }: PageProps<'/[locale]
       </ListingHeader>
       <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults basePath="/catalog" scope={{}} searchParams={searchParams} />
+      </Suspense>
+      {/* Below the products: streams in without moving anything on the first screen. */}
+      <Suspense fallback={null}>
+        <PremiumCollectionBand locale={locale} />
       </Suspense>
     </div>
   );

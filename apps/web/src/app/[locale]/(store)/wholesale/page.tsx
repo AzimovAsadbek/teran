@@ -1,5 +1,5 @@
 import type { BusinessType, Locale } from '@teran/contracts';
-import { BedDouble, ChevronDown, Coffee, Gift, Store, Truck } from 'lucide-react';
+import { BedDouble, ChevronDown, Coffee, ExternalLink, Gift, Store, Truck } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -8,6 +8,7 @@ import { Blocks } from '@/components/content/long-form';
 import { PageHeader } from '@/components/content/page-header';
 import { WholesaleForm } from '@/components/forms/wholesale-form';
 import { ButtonLink } from '@/components/ui/button';
+import { BRAND, brandCopy } from '@/content/brand';
 import { wholesalePage } from '@/content/pages/wholesale';
 import { jsonLd, pageMetadata } from '@/lib/seo';
 
@@ -38,6 +39,8 @@ export default async function WholesalePage() {
   const page = wholesalePage[locale];
   const tw = await getTranslations('Wholesale');
   const tn = await getTranslations('Nav');
+  const tc = await getTranslations('Common');
+  const copy = brandCopy[locale];
   const segments = Object.entries(page.segments) as [Exclude<BusinessType, 'OTHER'>, string][];
 
   const structuredData = {
@@ -57,10 +60,40 @@ export default async function WholesalePage() {
     <>
       <PageHeader
         eyebrow={tn('wholesale')}
-        title={page.title}
-        intro={page.intro}
+        title={copy.partnership.heading}
+        intro={
+          <>
+            <p className="text-fg">{copy.partnership.text}</p>
+            <p className="mt-3">{page.intro}</p>
+          </>
+        }
         illustration="gift"
       >
+        <dl className="mt-8 grid max-w-2xl gap-x-8 gap-y-4 border-t border-line pt-6 text-body-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-caption text-fg-subtle">{copy.labels.company}</dt>
+            <dd className="mt-1 font-semibold text-fg">{BRAND.company}</dd>
+          </div>
+          <div>
+            <dt className="text-caption text-fg-subtle">{copy.labels.location}</dt>
+            <dd className="mt-1 font-semibold text-fg">{copy.location}</dd>
+          </div>
+          <div>
+            <dt className="text-caption text-fg-subtle">{copy.labels.website}</dt>
+            <dd className="mt-1">
+              <a
+                href={BRAND.website.href}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1 font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
+              >
+                {BRAND.website.label}
+                <ExternalLink aria-hidden className="h-3.5 w-3.5" />
+                <span className="sr-only"> ({tc('opensInNewTab')})</span>
+              </a>
+            </dd>
+          </div>
+        </dl>
         <ButtonLink href="#request" size="lg" className="mt-8">
           {page.formTitle}
         </ButtonLink>

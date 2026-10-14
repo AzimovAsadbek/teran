@@ -23,8 +23,10 @@ import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { LogoutButton } from '@/components/account/account-forms';
 import { Wordmark } from '@/components/brand/logo';
+import { Badge } from '@/components/ui/badge';
 import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { isDemoContent } from '@/lib/site';
 import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
 type NavKey =
@@ -159,6 +161,14 @@ export function AdminShell({ user, children }: { user: CurrentUserDto; children:
             <Wordmark size="compact" />
           </Link>
         </div>
+        {isDemoContent ? (
+          <p
+            role="note"
+            className="mx-5 mt-3 rounded-control bg-gold-100 px-3 py-2 text-helper text-gold-800"
+          >
+            {t('demoMode')}
+          </p>
+        ) : null}
         <div className="px-3 py-5">{navigation}</div>
         <div className="space-y-1 border-t border-line px-3 py-4">
           <p className="truncate px-3 text-body-sm font-semibold text-fg">
@@ -178,9 +188,12 @@ export function AdminShell({ user, children }: { user: CurrentUserDto; children:
 
       <div className="min-w-0">
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface/95 px-4 lg:hidden">
-          <Link href="/admin" aria-label={t('brand')}>
-            <Wordmark size="compact" />
-          </Link>
+          <span className="flex items-center gap-2">
+            <Link href="/admin" aria-label={t('brand')}>
+              <Wordmark size="compact" />
+            </Link>
+            {isDemoContent ? <Badge tone="new">{t('demoBadge')}</Badge> : null}
+          </span>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}

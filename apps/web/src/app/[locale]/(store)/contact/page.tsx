@@ -1,5 +1,5 @@
 import type { Locale, PublicSettingsDto } from '@teran/contracts';
-import { ArrowRight, AtSign, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { ArrowRight, AtSign, Clock, Globe, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -8,6 +8,7 @@ import { Suspense, type ReactNode } from 'react';
 import { PageHeader } from '@/components/content/page-header';
 import { ContactForm } from '@/components/forms/contact-form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BRAND, brandCopy } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { getPublicSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
@@ -32,18 +33,19 @@ function Channel({
   label: string;
   children: ReactNode;
 }) {
+  // A <dl> may only hold dt/dd pairs (or divs of them), so the icon sits inside the <dt>.
   return (
-    <div className="flex gap-4">
-      <span
-        aria-hidden
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-forest-900 [&_svg]:h-[1.125rem] [&_svg]:w-[1.125rem]"
-      >
-        {icon}
-      </span>
-      <div>
-        <dt className="text-body-sm text-fg-subtle">{label}</dt>
-        <dd className="mt-0.5 text-body font-semibold break-words text-fg">{children}</dd>
-      </div>
+    <div className="relative min-h-10 pl-14">
+      <dt className="text-body-sm text-fg-subtle">
+        <span
+          aria-hidden
+          className="absolute top-0 left-0 flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft text-forest-900 [&_svg]:h-[1.125rem] [&_svg]:w-[1.125rem]"
+        >
+          {icon}
+        </span>
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-body font-semibold break-words text-fg">{children}</dd>
     </div>
   );
 }
@@ -121,8 +123,11 @@ async function ContactChannels() {
 }
 
 export default async function ContactPage() {
+  const locale = (await rootParams.locale()) as Locale;
+  const copy = brandCopy[locale];
   const t = await getTranslations('Pages');
   const tn = await getTranslations('Nav');
+  const tc = await getTranslations('Common');
 
   return (
     <>
@@ -157,6 +162,30 @@ export default async function ContactPage() {
           </div>
         </section>
         <aside className="space-y-5 lg:sticky lg:top-24">
+          <section
+            aria-labelledby="company-title"
+            className="rounded-panel border border-line bg-surface p-6 sm:p-8"
+          >
+            <h2 id="company-title" className="text-display-sm text-forest-900">
+              {BRAND.company}
+            </h2>
+            <dl className="mt-5 space-y-4">
+              <Channel icon={<MapPin className="h-5 w-5" />} label={copy.labels.location}>
+                <span className="font-normal text-fg">{copy.location}</span>
+              </Channel>
+              <Channel icon={<Globe className="h-5 w-5" />} label={copy.labels.website}>
+                <a
+                  href={BRAND.website.href}
+                  target="_blank"
+                  rel="noopener"
+                  className="underline-offset-4 hover:underline"
+                >
+                  {BRAND.website.label}
+                  <span className="sr-only"> ({tc('opensInNewTab')})</span>
+                </a>
+              </Channel>
+            </dl>
+          </section>
           <Suspense fallback={<Skeleton className="h-64 rounded-panel" />}>
             <ContactChannels />
           </Suspense>

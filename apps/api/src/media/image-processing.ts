@@ -3,8 +3,11 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import sharp, { type Metadata } from 'sharp';
 
-/** Widths generated for every stored image; the storefront picks the smallest sufficient one. */
-export const IMAGE_WIDTHS = [320, 640, 960, 1280, 1600] as const;
+/**
+ * Widths generated for every stored image; the storefront picks the smallest sufficient one. 480
+ * serves product cards on phones (about 240 CSS px at 2× density) without falling back to 640.
+ */
+export const IMAGE_WIDTHS = [320, 480, 640, 960, 1280, 1600] as const;
 
 const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp']);
 const MIN_DIMENSION = 200;

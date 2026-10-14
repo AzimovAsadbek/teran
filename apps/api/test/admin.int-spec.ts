@@ -255,7 +255,7 @@ describe('admin API', () => {
           .attach('file', avif, { filename: 'tea.avif', contentType: 'image/avif' })
           .expect(201)
       ).body as AdminProductDetail;
-      expect(withAvif.images.map((image) => image.widths)).toEqual([[320], [320, 640]]);
+      expect(withAvif.images.map((image) => image.widths)).toEqual([[320], [320, 480, 640]]);
 
       await agent
         .post(`${API}/admin/products/${product.id}/images`)

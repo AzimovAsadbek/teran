@@ -26,36 +26,52 @@ export function QuantityStepper({
   const t = useTranslations('Product');
   const height = size === 'sm' ? 'h-9' : 'h-12';
   const button = cn(
-    'inline-flex aspect-square items-center justify-center rounded-full text-forest-900 transition-colors hover:bg-forest-900/[0.06] disabled:opacity-35 disabled:hover:bg-transparent',
-    height,
+    'inline-flex aspect-square items-center justify-center rounded-[calc(var(--radius-control)-3px)] text-fg transition-colors duration-150 hover:bg-brand/[0.06]',
+    'aria-disabled:cursor-not-allowed aria-disabled:opacity-35 aria-disabled:hover:bg-transparent',
+    size === 'sm' ? 'h-[calc(100%-4px)]' : 'h-[calc(100%-6px)]',
   );
+  // aria-disabled rather than disabled: a disabled button would drop keyboard focus to the page
+  // the moment the quantity reaches a limit or an update is in flight.
+  const canDecrease = !disabled && value > 1;
+  const canIncrease = !disabled && value < max;
 
   return (
     <div
       role="group"
       aria-label={label}
       className={cn(
-        'inline-flex items-center rounded-full border border-sage-500 bg-white',
+        'inline-flex shrink-0 items-center justify-between rounded-control border border-line-strong/60 bg-surface px-[2px] shadow-xs',
+        size === 'sm' ? 'w-[6.5rem]' : 'w-36',
         height,
       )}
     >
       <button
         type="button"
         className={button}
-        onClick={() => onChange(value - 1)}
-        disabled={disabled || value <= 1}
+        onClick={() => {
+          if (canDecrease) onChange(value - 1);
+        }}
+        aria-disabled={!canDecrease || undefined}
         aria-label={t('decrease')}
       >
         <Minus aria-hidden className="h-4 w-4" />
       </button>
-      <output aria-live="polite" className="min-w-8 text-center text-sm font-semibold tabular-nums">
+      <output
+        aria-live="polite"
+        className={cn(
+          'min-w-8 text-center font-semibold figures',
+          size === 'sm' ? 'text-body-sm' : 'text-body',
+        )}
+      >
         {value}
       </output>
       <button
         type="button"
         className={button}
-        onClick={() => onChange(value + 1)}
-        disabled={disabled || value >= max}
+        onClick={() => {
+          if (canIncrease) onChange(value + 1);
+        }}
+        aria-disabled={!canIncrease || undefined}
         aria-label={t('increase')}
       >
         <Plus aria-hidden className="h-4 w-4" />

@@ -22,6 +22,7 @@ import { Link, getPathname } from '@/i18n/navigation';
 import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
 import { cn } from '@/lib/cn';
 import { formatDateTime } from '@/lib/format';
+import { buttonClasses } from '@/components/ui/button';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -50,8 +51,8 @@ export default async function AdminInquiriesPage({
       href={target === 'contact' ? '/admin/inquiries' : '/admin/inquiries?type=wholesale'}
       aria-current={kind === target ? 'page' : undefined}
       className={cn(
-        'rounded-full px-4 py-2 text-sm font-semibold',
-        kind === target ? 'bg-forest-900 text-ivory-50' : 'text-forest-900 hover:bg-ivory-100',
+        'rounded-full px-4 py-2 text-body-sm font-semibold',
+        kind === target ? 'bg-brand text-fg-inverse' : 'text-forest-900 hover:bg-surface-muted',
       )}
     >
       {t(`inquiries.${target}`)}
@@ -62,7 +63,7 @@ export default async function AdminInquiriesPage({
     <>
       <AdminPageHeader title={t('inquiries.title')} />
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <nav aria-label={t('inquiries.title')} className="flex gap-1 rounded-full bg-white p-1">
+        <nav aria-label={t('inquiries.title')} className="flex gap-1 rounded-full bg-surface p-1">
           {tab('contact')}
           {tab('wholesale')}
         </nav>
@@ -84,10 +85,7 @@ export default async function AdminInquiriesPage({
               })),
             ]}
           />
-          <button
-            type="submit"
-            className="h-11 rounded-full bg-forest-900 px-5 text-sm font-semibold text-ivory-50"
-          >
+          <button type="submit" className={buttonClasses('primary')}>
             {t('common.search')}
           </button>
         </form>
@@ -98,10 +96,7 @@ export default async function AdminInquiriesPage({
       ) : (
         <ul className="space-y-4">
           {data.items.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5"
-            >
+            <li key={item.id} className="rounded-card border border-line bg-surface p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-forest-900">
@@ -109,11 +104,11 @@ export default async function AdminInquiriesPage({
                       ? `${item.companyName} · ${item.contactName}`
                       : item.name}
                   </p>
-                  <p className="text-sm text-ink-700">
+                  <p className="text-body-sm text-fg-muted">
                     {[item.phone, item.email].filter(Boolean).join(' · ')}
                   </p>
                   {'businessType' in item ? (
-                    <p className="text-sm text-ink-500">
+                    <p className="text-body-sm text-fg-subtle">
                       {tw(`segments.${item.businessType}`)}
                       {item.regionCode ? ` · ${regionName(item.regionCode, locale as Locale)}` : ''}
                       {item.city ? `, ${item.city}` : ''}
@@ -122,18 +117,18 @@ export default async function AdminInquiriesPage({
                         : ''}
                     </p>
                   ) : item.subject ? (
-                    <p className="text-sm text-ink-500">
+                    <p className="text-body-sm text-fg-subtle">
                       {t('inquiries.subject')}: {item.subject}
                     </p>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-2 text-sm text-ink-500">
+                <div className="flex items-center gap-2 text-body-sm text-fg-subtle">
                   {formatDateTime(item.createdAt, locale as Locale)}
                   <InquiryStatusPill status={item.status} />
                 </div>
               </div>
               {item.message ? (
-                <p className="mt-3 whitespace-pre-line text-ink-900">{item.message}</p>
+                <p className="mt-3 whitespace-pre-line text-fg">{item.message}</p>
               ) : null}
               <InquiryEditor
                 kind={kind}

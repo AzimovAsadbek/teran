@@ -5,9 +5,8 @@ import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
-import { CatalogResults } from '@/components/catalog/catalog-results';
+import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/catalog-results';
 import { ListingHeader, ListingHeaderSkeleton } from '@/components/catalog/listing-header';
-import { ProductGridSkeleton } from '@/components/ui/skeleton';
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
 import { getCollections } from '@/lib/data/catalog';
 import { pageMetadata } from '@/lib/seo';
@@ -61,7 +60,7 @@ async function CollectionListing({
         description={collection.description}
         illustrationKey={collection.illustrationKey}
       />
-      <Suspense fallback={<ProductGridSkeleton count={8} className="mt-24" />}>
+      <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults
           basePath={`/collections/${collection.slug}`}
           scope={{ collection: collection.slug }}
@@ -77,13 +76,13 @@ export default function CollectionPage({
   searchParams,
 }: PageProps<'/[locale]/collections/[collection]'>) {
   return (
-    <div className="container-page pt-6 pb-20">
+    <div className="container-page pt-4 pb-section sm:pt-6">
       <Suspense
         fallback={
           <>
             <div className="h-5" />
-            <ListingHeaderSkeleton />
-            <ProductGridSkeleton count={8} className="mt-24" />
+            <ListingHeaderSkeleton chips={false} />
+            <CatalogResultsSkeleton />
           </>
         }
       >

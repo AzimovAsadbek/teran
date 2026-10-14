@@ -8,9 +8,9 @@ export const aboutPage: Localized<LongFormContent> = {
   en: {
     title: 'About TERAN',
     description:
-      'TERAN is a tea manufacturer from Uzbekistan. Nature, quality and elegance — in every cup.',
+      'TERAN is a tea manufacturer from Uzbekistan. Nature, quality and elegance — in every cup.',
     intro:
-      'TERAN is a tea manufacturer from Uzbekistan. We make tea for everyday rituals and for the moments worth celebrating — from the first cup of the morning to a long conversation over a pot of tea.',
+      'TERAN is a tea manufacturer from Uzbekistan. We make tea for everyday rituals and for the moments worth celebrating — from the first cup of the morning to a long conversation over a pot of tea.',
     sections: [
       {
         id: 'nature',
@@ -52,38 +52,38 @@ export const aboutPage: Localized<LongFormContent> = {
     ],
   },
   ru: {
-    title: 'О TERAN',
+    title: 'О TERAN',
     description:
-      'TERAN — производитель чая из Узбекистана. Природа, качество и элегантность — в каждой чашке.',
+      'TERAN — производитель чая из Узбекистана. Природа, качество и элегантность — в каждой чашке.',
     intro:
-      'TERAN — производитель чая из Узбекистана. Мы делаем чай для ежедневных ритуалов и для особых моментов — от первой утренней чашки до долгой беседы за чайником.',
+      'TERAN — производитель чая из Узбекистана. Мы делаем чай для ежедневных ритуалов и для особых моментов — от первой утренней чашки до долгой беседы за чайником.',
     sections: [
       {
         id: 'nature',
         heading: 'Природа',
         blocks: [
-          'Хороший чай начинается с листа. Мы бережно относимся к нему и позволяем его цвету, аромату и вкусу говорить самим за себя.',
+          'Хороший чай начинается с листа. Мы бережно относимся к нему и позволяем его цвету, аромату и вкусу говорить самим за себя.',
         ],
       },
       {
         id: 'quality',
         heading: 'Качество',
         blocks: [
-          'Мы внимательны к каждому шагу на пути чая к вашей чашке — и к упаковке, чтобы он дошёл до вас таким, каким должен быть.',
+          'Мы внимательны к каждому шагу на пути чая к вашей чашке — и к упаковке, чтобы он дошёл до вас таким, каким должен быть.',
         ],
       },
       {
         id: 'elegance',
         heading: 'Элегантность',
         blocks: [
-          'Чай — часть гостеприимства. Наша упаковка, подарочные наборы и этот магазин созданы, чтобы делиться чаем было особенно приятно.',
+          'Чай — часть гостеприимства. Наша упаковка, подарочные наборы и этот магазин созданы, чтобы делиться чаем было особенно приятно.',
         ],
       },
       {
         id: 'range',
         heading: 'Для каждой чашки',
         blocks: [
-          'Листовой чай для неторопливого заваривания, чайные пакетики и пирамидки для занятых дней и подарочные наборы для близких.',
+          'Листовой чай для неторопливого заваривания, чайные пакетики и пирамидки для занятых дней и подарочные наборы для близких.',
         ],
       },
       {
@@ -91,7 +91,7 @@ export const aboutPage: Localized<LongFormContent> = {
         heading: 'Наша история',
         blocks: [
           {
-            note: '[История TERAN, сведения о производстве и фотографии появятся здесь, когда TERAN их предоставит.]',
+            note: '[История TERAN, сведения о производстве и фотографии появятся здесь, когда TERAN их предоставит.]',
           },
         ],
       },
@@ -100,9 +100,9 @@ export const aboutPage: Localized<LongFormContent> = {
   uz: {
     title: 'TERAN haqida',
     description:
-      'TERAN — Oʻzbekistondagi choy ishlab chiqaruvchisi. Tabiat, sifat va nafosat — har bir piyolada.',
+      'TERAN — Oʻzbekistondagi choy ishlab chiqaruvchisi. Tabiat, sifat va nafosat — har bir piyolada.',
     intro:
-      'TERAN — Oʻzbekistondagi choy ishlab chiqaruvchisi. Biz kundalik odatlar va alohida lahzalar uchun choy tayyorlaymiz — ertalabki birinchi piyoladan tortib choynak atrofidagi uzoq suhbatgacha.',
+      'TERAN — Oʻzbekistondagi choy ishlab chiqaruvchisi. Biz kundalik odatlar va alohida lahzalar uchun choy tayyorlaymiz — ertalabki birinchi piyoladan tortib choynak atrofidagi uzoq suhbatgacha.',
     sections: [
       {
         id: 'nature',
@@ -122,7 +122,7 @@ export const aboutPage: Localized<LongFormContent> = {
         id: 'elegance',
         heading: 'Nafosat',
         blocks: [
-          'Choy — mehmondoʻstlikning bir qismi. Qadoqlarimiz, sovgʻa toʻplamlarimiz va ushbu doʻkon choy bilan boʻlishishni yanada yoqimli qilish uchun yaratilgan.',
+          'Choy — mehmondoʻstlikning bir qismi. Qadoqlarimiz, sovgʻa toʻplamlarimiz va ushbu doʻkon choy bilan boʻlishishni yanada yoqimli qilish uchun yaratilgan.',
         ],
       },
       {

@@ -71,12 +71,12 @@ export default async function AdminJournalPage({
             </thead>
             <tbody>
               {articles.items.map((article) => (
-                <tr key={article.id} className="hover:bg-ivory-50">
+                <tr key={article.id}>
                   <td className={table.td}>
                     <Link href={`/admin/journal/${article.id}`} className={table.link}>
                       {article.translations.uz.title}
                     </Link>
-                    <span className="block font-mono text-xs text-ink-500">{article.slug}</span>
+                    <span className="block font-mono text-xs text-fg-subtle">{article.slug}</span>
                   </td>
                   <td className={table.td}>
                     <ArticleStatusPill status={article.status} />
@@ -84,7 +84,7 @@ export default async function AdminJournalPage({
                   <td className={`${table.td} whitespace-nowrap`}>
                     {article.publishedAt ? formatDate(article.publishedAt, locale as Locale) : '—'}
                   </td>
-                  <td className={`${table.td} whitespace-nowrap text-ink-700`}>
+                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
                     {formatDate(article.updatedAt, locale as Locale)}
                   </td>
                 </tr>

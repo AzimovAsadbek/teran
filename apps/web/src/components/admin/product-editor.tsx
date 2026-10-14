@@ -19,6 +19,7 @@ import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
 import { useValidationMessage } from '@/lib/use-validation-message';
+import { buttonClasses } from '@/components/ui/button';
 import {
   fromTranslation,
   toTranslationPayload,
@@ -151,10 +152,10 @@ function toPayload(draft: Draft) {
 
 function Section({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
   return (
-    <section className="space-y-4 rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5 sm:p-6">
+    <section className="space-y-4 rounded-card border border-line bg-surface p-5 sm:p-6">
       <div>
-        <h2 className="text-lg font-semibold text-forest-900">{title}</h2>
-        {hint ? <p className="mt-1 text-sm text-ink-500">{hint}</p> : null}
+        <h2 className="text-body-lg font-semibold text-forest-900">{title}</h2>
+        {hint ? <p className="mt-1 text-body-sm text-fg-subtle">{hint}</p> : null}
       </div>
       {children}
     </section>
@@ -229,13 +230,13 @@ export function ProductEditor({
 
         <Section title={t('products.variants')} hint={t('products.variantsHint')}>
           {error('variants') ? (
-            <p className="text-sm font-medium text-danger-700">{error('variants')}</p>
+            <p className="text-body-sm font-medium text-danger">{error('variants')}</p>
           ) : null}
           <ol className="space-y-4">
             {draft.variants.map((variant, index) => (
               <li
                 key={variant.id ?? `new-${index}`}
-                className="rounded-2xl border border-ivory-200 p-4"
+                className="rounded-card border border-line p-4"
               >
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <TextField
@@ -300,10 +301,10 @@ export function ProductEditor({
                   />
                   {variant.id ? (
                     <div>
-                      <p className="mb-1.5 text-sm font-semibold text-forest-900">
+                      <p className="mb-1.5 text-body-sm font-semibold text-forest-900">
                         {t('products.stock')}
                       </p>
-                      <p className="flex h-12 items-center text-lg font-semibold tabular-nums">
+                      <p className="flex h-12 items-center text-body-lg font-semibold tabular-nums">
                         {variant.stockQuantity}
                       </p>
                     </div>
@@ -334,7 +335,7 @@ export function ProductEditor({
                           draft.variants.filter((_, position) => position !== index),
                         )
                       }
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-danger-700 hover:underline"
+                      className="inline-flex items-center gap-2 text-body-sm font-semibold text-danger hover:underline"
                     >
                       <Trash2 aria-hidden className="h-4 w-4" />
                       {t('products.removeVariant')}
@@ -347,7 +348,7 @@ export function ProductEditor({
           <button
             type="button"
             onClick={() => set('variants', [...draft.variants, { ...EMPTY_VARIANT }])}
-            className="inline-flex items-center gap-2 rounded-full border border-forest-900/25 px-4 py-2 text-sm font-semibold text-forest-900 hover:bg-forest-900/[0.04]"
+            className={buttonClasses('secondary', 'sm')}
           >
             <Plus aria-hidden className="h-4 w-4" />
             {t('products.addVariant')}
@@ -536,7 +537,7 @@ export function ProductEditor({
           </Section>
         ) : null}
 
-        <div className="space-y-3 rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5">
+        <div className="space-y-3 rounded-card border border-line bg-surface p-5">
           <ApiAlert message={form.apiErrorMessage} />
           <SubmitButton
             sending={form.status === 'sending'}
@@ -547,7 +548,7 @@ export function ProductEditor({
             <Link
               href={`/products/${product.slug}`}
               target="_blank"
-              className="flex items-center justify-center gap-1.5 text-sm font-semibold text-forest-900 hover:underline"
+              className="flex items-center justify-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
             >
               {t('products.openInStore')}
               <ExternalLink aria-hidden className="h-3.5 w-3.5" />

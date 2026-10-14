@@ -52,22 +52,19 @@ async function AccountOrder({
     <div className="space-y-8">
       <Link
         href="/account"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-forest-900 underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 underline-offset-4 hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {ta('backToAccount')}
       </Link>
       <div>
-        <p className="text-eyebrow text-gold-700">{t('statusTitle')}</p>
+        <p className="text-eyebrow text-accent-fg">{t('statusTitle')}</p>
         <h1 className="text-display-lg mt-2 text-forest-900">
           {t('orderTitle', { number: order.number })}
         </h1>
       </div>
-      <section
-        aria-label={t('statusTitle')}
-        className="rounded-[var(--radius-panel)] bg-white p-5 sm:p-7"
-      >
-        <p className="mb-4 text-sm text-ink-700">
+      <section aria-label={t('statusTitle')} className="rounded-panel bg-surface p-5 sm:p-7">
+        <p className="mb-4 text-body-sm text-fg-muted">
           {t('statusTitle')}:{' '}
           <strong className="text-forest-900">{t(`statuses.${order.status}`)}</strong>
         </p>
@@ -87,7 +84,7 @@ export default function AccountOrderPage({
         fallback={
           <div className="space-y-6" aria-hidden>
             <Skeleton className="h-14 w-1/2" />
-            <Skeleton className="h-80 rounded-[var(--radius-panel)]" />
+            <Skeleton className="h-80 rounded-panel" />
           </div>
         }
       >

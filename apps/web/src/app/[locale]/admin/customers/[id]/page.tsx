@@ -43,7 +43,7 @@ export default async function AdminCustomerPage({
     <>
       <Link
         href="/admin/customers"
-        className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-forest-900 hover:underline"
+        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {t('customers.title')}
@@ -54,18 +54,18 @@ export default async function AdminCustomerPage({
       />
       <Panel title={`${t('customers.orders')} (${customer.orderCount})`}>
         {orders.length === 0 ? (
-          <p className="text-ink-500">{t('common.empty')}</p>
+          <p className="text-fg-subtle">{t('common.empty')}</p>
         ) : (
-          <ul className="divide-y divide-ivory-200">
+          <ul className="divide-y divide-line">
             {orders.map((order) => (
               <li
                 key={order.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-sm"
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-body-sm"
               >
                 <Link href={`/admin/orders/${order.number}`} className={table.link}>
                   {order.number}
                 </Link>
-                <span className="text-ink-500">
+                <span className="text-fg-subtle">
                   {formatDateTime(order.createdAt, locale as Locale)}
                 </span>
                 <span className="flex-1" />

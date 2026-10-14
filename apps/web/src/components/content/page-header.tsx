@@ -1,8 +1,12 @@
 import type { IllustrationKey } from '@teran/contracts';
 import type { ReactNode } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
+import { Notice } from '@/components/ui/notice';
 
-/** Header for information pages: eyebrow, serif title, intro and a quiet botanical accent. */
+/**
+ * Header for information pages: eyebrow, serif title and intro, with the tea-type medallion in
+ * gold rings on wide screens (always whole, never cropped).
+ */
 export function PageHeader({
   eyebrow,
   title,
@@ -17,26 +21,25 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header className="relative overflow-hidden bg-ivory-100">
-      <div className="container-page relative z-10 py-14 sm:py-20">
-        <div className="max-w-3xl">
-          {eyebrow ? <p className="text-eyebrow text-gold-700">{eyebrow}</p> : null}
-          <h1 className="text-display-xl mt-3 text-forest-900">{title}</h1>
-          {intro ? (
-            <div className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-700 sm:text-xl">
-              {intro}
-            </div>
-          ) : null}
+    <header className="border-b border-line-subtle">
+      <div className="container-page grid items-center gap-10 py-12 sm:py-16 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          {eyebrow ? <p className="text-eyebrow text-accent-fg">{eyebrow}</p> : null}
+          <h1 className="mt-3 text-display-lg text-forest-900">{title}</h1>
+          {intro ? <div className="mt-5 max-w-2xl text-body-lg text-fg-muted">{intro}</div> : null}
           {children}
         </div>
+        <div
+          aria-hidden
+          className="relative hidden aspect-square w-full max-w-[14rem] justify-self-end lg:col-span-4 lg:block"
+        >
+          <span className="absolute inset-0 rounded-full border border-gold-500/30" />
+          <span className="absolute inset-[8%] rounded-full border border-gold-500/20" />
+          <span className="absolute inset-[17%]">
+            <TeaTypeArt kind={illustration} />
+          </span>
+        </div>
       </div>
-      <span
-        aria-hidden
-        className="absolute top-1/2 -right-16 hidden h-80 w-80 -translate-y-1/2 opacity-80 md:block lg:right-8"
-      >
-        <TeaTypeArt kind={illustration} />
-      </span>
-      <div aria-hidden className="rule-gold absolute inset-x-0 bottom-0" />
     </header>
   );
 }
@@ -44,11 +47,8 @@ export function PageHeader({
 /** Banner on documents that are still drafts awaiting TERAN's (and a lawyer's) review. */
 export function DraftNotice({ children }: { children: ReactNode }) {
   return (
-    <p
-      role="note"
-      className="mb-10 rounded-[var(--radius-card)] border border-gold-300 bg-gold-100 px-5 py-4 text-sm leading-relaxed text-gold-800"
-    >
+    <Notice tone="warning" role="note" className="mb-10 max-w-3xl">
       {children}
-    </p>
+    </Notice>
   );
 }

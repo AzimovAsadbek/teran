@@ -14,21 +14,21 @@ export const metadata: Metadata = {
 export default function GlobalNotFound() {
   return (
     <html lang="uz" className={fontVariables}>
-      <body className="flex min-h-dvh items-center justify-center bg-ivory-50 p-6 text-center">
+      <body className="flex min-h-dvh items-center justify-center bg-canvas p-6 text-center">
         <main className="max-w-md">
-          <p className="text-eyebrow text-gold-700">404</p>
-          <h1 className="text-display-md mt-3 text-forest-900">Sahifa topilmadi</h1>
-          <p className="mt-2 text-ink-700" lang="ru">
+          <p className="text-eyebrow text-accent-fg">404</p>
+          <h1 className="mt-3 text-display-md text-forest-900">Sahifa topilmadi</h1>
+          <p className="mt-2 text-fg-muted" lang="ru">
             Страница не найдена
           </p>
-          <p className="mt-1 text-ink-700" lang="en">
+          <p className="mt-1 text-fg-muted" lang="en">
             Page not found
           </p>
           {/* A full page load is intended: this page has its own root layout, outside the app. */}
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/"
-            className="mt-8 inline-flex rounded-full bg-forest-900 px-6 py-3 text-sm font-semibold text-ivory-50 hover:bg-forest-800"
+            className="mt-8 inline-flex h-11 items-center rounded-control bg-brand px-5 text-button text-fg-inverse hover:bg-brand-hover"
           >
             TERAN
           </a>

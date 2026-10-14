@@ -8,7 +8,7 @@ import {
   type CurrentUserDto,
   type Locale,
 } from '@teran/contracts';
-import { Loader2, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -87,8 +87,8 @@ export function ProfileForm({ user }: { user: CurrentUserDto }) {
           error={error('locale')}
         />
       </div>
-      <p className="text-sm text-ink-500">
-        {t('email')}: <span className="font-semibold text-ink-900">{user.email}</span>
+      <p className="text-body-sm text-fg-subtle">
+        {t('email')}: <span className="font-semibold text-fg">{user.email}</span>
       </p>
       <ApiAlert message={form.apiErrorMessage} />
       {form.status === 'sent' ? <SuccessMessage>{t('saved')}</SuccessMessage> : null}
@@ -171,12 +171,8 @@ export function LogoutButton() {
   }
 
   return (
-    <Button variant="ghost" onClick={() => void logout()} disabled={pending}>
-      {pending ? (
-        <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-      ) : (
-        <LogOut aria-hidden className="h-4 w-4" />
-      )}
+    <Button variant="ghost" onClick={() => void logout()} loading={pending}>
+      {pending ? null : <LogOut aria-hidden className="h-4 w-4" />}
       {t('logout')}
     </Button>
   );

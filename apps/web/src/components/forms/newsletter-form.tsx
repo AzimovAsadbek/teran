@@ -1,9 +1,11 @@
 'use client';
 
 import { newsletterSubscribeSchema } from '@teran/contracts';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, CircleAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useState, type FormEvent } from 'react';
+import { Button } from '@/components/ui/button';
+import { inputClasses } from '@/components/ui/field';
 import { Link } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
@@ -57,8 +59,8 @@ export function NewsletterForm({
       <p
         role="status"
         className={cn(
-          'flex items-center gap-2 font-medium',
-          tone === 'dark' ? 'text-gold-300' : 'text-leaf-600',
+          'flex items-center gap-2 text-body font-medium',
+          tone === 'dark' ? 'text-accent-on-inverse' : 'text-success',
         )}
       >
         <CheckCircle2 aria-hidden className="h-5 w-5" /> {t('success')}
@@ -69,19 +71,17 @@ export function NewsletterForm({
   const describedBy = [fieldError ? `${id}-error` : null, `${id}-consent`]
     .filter(Boolean)
     .join(' ');
+  const dark = tone === 'dark';
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-3">
+    <form onSubmit={onSubmit} noValidate>
       <label
         htmlFor={`${id}-email`}
-        className={cn(
-          'text-sm font-semibold',
-          tone === 'dark' ? 'text-ivory-50' : 'text-forest-900',
-        )}
+        className={cn('block text-label', dark ? 'text-ivory-50' : 'text-fg')}
       >
         {t('emailLabel')}
       </label>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="mt-2 flex flex-col gap-2.5 sm:flex-row">
         <input
           id={`${id}-email`}
           type="email"
@@ -93,12 +93,11 @@ export function NewsletterForm({
           placeholder={t('placeholder')}
           aria-invalid={fieldError ? true : undefined}
           aria-describedby={describedBy}
-          className={cn(
-            'h-12 flex-1 rounded-full border px-5 text-base outline-none transition-colors',
-            tone === 'dark'
-              ? 'border-ivory-50/30 bg-ivory-50/10 text-ivory-50 placeholder:text-ivory-100/60 focus:border-gold-300'
-              : 'border-sage-500 bg-white text-ink-900 placeholder:text-ink-500 focus:border-forest-700',
-          )}
+          className={
+            dark
+              ? 'h-13 w-full min-w-0 rounded-control border border-ivory-50/45 bg-ivory-50/[0.06] px-4 text-body text-ivory-50 outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-ivory-100/55 hover:border-ivory-50/70 focus:border-gold-300 focus:ring-[3px] focus:ring-gold-300/20 sm:flex-1'
+              : inputClasses({ invalid: Boolean(fieldError), size: 'lg', className: 'sm:flex-1' })
+          }
         />
         {/* Honeypot: hidden from people and assistive technology; bots fill it in. */}
         <input
@@ -109,42 +108,38 @@ export function NewsletterForm({
           aria-hidden
           className="hidden"
         />
-        <button
+        <Button
           type="submit"
-          disabled={state === 'sending'}
-          className={cn(
-            'inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold transition-colors',
-            tone === 'dark'
-              ? 'bg-gold-500 text-forest-950 hover:bg-gold-400'
-              : 'bg-forest-900 text-ivory-50 hover:bg-forest-800',
-          )}
+          size="lg"
+          variant={dark ? 'accent' : 'primary'}
+          loading={state === 'sending'}
         >
-          {state === 'sending' ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
           {state === 'sending' ? t('submitting') : t('submit')}
-        </button>
+        </Button>
       </div>
       {fieldError ? (
         <p
           id={`${id}-error`}
-          className={cn('text-sm', tone === 'dark' ? 'text-gold-300' : 'text-danger-700')}
+          className={cn(
+            'mt-2 flex items-center gap-1.5 text-helper font-medium',
+            dark ? 'text-gold-300' : 'text-danger',
+          )}
         >
+          <CircleAlert aria-hidden className="h-4 w-4 shrink-0" />
           {fieldError}
         </p>
       ) : null}
       {apiErrorMessage ? (
         <p
           role="alert"
-          className={cn('text-sm', tone === 'dark' ? 'text-gold-300' : 'text-danger-700')}
+          className={cn('mt-2 text-helper font-medium', dark ? 'text-gold-300' : 'text-danger')}
         >
           {apiErrorMessage}
         </p>
       ) : null}
       <p
         id={`${id}-consent`}
-        className={cn(
-          'text-xs leading-relaxed',
-          tone === 'dark' ? 'text-ivory-100/75' : 'text-ink-500',
-        )}
+        className={cn('mt-3 text-helper', dark ? 'text-ivory-100/70' : 'text-fg-subtle')}
       >
         {t.rich('consent', {
           privacy: (chunks) => (

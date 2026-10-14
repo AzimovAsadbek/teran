@@ -7,14 +7,14 @@ import { BrewingGuide } from '@/components/home/brewing-guide';
 import { BusinessCta } from '@/components/home/business-cta';
 import { Hero } from '@/components/home/hero';
 import {
-  CategorySection,
+  CategoryRailFallback,
+  CategoryRailSection,
   FeaturedCollectionSection,
   JournalSection,
-  RibbonSection,
+  ShowcaseFallback,
   ShowcaseSection,
 } from '@/components/home/home-sections';
 import { StorySection } from '@/components/home/story-section';
-import { ProductGridSkeleton } from '@/components/ui/skeleton';
 import { Reveal } from '@/components/ui/reveal';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { siteUrl } from '@/lib/site';
@@ -68,36 +68,29 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
-      <Suspense fallback={<div className="mt-8 h-16 border-y border-gold-500/25 bg-ivory-100" />}>
-        <RibbonSection />
+      <Suspense fallback={<CategoryRailFallback />}>
+        <CategoryRailSection />
       </Suspense>
-      <Suspense
-        fallback={
-          <div className="container-page py-16 lg:py-24">
-            <ProductGridSkeleton />
-          </div>
-        }
-      >
+      <Suspense fallback={<ShowcaseFallback />}>
         <ShowcaseSection />
-      </Suspense>
-      <Suspense fallback={null}>
-        <CategorySection />
       </Suspense>
       <Suspense fallback={null}>
         <FeaturedCollectionSection />
       </Suspense>
       <StorySection />
-      <section aria-labelledby="brewing-title" className="container-page py-16 lg:py-24">
-        <Reveal className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.4fr] lg:items-center">
-          <div>
-            <p className="text-eyebrow text-gold-700">{t('brewingEyebrow')}</p>
-            <h2 id="brewing-title" className="text-display-lg mt-4 text-forest-900">
+      <section aria-labelledby="brewing-title" className="container-page pt-section">
+        <Reveal className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-16">
+          <div className="lg:col-span-5">
+            <p className="text-eyebrow text-accent-fg">{t('brewingEyebrow')}</p>
+            <h2 id="brewing-title" className="mt-4 text-display-lg text-forest-900">
               {t('brewingTitle')}
             </h2>
-            <p className="mt-5 text-lg text-ink-700">{t('brewingText')}</p>
-            <p className="mt-4 text-sm text-ink-500">{t('brewingNote')}</p>
+            <p className="mt-5 text-body-lg text-fg-muted">{t('brewingText')}</p>
+            <p className="mt-4 text-helper text-fg-subtle">{t('brewingNote')}</p>
           </div>
-          <BrewingGuide />
+          <div className="lg:col-span-7">
+            <BrewingGuide />
+          </div>
         </Reveal>
       </section>
       <BusinessCta />

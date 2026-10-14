@@ -8,10 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
 import { ProductCard } from '@/components/catalog/product-card';
 import { ProductGallery } from '@/components/product/product-gallery';
-import { DeliveryInfo, ProductInfo } from '@/components/product/product-info';
+import { BrewingFacts, DeliveryInfo, ProductInfo } from '@/components/product/product-info';
 import { PurchasePanel } from '@/components/product/purchase-panel';
 import { DemoNotice } from '@/components/ui/demo-notice';
+import { SectionHeading } from '@/components/ui/section-heading';
 import { ProductGridSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { Link } from '@/i18n/navigation';
 import { getProduct, getRelatedProducts } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
@@ -106,24 +108,38 @@ async function ProductView({
           { label: product.name },
         ]}
       />
-      <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16">
-        <ProductGallery
-          images={product.images}
-          illustrationKey={product.illustrationKey}
-          name={product.name}
-        />
-        <div>
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="leaf">{product.category.name}</Badge>
-            <Badge tone="muted">{tc(`formats.${product.format}`)}</Badge>
-            {product.isNew ? <Badge tone="new">{t('badgeNew')}</Badge> : null}
-            {product.onSale ? <Badge tone="sale">{t('badgeSale')}</Badge> : null}
-          </div>
-          <h1 className="text-display-lg mt-4 text-forest-900">{product.name}</h1>
-          {product.shortDescription ? (
-            <p className="mt-3 text-lg text-ink-700">{product.shortDescription}</p>
+      <div className="mt-4 grid grid-cols-1 gap-8 sm:mt-6 lg:grid-cols-12 lg:gap-12 xl:gap-16">
+        <div className="lg:col-span-7">
+          <ProductGallery
+            images={product.images}
+            illustrationKey={product.illustrationKey}
+            name={product.name}
+          />
+        </div>
+        <div className="lg:col-span-5">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-eyebrow">
+            <Link
+              href={`/catalog/${product.category.slug}`}
+              className="text-accent-fg underline-offset-4 hover:underline"
+            >
+              {product.category.name}
+            </Link>
+            <span aria-hidden className="text-fg-subtle">
+              ·
+            </span>
+            <span className="text-fg-subtle">{tc(`formats.${product.format}`)}</span>
+          </p>
+          <h1 className="mt-3 text-display-lg text-forest-900">{product.name}</h1>
+          {product.isNew || product.onSale ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {product.isNew ? <Badge tone="new">{t('badgeNew')}</Badge> : null}
+              {product.onSale ? <Badge tone="sale">{t('badgeSale')}</Badge> : null}
+            </div>
           ) : null}
-          <div className="mt-8">
+          {product.shortDescription ? (
+            <p className="mt-4 text-body-lg text-fg-muted">{product.shortDescription}</p>
+          ) : null}
+          <div className="mt-6 border-t border-line pt-6">
             <PurchasePanel
               productName={product.name}
               format={product.format}
@@ -131,14 +147,13 @@ async function ProductView({
               initialVariantId={initialVariant.id}
             />
           </div>
-          <DemoNotice className="mt-6" />
-          <div className="mt-6">
-            <DeliveryInfo options={options} />
-          </div>
+          <DemoNotice variant="inline" className="mt-2" />
+          <BrewingFacts brewing={product.brewing} />
+          <DeliveryInfo options={options} />
           <ProductInfo product={product} />
         </div>
       </div>
-      <Suspense fallback={<ProductGridSkeleton className="mt-20" />}>
+      <Suspense fallback={<ProductGridSkeleton className="mt-section" />}>
         <RelatedProducts slug={product.slug} />
       </Suspense>
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
@@ -152,11 +167,9 @@ async function RelatedProducts({ slug }: { slug: string }) {
   const related = await getRelatedProducts(locale, slug).catch(() => []);
   if (related.length === 0) return null;
   return (
-    <section aria-labelledby="related-title" className="mt-24">
-      <h2 id="related-title" className="text-display-md text-forest-900">
-        {t('related')}
-      </h2>
-      <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-6 md:grid-cols-4">
+    <section aria-labelledby="related-title" className="mt-section">
+      <SectionHeading id="related-title" title={t('related')} />
+      <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-4">
         {related.map((item) => (
           <li key={item.id}>
             <ProductCard product={item} />
@@ -169,14 +182,15 @@ async function RelatedProducts({ slug }: { slug: string }) {
 
 function ProductSkeleton() {
   return (
-    <div className="mt-11 grid gap-10 lg:grid-cols-2 lg:gap-16" aria-hidden>
-      <Skeleton className="aspect-square rounded-[var(--radius-panel)]" />
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-14 w-3/4" />
-        <Skeleton className="h-6 w-1/2" />
-        <Skeleton className="mt-8 h-24 w-full" />
-        <Skeleton className="h-12 w-full" />
+    <div className="mt-9 grid gap-8 sm:mt-11 lg:grid-cols-12 lg:gap-12 xl:gap-16" aria-hidden>
+      <Skeleton className="aspect-square rounded-panel lg:col-span-7" />
+      <div className="space-y-4 lg:col-span-5">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-12 w-3/4" />
+        <Skeleton className="h-6 w-full" />
+        <Skeleton className="mt-8 h-9 w-1/2" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-13 w-full" />
       </div>
     </div>
   );
@@ -192,7 +206,7 @@ export default function ProductPage({
   searchParams,
 }: PageProps<'/[locale]/products/[slug]'>) {
   return (
-    <div className="container-page pt-6 pb-24">
+    <div className="container-page pt-4 pb-section sm:pt-6">
       <Suspense fallback={<ProductSkeleton />}>
         <ProductView params={params} searchParams={searchParams} />
       </Suspense>

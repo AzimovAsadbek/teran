@@ -40,12 +40,16 @@ export async function SiteHeader() {
       <AnnouncementBar />
       <StickyHeader>
         <header className="relative">
-          <div className="container-page grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-2 lg:h-[4.75rem]">
-            <div className="flex items-center">
+          <div className="container-page grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3 xl:h-[4.75rem]">
+            <div className="flex min-w-0 items-center">
               <MobileMenu navigation={navigation} />
               <DesktopNav navigation={navigation} />
             </div>
-            <Link href="/" aria-label={`TERAN — ${t('home')}`} className="flex justify-center">
+            <Link
+              href="/"
+              aria-label={`TERAN — ${t('home')}`}
+              className="flex justify-center rounded-control py-1"
+            >
               <Wordmark priority />
             </Link>
             <HeaderActions />

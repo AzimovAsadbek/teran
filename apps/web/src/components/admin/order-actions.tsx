@@ -9,6 +9,7 @@ import { apiRequest } from '@/lib/api/client';
 import { formatMoney } from '@/lib/format';
 import { ConfirmDialog } from './confirm-dialog';
 import { useAdminAction } from './use-admin-action';
+import { buttonClasses } from '@/components/ui/button';
 
 /** Next-status buttons, cancellation (with reason) and recording the cash payment. */
 export function OrderActions({ order }: { order: AdminOrderDetail }) {
@@ -54,12 +55,14 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
   return (
     <section
       aria-labelledby="order-actions"
-      className="rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5 sm:p-6"
+      className="rounded-card border border-line bg-surface p-5 sm:p-6"
     >
-      <h2 id="order-actions" className="mb-4 text-lg font-semibold text-forest-900">
+      <h2 id="order-actions" className="mb-4 text-body-lg font-semibold text-forest-900">
         {t('orders.actionsSection')}
       </h2>
-      {nothingToDo ? <p className="text-sm text-ink-500">{t('orders.noTransitions')}</p> : null}
+      {nothingToDo ? (
+        <p className="text-body-sm text-fg-subtle">{t('orders.noTransitions')}</p>
+      ) : null}
 
       {forward.length > 0 ? (
         <div className="space-y-3">
@@ -77,7 +80,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
               type="button"
               disabled={action.pending}
               onClick={() => void move(status, note)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-forest-900 px-5 text-sm font-semibold text-ivory-50 hover:bg-forest-800 disabled:opacity-60"
+              className={buttonClasses('primary', 'md', 'w-full')}
             >
               {action.pending ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
               {t('orders.moveTo', { status: tco(`statuses.${status}`) })}
@@ -90,7 +93,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
         <button
           type="button"
           onClick={() => setDialog('payment')}
-          className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-leaf-600 px-5 text-sm font-semibold text-leaf-600 hover:bg-leaf-100"
+          className={buttonClasses('secondary', 'md', 'mt-3 w-full')}
         >
           <Banknote aria-hidden className="h-4 w-4" />
           {t('orders.recordPayment')}
@@ -101,7 +104,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
         <button
           type="button"
           onClick={() => setDialog('cancel')}
-          className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold text-danger-700 hover:bg-danger-100"
+          className={buttonClasses('danger-ghost', 'md', 'mt-3 w-full')}
         >
           <XCircle aria-hidden className="h-4 w-4" />
           {t('orders.cancelOrder')}
@@ -111,7 +114,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
       {action.error && dialog === null ? (
         <p
           role="alert"
-          className="mt-3 rounded-xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
+          className="mt-3 rounded-control bg-danger-soft px-4 py-3 text-body-sm font-medium text-danger"
         >
           {action.error}
         </p>
@@ -132,7 +135,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
           if (reason.trim()) void move('CANCELLED', reason.trim());
         }}
       >
-        <p className="text-sm text-ink-700">{t('orders.cancelText')}</p>
+        <p className="text-body-sm text-fg-muted">{t('orders.cancelText')}</p>
         <TextAreaField
           label={t('orders.cancelReasonLabel')}
           name="reason"
@@ -156,7 +159,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
         }}
         onConfirm={() => void recordPayment()}
       >
-        <p className="text-sm text-ink-700">
+        <p className="text-body-sm text-fg-muted">
           {t('orders.recordPaymentText', {
             amount: formatMoney(order.total, locale, tc('currency.UZS')),
           })}

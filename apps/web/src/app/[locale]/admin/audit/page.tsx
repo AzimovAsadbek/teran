@@ -62,10 +62,10 @@ export default async function AdminAuditPage({ searchParams }: PageProps<'/[loca
                   <td className={`${table.td} text-xs`}>
                     {entry.entityType}
                     {entry.entityId ? (
-                      <span className="block font-mono text-ink-500">{entry.entityId}</span>
+                      <span className="block font-mono text-fg-subtle">{entry.entityId}</span>
                     ) : null}
                   </td>
-                  <td className={`${table.td} font-mono text-xs text-ink-500`}>
+                  <td className={`${table.td} font-mono text-xs text-fg-subtle`}>
                     {entry.ipAddress ?? '—'}
                   </td>
                 </tr>

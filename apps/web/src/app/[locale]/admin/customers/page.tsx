@@ -69,19 +69,19 @@ export default async function AdminCustomersPage({
             </thead>
             <tbody>
               {customers.items.map((customer) => (
-                <tr key={customer.id} className="hover:bg-ivory-50">
+                <tr key={customer.id}>
                   <td className={table.td}>
                     <Link href={`/admin/customers/${customer.id}`} className={table.link}>
                       {[customer.firstName, customer.lastName].filter(Boolean).join(' ')}
                     </Link>
                     {!customer.isActive ? (
-                      <span className="ml-2 text-xs text-ink-500">({t('common.inactive')})</span>
+                      <span className="ml-2 text-xs text-fg-subtle">({t('common.inactive')})</span>
                     ) : null}
                   </td>
                   <td className={`${table.td} break-all`}>{customer.email}</td>
                   <td className={table.td}>{customer.phone ?? '—'}</td>
                   <td className={`${table.td} text-right tabular-nums`}>{customer.orderCount}</td>
-                  <td className={`${table.td} whitespace-nowrap text-ink-700`}>
+                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
                     {formatDate(customer.createdAt, locale as Locale)}
                   </td>
                 </tr>

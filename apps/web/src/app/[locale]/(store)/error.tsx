@@ -14,11 +14,11 @@ export default function StoreError({
   const t = useTranslations('Errors');
   const tc = useTranslations('Common');
   return (
-    <div className="container-page flex flex-col items-center py-24 text-center" role="alert">
+    <div className="container-page flex flex-col items-center py-section text-center" role="alert">
       {/* A streamed error keeps the 200 status, so keep the error UI out of search indexes. */}
       <meta name="robots" content="noindex" />
       <h1 className="text-display-lg text-forest-900">{t('serverTitle')}</h1>
-      <p className="mt-4 max-w-md text-lg text-ink-700">{t('serverText')}</p>
+      <p className="mt-4 max-w-md text-body-lg text-fg-muted">{t('serverText')}</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button onClick={retry}>
           <RotateCcw aria-hidden className="h-4 w-4" />

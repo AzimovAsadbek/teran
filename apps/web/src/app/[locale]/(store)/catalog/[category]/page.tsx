@@ -5,9 +5,12 @@ import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
-import { CatalogResults } from '@/components/catalog/catalog-results';
-import { ListingHeader, ListingHeaderSkeleton } from '@/components/catalog/listing-header';
-import { ProductGridSkeleton } from '@/components/ui/skeleton';
+import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/catalog-results';
+import {
+  CategoryChips,
+  ListingHeader,
+  ListingHeaderSkeleton,
+} from '@/components/catalog/listing-header';
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
 import { getCategories } from '@/lib/data/catalog';
 import { pageMetadata } from '@/lib/seo';
@@ -46,7 +49,8 @@ async function CategoryListing({
     getLocale(),
     getTranslations('Catalog'),
   ]);
-  const category = await findCategory(locale, slug);
+  const categories = await getCategories(locale);
+  const category = categories.find((candidate) => candidate.slug === slug);
   if (!category) notFound();
 
   return (
@@ -59,8 +63,10 @@ async function CategoryListing({
         title={category.name}
         description={category.description}
         illustrationKey={category.illustrationKey}
-      />
-      <Suspense fallback={<ProductGridSkeleton count={8} className="mt-24" />}>
+      >
+        <CategoryChips active={category.slug} categories={categories} />
+      </ListingHeader>
+      <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults
           basePath={`/catalog/${category.slug}`}
           scope={{ category: category.slug }}
@@ -76,13 +82,13 @@ export default function CategoryPage({
   searchParams,
 }: PageProps<'/[locale]/catalog/[category]'>) {
   return (
-    <div className="container-page pt-6 pb-20">
+    <div className="container-page pt-4 pb-section sm:pt-6">
       <Suspense
         fallback={
           <>
             <div className="h-5" />
             <ListingHeaderSkeleton />
-            <ProductGridSkeleton count={8} className="mt-24" />
+            <CatalogResultsSkeleton />
           </>
         }
       >

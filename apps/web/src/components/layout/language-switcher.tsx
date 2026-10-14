@@ -26,7 +26,7 @@ function LocaleLinks({
   const current = useLocale();
 
   return (
-    <nav aria-label={t('change')} className={cn('flex items-center', className)}>
+    <nav aria-label={t('change')} className={cn('items-center', className ?? 'flex')}>
       <ul className="flex items-center gap-0.5">
         {routing.locales.map((locale: Locale) => {
           const active = locale === current;
@@ -46,8 +46,8 @@ function LocaleLinks({
                       ? 'bg-ivory-50/15 text-gold-300'
                       : 'text-ivory-100/85 hover:text-ivory-50'
                     : active
-                      ? 'bg-forest-900 text-ivory-50'
-                      : 'text-forest-900 hover:bg-forest-900/[0.06]',
+                      ? 'bg-brand text-fg-inverse'
+                      : 'text-fg hover:bg-brand/[0.06]',
                 )}
               >
                 <span className="sr-only">{t(`names.${locale}`)}</span>

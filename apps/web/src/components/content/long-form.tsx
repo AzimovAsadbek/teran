@@ -10,7 +10,7 @@ export function RichText({ text }: { text: string }) {
     <>
       {parts.map((part, index) =>
         /^\[[^\]]+\]$/.test(part) ? (
-          <mark key={index} className="rounded bg-gold-100 px-1 text-gold-800">
+          <mark key={index} className="rounded-xs bg-warning-soft px-1 text-warning">
             {part}
           </mark>
         ) : (
@@ -34,7 +34,7 @@ export function Blocks({ blocks }: { blocks: readonly Block[] }) {
         }
         if ('list' in block) {
           return (
-            <ul key={index} className="list-disc space-y-1.5 pl-5 marker:text-gold-600">
+            <ul key={index} className="list-disc space-y-1.5 pl-5 marker:text-accent">
               {block.list.map((item, itemIndex) => (
                 <li key={itemIndex}>
                   <RichText text={item} />
@@ -44,8 +44,11 @@ export function Blocks({ blocks }: { blocks: readonly Block[] }) {
           );
         }
         return (
-          <p key={index} className="flex gap-3 rounded-2xl bg-ivory-100 px-4 py-3 text-ink-900">
-            <Info aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-gold-700" />
+          <p
+            key={index}
+            className="flex gap-3 rounded-control border border-line bg-surface-muted px-4 py-3 text-body text-fg"
+          >
+            <Info aria-hidden className="mt-1 h-4 w-4 shrink-0 text-accent-fg" />
             <span>
               <RichText text={block.note} />
             </span>
@@ -77,14 +80,14 @@ export function LongForm({
     >
       {tocLabel ? (
         <nav aria-label={tocLabel} className="hidden lg:block">
-          <div className="sticky top-28">
-            <p className="text-eyebrow text-gold-700">{tocLabel}</p>
-            <ol className="mt-4 space-y-2 border-l border-ivory-300 text-sm">
+          <div className="sticky top-24">
+            <p className="text-eyebrow text-accent-fg">{tocLabel}</p>
+            <ol className="mt-4 space-y-1 border-l border-line text-body-sm">
               {sections.map((section, index) => (
                 <li key={section.id}>
                   <a
                     href={`#${section.id}`}
-                    className="-ml-px block border-l-2 border-transparent py-1 pl-4 text-ink-700 transition-colors hover:border-gold-500 hover:text-forest-900"
+                    className="-ml-px block border-l-2 border-transparent py-1.5 pl-4 text-fg-muted transition-colors hover:border-accent hover:text-fg"
                   >
                     {numbered ? `${index + 1}. ` : null}
                     {section.heading}
@@ -102,16 +105,13 @@ export function LongForm({
             key={section.id}
             id={section.id}
             aria-labelledby={`${section.id}-title`}
-            className="scroll-mt-28"
+            className="scroll-mt-24"
           >
-            <h2
-              id={`${section.id}-title`}
-              className="font-display text-3xl font-semibold text-forest-900"
-            >
-              {numbered ? <span className="text-gold-700">{index + 1}. </span> : null}
+            <h2 id={`${section.id}-title`} className="text-display-sm text-forest-900">
+              {numbered ? <span className="text-accent-fg">{index + 1}. </span> : null}
               {section.heading}
             </h2>
-            <div className="mt-4 space-y-4 text-lg leading-relaxed text-ink-700">
+            <div className="mt-4 space-y-4 text-body text-fg-muted sm:text-body-lg">
               <Blocks blocks={section.blocks} />
             </div>
           </section>

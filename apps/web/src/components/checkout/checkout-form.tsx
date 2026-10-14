@@ -13,18 +13,21 @@ import {
   type PaymentMethod,
   type PlacedOrderDto,
 } from '@teran/contracts';
-import { ChevronDown, ExternalLink, Loader2, Lock } from 'lucide-react';
+import { ChevronDown, ExternalLink, Lock } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { EmptyCart } from '@/components/cart/cart-drawer';
+import { Button } from '@/components/ui/button';
 import {
   CheckboxField,
+  FieldError,
   focusFirstInvalid,
   FormErrorSummary,
   SelectField,
   TextAreaField,
   TextField,
 } from '@/components/ui/field';
+import { Notice } from '@/components/ui/notice';
 import { Price } from '@/components/ui/price';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cartActions, useCart } from '@/features/cart/cart-store';
@@ -51,6 +54,21 @@ interface Values {
   note: string;
   acceptTerms: boolean;
 }
+
+/** Where each value's validation error is reported (the API's field paths). */
+const ERROR_PATHS: Record<keyof Values, string> = {
+  name: 'customer.name',
+  phone: 'customer.phone',
+  email: 'customer.email',
+  regionCode: 'delivery.regionCode',
+  city: 'delivery.city',
+  addressLine: 'delivery.addressLine',
+  landmark: 'delivery.landmark',
+  methodCode: 'delivery.methodCode',
+  paymentMethod: 'paymentMethod',
+  note: 'note',
+  acceptTerms: 'acceptTerms',
+};
 
 type QuoteResult = { key: string; quote: CheckoutQuoteDto } | { key: string; failed: true };
 
@@ -149,8 +167,19 @@ export function CheckoutForm({
     quoteResult !== null && quoteResult.key === quoteKey && 'failed' in quoteResult;
   const quoteLoading = Boolean(quoteKey) && !currentQuote && !quoteFailed;
 
+  // A corrected field drops its error straight away; the rest stay until the next submit.
+  function clearError(...paths: string[]) {
+    setErrors((current) => {
+      if (!paths.some((path) => path in current)) return current;
+      const next = { ...current };
+      for (const path of paths) delete next[path];
+      return next;
+    });
+  }
+
   function set<K extends keyof Values>(key: K, value: Values[K]) {
     setValues((current) => ({ ...current, [key]: value }));
+    clearError(ERROR_PATHS[key]);
   }
 
   function chooseRegion(regionCode: string) {
@@ -158,6 +187,7 @@ export function CheckoutForm({
       (candidate) =>
         candidate.regionCodes.length === 0 || candidate.regionCodes.includes(regionCode),
     );
+    clearError('delivery.regionCode', 'delivery.methodCode');
     setValues((current) => ({
       ...current,
       regionCode,
@@ -265,9 +295,9 @@ export function CheckoutForm({
 
   if (!cart) {
     return cartStatus === 'error' ? (
-      <p role="alert" className="mt-8 rounded-2xl bg-danger-100 px-5 py-4 text-danger-700">
+      <Notice tone="danger" role="alert" className="mt-8">
         {t('loadError')}
-      </p>
+      </Notice>
     ) : (
       <CheckoutSkeleton />
     );
@@ -275,7 +305,7 @@ export function CheckoutForm({
 
   if (cart.lines.length === 0) {
     return (
-      <div className="mt-8 rounded-[var(--radius-panel)] bg-white">
+      <div className="mt-8 rounded-panel border border-line bg-surface">
         <EmptyCart />
       </div>
     );
@@ -290,10 +320,10 @@ export function CheckoutForm({
   const canSubmit = cart.isCheckoutReady && !submitting;
 
   return (
-    <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-12">
+    <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-14">
       {/* Mobile: the order summary collapses above the form. */}
-      <details className="group rounded-[var(--radius-card)] bg-white px-5 py-4 lg:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-forest-900 [&::-webkit-details-marker]:hidden">
+      <details className="group rounded-card border border-line bg-surface px-5 py-4 lg:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-title-sm text-fg [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2">
             {t('summary')}
             <ChevronDown
@@ -312,19 +342,19 @@ export function CheckoutForm({
         ref={formRef}
         onSubmit={onSubmit}
         noValidate
-        className="space-y-6"
+        className="space-y-5"
         aria-busy={submitting}
       >
         <FormErrorSummary message={summaryError} />
 
-        <Section title={t('contactSection')}>
+        <Section step={1} title={t('contactSection')}>
           {!user ? (
-            <p className="text-sm text-ink-700">
+            <p className="text-body-sm text-fg-muted">
               {t.rich('accountHint', {
                 login: (chunks) => (
                   <Link
                     href="/account/login?next=/checkout"
-                    className="font-semibold text-forest-900 underline underline-offset-2"
+                    className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
                   >
                     {chunks}
                   </Link>
@@ -373,7 +403,7 @@ export function CheckoutForm({
           </div>
         </Section>
 
-        <Section title={t('deliverySection')}>
+        <Section step={2} title={t('deliverySection')}>
           <div className="grid gap-5 sm:grid-cols-2">
             <SelectField
               label={t('region')}
@@ -418,19 +448,17 @@ export function CheckoutForm({
           <fieldset
             aria-describedby={errors['delivery.methodCode'] ? 'delivery-method-error' : undefined}
           >
-            <legend className="mb-2 text-sm font-semibold text-forest-900">
-              {t('deliveryMethod')}
-            </legend>
+            <legend className="mb-2 text-label text-fg">{t('deliveryMethod')}</legend>
             {!values.regionCode ? (
-              <p className="rounded-2xl bg-ivory-100 px-4 py-3 text-sm text-ink-700">
+              <Notice tone="neutral" compact>
                 {t('chooseRegionFirst')}
-              </p>
+              </Notice>
             ) : methods.length === 0 ? (
-              <p className="rounded-2xl bg-gold-100 px-4 py-3 text-sm text-gold-800">
+              <Notice tone="warning" compact>
                 {t('noMethodsForRegion')}
-              </p>
+              </Notice>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {methods.map((candidate) => (
                   <ChoiceCard
                     key={candidate.code}
@@ -449,7 +477,7 @@ export function CheckoutForm({
                       <>
                         {[candidate.estimate, candidate.description].filter(Boolean).join(' · ')}
                         {candidate.freeFromAmount ? (
-                          <span className="block text-leaf-600">
+                          <span className="block text-success">
                             {t('freeFrom', {
                               amount: formatMoney(candidate.freeFromAmount, locale, currency),
                             })}
@@ -462,12 +490,10 @@ export function CheckoutForm({
               </div>
             )}
             {errors['delivery.methodCode'] ? (
-              <p id="delivery-method-error" className="mt-1.5 text-sm font-medium text-danger-700">
-                {error('delivery.methodCode')}
-              </p>
+              <FieldError id="delivery-method-error">{error('delivery.methodCode')}</FieldError>
             ) : null}
             {quoteFailed ? (
-              <p role="alert" className="mt-3 text-sm text-danger-700">
+              <Notice tone="danger" role="alert" compact className="mt-3">
                 {t('quoteError')}{' '}
                 <button
                   type="button"
@@ -476,15 +502,15 @@ export function CheckoutForm({
                 >
                   {tc('retry')}
                 </button>
-              </p>
+              </Notice>
             ) : null}
           </fieldset>
         </Section>
 
-        <Section title={t('paymentSection')}>
+        <Section step={3} title={t('paymentSection')}>
           <fieldset aria-describedby={errors.paymentMethod ? 'payment-method-error' : undefined}>
             <legend className="sr-only">{t('paymentSection')}</legend>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {options.paymentMethods.map((payment) => (
                 <ChoiceCard
                   key={payment}
@@ -499,14 +525,12 @@ export function CheckoutForm({
               ))}
             </div>
             {errors.paymentMethod ? (
-              <p id="payment-method-error" className="mt-1.5 text-sm font-medium text-danger-700">
-                {error('paymentMethod')}
-              </p>
+              <FieldError id="payment-method-error">{error('paymentMethod')}</FieldError>
             ) : null}
           </fieldset>
         </Section>
 
-        <Section title={t('noteSection')}>
+        <Section step={4} title={t('noteSection')}>
           <TextAreaField
             label={t('note')}
             name="note"
@@ -518,7 +542,7 @@ export function CheckoutForm({
           />
         </Section>
 
-        <div className="space-y-4 rounded-[var(--radius-card)] bg-white p-5 sm:p-6">
+        <div className="space-y-4 rounded-panel border border-line bg-surface p-5 sm:p-7">
           <CheckboxField
             name="acceptTerms"
             checked={values.acceptTerms}
@@ -531,61 +555,53 @@ export function CheckoutForm({
           />
 
           {priceChangedTotal ? (
-            <p
-              role="alert"
-              className="rounded-2xl bg-gold-100 px-4 py-3 text-sm font-medium text-gold-800"
-            >
+            <Notice tone="warning" role="alert">
               {t('priceChanged', { total: formatMoney(priceChangedTotal, locale, currency) })}
-            </p>
+            </Notice>
           ) : apiErrorMessage ? (
-            <p
-              role="alert"
-              className="rounded-2xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
-            >
+            <Notice tone="danger" role="alert">
               {apiErrorMessage}{' '}
               {apiError?.code && apiError.code.startsWith('CART') ? (
                 <Link href="/cart" className="font-semibold underline underline-offset-2">
                   {t('editCart')}
                 </Link>
               ) : null}
-            </p>
+            </Notice>
           ) : null}
           {!cart.isCheckoutReady ? (
-            <p className="text-sm font-medium text-danger-700">
+            <Notice tone="danger">
               {tcart('notReady')}{' '}
-              <Link href="/cart" className="underline underline-offset-2">
+              <Link href="/cart" className="font-semibold underline underline-offset-2">
                 {t('editCart')}
               </Link>
-            </p>
+            </Notice>
           ) : null}
 
-          <button
+          <Button
             type="submit"
+            size="lg"
             disabled={!canSubmit}
-            className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-forest-900 px-6 text-base font-semibold text-ivory-50 shadow-soft transition-colors hover:bg-forest-800 disabled:cursor-not-allowed disabled:opacity-60"
+            loading={submitting}
+            className="w-full"
           >
-            {submitting ? (
-              <Loader2 aria-hidden className="h-5 w-5 animate-spin" />
-            ) : (
-              <Lock aria-hidden className="h-4 w-4" />
-            )}
+            {submitting ? null : <Lock aria-hidden className="h-4 w-4" />}
             {submitting
               ? t('placing')
               : currentQuote
                 ? `${t('placeOrder')} · ${formatMoney(currentQuote.total, locale, currency)}`
                 : t('placeOrder')}
-          </button>
+          </Button>
         </div>
       </form>
 
       <aside
         aria-labelledby="checkout-summary"
-        className="hidden rounded-[var(--radius-panel)] bg-white p-6 shadow-soft lg:sticky lg:top-28 lg:block"
+        className="hidden rounded-panel border border-line bg-surface p-6 shadow-soft lg:sticky lg:top-6 lg:block"
       >
-        <h2 id="checkout-summary" className="font-display text-2xl font-semibold text-forest-900">
+        <h2 id="checkout-summary" className="text-display-sm text-forest-900">
           {t('summary')}
         </h2>
-        <div className="mt-3">
+        <div className="mt-4">
           <OrderSummary cart={cart} quote={currentQuote} quoteLoading={quoteLoading} />
         </div>
       </aside>
@@ -593,11 +609,20 @@ export function CheckoutForm({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** A numbered step of the form; the number is decoration, the heading names the section. */
+function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
-    <section className="space-y-5 rounded-[var(--radius-card)] bg-white p-5 sm:p-6">
-      <h2 className="font-display text-2xl font-semibold text-forest-900">{title}</h2>
-      {children}
+    <section className="rounded-panel border border-line bg-surface p-5 sm:p-7">
+      <h2 className="flex items-center gap-3 text-display-sm text-forest-900">
+        <span
+          aria-hidden
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand font-sans text-helper font-semibold text-fg-inverse"
+        >
+          {step}
+        </span>
+        {title}
+      </h2>
+      <div className="mt-5 space-y-5">{children}</div>
     </section>
   );
 }
@@ -610,7 +635,7 @@ function PolicyLink({ href, children }: { href: '/terms' | '/privacy'; children:
       href={href}
       target="_blank"
       rel="noopener"
-      className="inline-flex items-baseline gap-0.5 font-semibold text-forest-900 underline underline-offset-2"
+      className="inline-flex items-baseline gap-0.5 font-semibold text-brand underline decoration-brand/40 underline-offset-2 hover:decoration-brand"
     >
       {children}
       <ExternalLink aria-hidden className="h-3 w-3 self-center" />
@@ -622,14 +647,14 @@ function PolicyLink({ href, children }: { href: '/terms' | '/privacy'; children:
 function CheckoutSkeleton() {
   return (
     <div
-      className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12"
+      className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-14"
       aria-hidden
     >
-      <div className="space-y-6">
-        <Skeleton className="h-72 rounded-[var(--radius-card)]" />
-        <Skeleton className="h-96 rounded-[var(--radius-card)]" />
+      <div className="space-y-5">
+        <Skeleton className="h-72 rounded-panel" />
+        <Skeleton className="h-96 rounded-panel" />
       </div>
-      <Skeleton className="hidden h-80 rounded-[var(--radius-panel)] lg:block" />
+      <Skeleton className="hidden h-80 rounded-panel lg:block" />
     </div>
   );
 }

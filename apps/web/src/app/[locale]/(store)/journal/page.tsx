@@ -47,10 +47,10 @@ async function ArticleList({ searchParams }: Pick<PageProps<'/[locale]/journal'>
   if (!articles || articles.items.length === 0) {
     return (
       <div className="flex flex-col items-center py-16 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-ivory-100 text-forest-900">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-forest-900">
           <BookOpen aria-hidden className="h-7 w-7" />
         </span>
-        <p className="mt-5 text-lg text-ink-700">{t('journalEmpty')}</p>
+        <p className="mt-5 text-body-lg text-fg-muted">{t('journalEmpty')}</p>
       </div>
     );
   }
@@ -83,12 +83,12 @@ export default async function JournalPage({ searchParams }: PageProps<'/[locale]
         intro={t('journalDescription')}
         illustration="jasmine"
       />
-      <div className="container-page py-14 sm:py-20">
+      <div className="container-page py-12 sm:py-16">
         <Suspense
           fallback={
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
               {[0, 1, 2].map((index) => (
-                <Skeleton key={index} className="h-96 rounded-[var(--radius-card)]" />
+                <Skeleton key={index} className="h-96 rounded-card" />
               ))}
             </div>
           }

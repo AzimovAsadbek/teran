@@ -14,12 +14,9 @@ export default function AdminError({
   const t = useTranslations('Errors');
   const tc = useTranslations('Common');
   return (
-    <div
-      role="alert"
-      className="rounded-[var(--radius-card)] bg-white px-6 py-12 text-center shadow-soft"
-    >
+    <div role="alert" className="rounded-card bg-surface px-6 py-12 text-center shadow-soft">
       <h1 className="text-display-md text-forest-900">{t('serverTitle')}</h1>
-      <p className="mx-auto mt-3 max-w-md text-ink-700">{t('serverText')}</p>
+      <p className="mx-auto mt-3 max-w-md text-fg-muted">{t('serverText')}</p>
       <Button className="mt-6" onClick={retry}>
         <RotateCcw aria-hidden className="h-4 w-4" />
         {tc('retry')}

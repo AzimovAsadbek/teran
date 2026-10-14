@@ -14,28 +14,31 @@ export async function StorySection() {
   ];
 
   return (
-    <section aria-labelledby="story-title" className="bg-ivory-100">
-      <Reveal className="container-page grid grid-cols-1 items-center gap-12 py-20 lg:grid-cols-[1fr_1.1fr] lg:py-28">
-        <div className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center">
-          <span aria-hidden className="absolute inset-0 rounded-full border border-gold-500/40" />
-          <span aria-hidden className="absolute inset-6 rounded-full border border-gold-500/25" />
-          <span aria-hidden className="absolute inset-12 rounded-full bg-ivory-50 shadow-soft" />
-          <Emblem className="relative w-1/2" sizes="(min-width: 1024px) 220px, 45vw" />
+    <section aria-labelledby="story-title" className="border-y border-line-subtle bg-surface">
+      <Reveal className="container-page grid grid-cols-1 items-center gap-12 py-section lg:grid-cols-12 lg:gap-16">
+        <div className="relative mx-auto flex aspect-square w-full max-w-[22rem] items-center justify-center lg:col-span-5 lg:max-w-[26rem]">
+          <span aria-hidden className="absolute inset-0 rounded-full border border-gold-500/35" />
+          <span
+            aria-hidden
+            className="absolute inset-[7%] rounded-full border border-gold-500/20"
+          />
+          <span aria-hidden className="absolute inset-[14%] rounded-full bg-canvas shadow-soft" />
+          <Emblem className="relative w-[46%]" sizes="(min-width: 1024px) 200px, 45vw" />
         </div>
-        <div>
-          <p className="text-eyebrow text-gold-700">{t('storyEyebrow')}</p>
-          <h2 id="story-title" className="text-display-lg mt-4 text-forest-900">
+        <div className="lg:col-span-7">
+          <p className="text-eyebrow text-accent-fg">{t('storyEyebrow')}</p>
+          <h2 id="story-title" className="mt-4 max-w-[18ch] text-display-lg text-forest-900">
             {t('storyTitle')}
           </h2>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-700">{t('storyText')}</p>
-          <ul className="mt-10 grid gap-6 sm:grid-cols-3">
+          <p className="mt-6 max-w-2xl text-body-lg text-fg-muted">{t('storyText')}</p>
+          <ul className="mt-10 grid gap-x-8 gap-y-6 sm:grid-cols-3">
             {values.map(({ icon: Icon, title, text }) => (
-              <li key={title}>
-                <span className="flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/50 text-gold-700">
-                  <Icon aria-hidden className="h-5 w-5" />
-                </span>
-                <p className="mt-3 font-display text-xl font-semibold text-forest-900">{title}</p>
-                <p className="mt-1 text-sm text-ink-700">{text}</p>
+              <li key={title} className="border-t border-line pt-5">
+                <p className="flex items-center gap-2.5 text-display-xs text-forest-900">
+                  <Icon aria-hidden className="h-5 w-5 shrink-0 text-accent-fg" />
+                  {title}
+                </p>
+                <p className="mt-2 text-body-sm text-fg-muted">{text}</p>
               </li>
             ))}
           </ul>

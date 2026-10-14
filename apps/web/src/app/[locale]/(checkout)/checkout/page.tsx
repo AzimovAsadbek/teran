@@ -6,6 +6,7 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { DemoNotice } from '@/components/ui/demo-notice';
+import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCheckoutOptions } from '@/lib/data/content';
@@ -29,9 +30,9 @@ async function CheckoutLoader() {
 
   if (!options) {
     return (
-      <p role="alert" className="mt-8 rounded-2xl bg-danger-100 px-5 py-4 text-danger-700">
+      <Notice tone="danger" role="alert" className="mt-8">
         {t('loadError')}
-      </p>
+      </Notice>
     );
   }
   return <CheckoutForm options={options} user={user} />;
@@ -40,17 +41,17 @@ async function CheckoutLoader() {
 export default async function CheckoutPage() {
   const t = await getTranslations('Checkout');
   return (
-    <div className="container-page pt-10 pb-24">
+    <div className="container-page pt-8 pb-section-sm sm:pt-10">
       <h1 className="text-display-lg text-forest-900">{t('title')}</h1>
       <DemoNotice className="mt-4 max-w-3xl" />
       <Suspense
         fallback={
           <div
-            className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-12"
+            className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-14"
             aria-hidden
           >
-            <Skeleton className="h-96 rounded-[var(--radius-card)]" />
-            <Skeleton className="hidden h-80 rounded-[var(--radius-panel)] lg:block" />
+            <Skeleton className="h-96 rounded-panel" />
+            <Skeleton className="hidden h-80 rounded-panel lg:block" />
           </div>
         }
       >

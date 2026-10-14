@@ -36,7 +36,7 @@ export default async function EditProductPage({
     <>
       <Link
         href="/admin/products"
-        className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-forest-900 hover:underline"
+        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {t('products.title')}

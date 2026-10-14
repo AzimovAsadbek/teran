@@ -14,6 +14,7 @@ import { formatDateTime } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { table } from './ui';
 import { useAdminAction } from './use-admin-action';
+import { buttonClasses } from '@/components/ui/button';
 
 function NewStaffForm({ onDone }: { onDone: () => void }) {
   const t = useTranslations('Admin');
@@ -133,7 +134,7 @@ export function StaffManager({
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="inline-flex h-11 items-center gap-2 rounded-full bg-forest-900 px-5 text-sm font-semibold text-ivory-50 hover:bg-forest-800"
+          className={buttonClasses('primary')}
         >
           <Plus aria-hidden className="h-4 w-4" />
           {t('staff.newStaff')}
@@ -142,7 +143,7 @@ export function StaffManager({
       {action.error ? (
         <p
           role="alert"
-          className="mb-4 rounded-xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
+          className="mb-4 rounded-control bg-danger-soft px-4 py-3 text-body-sm font-medium text-danger"
         >
           {action.error}
         </p>
@@ -177,10 +178,10 @@ export function StaffManager({
                     <span className="font-semibold">
                       {[member.firstName, member.lastName].filter(Boolean).join(' ')}
                       {self ? (
-                        <span className="ml-1 font-normal text-ink-500">({t('staff.you')})</span>
+                        <span className="ml-1 font-normal text-fg-subtle">({t('staff.you')})</span>
                       ) : null}
                     </span>
-                    <span className="block text-xs text-ink-500">{member.email}</span>
+                    <span className="block text-xs text-fg-subtle">{member.email}</span>
                   </td>
                   <td className={table.td}>{t(`roles.${member.role}`)}</td>
                   <td className={`${table.td} whitespace-nowrap`}>
@@ -200,7 +201,7 @@ export function StaffManager({
                           onClick={() =>
                             update(member, { role: member.role === 'ADMIN' ? 'MANAGER' : 'ADMIN' })
                           }
-                          className="h-9 rounded-full px-3 text-sm font-semibold text-forest-900 hover:bg-ivory-100 disabled:opacity-50"
+                          className={buttonClasses('ghost', 'sm')}
                         >
                           {member.role === 'ADMIN' ? t('staff.makeManager') : t('staff.makeAdmin')}
                         </button>
@@ -208,11 +209,10 @@ export function StaffManager({
                           type="button"
                           disabled={action.pending}
                           onClick={() => update(member, { isActive: !member.isActive })}
-                          className={
-                            member.isActive
-                              ? 'h-9 rounded-full px-3 text-sm font-semibold text-danger-700 hover:bg-danger-100 disabled:opacity-50'
-                              : 'h-9 rounded-full px-3 text-sm font-semibold text-leaf-600 hover:bg-leaf-100 disabled:opacity-50'
-                          }
+                          className={buttonClasses(
+                            member.isActive ? 'danger-ghost' : 'ghost',
+                            'sm',
+                          )}
                         >
                           {member.isActive ? t('staff.deactivate') : t('staff.activate')}
                         </button>

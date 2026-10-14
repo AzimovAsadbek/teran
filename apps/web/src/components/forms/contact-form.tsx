@@ -1,11 +1,12 @@
 'use client';
 
 import { contactInquirySchema, type Locale } from '@teran/contracts';
-import { Loader2, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { FormErrorSummary, TextAreaField, TextField } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
@@ -100,24 +101,12 @@ export function ContactForm() {
       />
       <Honeypot />
       {form.apiErrorMessage ? (
-        <p
-          role="alert"
-          className="rounded-2xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
-        >
+        <Notice tone="danger" role="alert">
           {form.apiErrorMessage}
-        </p>
+        </Notice>
       ) : null}
-      <Button
-        type="submit"
-        size="lg"
-        disabled={form.status === 'sending'}
-        aria-busy={form.status === 'sending'}
-      >
-        {form.status === 'sending' ? (
-          <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-        ) : (
-          <Send aria-hidden className="h-4 w-4" />
-        )}
+      <Button type="submit" size="lg" loading={form.status === 'sending'}>
+        {form.status === 'sending' ? null : <Send aria-hidden className="h-4 w-4" />}
         {form.status === 'sending' ? t('sending') : t('send')}
       </Button>
     </form>

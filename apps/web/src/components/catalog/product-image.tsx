@@ -31,7 +31,7 @@ export function ProductImage({
 
   if (!image) {
     return (
-      <div className={cn('flex items-center justify-center bg-ivory-100 p-[12%]', className)}>
+      <div className={cn('flex items-center justify-center bg-surface-muted p-[12%]', className)}>
         <TeaTypeArt kind={illustrationKey} label={name} />
       </div>
     );

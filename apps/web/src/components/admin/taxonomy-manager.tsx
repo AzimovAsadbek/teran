@@ -20,6 +20,7 @@ import { ConfirmDialog } from './confirm-dialog';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
 import { table } from './ui';
 import { useAdminAction } from './use-admin-action';
+import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
 const KEYS = ['name', 'description', 'seoTitle', 'seoDescription'] as const;
 type Kind = 'categories' | 'collections';
@@ -158,14 +159,14 @@ export function TaxonomyManager({ kind, items }: { kind: Kind; items: AdminTaxon
         <button
           type="button"
           onClick={() => setEditing('new')}
-          className="inline-flex h-11 items-center gap-2 rounded-full bg-forest-900 px-5 text-sm font-semibold text-ivory-50 hover:bg-forest-800"
+          className={buttonClasses('primary')}
         >
           <Plus aria-hidden className="h-4 w-4" />
           {newLabel}
         </button>
       </div>
       {items.length === 0 ? (
-        <p className="rounded-[var(--radius-card)] border border-dashed border-ivory-300 bg-white px-6 py-12 text-center text-ink-500">
+        <p className="rounded-card border border-dashed border-line-strong/45 bg-surface px-6 py-12 text-center text-fg-subtle">
           {t('common.empty')}
         </p>
       ) : (
@@ -195,7 +196,7 @@ export function TaxonomyManager({ kind, items }: { kind: Kind; items: AdminTaxon
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.id} className="hover:bg-ivory-50">
+                <tr key={item.id}>
                   <td className={`${table.td} font-semibold`}>{name(item)}</td>
                   <td className={`${table.td} font-mono text-xs`}>{item.slug}</td>
                   <td className={`${table.td} text-right tabular-nums`}>{item.position}</td>
@@ -208,7 +209,7 @@ export function TaxonomyManager({ kind, items }: { kind: Kind; items: AdminTaxon
                       <button
                         type="button"
                         onClick={() => setEditing(item)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-ivory-100"
+                        className={iconButtonClasses('ghost', 'sm')}
                         aria-label={`${t('common.edit')}: ${name(item)}`}
                       >
                         <Pencil aria-hidden className="h-4 w-4" />
@@ -216,7 +217,7 @@ export function TaxonomyManager({ kind, items }: { kind: Kind; items: AdminTaxon
                       <button
                         type="button"
                         onClick={() => setDeleting(item)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-danger-700 hover:bg-danger-100"
+                        className={iconButtonClasses('danger', 'sm')}
                         aria-label={`${t('common.delete')}: ${name(item)}`}
                       >
                         <Trash2 aria-hidden className="h-4 w-4" />

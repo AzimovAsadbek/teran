@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, type KeyboardEvent } from 'react';
 import { ProductImage } from '@/components/catalog/product-image';
+import { IconButton } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 
 const MAIN_SIZES = '(min-width: 1024px) 50vw, 100vw';
@@ -31,8 +32,8 @@ export function ProductGallery({
   };
 
   return (
-    <section aria-label={t('gallery')} className="lg:sticky lg:top-28" onKeyDown={onKeyDown}>
-      <div className="relative aspect-square overflow-hidden rounded-[var(--radius-panel)] bg-ivory-100">
+    <section aria-label={t('gallery')} className="lg:sticky lg:top-24" onKeyDown={onKeyDown}>
+      <div className="relative aspect-square overflow-hidden rounded-panel bg-surface-muted">
         <ProductImage
           image={current}
           illustrationKey={illustrationKey}
@@ -42,27 +43,32 @@ export function ProductGallery({
         />
         {count > 1 ? (
           <>
-            <button
-              type="button"
+            <IconButton
+              label={t('previousImage')}
+              icon={<ChevronLeft />}
+              variant="surface"
               onClick={() => go(index - 1)}
-              aria-label={t('previousImage')}
-              className="glass absolute top-1/2 left-3 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-forest-900"
-            >
-              <ChevronLeft aria-hidden className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
+              // IconButton nudges itself down when pressed, so centre with top rather than translate.
+              className="absolute top-[calc(50%-1.375rem)] left-3 sm:left-4"
+            />
+            <IconButton
+              label={t('nextImage')}
+              icon={<ChevronRight />}
+              variant="surface"
               onClick={() => go(index + 1)}
-              aria-label={t('nextImage')}
-              className="glass absolute top-1/2 right-3 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-forest-900"
+              className="absolute top-[calc(50%-1.375rem)] right-3 sm:right-4"
+            />
+            <p
+              aria-hidden
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-surface/85 px-2.5 py-0.5 text-caption text-fg-muted figures backdrop-blur-sm sm:hidden"
             >
-              <ChevronRight aria-hidden className="h-5 w-5" />
-            </button>
+              {index + 1} / {count}
+            </p>
           </>
         ) : null}
       </div>
       {count > 1 ? (
-        <ul className="mt-4 flex gap-3">
+        <ul className="mt-3 flex gap-2.5 sm:mt-4 sm:gap-3">
           {images.map((image, imageIndex) => (
             <li key={image.src}>
               <button
@@ -71,10 +77,10 @@ export function ProductGallery({
                 aria-label={t('showImage', { index: imageIndex + 1 })}
                 aria-current={imageIndex === index ? 'true' : undefined}
                 className={cn(
-                  'h-20 w-20 overflow-hidden rounded-xl border-2 bg-ivory-100 transition-colors',
+                  'block h-16 w-16 overflow-hidden rounded-control border bg-surface-muted transition-[border-color,box-shadow] duration-150 sm:h-20 sm:w-20',
                   imageIndex === index
-                    ? 'border-forest-900'
-                    : 'border-transparent hover:border-ivory-300',
+                    ? 'border-brand ring-1 ring-brand'
+                    : 'border-line hover:border-line-strong',
                 )}
               >
                 <ProductImage

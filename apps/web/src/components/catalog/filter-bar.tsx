@@ -3,16 +3,22 @@ import { Check, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link, getPathname } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { formatMoney } from '@/lib/format';
 import { toSearchParams, toggleFormat, type CatalogFilters } from '@/features/catalog/query';
 import { MobileFilters } from './mobile-filters';
+import { PriceFilter } from './price-filter';
 import { SortSelect } from './sort-select';
 
-const chip =
-  'inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors';
+const CHIP =
+  'inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-body-sm font-medium whitespace-nowrap transition-colors duration-150';
+const CHIP_OFF = 'border-line-strong/45 bg-surface text-fg hover:border-brand/60';
+const CHIP_ON = 'border-brand bg-brand text-fg-inverse';
 
 /**
- * Desktop filters are plain links and a GET form, so filtering works without JavaScript and every
- * state has a shareable URL. `rel="nofollow"` keeps crawlers out of filter combinations.
+ * Listing toolbar. Desktop filters are links and GET forms, so filtering works without JavaScript
+ * and every state has a shareable URL; `rel="nofollow"` keeps crawlers out of filter combinations.
+ * Phones get one "Filters" drawer. Active filters are listed under the bar on every screen size,
+ * each with its own remove link.
  */
 export async function FilterBar({
   basePath,
@@ -25,130 +31,115 @@ export async function FilterBar({
   facets: FacetsDto;
   total: number;
 }) {
-  const [t, locale] = await Promise.all([getTranslations('Catalog'), getLocale()]);
+  const [t, tc, locale] = await Promise.all([
+    getTranslations('Catalog'),
+    getTranslations('Common'),
+    getLocale(),
+  ]);
   // Native form submissions need the locale prefix (links get it from <Link>).
   const formAction = getPathname({ href: basePath, locale });
   const href = (next: CatalogFilters) => {
     const query = toSearchParams(next);
     return query ? `${basePath}?${query}` : basePath;
   };
-  const currentQuery = toSearchParams(filters);
-  const refined =
-    filters.format.length > 0 ||
-    filters.inStock ||
-    filters.minPrice !== undefined ||
-    filters.maxPrice !== undefined;
+  const currency = tc('currency.UZS');
+  const money = (value: number) => formatMoney(String(value), locale, currency);
+  const { minPrice, maxPrice } = filters;
+  const priceLabel =
+    minPrice !== undefined && maxPrice !== undefined
+      ? t('priceChipRange', { min: money(minPrice), max: money(maxPrice) })
+      : minPrice !== undefined
+        ? t('priceChipMin', { min: money(minPrice) })
+        : maxPrice !== undefined
+          ? t('priceChipMax', { max: money(maxPrice) })
+          : null;
+
+  const active = [
+    ...filters.format.map((format) => ({
+      key: `format-${format}`,
+      label: t(`formats.${format}`),
+      href: href(toggleFormat(filters, format)),
+    })),
+    ...(filters.inStock
+      ? [
+          {
+            key: 'inStock',
+            label: t('inStockOnly'),
+            href: href({ ...filters, inStock: false, page: 1 }),
+          },
+        ]
+      : []),
+    ...(priceLabel
+      ? [
+          {
+            key: 'price',
+            label: priceLabel,
+            href: href({ ...filters, minPrice: undefined, maxPrice: undefined, page: 1 }),
+          },
+        ]
+      : []),
+  ];
+  const clearAll = href({
+    ...filters,
+    format: [],
+    inStock: false,
+    minPrice: undefined,
+    maxPrice: undefined,
+    page: 1,
+  });
 
   return (
-    <div className="flex flex-col gap-4 border-y border-ivory-200 py-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="hidden flex-wrap items-center gap-2 lg:flex">
-        {facets.formats.map(({ value, count }) => {
-          const active = filters.format.includes(value);
-          return (
-            <Link
-              key={value}
-              href={href(toggleFormat(filters, value))}
-              rel="nofollow"
-              scroll={false}
-              className={cn(
-                chip,
-                active
-                  ? 'border-forest-900 bg-forest-900 text-ivory-50'
-                  : 'border-ivory-300 bg-white text-forest-900 hover:border-forest-900/40',
-              )}
-            >
-              {active ? <Check aria-hidden className="h-4 w-4" /> : null}
-              {t(`formats.${value as ProductFormat}`)}
-              {/* Links cannot be "pressed"; the state is part of the accessible name instead. */}
-              {active ? <span className="sr-only">({t('filterApplied')})</span> : null}
-              <span className={cn('text-xs', active ? 'text-ivory-100/80' : 'text-ink-500')}>
-                {count}
-              </span>
-            </Link>
-          );
-        })}
-        <Link
-          href={href({ ...filters, inStock: !filters.inStock, page: 1 })}
-          rel="nofollow"
-          scroll={false}
-          className={cn(
-            chip,
-            filters.inStock
-              ? 'border-forest-900 bg-forest-900 text-ivory-50'
-              : 'border-ivory-300 bg-white text-forest-900 hover:border-forest-900/40',
-          )}
-        >
-          {filters.inStock ? <Check aria-hidden className="h-4 w-4" /> : null}
-          {t('inStockOnly')}
-          {filters.inStock ? <span className="sr-only">({t('filterApplied')})</span> : null}
-        </Link>
-        <form action={formAction} method="get" className="flex items-center gap-1.5">
-          {filters.format.length > 0 ? (
-            <input type="hidden" name="format" value={[...filters.format].sort().join(',')} />
-          ) : null}
-          {filters.inStock ? <input type="hidden" name="inStock" value="true" /> : null}
-          {filters.sort !== 'featured' ? (
-            <input type="hidden" name="sort" value={filters.sort} />
-          ) : null}
-          <span className="pl-2 text-sm text-ink-700">{t('price')}</span>
-          <label className="sr-only" htmlFor="filter-min-price">
-            {t('price')} — {t('minPrice')}
-          </label>
-          <input
-            id="filter-min-price"
-            name="minPrice"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            defaultValue={filters.minPrice}
-            placeholder={
-              facets.priceRange ? String(Math.floor(Number(facets.priceRange.min))) : t('minPrice')
-            }
-            className="h-10 w-28 rounded-full border border-ivory-300 bg-white px-3 text-sm"
-          />
-          <span aria-hidden className="text-ink-500">
-            –
-          </span>
-          <label className="sr-only" htmlFor="filter-max-price">
-            {t('price')} — {t('maxPrice')}
-          </label>
-          <input
-            id="filter-max-price"
-            name="maxPrice"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            defaultValue={filters.maxPrice}
-            placeholder={
-              facets.priceRange ? String(Math.ceil(Number(facets.priceRange.max))) : t('maxPrice')
-            }
-            className="h-10 w-28 rounded-full border border-ivory-300 bg-white px-3 text-sm"
-          />
-          <button
-            type="submit"
-            className="h-10 rounded-full bg-forest-900 px-4 text-sm font-semibold text-ivory-50 hover:bg-forest-800"
-          >
-            {t('apply')}
-          </button>
-        </form>
-        {refined ? (
+    <div className="mt-6 sm:mt-8">
+      <div className="flex items-center gap-x-3 gap-y-2 border-y border-line py-3">
+        <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 lg:flex">
+          {facets.formats.map(({ value, count }) => {
+            const on = filters.format.includes(value);
+            return (
+              <Link
+                key={value}
+                href={href(toggleFormat(filters, value))}
+                rel="nofollow"
+                scroll={false}
+                className={cn(CHIP, on ? CHIP_ON : CHIP_OFF)}
+              >
+                {on ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
+                {t(`formats.${value as ProductFormat}`)}
+                {/* Links cannot be "pressed"; the state is part of the accessible name instead. */}
+                {on ? <span className="sr-only">({t('filterApplied')})</span> : null}
+                <span className={cn('text-caption', on ? 'text-ivory-100/75' : 'text-fg-subtle')}>
+                  {count}
+                </span>
+              </Link>
+            );
+          })}
+          <span aria-hidden className="mx-1 h-6 w-px bg-line" />
           <Link
-            href={href({
-              ...filters,
-              format: [],
-              inStock: false,
-              minPrice: undefined,
-              maxPrice: undefined,
-              page: 1,
-            })}
+            href={href({ ...filters, inStock: !filters.inStock, page: 1 })}
             rel="nofollow"
-            className="inline-flex h-10 items-center gap-1 rounded-full px-3 text-sm font-semibold text-danger-700 hover:bg-danger-100"
+            scroll={false}
+            className={cn(CHIP, filters.inStock ? CHIP_ON : CHIP_OFF)}
           >
-            <X aria-hidden className="h-4 w-4" />
-            {t('clearFilters')}
+            {filters.inStock ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
+            {t('inStockOnly')}
+            {filters.inStock ? <span className="sr-only">({t('filterApplied')})</span> : null}
           </Link>
-        ) : null}
-      </div>
+          <PriceFilter
+            basePath={basePath}
+            formAction={formAction}
+            filters={filters}
+            summary={priceLabel ?? t('price')}
+            placeholders={{
+              min: facets.priceRange
+                ? String(Math.floor(Number(facets.priceRange.min)))
+                : t('minPrice'),
+              max: facets.priceRange
+                ? String(Math.ceil(Number(facets.priceRange.max)))
+                : t('maxPrice'),
+            }}
+            chipClassName={CHIP}
+          />
+        </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 lg:justify-end">
         <MobileFilters
           basePath={basePath}
           formAction={formAction}
@@ -156,11 +147,41 @@ export async function FilterBar({
           facets={facets}
           total={total}
         />
-        <p className="text-sm whitespace-nowrap text-ink-700" aria-live="polite">
+        <p className="ml-auto text-body-sm whitespace-nowrap text-fg-muted" aria-live="polite">
           {t('results', { count: total })}
         </p>
-        <SortSelect value={filters.sort} query={currentQuery} />
+        <SortSelect value={filters.sort} query={toSearchParams(filters)} />
       </div>
+
+      {active.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 pt-3">
+          <h2 className="sr-only">{t('activeFilters')}</h2>
+          <ul className="flex flex-wrap items-center gap-2">
+            {active.map((filter) => (
+              <li key={filter.key}>
+                <Link
+                  href={filter.href}
+                  rel="nofollow"
+                  scroll={false}
+                  aria-label={t('removeFilter', { label: filter.label })}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-soft pr-2 pl-3 text-body-sm font-medium text-forest-900 transition-colors hover:bg-sage-200"
+                >
+                  {filter.label}
+                  <X aria-hidden className="h-3.5 w-3.5" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href={clearAll}
+            rel="nofollow"
+            scroll={false}
+            className="ml-1 text-body-sm font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
+          >
+            {t('clearFilters')}
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

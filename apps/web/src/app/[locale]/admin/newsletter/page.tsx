@@ -20,6 +20,7 @@ import {
 import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { formatDate } from '@/lib/format';
+import { buttonClasses } from '@/components/ui/button';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -51,10 +52,7 @@ export default async function AdminNewsletterPage({
         description={user?.role === 'ADMIN' ? t('newsletter.exportHint') : undefined}
         actions={
           user?.role === 'ADMIN' ? (
-            <a
-              href="/api/v1/admin/newsletter/export.csv"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-forest-900/25 px-5 text-sm font-semibold text-forest-900 hover:bg-forest-900/[0.04]"
-            >
+            <a href="/api/v1/admin/newsletter/export.csv" className={buttonClasses('secondary')}>
               <Download aria-hidden className="h-4 w-4" />
               {t('common.export')}
             </a>

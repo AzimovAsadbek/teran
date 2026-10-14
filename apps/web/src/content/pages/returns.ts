@@ -63,31 +63,31 @@ export const returnsPolicy: Localized<LongFormContent> = {
     ],
   },
   ru: {
-    title: 'Возврат и обмен',
+    title: 'Возврат и обмен',
     description:
-      'Что делать, если заказ TERAN пришёл повреждённым или неверным, и как проходит возврат денег.',
+      'Что делать, если заказ TERAN пришёл повреждённым или неверным, и как проходит возврат денег.',
     intro:
-      'Мы хотим, чтобы каждый заказ приходил именно таким, каким вы его ждёте. Если что-то не так — сообщите нам, и мы всё исправим. Дата последнего обновления: [дата публикации].',
+      'Мы хотим, чтобы каждый заказ приходил именно таким, каким вы его ждёте. Если что-то не так — сообщите нам, и мы всё исправим. Дата последнего обновления: [дата публикации].',
     sections: [
       {
         id: 'on-delivery',
         heading: 'Проверьте заказ при получении',
         blocks: [
-          'Пожалуйста, проверьте упаковку и содержимое, когда курьер передаёт заказ. Если упаковка повреждена, скажите об этом курьеру и свяжитесь с нами в тот же день.',
+          'Пожалуйста, проверьте упаковку и содержимое, когда курьер передаёт заказ. Если упаковка повреждена, скажите об этом курьеру и свяжитесь с нами в тот же день.',
         ],
       },
       {
         id: 'damaged',
         heading: 'Повреждённые, бракованные или неверные товары',
         blocks: [
-          'Если товар повреждён, бракован или не соответствует заказу, свяжитесь с нами в течение [количество дней] дней после доставки, указав номер заказа и, по возможности, приложив фото. Мы предложим замену или возврат денег [условия подлежат подтверждению].',
+          'Если товар повреждён, бракован или не соответствует заказу, свяжитесь с нами в течение [количество дней] дней после доставки, указав номер заказа и, по возможности, приложив фото. Мы предложим замену или возврат денег [условия подлежат подтверждению].',
         ],
       },
       {
         id: 'change-of-mind',
         heading: 'Возврат товара, который вам больше не нужен',
         blocks: [
-          'Чай — пищевой продукт. [Можно ли вернуть невскрытый товар без причины и в какой срок, TERAN определяет в соответствии с Законом Республики Узбекистан «О защите прав потребителей».]',
+          'Чай — пищевой продукт. [Можно ли вернуть невскрытый товар без причины и в какой срок, TERAN определяет в соответствии с Законом Республики Узбекистан «О защите прав потребителей».]',
         ],
       },
       {
@@ -96,9 +96,9 @@ export const returnsPolicy: Localized<LongFormContent> = {
         blocks: [
           {
             list: [
-              'Свяжитесь с нами через страницу «Контакты» или по указанному там телефону.',
-              'Сообщите номер заказа (например, TRN-7K4Q2M9X) и опишите проблему.',
-              'Мы ответим в течение [срок ответа] и согласуем с вами дальнейшие шаги.',
+              'Свяжитесь с нами через страницу «Контакты» или по указанному там телефону.',
+              'Сообщите номер заказа (например, TRN-7K4Q2M9X) и опишите проблему.',
+              'Мы ответим в течение [срок ответа] и согласуем с вами дальнейшие шаги.',
             ],
           },
         ],
@@ -107,14 +107,14 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'refunds',
         heading: 'Возврат денег',
         blocks: [
-          'Заказы, оплаченные наличными при получении, возвращаются [способ возврата, например наличными или банковским переводом] в течение [срок возврата] после одобрения обращения. Стоимость доставки возвращается, если возврат вызван нашей ошибкой [подлежит подтверждению].',
+          'Заказы, оплаченные наличными при получении, возвращаются [способ возврата, например наличными или банковским переводом] в течение [срок возврата] после одобрения обращения. Стоимость доставки возвращается, если возврат вызван нашей ошибкой [подлежит подтверждению].',
         ],
       },
       {
         id: 'rights',
         heading: 'Ваши права по закону',
         blocks: [
-          'Эта политика не ограничивает ваши права по Закону Республики Узбекистан «О защите прав потребителей».',
+          'Эта политика не ограничивает ваши права по Закону Республики Узбекистан «О защите прав потребителей».',
         ],
       },
     ],
@@ -124,7 +124,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
     description:
       'TERAN buyurtmasi shikastlangan yoki notoʻgʻri kelsa nima qilish kerak va pul qanday qaytariladi.',
     intro:
-      'Har bir buyurtma siz kutgandek yetib kelishini istaymiz. Agar biror narsa notoʻgʻri boʻlsa, bizga xabar bering — biz uni tuzatamiz. Oxirgi yangilanish sanasi: [eʼlon qilingan sana].',
+      'Har bir buyurtma siz kutgandek yetib kelishini istaymiz. Agar biror narsa notoʻgʻri boʻlsa, bizga xabar bering — biz uni tuzatamiz. Oxirgi yangilanish sanasi: [eʼlon qilingan sana].',
     sections: [
       {
         id: 'on-delivery',
@@ -144,7 +144,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'change-of-mind',
         heading: 'Endi kerak boʻlmagan mahsulotni qaytarish',
         blocks: [
-          'Choy oziq-ovqat mahsulotidir. [Ochilmagan mahsulotni sababsiz qaytarish mumkinmi va qaysi muddatda — buni TERAN Oʻzbekiston Respublikasining «Isteʼmolchilarning huquqlarini himoya qilish toʻgʻrisida»gi Qonuniga muvofiq belgilaydi.]',
+          'Choy oziq-ovqat mahsulotidir. [Ochilmagan mahsulotni sababsiz qaytarish mumkinmi va qaysi muddatda — buni TERAN Oʻzbekiston Respublikasining «Isteʼmolchilarning huquqlarini himoya qilish toʻgʻrisida»gi Qonuniga muvofiq belgilaydi.]',
         ],
       },
       {

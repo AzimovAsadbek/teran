@@ -15,7 +15,10 @@ async function AnnouncementMessage() {
 
   if (announcement) {
     return announcement.href ? (
-      <Link href={announcement.href} className="underline-offset-4 hover:underline">
+      <Link
+        href={announcement.href}
+        className="underline decoration-gold-300/50 underline-offset-4 hover:decoration-gold-300"
+      >
         {announcement.text}
       </Link>
     ) : (
@@ -28,10 +31,10 @@ async function AnnouncementMessage() {
 /** Slim utility bar: one configurable message plus the language switcher. */
 export function AnnouncementBar() {
   return (
-    <div className="on-dark bg-forest-900 text-ivory-100">
-      <div className="container-page flex min-h-10 items-center justify-center gap-4 py-1.5 text-[0.8rem] font-medium tracking-wide lg:justify-between">
+    <div className="on-dark bg-surface-inverse-deep text-ivory-100">
+      <div className="container-page flex min-h-9 items-center justify-center gap-4 py-1.5 text-helper font-medium tracking-[0.01em] lg:justify-between">
         <span aria-hidden className="hidden w-[132px] lg:block" />
-        <p className="text-center">
+        <p className="text-center text-balance">
           <Suspense fallback={null}>
             <AnnouncementMessage />
           </Suspense>

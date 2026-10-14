@@ -125,10 +125,10 @@ export default async function AdminProductsPage({
             </thead>
             <tbody>
               {products.items.map((product) => (
-                <tr key={product.id} className="hover:bg-ivory-50">
+                <tr key={product.id}>
                   <td className={table.td}>
                     <div className="flex items-center gap-3">
-                      <span className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-ivory-100">
+                      <span className="h-12 w-12 shrink-0 overflow-hidden rounded-control bg-surface-muted">
                         <ProductImage
                           image={product.image}
                           illustrationKey={product.illustrationKey}
@@ -140,7 +140,7 @@ export default async function AdminProductsPage({
                         <Link href={`/admin/products/${product.id}`} className={table.link}>
                           {product.name}
                         </Link>
-                        <span className="block text-xs text-ink-500">
+                        <span className="block text-xs text-fg-subtle">
                           {product.slug} ·{' '}
                           {t('products.variantsCount', { count: product.variantCount })}
                         </span>
@@ -153,7 +153,7 @@ export default async function AdminProductsPage({
                   <td className={table.td}>
                     <ProductStatusPill status={product.status} />
                   </td>
-                  <td className={`${table.td} whitespace-nowrap text-ink-700`}>
+                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
                     {formatDate(product.updatedAt, locale as Locale)}
                   </td>
                 </tr>

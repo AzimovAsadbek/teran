@@ -17,17 +17,17 @@ export function FormSuccess({ onReset }: { onReset: () => void }) {
   return (
     <div
       role="status"
-      className="rounded-[var(--radius-panel)] bg-leaf-100/70 px-6 py-10 text-center"
+      className="rounded-panel border border-success/20 bg-success-soft/60 px-6 py-10 text-center"
     >
-      <CircleCheck aria-hidden className="mx-auto h-10 w-10 text-leaf-600" />
+      <CircleCheck aria-hidden className="mx-auto h-10 w-10 text-success" />
       <h3
         ref={headingRef}
         tabIndex={-1}
-        className="mt-4 font-display text-3xl font-semibold text-forest-900 outline-none"
+        className="mt-4 text-display-sm text-forest-900 outline-none"
       >
         {t('successTitle')}
       </h3>
-      <p className="mt-2 text-ink-700">{t('successText')}</p>
+      <p className="mt-2 text-body text-fg-muted">{t('successText')}</p>
       <Button variant="secondary" className="mt-6" onClick={onReset}>
         {t('sendAnother')}
       </Button>

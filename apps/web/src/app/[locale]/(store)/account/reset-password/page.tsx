@@ -41,7 +41,7 @@ async function ResetPassword({
       {token ? (
         <ResetPasswordForm token={token} />
       ) : (
-        <p className="text-center text-ink-700">{t('resetMissingToken')}</p>
+        <p className="text-center text-fg-muted">{t('resetMissingToken')}</p>
       )}
     </AuthCard>
   );

@@ -35,7 +35,7 @@ export function BrewingGuide() {
   ];
 
   return (
-    <div className="rounded-[var(--radius-panel)] border border-ivory-200 bg-white p-6 shadow-soft sm:p-8">
+    <div className="rounded-panel border border-line bg-surface p-5 shadow-soft sm:p-8">
       {/* Native radios: one tab stop and arrow-key selection come from the browser. */}
       <fieldset>
         <legend className="sr-only">{t('chooseType')}</legend>
@@ -44,11 +44,11 @@ export function BrewingGuide() {
             <label
               key={entry.type}
               className={cn(
-                'inline-flex h-11 cursor-pointer items-center rounded-full border px-4 text-sm font-semibold transition-colors',
-                'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest-700',
+                'inline-flex h-10 cursor-pointer items-center rounded-full border px-4 text-body-sm font-semibold transition-colors duration-150',
+                'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
                 index === active
-                  ? 'border-forest-900 bg-forest-900 text-ivory-50'
-                  : 'border-ivory-300 text-forest-900 hover:border-forest-900/40',
+                  ? 'border-brand bg-brand text-fg-inverse'
+                  : 'border-line-strong/50 bg-surface text-fg hover:border-brand/60',
               )}
             >
               <input
@@ -64,16 +64,21 @@ export function BrewingGuide() {
           ))}
         </div>
       </fieldset>
-      <dl id={`${baseId}-facts`} aria-live="polite" className="mt-8 grid gap-4 sm:grid-cols-3">
+      <dl
+        id={`${baseId}-facts`}
+        aria-live="polite"
+        className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-3"
+      >
         {facts.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="rounded-2xl bg-ivory-100 p-5">
-            <dt className="flex items-center gap-2 text-sm font-semibold text-ink-700">
-              <Icon aria-hidden className="h-4 w-4 text-gold-700" />
+          <div
+            key={label}
+            className="flex items-center justify-between gap-4 rounded-card bg-surface-muted px-5 py-4 sm:block sm:p-5"
+          >
+            <dt className="flex items-center gap-2 text-label text-fg-muted">
+              <Icon aria-hidden className="h-4 w-4 text-accent-fg" />
               {label}
             </dt>
-            <dd className="mt-2 font-display text-3xl font-semibold text-forest-900 tabular-nums">
-              {value}
-            </dd>
+            <dd className="text-metric text-forest-900 sm:mt-3">{value}</dd>
           </div>
         ))}
       </dl>

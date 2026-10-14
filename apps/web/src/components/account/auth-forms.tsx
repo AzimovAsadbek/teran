@@ -7,11 +7,11 @@ import {
   resetPasswordSchema,
   type Locale,
 } from '@teran/contracts';
-import { CircleCheck, Loader2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormErrorSummary, TextField } from '@/components/ui/field';
+import { Notice } from '@/components/ui/notice';
 import { cartActions } from '@/features/cart/cart-store';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
@@ -21,12 +21,9 @@ import { useValidationMessage } from '@/lib/use-validation-message';
 export function ApiAlert({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p
-      role="alert"
-      className="rounded-2xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
-    >
+    <Notice tone="danger" role="alert">
       {message}
-    </p>
+    </Notice>
   );
 }
 
@@ -44,15 +41,7 @@ export function SubmitButton({
   variant?: 'primary' | 'secondary';
 }) {
   return (
-    <Button
-      type="submit"
-      size="lg"
-      variant={variant}
-      className={className}
-      disabled={sending}
-      aria-busy={sending}
-    >
-      {sending ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+    <Button type="submit" size="lg" variant={variant} className={className} loading={sending}>
       {sending ? sendingLabel : label}
     </Button>
   );
@@ -60,13 +49,9 @@ export function SubmitButton({
 
 export function SuccessMessage({ children }: { children: ReactNode }) {
   return (
-    <p
-      role="status"
-      className="flex items-start gap-3 rounded-2xl bg-leaf-100/80 px-4 py-4 text-forest-900"
-    >
-      <CircleCheck aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-leaf-600" />
-      <span>{children}</span>
-    </p>
+    <Notice tone="success" role="status">
+      {children}
+    </Notice>
   );
 }
 
@@ -294,7 +279,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         <SuccessMessage>{t('resetDone')}</SuccessMessage>
         <Link
           href="/account/login"
-          className="inline-block font-semibold text-forest-900 underline underline-offset-4"
+          className="inline-block font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
         >
           {t('login')}
         </Link>

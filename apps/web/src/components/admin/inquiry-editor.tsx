@@ -41,7 +41,7 @@ export function InquiryEditor({
             if (saved) router.refresh();
           });
       }}
-      className="mt-4 grid grid-cols-1 gap-3 border-t border-ivory-200 pt-4 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-end"
+      className="mt-4 grid grid-cols-1 gap-3 border-t border-line pt-4 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-end"
     >
       <SelectField
         label={t('common.status')}

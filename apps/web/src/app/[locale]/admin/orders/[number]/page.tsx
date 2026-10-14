@@ -52,7 +52,7 @@ export default async function AdminOrderPage({
     <>
       <Link
         href="/admin/orders"
-        className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-forest-900 hover:underline"
+        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {t('orders.title')}
@@ -72,9 +72,9 @@ export default async function AdminOrderPage({
         <div className="space-y-6">
           <Panel title={t('orders.itemsSection')}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[32rem] text-sm">
+              <table className="w-full min-w-[32rem] text-body-sm">
                 <thead>
-                  <tr className="text-left text-xs text-ink-500 uppercase">
+                  <tr className="text-left text-xs text-fg-subtle uppercase">
                     <th scope="col" className="pb-2 font-semibold">
                       {t('products.name')}
                     </th>
@@ -94,10 +94,10 @@ export default async function AdminOrderPage({
                 </thead>
                 <tbody>
                   {order.items.map((item) => (
-                    <tr key={item.sku} className="border-t border-ivory-100">
+                    <tr key={item.sku} className="border-t border-line-subtle">
                       <td className="py-2.5">
                         {item.productName}
-                        <span className="block text-xs text-ink-500">{pack(item)}</span>
+                        <span className="block text-xs text-fg-subtle">{pack(item)}</span>
                       </td>
                       <td className="py-2.5 font-mono text-xs">{item.sku}</td>
                       <td className="py-2.5 text-right tabular-nums">{money(item.unitPrice)}</td>
@@ -110,22 +110,22 @@ export default async function AdminOrderPage({
                 </tbody>
               </table>
             </div>
-            <dl className="mt-4 ml-auto max-w-xs space-y-1.5 border-t border-ivory-200 pt-4 text-sm">
+            <dl className="mt-4 ml-auto max-w-xs space-y-1.5 border-t border-line pt-4 text-body-sm">
               <div className="flex justify-between">
-                <dt className="text-ink-700">{t('orders.subtotal')}</dt>
+                <dt className="text-fg-muted">{t('orders.subtotal')}</dt>
                 <dd className="tabular-nums">{money(order.subtotal)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink-700">{t('orders.delivery')}</dt>
+                <dt className="text-fg-muted">{t('orders.delivery')}</dt>
                 <dd className="tabular-nums">{money(order.deliveryFee)}</dd>
               </div>
               {Number(order.discountTotal) > 0 ? (
                 <div className="flex justify-between">
-                  <dt className="text-ink-700">{t('orders.discount')}</dt>
+                  <dt className="text-fg-muted">{t('orders.discount')}</dt>
                   <dd className="tabular-nums">−{money(order.discountTotal)}</dd>
                 </div>
               ) : null}
-              <div className="flex justify-between border-t border-ivory-200 pt-2 text-base font-semibold text-forest-900">
+              <div className="flex justify-between border-t border-line pt-2 text-body font-semibold text-forest-900">
                 <dt>{t('common.total')}</dt>
                 <dd className="tabular-nums">{money(order.total)}</dd>
               </div>
@@ -133,10 +133,10 @@ export default async function AdminOrderPage({
           </Panel>
 
           <Panel title={t('orders.historySection')}>
-            <ol className="space-y-3 border-l-2 border-ivory-200 pl-5 text-sm">
+            <ol className="space-y-3 border-l-2 border-line pl-5 text-body-sm">
               <li>
                 <p className="font-semibold text-forest-900">{t('orders.historyCreated')}</p>
-                <p className="text-xs text-ink-500">{formatDateTime(order.createdAt, locale)}</p>
+                <p className="text-xs text-fg-subtle">{formatDateTime(order.createdAt, locale)}</p>
               </li>
               {order.events
                 .filter((event) => event.fromStatus !== null || event.paymentStatus !== null)
@@ -149,8 +149,8 @@ export default async function AdminOrderPage({
                             status: tco(`paymentStatuses.${event.paymentStatus ?? 'PENDING'}`),
                           })}
                     </p>
-                    {event.note ? <p className="text-ink-700">{event.note}</p> : null}
-                    <p className="text-xs text-ink-500">
+                    {event.note ? <p className="text-fg-muted">{event.note}</p> : null}
+                    <p className="text-xs text-fg-subtle">
                       {formatDateTime(event.createdAt, locale)} ·{' '}
                       {event.actorName ?? t('orders.system')}
                     </p>
@@ -164,13 +164,13 @@ export default async function AdminOrderPage({
           <OrderActions order={order} />
 
           <Panel title={t('orders.customerSection')}>
-            <dl className="space-y-2 text-sm">
+            <dl className="space-y-2 text-body-sm">
               <div>
-                <dt className="text-xs text-ink-500">{t('orders.customer')}</dt>
+                <dt className="text-xs text-fg-subtle">{t('orders.customer')}</dt>
                 <dd className="font-semibold">{order.customerName}</dd>
               </div>
               <div>
-                <dt className="text-xs text-ink-500">{t('orders.phone')}</dt>
+                <dt className="text-xs text-fg-subtle">{t('orders.phone')}</dt>
                 <dd>
                   <a
                     href={`tel:${order.customerPhone}`}
@@ -183,13 +183,13 @@ export default async function AdminOrderPage({
               </div>
               {order.customerEmail ? (
                 <div>
-                  <dt className="text-xs text-ink-500">Email</dt>
+                  <dt className="text-xs text-fg-subtle">Email</dt>
                   <dd className="break-all">{order.customerEmail}</dd>
                 </div>
               ) : null}
               {order.customerAccountEmail ? (
                 <div>
-                  <dt className="text-xs text-ink-500">{t('orders.accountEmail')}</dt>
+                  <dt className="text-xs text-fg-subtle">{t('orders.accountEmail')}</dt>
                   <dd className="break-all">{order.customerAccountEmail}</dd>
                 </div>
               ) : null}
@@ -197,13 +197,13 @@ export default async function AdminOrderPage({
           </Panel>
 
           <Panel title={t('orders.deliverySection')}>
-            <dl className="space-y-2 text-sm">
+            <dl className="space-y-2 text-body-sm">
               <div>
-                <dt className="text-xs text-ink-500">{t('orders.delivery')}</dt>
+                <dt className="text-xs text-fg-subtle">{t('orders.delivery')}</dt>
                 <dd className="font-semibold">{order.deliveryMethodName}</dd>
               </div>
               <div>
-                <dt className="text-xs text-ink-500">{t('orders.address')}</dt>
+                <dt className="text-xs text-fg-subtle">{t('orders.address')}</dt>
                 <dd>
                   {[regionName(order.regionCode, locale as Locale), order.city, order.addressLine]
                     .filter(Boolean)
@@ -212,24 +212,24 @@ export default async function AdminOrderPage({
               </div>
               {order.landmark ? (
                 <div>
-                  <dt className="text-xs text-ink-500">{t('orders.landmark')}</dt>
+                  <dt className="text-xs text-fg-subtle">{t('orders.landmark')}</dt>
                   <dd>{order.landmark}</dd>
                 </div>
               ) : null}
               {order.note ? (
                 <div>
-                  <dt className="text-xs text-ink-500">{t('orders.note')}</dt>
+                  <dt className="text-xs text-fg-subtle">{t('orders.note')}</dt>
                   <dd className="whitespace-pre-line">{order.note}</dd>
                 </div>
               ) : null}
               {order.cancelReason ? (
                 <div>
-                  <dt className="text-xs text-ink-500">{t('orders.cancelReason')}</dt>
+                  <dt className="text-xs text-fg-subtle">{t('orders.cancelReason')}</dt>
                   <dd className="whitespace-pre-line">{order.cancelReason}</dd>
                 </div>
               ) : null}
               <div>
-                <dt className="text-xs text-ink-500">{t('orders.payment')}</dt>
+                <dt className="text-xs text-fg-subtle">{t('orders.payment')}</dt>
                 <dd>{tco(`paymentMethods.${order.paymentMethod}`)}</dd>
               </div>
             </dl>

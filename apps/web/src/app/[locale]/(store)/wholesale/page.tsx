@@ -66,82 +66,83 @@ export default async function WholesalePage() {
         </ButtonLink>
       </PageHeader>
 
-      <section aria-labelledby="segments-title" className="container-page py-16 sm:py-20">
+      <section aria-labelledby="segments-title" className="container-page py-section-sm">
         <h2 id="segments-title" className="text-display-md text-forest-900">
           {page.segmentsTitle}
         </h2>
-        <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {segments.map(([type, text]) => {
             const Icon = SEGMENT_ICONS[type];
             return (
-              <li key={type} className="rounded-[var(--radius-card)] bg-white p-6 shadow-soft">
+              <li key={type} className="rounded-card border border-line bg-surface p-6">
                 <span
                   aria-hidden
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-forest-900 text-gold-300"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-inverse text-accent-on-inverse"
                 >
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="mt-5 text-lg font-semibold text-forest-900">
-                  {tw(`segments.${type}`)}
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-ink-700">{text}</p>
+                <h3 className="mt-5 text-title text-fg">{tw(`segments.${type}`)}</h3>
+                <p className="mt-1.5 text-body-sm text-fg-muted">{text}</p>
               </li>
             );
           })}
         </ul>
       </section>
 
-      <section aria-labelledby="process-title" className="bg-forest-900 text-ivory-50">
-        <div className="container-page py-16 sm:py-20">
+      <section
+        aria-labelledby="process-title"
+        className="on-dark bg-surface-inverse text-fg-inverse"
+      >
+        <div className="container-page py-section-sm">
           <h2 id="process-title" className="text-display-md text-ivory-50">
             {page.processTitle}
           </h2>
           <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {page.steps.map((step, index) => (
-              <li key={step.title} className="border-t border-gold-300/40 pt-6">
-                <span aria-hidden className="font-display text-5xl font-semibold text-gold-300">
+              <li key={step.title} className="border-t border-gold-300/35 pt-6">
+                <span
+                  aria-hidden
+                  className="font-display text-5xl font-medium text-accent-on-inverse"
+                >
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-1 text-ivory-100/85">{step.text}</p>
+                <h3 className="mt-3 text-title-lg">{step.title}</h3>
+                <p className="mt-1.5 text-body text-ivory-100/85">{step.text}</p>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      <div className="container-page grid grid-cols-1 gap-12 py-16 sm:py-20 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16">
+      <div className="container-page grid grid-cols-1 gap-10 py-section-sm lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-14">
         <section
           id="request"
           aria-labelledby="request-title"
-          className="scroll-mt-28 rounded-[var(--radius-panel)] bg-white p-6 sm:p-10"
+          className="scroll-mt-24 rounded-panel border border-line bg-surface p-6 sm:p-10"
         >
-          <h2 id="request-title" className="font-display text-3xl font-semibold text-forest-900">
+          <h2 id="request-title" className="text-display-sm text-forest-900">
             {page.formTitle}
           </h2>
-          <p className="mt-2 text-ink-700">{page.formIntro}</p>
+          <p className="mt-2 text-body text-fg-muted">{page.formIntro}</p>
           <div className="mt-8">
             <WholesaleForm />
           </div>
         </section>
         <section aria-labelledby="business-faq-title">
-          <h2
-            id="business-faq-title"
-            className="font-display text-3xl font-semibold text-forest-900"
-          >
+          <h2 id="business-faq-title" className="text-display-sm text-forest-900">
             {page.faq.heading}
           </h2>
-          <div className="mt-4 divide-y divide-ivory-200 border-y border-ivory-200">
+          <div className="mt-4 divide-y divide-line border-y border-line">
             {page.faq.items.map((item) => (
               <details key={item.question} className="group py-1">
-                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 font-semibold text-forest-900 [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-title-sm text-fg transition-colors hover:text-brand [&::-webkit-details-marker]:hidden">
                   {item.question}
                   <ChevronDown
                     aria-hidden
-                    className="h-5 w-5 shrink-0 text-ink-500 transition-transform group-open:rotate-180"
+                    className="h-5 w-5 shrink-0 text-fg-subtle transition-transform group-open:rotate-180"
                   />
                 </summary>
-                <div className="space-y-3 pb-5 leading-relaxed text-ink-700">
+                <div className="space-y-3 pb-5 text-body text-fg-muted">
                   <Blocks blocks={item.answer} />
                 </div>
               </details>

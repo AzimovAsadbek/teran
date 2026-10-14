@@ -48,7 +48,7 @@ export function TranslationEditor<K extends string>({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-500">{t('common.uzRequired')}</p>
+      <p className="text-body-sm text-fg-subtle">{t('common.uzRequired')}</p>
       {LOCALES.map((locale) => {
         const current = value[locale];
         return (
@@ -56,13 +56,13 @@ export function TranslationEditor<K extends string>({
             key={locale}
             // Uzbek is always open; other languages open when they have an error to show.
             open={locale === 'uz' || hasError(locale)}
-            className="group rounded-2xl border border-ivory-200"
+            className="group rounded-card border border-line"
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-900 [&::-webkit-details-marker]:hidden">
               <span>
                 {t(`common.locales.${locale}`)}
                 {locale !== 'uz' && current === null ? (
-                  <span className="ml-2 text-sm font-normal text-ink-500">— uz</span>
+                  <span className="ml-2 text-body-sm font-normal text-fg-subtle">— uz</span>
                 ) : null}
               </span>
               <ChevronDown
@@ -70,12 +70,12 @@ export function TranslationEditor<K extends string>({
                 className="h-4 w-4 transition-transform group-open:rotate-180"
               />
             </summary>
-            <div className="space-y-4 border-t border-ivory-200 px-4 py-4">
+            <div className="space-y-4 border-t border-line px-4 py-4">
               {current === null ? (
                 <button
                   type="button"
                   onClick={() => onChange({ ...value, [locale]: empty() })}
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-forest-900 hover:underline"
+                  className="inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 hover:underline"
                 >
                   <Plus aria-hidden className="h-4 w-4" />
                   {t('common.fillTranslation')}
@@ -114,7 +114,7 @@ export function TranslationEditor<K extends string>({
                     <button
                       type="button"
                       onClick={() => onChange({ ...value, [locale]: null })}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-danger-700 hover:underline"
+                      className="inline-flex items-center gap-2 text-body-sm font-semibold text-danger hover:underline"
                     >
                       <Trash2 aria-hidden className="h-4 w-4" />
                       {t('common.removeTranslation')}

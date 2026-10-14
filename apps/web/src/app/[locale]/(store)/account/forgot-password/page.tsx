@@ -41,7 +41,7 @@ async function ForgotPassword() {
   if (!features?.passwordReset) {
     return (
       <AuthCard title={t('forgotTitle')} footer={footer}>
-        <p className="text-center text-ink-700">{t('resetUnavailable')}</p>
+        <p className="text-center text-fg-muted">{t('resetUnavailable')}</p>
         <p className="mt-4 text-center">
           <Link
             href="/contact"

@@ -27,7 +27,7 @@ export async function OrderProgress({ status }: { status: OrderStatus }) {
   const t = await getTranslations('Checkout');
   if (status === 'CANCELLED') {
     return (
-      <p className="flex items-start gap-3 rounded-[var(--radius-card)] bg-danger-100 px-5 py-4 text-danger-700">
+      <p className="flex items-start gap-3 rounded-control border border-danger/25 bg-danger-soft px-5 py-4 text-danger">
         <CircleX aria-hidden className="mt-0.5 h-5 w-5 shrink-0" />
         <span>
           <strong className="block">{t('statuses.CANCELLED')}</strong>
@@ -45,16 +45,16 @@ export async function OrderProgress({ status }: { status: OrderStatus }) {
           <li key={step} aria-current={index === current ? 'step' : undefined} className="min-w-0">
             <span
               aria-hidden
-              className={cn('block h-1.5 rounded-full', done ? 'bg-forest-900' : 'bg-ivory-300')}
+              className={cn('block h-1.5 rounded-full', done ? 'bg-brand' : 'bg-surface-sunken')}
             />
             <span
               className={cn(
-                'mt-2 flex items-center gap-1 text-xs sm:text-sm',
+                'mt-2 flex items-center gap-1 text-caption sm:text-body-sm',
                 index === current
-                  ? 'font-semibold text-forest-900'
+                  ? 'font-semibold text-fg'
                   : done
-                    ? 'text-ink-700'
-                    : 'text-ink-500',
+                    ? 'text-fg-muted'
+                    : 'text-fg-subtle',
               )}
             >
               {done ? <Check aria-hidden className="hidden h-3.5 w-3.5 shrink-0 sm:block" /> : null}
@@ -79,15 +79,15 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <section
         aria-labelledby="order-items"
-        className="rounded-[var(--radius-panel)] bg-white p-5 sm:p-7"
+        className="rounded-panel border border-line bg-surface p-5 sm:p-7"
       >
-        <h2 id="order-items" className="font-display text-2xl font-semibold text-forest-900">
+        <h2 id="order-items" className="text-display-sm text-forest-900">
           {t('orderDetails')}
         </h2>
-        <ul className="mt-3 divide-y divide-ivory-200">
+        <ul className="mt-3 divide-y divide-line">
           {order.items.map((item) => (
             <li key={item.sku} className="flex gap-4 py-4">
-              <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-ivory-100">
+              <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted">
                 <ProductImage
                   image={item.image}
                   illustrationKey={item.illustrationKey}
@@ -98,38 +98,38 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
               <span className="min-w-0 flex-1">
                 <Link
                   href={`/products/${item.productSlug}`}
-                  className="font-semibold text-forest-900 hover:underline"
+                  className="text-title-sm text-fg underline-offset-4 hover:underline"
                 >
                   {item.productName}
                 </Link>
-                <span className="block text-sm text-ink-500">
+                <span className="block text-body-sm text-fg-subtle">
                   {packLabel(item, item.format, locale, (key, values) =>
                     tp(`units.${key}`, values),
                   )}
                 </span>
-                <span className="mt-1 block text-sm text-ink-700">
+                <span className="mt-1 block text-body-sm text-fg-muted">
                   {t('quantityShort', { count: item.quantity })} ×{' '}
-                  <Price amount={item.unitPrice} className="inline text-sm" />
+                  <Price amount={item.unitPrice} className="inline text-body-sm" />
                 </span>
               </span>
-              <Price amount={item.lineTotal} className="shrink-0 text-sm" />
+              <Price amount={item.lineTotal} className="shrink-0 text-body-sm" />
             </li>
           ))}
         </ul>
-        <dl className="mt-2 space-y-2 border-t border-ivory-200 pt-4 text-sm">
+        <dl className="mt-2 space-y-2 border-t border-line pt-4 text-body-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-ink-700">{t('subtotal')}</dt>
+            <dt className="text-fg-muted">{t('subtotal')}</dt>
             <dd>
               <Price amount={order.subtotal} />
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-ink-700">
+            <dt className="text-fg-muted">
               {t('delivery')} · {order.deliveryMethodName}
             </dt>
             <dd>
               {Number(order.deliveryFee) === 0 ? (
-                <span className="font-semibold text-leaf-600">{t('free')}</span>
+                <span className="font-semibold text-success">{t('free')}</span>
               ) : (
                 <Price amount={order.deliveryFee} />
               )}
@@ -137,16 +137,16 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
           </div>
           {Number(order.discountTotal) > 0 ? (
             <div className="flex justify-between gap-4">
-              <dt className="text-ink-700">{t('discount')}</dt>
+              <dt className="text-fg-muted">{t('discount')}</dt>
               <dd>
                 <Price amount={order.discountTotal} />
               </dd>
             </div>
           ) : null}
-          <div className="flex items-baseline justify-between gap-4 border-t border-ivory-200 pt-3">
-            <dt className="font-semibold text-forest-900">{t('total')}</dt>
+          <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
+            <dt className="text-title text-fg">{t('total')}</dt>
             <dd>
-              <Price amount={order.total} className="text-xl" />
+              <Price amount={order.total} className="text-title-lg" />
             </dd>
           </div>
         </dl>
@@ -156,7 +156,7 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
         <InfoCard title={t('placedAt')}>{formatDateTime(order.createdAt, locale)}</InfoCard>
         <InfoCard title={t('deliveryTo')}>
           {address}
-          {order.landmark ? <span className="block text-ink-500">{order.landmark}</span> : null}
+          {order.landmark ? <span className="block text-fg-subtle">{order.landmark}</span> : null}
         </InfoCard>
         <InfoCard title={t('contactSummary')}>
           {order.customerName}
@@ -167,7 +167,9 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
         </InfoCard>
         <InfoCard title={t('payment')}>
           {t(`paymentMethods.${order.paymentMethod}`)}
-          <span className="block text-ink-500">{t(`paymentStatuses.${order.paymentStatus}`)}</span>
+          <span className="block text-fg-subtle">
+            {t(`paymentStatuses.${order.paymentStatus}`)}
+          </span>
         </InfoCard>
         {order.note ? <InfoCard title={t('note')}>{order.note}</InfoCard> : null}
       </aside>
@@ -177,9 +179,9 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
 
 function InfoCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-[var(--radius-card)] bg-white px-5 py-4">
-      <h3 className="text-eyebrow text-gold-700">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-ink-900">{children}</p>
+    <div className="rounded-card border border-line bg-surface px-5 py-4">
+      <h3 className="text-eyebrow text-accent-fg">{title}</h3>
+      <p className="mt-1.5 text-body-sm text-fg">{children}</p>
     </div>
   );
 }

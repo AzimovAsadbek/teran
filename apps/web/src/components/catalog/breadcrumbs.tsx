@@ -27,22 +27,22 @@ export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: L
   };
 
   return (
-    <nav aria-label={t('breadcrumbs')} className="text-sm">
-      <ol className="flex flex-wrap items-center gap-1.5 text-ink-500">
+    <nav aria-label={t('breadcrumbs')} className="text-body-sm">
+      <ol className="flex flex-wrap items-center gap-1.5 text-fg-subtle">
         {trail.map((crumb, index) => (
           <li key={`${crumb.label}-${index}`} className="flex items-center gap-1.5">
             {index > 0 ? (
-              <ChevronRight aria-hidden className="h-3.5 w-3.5 text-ink-500/70" />
+              <ChevronRight aria-hidden className="h-3.5 w-3.5 text-fg-subtle/70" />
             ) : null}
             {crumb.href && index < trail.length - 1 ? (
               <Link
                 href={crumb.href}
-                className="transition-colors hover:text-forest-900 hover:underline"
+                className="underline-offset-4 transition-colors hover:text-fg hover:underline"
               >
                 {crumb.label}
               </Link>
             ) : (
-              <span aria-current="page" className="font-medium text-ink-900">
+              <span aria-current="page" className="font-medium text-fg">
                 {crumb.label}
               </span>
             )}

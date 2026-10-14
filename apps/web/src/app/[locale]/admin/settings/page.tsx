@@ -30,7 +30,7 @@ export default async function AdminSettingsPage() {
           <AnnouncementForm value={settings.announcement} />
         </Panel>
         <Panel title={t('settings.contact')}>
-          <p className="mb-4 text-sm text-ink-500">{t('settings.contactHint')}</p>
+          <p className="mb-4 text-body-sm text-fg-subtle">{t('settings.contactHint')}</p>
           <ContactForm value={settings.contact} />
         </Panel>
       </div>

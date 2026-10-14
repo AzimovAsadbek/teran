@@ -28,7 +28,7 @@ async function Unsubscribe({
       {id && token ? (
         <UnsubscribeForm id={id} token={token} />
       ) : (
-        <p className="text-center text-ink-700">{t('unsubscribeInvalid')}</p>
+        <p className="text-center text-fg-muted">{t('unsubscribeInvalid')}</p>
       )}
     </AuthCard>
   );

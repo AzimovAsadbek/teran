@@ -18,6 +18,7 @@ import { apiRequest } from '@/lib/api/client';
 import { formatDateTime } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { ConfirmDialog } from './confirm-dialog';
+import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
 /** Adjust stock (ledgered, never below zero) and show a variant's movement history. */
 export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
@@ -65,7 +66,7 @@ export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
       <button
         type="button"
         onClick={() => setAdjusting(true)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-forest-900 hover:bg-ivory-100"
+        className={buttonClasses('ghost', 'sm')}
       >
         <SlidersHorizontal aria-hidden className="h-4 w-4" />
         {t('inventory.adjust')}
@@ -73,7 +74,7 @@ export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
       <button
         type="button"
         onClick={() => void openHistory()}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-ivory-100"
+        className={iconButtonClasses('ghost', 'sm')}
         aria-label={`${t('inventory.history')}: ${row.sku}`}
       >
         <History aria-hidden className="h-4 w-4" />
@@ -88,7 +89,7 @@ export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
         onClose={() => setAdjusting(false)}
         onConfirm={() => void submit()}
       >
-        <p className="text-sm text-ink-700">
+        <p className="text-body-sm text-fg-muted">
           {row.productName} · {t('inventory.stock')}: <strong>{row.stockQuantity}</strong>
         </p>
         <div ref={fieldsRef} className="space-y-4">
@@ -133,13 +134,13 @@ export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
       >
         <div className="px-5 py-4">
           {history === null ? (
-            <p className="text-ink-500">{tc('loading')}</p>
+            <p className="text-fg-subtle">{tc('loading')}</p>
           ) : history.items.length === 0 ? (
-            <p className="text-ink-500">{t('common.empty')}</p>
+            <p className="text-fg-subtle">{t('common.empty')}</p>
           ) : (
-            <ol className="divide-y divide-ivory-200">
+            <ol className="divide-y divide-line">
               {history.items.map((movement) => (
-                <li key={movement.id} className="py-3 text-sm">
+                <li key={movement.id} className="py-3 text-body-sm">
                   <p className="flex justify-between gap-4">
                     <span className="font-semibold text-forest-900">
                       {t(`inventoryReasons.${movement.reason as 'RESTOCK'}`)}
@@ -147,14 +148,14 @@ export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
                     <span
                       className={
                         movement.delta > 0
-                          ? 'font-semibold text-leaf-600'
-                          : 'font-semibold text-danger-700'
+                          ? 'font-semibold text-success'
+                          : 'font-semibold text-danger'
                       }
                     >
                       {movement.delta > 0 ? `+${movement.delta}` : movement.delta}
                     </span>
                   </p>
-                  <p className="text-ink-700">
+                  <p className="text-fg-muted">
                     {t('inventory.quantityAfter')}: {movement.quantityAfter}
                     {movement.orderNumber ? (
                       <>
@@ -168,8 +169,8 @@ export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
                       </>
                     ) : null}
                   </p>
-                  {movement.note ? <p className="text-ink-700">{movement.note}</p> : null}
-                  <p className="text-xs text-ink-500">
+                  {movement.note ? <p className="text-fg-muted">{movement.note}</p> : null}
+                  <p className="text-xs text-fg-subtle">
                     {formatDateTime(movement.createdAt, locale as 'uz')} ·{' '}
                     {movement.actorName ?? t('orders.system')}
                   </p>

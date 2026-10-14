@@ -26,3 +26,22 @@ export function pickMessages<K extends keyof Messages>(
   }
   return picked;
 }
+
+/** Namespaces used by client components on storefront pages (long-form page copy stays on the server). */
+export const STORE_CLIENT_NAMESPACES = [
+  'Common',
+  'Nav',
+  'Language',
+  'Cart',
+  'Product',
+  'Search',
+  'Errors',
+  'Validation',
+  'Newsletter',
+  'Catalog',
+  'Brewing',
+  'Checkout',
+  'Forms',
+  'Account',
+  'Wholesale',
+] as const satisfies readonly (keyof Messages)[];

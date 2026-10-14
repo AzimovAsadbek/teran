@@ -40,10 +40,10 @@ async function OrderView({
   if (!order) {
     return (
       <div className="flex flex-col items-center py-16 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-ivory-100 text-forest-900">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-forest-900">
           <SearchX aria-hidden className="h-7 w-7" />
         </span>
-        <h1 className="text-display-md mt-5 text-forest-900">{t('orderNotFound')}</h1>
+        <h1 className="mt-5 text-display-md text-forest-900">{t('orderNotFound')}</h1>
         <ButtonLink href="/catalog" variant="secondary" className="mt-8">
           {t('continueShopping')}
         </ButtonLink>
@@ -55,20 +55,30 @@ async function OrderView({
   return (
     <div className="space-y-8">
       {justPlaced ? (
-        <div className="rounded-[var(--radius-panel)] bg-forest-900 px-6 py-8 text-ivory-50 sm:px-10">
-          <CircleCheck aria-hidden className="h-10 w-10 text-gold-300" />
-          <h1 className="text-display-md mt-4">{t('thankYou')}</h1>
-          <p className="mt-3 max-w-2xl text-ivory-100/90">{t('orderPlacedText')}</p>
-          <p className="mt-6 text-sm text-ivory-100/80">{t('orderNumber')}</p>
-          <p className="font-display text-3xl font-semibold tracking-wide text-gold-300">
-            {order.number}
-          </p>
-          <p className="mt-6 max-w-2xl text-sm text-ivory-100/80">{t('saveLinkHint')}</p>
+        <div className="on-dark relative isolate overflow-hidden rounded-panel bg-surface-inverse px-6 py-9 text-fg-inverse sm:px-10 sm:py-12">
+          <span
+            aria-hidden
+            className="absolute -top-24 -right-24 -z-10 h-72 w-72 rounded-full border border-gold-300/20"
+          />
+          <span
+            aria-hidden
+            className="absolute -top-12 -right-12 -z-10 h-48 w-48 rounded-full border border-gold-300/15"
+          />
+          <CircleCheck aria-hidden className="h-10 w-10 text-accent-on-inverse" />
+          <h1 className="mt-4 text-display-md">{t('thankYou')}</h1>
+          <p className="mt-3 max-w-2xl text-body-lg text-ivory-100/90">{t('orderPlacedText')}</p>
+          <div className="mt-7 inline-flex flex-col rounded-card border border-line-inverse bg-ivory-50/[0.05] px-5 py-3">
+            <span className="text-caption text-ivory-100/75">{t('orderNumber')}</span>
+            <span className="mt-0.5 text-title-lg tracking-wide text-accent-on-inverse">
+              {order.number}
+            </span>
+          </div>
+          <p className="mt-6 max-w-2xl text-body-sm text-ivory-100/80">{t('saveLinkHint')}</p>
         </div>
       ) : (
         <div>
-          <p className="text-eyebrow text-gold-700">{t('statusTitle')}</p>
-          <h1 className="text-display-lg mt-2 text-forest-900">
+          <p className="text-eyebrow text-accent-fg">{t('statusTitle')}</p>
+          <h1 className="mt-2 text-display-lg text-forest-900">
             {t('orderTitle', { number: order.number })}
           </h1>
         </div>
@@ -76,9 +86,9 @@ async function OrderView({
 
       <section
         aria-label={t('statusTitle')}
-        className="rounded-[var(--radius-panel)] bg-white p-5 sm:p-7"
+        className="rounded-panel border border-line bg-surface p-5 sm:p-7"
       >
-        <p className="mb-4 text-sm text-ink-700">
+        <p className="mb-4 text-body-sm text-fg-muted">
           {t('statusTitle')}:{' '}
           <strong className="text-forest-900">{t(`statuses.${order.status}`)}</strong>
         </p>
@@ -100,13 +110,13 @@ export default function OrderPage({
   searchParams,
 }: PageProps<'/[locale]/orders/[number]'>) {
   return (
-    <div className="container-page pt-10 pb-24">
+    <div className="container-page pt-8 pb-section sm:pt-10">
       <Suspense
         fallback={
           <div className="space-y-6" aria-hidden>
-            <Skeleton className="h-48 rounded-[var(--radius-panel)]" />
-            <Skeleton className="h-24 rounded-[var(--radius-panel)]" />
-            <Skeleton className="h-80 rounded-[var(--radius-panel)]" />
+            <Skeleton className="h-48 rounded-panel" />
+            <Skeleton className="h-24 rounded-panel" />
+            <Skeleton className="h-80 rounded-panel" />
           </div>
         }
       >

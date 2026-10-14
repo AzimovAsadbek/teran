@@ -80,33 +80,33 @@ export const wholesalePage: Localized<WholesaleContent> = {
   ru: {
     title: 'TERAN для бизнеса',
     description:
-      'Чай для кафе, ресторанов, отелей, магазинов, дистрибьюторов и корпоративных подарков. Оставьте заявку — мы свяжемся с вами.',
+      'Чай для кафе, ресторанов, отелей, магазинов, дистрибьюторов и корпоративных подарков. Оставьте заявку — мы свяжемся с вами.',
     intro:
-      'Угощайте гостей чаем TERAN, предлагайте его в своём магазине или выбирайте в подарок партнёрам и коллегам. Расскажите о своём бизнесе — мы подготовим подходящее предложение.',
-    segmentsTitle: 'С кем мы работаем',
+      'Угощайте гостей чаем TERAN, предлагайте его в своём магазине или выбирайте в подарок партнёрам и коллегам. Расскажите о своём бизнесе — мы подготовим подходящее предложение.',
+    segmentsTitle: 'С кем мы работаем',
     segments: {
-      CAFE_RESTAURANT: 'Чай для меню кафе, чайхан и ресторанов.',
-      HOTEL: 'Чай для номеров, завтраков и лаундж-зон.',
+      CAFE_RESTAURANT: 'Чай для меню кафе, чайхан и ресторанов.',
+      HOTEL: 'Чай для номеров, завтраков и лаундж-зон.',
       RETAIL: 'Упаковки TERAN для полок вашего магазина.',
-      DISTRIBUTOR: 'Партнёрство по дистрибуции в регионах.',
-      CORPORATE: 'Подарочные наборы для партнёров, сотрудников и мероприятий.',
+      DISTRIBUTOR: 'Партнёрство по дистрибуции в регионах.',
+      CORPORATE: 'Подарочные наборы для партнёров, сотрудников и мероприятий.',
     },
     processTitle: 'Как мы работаем',
     steps: [
-      { title: 'Оставьте заявку', text: 'Расскажите о бизнесе, потребностях и примерном объёме.' },
+      { title: 'Оставьте заявку', text: 'Расскажите о бизнесе, потребностях и примерном объёме.' },
       {
-        title: 'Мы свяжемся с вами',
-        text: 'Наша команда позвонит, чтобы обсудить ассортимент и детали.',
+        title: 'Мы свяжемся с вами',
+        text: 'Наша команда позвонит, чтобы обсудить ассортимент и детали.',
       },
       {
         title: 'Получите предложение',
-        text: 'Вы получите предложение с товарами, ценами и условиями доставки, согласованными с вами.',
+        text: 'Вы получите предложение с товарами, ценами и условиями доставки, согласованными с вами.',
       },
       { title: 'Регулярные поставки', text: 'Мы доставляем по графику, который согласуем вместе.' },
     ],
     formTitle: 'Запросить предложение',
     formIntro:
-      'Заполните форму, и мы свяжемся с вами. Поля с пометкой «необязательно» можно оставить пустыми.',
+      'Заполните форму, и мы свяжемся с вами. Поля с пометкой «необязательно» можно оставить пустыми.',
     faq: {
       id: 'business-faq',
       heading: 'Вопросы от бизнеса',
@@ -114,16 +114,16 @@ export const wholesalePage: Localized<WholesaleContent> = {
         {
           question: 'Есть ли минимальный заказ?',
           answer: [
-            'Объёмы и условия зависят от вашего бизнеса, поэтому мы согласовываем их индивидуально после заявки.',
+            'Объёмы и условия зависят от вашего бизнеса, поэтому мы согласовываем их индивидуально после заявки.',
           ],
         },
         {
           question: 'Доставляете ли вы за пределы Ташкента?',
-          answer: ['Укажите регион в заявке, и мы сообщим, какие варианты доставки доступны.'],
+          answer: ['Укажите регион в заявке, и мы сообщим, какие варианты доставки доступны.'],
         },
         {
-          question: 'Можно ли получить подарочные наборы с нашей открыткой или поздравлением?',
-          answer: ['Опишите свою идею в заявке, и мы расскажем, что возможно.'],
+          question: 'Можно ли получить подарочные наборы с нашей открыткой или поздравлением?',
+          answer: ['Опишите свою идею в заявке, и мы расскажем, что возможно.'],
         },
       ],
     },
@@ -131,9 +131,9 @@ export const wholesalePage: Localized<WholesaleContent> = {
   uz: {
     title: 'Biznes uchun TERAN',
     description:
-      'Kafe, restoran, mehmonxona, doʻkon, distribyutorlar va korporativ sovgʻalar uchun choy. Soʻrov qoldiring — biz siz bilan bogʻlanamiz.',
+      'Kafe, restoran, mehmonxona, doʻkon, distribyutorlar va korporativ sovgʻalar uchun choy. Soʻrov qoldiring — biz siz bilan bogʻlanamiz.',
     intro:
-      'Mehmonlaringizni TERAN choyi bilan siylang, uni doʻkoningizda taklif qiling yoki hamkorlar va hamkasblarga sovgʻa sifatida tanlang. Biznesingiz haqida aytib bering — biz mos taklif tayyorlaymiz.',
+      'Mehmonlaringizni TERAN choyi bilan siylang, uni doʻkoningizda taklif qiling yoki hamkorlar va hamkasblarga sovgʻa sifatida tanlang. Biznesingiz haqida aytib bering — biz mos taklif tayyorlaymiz.',
     segmentsTitle: 'Kimlar bilan ishlaymiz',
     segments: {
       CAFE_RESTAURANT: 'Kafe, choyxona va restoranlar menyusi uchun choy.',

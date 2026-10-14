@@ -1,5 +1,5 @@
 import type { Locale, PublicSettingsDto } from '@teran/contracts';
-import { AtSign, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { ArrowRight, AtSign, Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -36,13 +36,13 @@ function Channel({
     <div className="flex gap-4">
       <span
         aria-hidden
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-leaf-100 text-forest-900"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-forest-900 [&_svg]:h-[1.125rem] [&_svg]:w-[1.125rem]"
       >
         {icon}
       </span>
       <div>
-        <dt className="text-sm text-ink-500">{label}</dt>
-        <dd className="mt-0.5 font-semibold break-words text-forest-900">{children}</dd>
+        <dt className="text-body-sm text-fg-subtle">{label}</dt>
+        <dd className="mt-0.5 text-body font-semibold break-words text-fg">{children}</dd>
       </div>
     </div>
   );
@@ -61,9 +61,9 @@ async function ContactChannels() {
   return (
     <section
       aria-labelledby="channels-title"
-      className="rounded-[var(--radius-panel)] bg-white p-6 shadow-soft sm:p-8"
+      className="rounded-panel border border-line bg-surface p-6 sm:p-8"
     >
-      <h2 id="channels-title" className="font-display text-2xl font-semibold text-forest-900">
+      <h2 id="channels-title" className="text-display-sm text-forest-900">
         {t('channelsTitle')}
       </h2>
       <dl className="mt-6 space-y-5">
@@ -107,14 +107,12 @@ async function ContactChannels() {
         ) : null}
         {contact.address ? (
           <Channel icon={<MapPin className="h-5 w-5" />} label={t('channels.address')}>
-            <span className="font-normal whitespace-pre-line text-ink-900">{contact.address}</span>
+            <span className="font-normal whitespace-pre-line text-fg">{contact.address}</span>
           </Channel>
         ) : null}
         {contact.workingHours ? (
           <Channel icon={<Clock className="h-5 w-5" />} label={t('channels.workingHours')}>
-            <span className="font-normal whitespace-pre-line text-ink-900">
-              {contact.workingHours}
-            </span>
+            <span className="font-normal whitespace-pre-line text-fg">{contact.workingHours}</span>
           </Channel>
         ) : null}
       </dl>
@@ -134,20 +132,20 @@ export default async function ContactPage() {
         intro={t('contactDescription')}
         illustration="mint"
       />
-      <div className="container-page grid grid-cols-1 gap-10 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-16">
+      <div className="container-page grid grid-cols-1 gap-8 py-section-sm lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-12">
         <section
           aria-labelledby="message-title"
-          className="rounded-[var(--radius-panel)] bg-white p-6 sm:p-10"
+          className="rounded-panel border border-line bg-surface p-6 sm:p-10"
         >
-          <h2 id="message-title" className="font-display text-3xl font-semibold text-forest-900">
+          <h2 id="message-title" className="text-display-sm text-forest-900">
             {t('messageTitle')}
           </h2>
-          <p className="mt-2 text-ink-700">
+          <p className="mt-2 text-body text-fg-muted">
             {t.rich('businessLink', {
               link: (chunks) => (
                 <Link
                   href="/wholesale"
-                  className="font-semibold text-forest-900 underline underline-offset-2"
+                  className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
                 >
                   {chunks}
                 </Link>
@@ -158,18 +156,22 @@ export default async function ContactPage() {
             <ContactForm />
           </div>
         </section>
-        <aside className="space-y-6 lg:sticky lg:top-28">
-          <Suspense fallback={<Skeleton className="h-64 rounded-[var(--radius-panel)]" />}>
+        <aside className="space-y-5 lg:sticky lg:top-24">
+          <Suspense fallback={<Skeleton className="h-64 rounded-panel" />}>
             <ContactChannels />
           </Suspense>
-          <div className="rounded-[var(--radius-panel)] bg-ivory-100 p-6 sm:p-8">
-            <h2 className="font-display text-2xl font-semibold text-forest-900">{tn('faq')}</h2>
-            <p className="mt-2 text-ink-700">{t('faqDescription')}</p>
+          <div className="rounded-panel bg-surface-muted p-6 sm:p-8">
+            <h2 className="text-display-sm text-forest-900">{tn('faq')}</h2>
+            <p className="mt-2 text-body text-fg-muted">{t('faqDescription')}</p>
             <Link
               href="/faq"
-              className="mt-4 inline-block font-semibold text-forest-900 underline-offset-4 hover:underline"
+              className="group mt-4 inline-flex items-center gap-1.5 text-button text-brand underline-offset-4 hover:underline"
             >
-              {t('faqTitle')} →
+              {t('faqTitle')}
+              <ArrowRight
+                aria-hidden
+                className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5"
+              />
             </Link>
           </div>
         </aside>

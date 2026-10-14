@@ -45,7 +45,7 @@ async function Register({
   if (features?.registration === false) {
     return (
       <AuthCard title={t('registerTitle')}>
-        <p className="text-center text-ink-700">{t('registrationClosed')}</p>
+        <p className="text-center text-fg-muted">{t('registrationClosed')}</p>
         <div className="mt-6 flex justify-center">
           <ButtonLink href="/catalog">{tc('startShopping')}</ButtonLink>
         </div>

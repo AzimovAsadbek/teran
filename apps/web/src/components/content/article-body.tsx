@@ -19,7 +19,7 @@ export function ArticleBody({ body }: { body: string }) {
       }
       if (list.length) {
         nodes.push(
-          <ul key={`${key}-ul`} className="list-disc space-y-2 pl-5 marker:text-gold-600">
+          <ul key={`${key}-ul`} className="list-disc space-y-2 pl-5 marker:text-accent">
             {list.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
@@ -34,7 +34,7 @@ export function ArticleBody({ body }: { body: string }) {
       if (line.startsWith('## ')) {
         flush(key);
         nodes.push(
-          <h2 key={`${key}-h`} className="pt-4 font-display text-3xl font-semibold text-forest-900">
+          <h2 key={`${key}-h`} className="pt-5 text-display-sm text-forest-900">
             {line.slice(3).trim()}
           </h2>,
         );
@@ -49,5 +49,5 @@ export function ArticleBody({ body }: { body: string }) {
     flush(`${blockIndex}-end`);
   });
 
-  return <div className="space-y-5 text-lg leading-relaxed text-ink-700">{nodes}</div>;
+  return <div className="space-y-5 text-body-lg text-fg-muted">{nodes}</div>;
 }

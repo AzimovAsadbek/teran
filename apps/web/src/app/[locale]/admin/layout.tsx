@@ -38,13 +38,11 @@ const CLIENT_NAMESPACES = [
 async function Forbidden() {
   const t = await getTranslations('Admin');
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-ivory-100 px-4">
-      <div className="max-w-md rounded-[var(--radius-panel)] bg-white p-8 text-center shadow-soft">
-        <ShieldAlert aria-hidden className="mx-auto h-10 w-10 text-gold-700" />
-        <h1 className="mt-4 font-display text-3xl font-semibold text-forest-900">
-          {t('access.forbiddenTitle')}
-        </h1>
-        <p className="mt-2 text-ink-700">{t('access.forbiddenText')}</p>
+    <div className="flex min-h-dvh items-center justify-center bg-surface-muted px-4">
+      <div className="max-w-md rounded-panel bg-surface p-8 text-center shadow-soft">
+        <ShieldAlert aria-hidden className="mx-auto h-10 w-10 text-accent-fg" />
+        <h1 className="mt-4 text-display-sm text-forest-900">{t('access.forbiddenTitle')}</h1>
+        <p className="mt-2 text-fg-muted">{t('access.forbiddenText')}</p>
         <ButtonLink href="/" variant="secondary" className="mt-6">
           {t('nav.viewStore')}
         </ButtonLink>
@@ -67,11 +65,11 @@ async function AdminGate({ children }: { children: ReactNode }) {
 
 function AdminSkeleton() {
   return (
-    <div className="min-h-dvh bg-ivory-50 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]" aria-hidden>
-      <div className="hidden border-r border-ivory-200 bg-white lg:block" />
+    <div className="min-h-dvh bg-canvas lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]" aria-hidden>
+      <div className="hidden border-r border-line bg-surface lg:block" />
       <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-8">
-        <div className="h-10 w-64 animate-pulse rounded-xl bg-ivory-200 motion-reduce:animate-none" />
-        <div className="h-64 animate-pulse rounded-[var(--radius-panel)] bg-white motion-reduce:animate-none" />
+        <div className="h-10 w-64 animate-pulse rounded-control bg-surface-sunken/60 motion-reduce:animate-none" />
+        <div className="h-64 animate-pulse rounded-panel bg-surface motion-reduce:animate-none" />
       </div>
     </div>
   );

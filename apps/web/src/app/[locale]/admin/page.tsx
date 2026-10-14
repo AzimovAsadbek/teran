@@ -66,12 +66,9 @@ export default async function AdminDashboardPage() {
       <AdminPageHeader title={t('dashboard.title')} />
       <ul className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
         {kpis.map((kpi) => (
-          <li
-            key={kpi.label}
-            className="rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5"
-          >
-            <p className="text-sm text-ink-500">{kpi.label}</p>
-            <p className="mt-1 font-display text-2xl font-semibold break-words text-forest-900 tabular-nums sm:text-3xl">
+          <li key={kpi.label} className="rounded-card border border-line bg-surface p-5">
+            <p className="text-body-sm text-fg-subtle">{kpi.label}</p>
+            <p className="mt-1.5 text-metric break-words text-fg">
               {kpi.href ? (
                 <Link href={kpi.href} className="underline-offset-4 hover:underline">
                   {kpi.value}
@@ -80,7 +77,7 @@ export default async function AdminDashboardPage() {
                 kpi.value
               )}
             </p>
-            {kpi.note ? <p className="mt-1 text-xs text-ink-500">{kpi.note}</p> : null}
+            {kpi.note ? <p className="mt-1 text-helper text-fg-subtle">{kpi.note}</p> : null}
           </li>
         ))}
       </ul>
@@ -94,23 +91,23 @@ export default async function AdminDashboardPage() {
           title={t('dashboard.recentOrders')}
           actions={
             <Link href="/admin/orders" className={table.link}>
-              {t('nav.orders')} →
+              {t('nav.orders')}
             </Link>
           }
         >
           {data.recentOrders.length === 0 ? (
-            <p className="text-ink-500">{t('common.empty')}</p>
+            <p className="text-fg-subtle">{t('common.empty')}</p>
           ) : (
-            <ul className="divide-y divide-ivory-200">
+            <ul className="divide-y divide-line">
               {data.recentOrders.map((order) => (
-                <li key={order.id} className="py-3 text-sm">
+                <li key={order.id} className="py-3 text-body-sm">
                   <div className="flex items-baseline justify-between gap-4">
                     <Link href={`/admin/orders/${order.number}`} className={table.link}>
                       {order.number}
                     </Link>
                     <span className="font-semibold tabular-nums">{money(order.total)}</span>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-ink-500">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-fg-subtle">
                     <span>{formatDateTime(order.createdAt, locale)}</span>
                     <span aria-hidden>·</span>
                     <span className="min-w-0 truncate">{order.customerName}</span>
@@ -129,14 +126,14 @@ export default async function AdminDashboardPage() {
             title={t('dashboard.lowStock')}
             actions={
               <Link href="/admin/inventory?lowStockOnly=true" className={table.link}>
-                {t('nav.inventory')} →
+                {t('nav.inventory')}
               </Link>
             }
           >
             {data.lowStock.length === 0 ? (
-              <p className="text-ink-500">{t('dashboard.noLowStock')}</p>
+              <p className="text-fg-subtle">{t('dashboard.noLowStock')}</p>
             ) : (
-              <ul className="divide-y divide-ivory-200 text-sm">
+              <ul className="divide-y divide-line text-body-sm">
                 {data.lowStock.map((row) => (
                   <li
                     key={row.variantId}
@@ -146,15 +143,15 @@ export default async function AdminDashboardPage() {
                       <Link href={`/admin/products/${row.productId}`} className={table.link}>
                         {row.productName}
                       </Link>
-                      <span className="block text-xs text-ink-500">
+                      <span className="block text-xs text-fg-subtle">
                         {row.sku} · {packOf(row)}
                       </span>
                     </span>
                     <span
                       className={
                         row.stockQuantity === 0
-                          ? 'font-semibold text-danger-700'
-                          : 'font-semibold text-gold-800'
+                          ? 'font-semibold text-danger'
+                          : 'font-semibold text-warning'
                       }
                     >
                       {row.stockQuantity}
@@ -167,11 +164,11 @@ export default async function AdminDashboardPage() {
 
           <Panel title={t('dashboard.topProducts')}>
             {data.topProducts.length === 0 ? (
-              <p className="text-ink-500">{t('common.empty')}</p>
+              <p className="text-fg-subtle">{t('common.empty')}</p>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full text-body-sm">
                 <thead>
-                  <tr className="text-left text-xs text-ink-500 uppercase">
+                  <tr className="text-left text-xs text-fg-subtle uppercase">
                     <th scope="col" className="pb-2 font-semibold">
                       {t('products.name')}
                     </th>
@@ -185,7 +182,7 @@ export default async function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {data.topProducts.map((product) => (
-                    <tr key={product.productName} className="border-t border-ivory-100">
+                    <tr key={product.productName} className="border-t border-line-subtle">
                       <td className="py-2">{product.productName}</td>
                       <td className="py-2 text-right tabular-nums">{product.quantity}</td>
                       <td className="py-2 text-right tabular-nums">{money(product.revenue)}</td>

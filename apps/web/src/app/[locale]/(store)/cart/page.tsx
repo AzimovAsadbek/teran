@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CartPage() {
   const t = await getTranslations('Cart');
   return (
-    <div className="container-page pt-10 pb-24">
+    <div className="container-page pt-8 pb-section sm:pt-10">
       <h1 className="text-display-lg text-forest-900">{t('drawerTitle')}</h1>
       <CartView />
     </div>

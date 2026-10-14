@@ -55,14 +55,14 @@ export default async function FaqPage() {
         intro={t('faqDescription')}
         illustration="oolong"
       />
-      <div className="container-page grid grid-cols-1 gap-12 py-14 sm:py-20 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16">
+      <div className="container-page grid grid-cols-1 gap-10 py-12 sm:py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16">
         <nav aria-label={t('onThisPage')} className="hidden lg:block">
-          <ol className="sticky top-28 space-y-2 border-l border-ivory-300 text-sm">
+          <ol className="sticky top-24 space-y-1 border-l border-line text-body-sm">
             {groups.map((group) => (
               <li key={group.id}>
                 <a
                   href={`#${group.id}`}
-                  className="-ml-px block border-l-2 border-transparent py-1 pl-4 text-ink-700 transition-colors hover:border-gold-500 hover:text-forest-900"
+                  className="-ml-px block border-l-2 border-transparent py-1.5 pl-4 text-fg-muted transition-colors hover:border-accent hover:text-fg"
                 >
                   {group.heading}
                 </a>
@@ -70,31 +70,28 @@ export default async function FaqPage() {
             ))}
           </ol>
         </nav>
-        <div className="max-w-3xl space-y-14">
+        <div className="max-w-3xl space-y-12">
           {groups.map((group) => (
             <section
               key={group.id}
               id={group.id}
               aria-labelledby={`${group.id}-title`}
-              className="scroll-mt-28"
+              className="scroll-mt-24"
             >
-              <h2
-                id={`${group.id}-title`}
-                className="font-display text-3xl font-semibold text-forest-900"
-              >
+              <h2 id={`${group.id}-title`} className="text-display-sm text-forest-900">
                 {group.heading}
               </h2>
-              <div className="mt-4 divide-y divide-ivory-200 border-y border-ivory-200">
+              <div className="mt-4 divide-y divide-line border-y border-line">
                 {group.items.map((item) => (
                   <details key={item.question} className="group py-1">
-                    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-lg font-semibold text-forest-900 [&::-webkit-details-marker]:hidden">
+                    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-title text-fg transition-colors hover:text-brand [&::-webkit-details-marker]:hidden">
                       {item.question}
                       <ChevronDown
                         aria-hidden
-                        className="h-5 w-5 shrink-0 text-ink-500 transition-transform group-open:rotate-180"
+                        className="h-5 w-5 shrink-0 text-fg-subtle transition-transform duration-200 group-open:rotate-180"
                       />
                     </summary>
-                    <div className="space-y-3 pb-5 leading-relaxed text-ink-700">
+                    <div className="max-w-prose space-y-3 pb-5 text-body text-fg-muted">
                       <Blocks blocks={item.answer} />
                     </div>
                   </details>

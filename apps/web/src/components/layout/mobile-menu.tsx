@@ -1,17 +1,22 @@
 'use client';
 
-import { ChevronRight, Menu, UserRound } from 'lucide-react';
+import { ArrowRight, ChevronRight, Menu, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense, use, useState, type MouseEvent } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
+import { IconButton } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Link } from '@/i18n/navigation';
 import type { Navigation } from './desktop-nav';
 import { LanguageSwitcherSlot } from './language-switcher';
 
+const ROW =
+  'flex min-h-12 items-center justify-between gap-3 py-3 text-body font-medium text-fg transition-colors hover:text-brand';
+
 /**
- * Mobile drawer: visual tea-type tiles first (the way shoppers browse), then everything else.
- * The button and drawer work before the navigation data arrives; only the lists stream in.
+ * Drawer navigation below 1280 px: tea-type tiles first (the way shoppers browse), then
+ * collections and the rest. The button and drawer work before the navigation data arrives; only
+ * the lists stream in, so a drawer opened early stays open.
  */
 export function MobileMenu({ navigation }: { navigation: Promise<Navigation> }) {
   const t = useTranslations('Nav');
@@ -33,15 +38,14 @@ export function MobileMenu({ navigation }: { navigation: Promise<Navigation> }) 
 
   return (
     <>
-      <button
-        type="button"
+      <IconButton
+        label={t('openMenu')}
+        icon={<Menu />}
         onClick={() => setOpen(true)}
-        aria-label={t('openMenu')}
         aria-expanded={open}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full text-forest-900 transition-colors hover:bg-forest-900/[0.06] lg:hidden"
-      >
-        <Menu aria-hidden className="h-6 w-6" />
-      </button>
+        aria-haspopup="dialog"
+        className="-ml-2 xl:hidden"
+      />
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
@@ -52,7 +56,8 @@ export function MobileMenu({ navigation }: { navigation: Promise<Navigation> }) 
           <div className="flex items-center justify-between gap-3">
             <Link
               href="/account"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-forest-900"
+              onClick={() => setOpen(false)}
+              className="inline-flex min-h-11 items-center gap-2 text-title-sm text-fg hover:text-brand"
             >
               <UserRound aria-hidden className="h-5 w-5" />
               {t('account')}
@@ -61,21 +66,18 @@ export function MobileMenu({ navigation }: { navigation: Promise<Navigation> }) 
           </div>
         }
       >
-        <div className="space-y-7 px-5 py-5" onClick={closeOnLink}>
+        <div className="space-y-8 px-5 py-6 sm:px-6" onClick={closeOnLink}>
           <Suspense fallback={<CatalogueLinks categories={[]} collections={[]} />}>
             <StreamedCatalogueLinks navigation={navigation} />
           </Suspense>
 
           <nav aria-label={tc('home')}>
-            <ul className="divide-y divide-ivory-200">
+            <ul className="divide-y divide-line-subtle border-y border-line-subtle">
               {links.map(([href, label]) => (
                 <li key={href}>
-                  <Link
-                    href={href}
-                    className="flex items-center justify-between py-3 font-medium text-ink-900"
-                  >
+                  <Link href={href} className={ROW}>
                     {label}
-                    <ChevronRight aria-hidden className="h-4 w-4 text-ink-500" />
+                    <ChevronRight aria-hidden className="h-4 w-4 text-fg-subtle" />
                   </Link>
                 </li>
               ))}
@@ -97,44 +99,40 @@ function CatalogueLinks({ categories, collections }: Navigation) {
   return (
     <>
       <section>
-        <h3 className="text-eyebrow text-gold-700">{t('shopByType')}</h3>
-        <ul className="mt-3 grid grid-cols-2 gap-3">
+        <h3 className="text-eyebrow text-accent-fg">{t('shopByType')}</h3>
+        <ul className="mt-3 grid grid-cols-2 gap-2.5">
           {categories.map((category) => (
             <li key={category.slug}>
               <Link
                 href={`/catalog/${category.slug}`}
-                className="flex h-full flex-col items-center gap-2 rounded-2xl border border-ivory-200 bg-white px-3 py-4 text-center text-sm font-semibold text-forest-900 transition-colors hover:border-gold-500/60"
+                className="flex h-full items-center gap-3 rounded-card border border-line bg-surface p-3 text-title-sm text-fg transition-colors duration-150 hover:border-gold-400"
               >
-                <span className="h-14 w-14">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-muted p-1.5">
                   <TeaTypeArt kind={category.illustrationKey} />
                 </span>
-                {category.name}
+                <span className="min-w-0 leading-snug">{category.name}</span>
               </Link>
             </li>
           ))}
-          <li className="col-span-2">
-            <Link
-              href="/catalog"
-              className="flex items-center justify-between rounded-2xl bg-forest-900 px-5 py-4 font-semibold text-ivory-50"
-            >
-              {t('allTeas')} <ChevronRight aria-hidden className="h-5 w-5 text-gold-300" />
-            </Link>
-          </li>
         </ul>
+        <Link
+          href="/catalog"
+          className="mt-3 flex min-h-12 items-center justify-between rounded-card bg-surface-inverse px-4 text-title-sm text-fg-inverse transition-colors hover:bg-forest-800"
+        >
+          {t('allTeas')}
+          <ArrowRight aria-hidden className="h-4 w-4 text-accent-on-inverse" />
+        </Link>
       </section>
 
       {collections.length > 0 ? (
         <section>
-          <h3 className="text-eyebrow text-gold-700">{t('collections')}</h3>
-          <ul className="mt-2 divide-y divide-ivory-200">
+          <h3 className="text-eyebrow text-accent-fg">{t('collections')}</h3>
+          <ul className="mt-2 divide-y divide-line-subtle">
             {collections.map((collection) => (
               <li key={collection.slug}>
-                <Link
-                  href={`/collections/${collection.slug}`}
-                  className="flex items-center justify-between py-3 font-medium text-ink-900"
-                >
+                <Link href={`/collections/${collection.slug}`} className={ROW}>
                   {collection.name}
-                  <ChevronRight aria-hidden className="h-4 w-4 text-ink-500" />
+                  <ChevronRight aria-hidden className="h-4 w-4 text-fg-subtle" />
                 </Link>
               </li>
             ))}

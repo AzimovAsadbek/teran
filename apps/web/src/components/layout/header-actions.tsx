@@ -4,51 +4,50 @@ import { Search, ShoppingBag, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { SearchDialog } from '@/components/search/search-dialog';
+import { IconButton, iconButtonClasses } from '@/components/ui/button';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { Link } from '@/i18n/navigation';
 
-const ICON_BUTTON =
-  'relative inline-flex h-11 w-11 items-center justify-center rounded-full text-forest-900 transition-colors hover:bg-forest-900/[0.06]';
-
+/**
+ * Search, account and bag. Wide screens show a search box-like button (easier to discover than an
+ * icon); every other breakpoint uses 44 px icon buttons with accessible names.
+ */
 export function HeaderActions() {
   const t = useTranslations('Nav');
+  const ts = useTranslations('Search');
   const [searchOpen, setSearchOpen] = useState(false);
   const { cart } = useCart();
   const count = cart?.itemCount ?? 0;
+  const openSearch = () => setSearchOpen(true);
 
   return (
-    <div className="flex items-center justify-end gap-0.5">
+    <div className="flex items-center justify-end gap-0.5 sm:gap-1">
       <button
         type="button"
-        onClick={() => setSearchOpen(true)}
-        aria-label={t('search')}
-        className={ICON_BUTTON}
+        onClick={openSearch}
+        aria-haspopup="dialog"
+        className="mr-2 hidden h-10 w-56 items-center gap-2.5 rounded-control border border-line bg-surface px-3.5 text-body-sm text-fg-subtle shadow-xs transition-[border-color,color] duration-150 hover:border-line-strong hover:text-fg xl:inline-flex"
       >
-        <Search aria-hidden className="h-5 w-5" />
+        <Search aria-hidden className="h-4 w-4 shrink-0" />
+        <span className="truncate">{ts('label')}</span>
       </button>
-      <Link
-        href="/account"
-        aria-label={t('account')}
-        className={`${ICON_BUTTON} hidden sm:inline-flex`}
-      >
-        <UserRound aria-hidden className="h-5 w-5" />
+      <IconButton
+        label={t('search')}
+        icon={<Search />}
+        onClick={openSearch}
+        aria-haspopup="dialog"
+        className="xl:hidden"
+      />
+      <Link href="/account" aria-label={t('account')} className={iconButtonClasses('ghost', 'md')}>
+        <UserRound aria-hidden />
       </Link>
-      <button
-        type="button"
+      <IconButton
+        label={t('cartCount', { count })}
+        icon={<ShoppingBag />}
         onClick={cartActions.openDrawer}
-        aria-label={t('cartCount', { count })}
-        className={ICON_BUTTON}
-      >
-        <ShoppingBag aria-hidden className="h-5 w-5" />
-        {count > 0 ? (
-          <span
-            aria-hidden
-            className="absolute top-1 right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold-500 px-1 text-[0.68rem] font-bold text-forest-950 tabular-nums"
-          >
-            {count > 99 ? '99+' : count}
-          </span>
-        ) : null}
-      </button>
+        aria-haspopup="dialog"
+        badge={count > 0 ? (count > 99 ? '99+' : count) : null}
+      />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );

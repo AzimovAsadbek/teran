@@ -25,6 +25,8 @@ import { Link } from '@/i18n/navigation';
 import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { formatDateTime, formatMoney } from '@/lib/format';
+import { inputClasses } from '@/components/ui/controls';
+import { buttonClasses } from '@/components/ui/button';
 
 const FILTERS = ['q', 'status', 'from', 'to'] as const;
 
@@ -62,7 +64,7 @@ export default async function AdminOrdersPage({
           isAdmin ? (
             <a
               href={`/api/v1/admin/reports/orders.csv${exportQuery}`}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-forest-900/25 px-5 text-sm font-semibold text-forest-900 hover:bg-forest-900/[0.04]"
+              className={buttonClasses('secondary')}
               title={t('orders.exportHint')}
             >
               <Download aria-hidden className="h-4 w-4" />
@@ -88,22 +90,22 @@ export default async function AdminOrdersPage({
             })),
           ]}
         />
-        <label className="flex flex-col gap-1 text-xs font-semibold text-ink-500">
+        <label className="flex flex-col gap-1.5 text-label text-fg-muted">
           {t('orders.from')}
           <input
             type="date"
             name="from"
             defaultValue={param(params, 'from')}
-            className="h-11 rounded-full border border-sage-500 bg-white px-4 text-sm font-normal text-ink-900"
+            className={inputClasses({ size: 'sm', fullWidth: false, className: 'font-normal' })}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs font-semibold text-ink-500">
+        <label className="flex flex-col gap-1.5 text-label text-fg-muted">
           {t('orders.to')}
           <input
             type="date"
             name="to"
             defaultValue={param(params, 'to')}
-            className="h-11 rounded-full border border-sage-500 bg-white px-4 text-sm font-normal text-ink-900"
+            className={inputClasses({ size: 'sm', fullWidth: false, className: 'font-normal' })}
           />
         </label>
       </FilterForm>
@@ -140,18 +142,18 @@ export default async function AdminOrdersPage({
             </thead>
             <tbody>
               {orders.items.map((order) => (
-                <tr key={order.id} className="hover:bg-ivory-50">
+                <tr key={order.id}>
                   <td className={table.td}>
                     <Link href={`/admin/orders/${order.number}`} className={table.link}>
                       {order.number}
                     </Link>
                   </td>
-                  <td className={`${table.td} whitespace-nowrap text-ink-700`}>
+                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
                     {formatDateTime(order.createdAt, locale)}
                   </td>
                   <td className={table.td}>
                     {order.customerName}
-                    <span className="block text-xs text-ink-500">
+                    <span className="block text-xs text-fg-subtle">
                       {formatUzPhone(order.customerPhone)}
                     </span>
                   </td>

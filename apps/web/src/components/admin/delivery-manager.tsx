@@ -19,6 +19,7 @@ import { formatMoney } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
 import { table } from './ui';
+import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
 const KEYS = ['name', 'description', 'estimate'] as const;
 const money = (value: string) => value.replace(/[\s ]/g, '').replace(',', '.');
@@ -125,8 +126,10 @@ function MethodForm({
         onChange={(event) => setRequiresAddress(event.target.checked)}
       />
       <fieldset>
-        <legend className="text-sm font-semibold text-forest-900">{t('delivery.regions')}</legend>
-        <p className="mb-2 text-sm text-ink-500">{t('delivery.regionsHint')}</p>
+        <legend className="text-body-sm font-semibold text-forest-900">
+          {t('delivery.regions')}
+        </legend>
+        <p className="mb-2 text-body-sm text-fg-subtle">{t('delivery.regionsHint')}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {REGIONS.map((region) => (
             <CheckboxField
@@ -199,7 +202,7 @@ export function DeliveryManager({
           <button
             type="button"
             onClick={() => setEditing('new')}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-forest-900 px-5 text-sm font-semibold text-ivory-50 hover:bg-forest-800"
+            className={buttonClasses('primary')}
           >
             <Plus aria-hidden className="h-4 w-4" />
             {t('delivery.newMethod')}
@@ -234,10 +237,10 @@ export function DeliveryManager({
           </thead>
           <tbody>
             {methods.map((method) => (
-              <tr key={method.id} className="hover:bg-ivory-50">
+              <tr key={method.id}>
                 <td className={table.td}>
                   <span className="font-semibold">{name(method)}</span>
-                  <span className="block font-mono text-xs text-ink-500">{method.code}</span>
+                  <span className="block font-mono text-xs text-fg-subtle">{method.code}</span>
                 </td>
                 <td className={`${table.td} whitespace-nowrap tabular-nums`}>
                   {formatMoney(method.price, locale, currency)}
@@ -260,7 +263,7 @@ export function DeliveryManager({
                     <button
                       type="button"
                       onClick={() => setEditing(method)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-ivory-100"
+                      className={iconButtonClasses('ghost', 'sm')}
                       aria-label={`${t('common.edit')}: ${name(method)}`}
                     >
                       <Pencil aria-hidden className="h-4 w-4" />

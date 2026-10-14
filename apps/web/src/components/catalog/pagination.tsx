@@ -31,16 +31,19 @@ export async function Pagination({
   if (totalPages <= 1) return null;
   const t = await getTranslations('Common');
   const item =
-    'inline-flex h-11 min-w-11 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors';
+    'inline-flex h-11 min-w-11 items-center justify-center rounded-full px-3 text-body-sm font-semibold transition-colors duration-150';
 
   return (
-    <nav aria-label={t('pagination')} className="mt-14 flex justify-center">
+    <nav
+      aria-label={t('pagination')}
+      className="mt-14 flex justify-center border-t border-line pt-8"
+    >
       <ul className="flex items-center gap-1">
         <li>
           {page > 1 ? (
             <Link
               href={hrefFor(page - 1)}
-              className={cn(item, 'text-forest-900 hover:bg-forest-900/[0.06]')}
+              className={cn(item, 'border border-line-strong/45 text-fg hover:border-brand')}
               aria-label={t('previousPage')}
             >
               <ChevronLeft aria-hidden className="h-4 w-4" />
@@ -49,7 +52,7 @@ export async function Pagination({
         </li>
         {pageWindow(page, totalPages).map((entry, index) =>
           entry === null ? (
-            <li key={`gap-${index}`} aria-hidden className="px-1 text-ink-500">
+            <li key={`gap-${index}`} aria-hidden className="px-1 text-fg-subtle">
               …
             </li>
           ) : (
@@ -60,9 +63,7 @@ export async function Pagination({
                 aria-label={t('pageN', { page: entry })}
                 className={cn(
                   item,
-                  entry === page
-                    ? 'bg-forest-900 text-ivory-50'
-                    : 'text-forest-900 hover:bg-forest-900/[0.06]',
+                  entry === page ? 'bg-brand text-fg-inverse' : 'text-fg hover:bg-brand/[0.06]',
                 )}
               >
                 {entry}
@@ -74,7 +75,7 @@ export async function Pagination({
           {page < totalPages ? (
             <Link
               href={hrefFor(page + 1)}
-              className={cn(item, 'text-forest-900 hover:bg-forest-900/[0.06]')}
+              className={cn(item, 'border border-line-strong/45 text-fg hover:border-brand')}
               aria-label={t('nextPage')}
             >
               <ChevronRight aria-hidden className="h-4 w-4" />

@@ -28,19 +28,19 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const STATUS_TONE: Record<OrderDto['status'], string> = {
-  PENDING: 'bg-gold-100 text-gold-800',
-  CONFIRMED: 'bg-leaf-100 text-leaf-600',
-  PROCESSING: 'bg-leaf-100 text-leaf-600',
-  SHIPPED: 'bg-leaf-100 text-leaf-600',
-  DELIVERED: 'bg-forest-900 text-ivory-50',
-  CANCELLED: 'bg-sage-200 text-ink-700',
+  PENDING: 'bg-warning-soft text-warning',
+  CONFIRMED: 'bg-success-soft text-success',
+  PROCESSING: 'bg-success-soft text-success',
+  SHIPPED: 'bg-success-soft text-success',
+  DELIVERED: 'bg-surface-inverse text-fg-inverse',
+  CANCELLED: 'bg-surface-sunken text-fg-muted',
 };
 
 function Panel({ title, text, children }: { title: string; text?: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="rounded-[var(--radius-panel)] bg-white p-6 sm:p-8">
-      <h2 className="font-display text-2xl font-semibold text-forest-900">{title}</h2>
-      {text ? <p className="mt-1 text-sm text-ink-500">{text}</p> : null}
+    <section aria-label={title} className="rounded-panel border border-line bg-surface p-6 sm:p-8">
+      <h2 className="text-display-sm text-forest-900">{title}</h2>
+      {text ? <p className="mt-1 text-body-sm text-fg-subtle">{text}</p> : null}
       <div className="mt-6">{children}</div>
     </section>
   );
@@ -59,8 +59,8 @@ async function Dashboard() {
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-eyebrow text-gold-700">{t('title')}</p>
-          <h1 className="text-display-lg mt-2 text-forest-900">
+          <p className="text-eyebrow text-accent-fg">{t('title')}</p>
+          <h1 className="mt-2 text-display-lg text-forest-900">
             {t('welcome', { name: user.firstName })}
           </h1>
         </div>
@@ -79,37 +79,37 @@ async function Dashboard() {
         <Panel title={t('orders')}>
           {!orders || orders.items.length === 0 ? (
             <div>
-              <p className="text-ink-700">{t('noOrders')}</p>
+              <p className="text-body text-fg-muted">{t('noOrders')}</p>
               <ButtonLink href="/catalog" variant="secondary" className="mt-5">
                 {tc('continueShopping')}
               </ButtonLink>
             </div>
           ) : (
-            <ul className="divide-y divide-ivory-200">
+            <ul className="divide-y divide-line">
               {orders.items.map((order) => (
                 <li key={order.number}>
                   <Link
                     href={`/account/orders/${order.number}`}
-                    className="group flex items-center gap-4 py-4 transition-colors hover:bg-ivory-50"
+                    className="group -mx-3 flex items-center gap-4 rounded-control px-3 py-4 transition-colors hover:bg-surface-muted/70"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-forest-900">{order.number}</span>
-                      <span className="block text-sm text-ink-500">
+                      <span className="block text-title-sm text-fg">{order.number}</span>
+                      <span className="block text-body-sm text-fg-subtle">
                         {formatDate(order.createdAt, locale)}
                       </span>
                     </span>
                     <span
                       className={cn(
-                        'rounded-full px-3 py-1 text-xs font-semibold',
+                        'rounded-full px-2.5 py-0.5 text-caption font-semibold',
                         STATUS_TONE[order.status],
                       )}
                     >
                       {tc(`statuses.${order.status}`)}
                     </span>
-                    <Price amount={order.total} className="hidden text-sm sm:block" />
+                    <Price amount={order.total} className="hidden text-body-sm sm:block" />
                     <ChevronRight
                       aria-hidden
-                      className="h-4 w-4 text-ink-500 transition-transform group-hover:translate-x-0.5"
+                      className="h-4 w-4 text-fg-subtle transition-transform group-hover:translate-x-0.5"
                     />
                     <span className="sr-only">{t('viewOrder')}</span>
                   </Link>
@@ -133,14 +133,14 @@ async function Dashboard() {
 
 export default function AccountPage() {
   return (
-    <div className="container-page pt-10 pb-24">
+    <div className="container-page pt-8 pb-section sm:pt-10">
       <Suspense
         fallback={
           <div className="space-y-6" aria-hidden>
             <Skeleton className="h-16 w-2/3" />
             <div className="grid gap-6 lg:grid-cols-2">
-              <Skeleton className="h-80 rounded-[var(--radius-panel)]" />
-              <Skeleton className="h-80 rounded-[var(--radius-panel)]" />
+              <Skeleton className="h-80 rounded-panel" />
+              <Skeleton className="h-80 rounded-panel" />
             </div>
           </div>
         }

@@ -66,20 +66,20 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
         locale={locale}
         items={[{ label: t('journalTitle'), href: '/journal' }, { label: article.title }]}
       />
-      <article className="mx-auto mt-8 max-w-3xl">
+      <article className="mx-auto mt-8 max-w-[44rem]">
         <header>
-          <time dateTime={article.publishedAt} className="text-eyebrow text-gold-700">
+          <time dateTime={article.publishedAt} className="text-eyebrow text-accent-fg">
             {t('published', { date: formatDate(article.publishedAt, locale) })}
           </time>
-          <h1 className="text-display-lg mt-3 text-forest-900">{article.title}</h1>
+          <h1 className="mt-3 text-display-lg text-forest-900">{article.title}</h1>
           {article.excerpt ? (
-            <p className="mt-4 text-xl leading-relaxed text-ink-700">{article.excerpt}</p>
+            <p className="mt-4 text-lead text-fg-muted">{article.excerpt}</p>
           ) : null}
           <div
             aria-hidden
-            className="mt-8 flex justify-center rounded-[var(--radius-panel)] bg-ivory-100 py-10"
+            className="mt-8 flex justify-center rounded-panel border border-line-subtle bg-surface-muted py-10 sm:py-14"
           >
-            <span className="h-36 w-36">
+            <span className="h-32 w-32 sm:h-40 sm:w-40">
               <TeaTypeArt kind={article.illustrationKey} />
             </span>
           </div>
@@ -89,7 +89,7 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
         </div>
         <Link
           href="/journal"
-          className="mt-12 inline-flex items-center gap-2 font-semibold text-forest-900 underline-offset-4 hover:underline"
+          className="mt-12 inline-flex items-center gap-2 text-button text-brand underline-offset-4 hover:underline"
         >
           <ArrowLeft aria-hidden className="h-4 w-4" />
           {t('backToJournal')}
@@ -111,7 +111,10 @@ async function MoreArticles({ currentSlug }: { currentSlug: string }) {
     articles?.items.filter((article) => article.slug !== currentSlug).slice(0, 3) ?? [];
   if (others.length === 0) return null;
   return (
-    <section aria-labelledby="more-articles" className="mt-24">
+    <section
+      aria-labelledby="more-articles"
+      className="mt-section border-t border-line-subtle pt-section-sm"
+    >
       <h2 id="more-articles" className="text-display-md text-forest-900">
         {t('moreArticles')}
       </h2>
@@ -128,13 +131,13 @@ async function MoreArticles({ currentSlug }: { currentSlug: string }) {
 
 export default function ArticlePage({ params }: PageProps<'/[locale]/journal/[slug]'>) {
   return (
-    <div className="container-page pt-6 pb-24">
+    <div className="container-page pt-4 pb-section sm:pt-6">
       <Suspense
         fallback={
           <div className="mx-auto mt-14 max-w-3xl space-y-4" aria-hidden>
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-64 w-full rounded-[var(--radius-panel)]" />
+            <Skeleton className="h-64 w-full rounded-panel" />
           </div>
         }
       >

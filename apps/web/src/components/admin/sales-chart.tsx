@@ -33,7 +33,7 @@ export async function SalesChart({ days }: { days: SalesDay[] }) {
             x2={WIDTH}
             y1={plotHeight - plotHeight * fraction}
             y2={plotHeight - plotHeight * fraction}
-            className="stroke-ivory-200"
+            className="stroke-line"
             strokeWidth={1}
           />
         ))}

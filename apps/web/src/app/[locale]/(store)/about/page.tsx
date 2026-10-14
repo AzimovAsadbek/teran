@@ -30,17 +30,15 @@ export default async function AboutPage() {
     <>
       <PageHeader eyebrow="TERAN" title={page.title} intro={page.intro} illustration="green" />
 
-      <section aria-label={page.title} className="container-page py-16 sm:py-24">
+      <section aria-label={page.title} className="container-page py-section-sm">
         <ul className="grid gap-6 md:grid-cols-3">
           {values.map((value) => (
-            <li key={value.id} className="rounded-[var(--radius-panel)] bg-white p-8 shadow-soft">
-              <span aria-hidden className="block h-20 w-20">
+            <li key={value.id} className="rounded-panel border border-line bg-surface p-7 sm:p-8">
+              <span aria-hidden className="block h-16 w-16">
                 <TeaTypeArt kind={VALUE_ART[value.id as keyof typeof VALUE_ART]} />
               </span>
-              <h2 className="mt-6 font-display text-3xl font-semibold text-forest-900">
-                {value.heading}
-              </h2>
-              <div className="mt-3 space-y-3 leading-relaxed text-ink-700">
+              <h2 className="mt-5 text-display-sm text-forest-900">{value.heading}</h2>
+              <div className="mt-3 space-y-3 text-body text-fg-muted">
                 <Blocks blocks={value.blocks} />
               </div>
             </li>
@@ -49,21 +47,24 @@ export default async function AboutPage() {
       </section>
 
       {range ? (
-        <section aria-labelledby="range-title" className="on-dark bg-forest-900 text-ivory-50">
-          <div className="container-page grid grid-cols-1 items-center gap-8 py-16 sm:py-20 md:grid-cols-[minmax(0,1fr)_auto]">
+        <section
+          aria-labelledby="range-title"
+          className="on-dark bg-surface-inverse text-fg-inverse"
+        >
+          <div className="container-page grid grid-cols-1 items-center gap-8 py-section-sm md:grid-cols-[minmax(0,1fr)_auto]">
             <div className="max-w-2xl">
               <h2 id="range-title" className="text-display-md text-ivory-50">
                 {range.heading}
               </h2>
-              <div className="mt-4 space-y-3 text-lg leading-relaxed text-ivory-100/90">
+              <div className="mt-4 space-y-3 text-body-lg text-ivory-100/90">
                 <Blocks blocks={range.blocks} />
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              <ButtonLink href="/catalog" variant="gold" size="lg">
+              <ButtonLink href="/catalog" variant="accent" size="lg">
                 {tp('shopTeas')}
               </ButtonLink>
-              <ButtonLink href="/wholesale" variant="outline-light" size="lg">
+              <ButtonLink href="/wholesale" variant="outline-inverse" size="lg">
                 {tn('wholesale')}
               </ButtonLink>
             </div>
@@ -72,12 +73,12 @@ export default async function AboutPage() {
       ) : null}
 
       {story ? (
-        <section aria-labelledby="story-title" className="container-page py-16 sm:py-20">
+        <section aria-labelledby="story-title" className="container-page py-section-sm">
           <div className="max-w-3xl">
             <h2 id="story-title" className="text-display-md text-forest-900">
               {story.heading}
             </h2>
-            <div className="mt-5 space-y-4 text-lg leading-relaxed text-ink-700">
+            <div className="mt-5 space-y-4 text-body-lg text-fg-muted">
               <Blocks blocks={story.blocks} />
             </div>
           </div>

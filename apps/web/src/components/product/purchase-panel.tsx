@@ -1,10 +1,12 @@
 'use client';
 
 import type { ProductFormat, VariantDto } from '@teran/contracts';
-import { Check, Loader2, ShoppingBag } from 'lucide-react';
+import { Check, ShoppingBag } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { QuantityStepper } from '@/components/cart/quantity-stepper';
+import { Button } from '@/components/ui/button';
+import { radioDotClasses } from '@/components/ui/field';
 import { Price } from '@/components/ui/price';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { cn } from '@/lib/cn';
@@ -36,7 +38,7 @@ export function PurchasePanel({
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [buttonVisible, setButtonVisible] = useState(true);
+  const [scrolledPast, setScrolledPast] = useState(false);
 
   const variant = variants.find((candidate) => candidate.id === variantId) ?? variants[0];
 
@@ -48,13 +50,14 @@ export function PurchasePanel({
     window.history.replaceState(window.history.state, '', url);
   }, [variant]);
 
-  // Show the sticky mobile bar once the main button has scrolled away.
+  // Show the sticky bar only once the main button has scrolled up out of view (not while the
+  // shopper has yet to reach it).
   useEffect(() => {
     const button = buttonRef.current;
     if (!button) return;
-    const observer = new IntersectionObserver(([entry]) =>
-      setButtonVisible(entry?.isIntersecting ?? true),
-    );
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry) setScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+    });
     observer.observe(button);
     return () => observer.disconnect();
   }, []);
@@ -80,16 +83,19 @@ export function PurchasePanel({
     : t('addToCartPrice', { price: formatMoney(lineTotalMoney, locale, tc('currency.UZS')) });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Price amount={variant.price} compareAt={variant.compareAtPrice} className="text-2xl" />
-        <span className="text-ink-500">· {packLabel(variant, format, locale, units)}</span>
+    <div>
+      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <Price amount={variant.price} compareAt={variant.compareAtPrice} className="text-metric" />
+        <span className="text-body text-fg-subtle">
+          · {packLabel(variant, format, locale, units)}
+        </span>
       </div>
+      <StockStatus level={variant.stockLevel} maxQuantity={variant.maxQuantity} />
 
       {variants.length > 1 ? (
-        <fieldset>
-          <legend className="text-sm font-semibold text-forest-900">{t('size')}</legend>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <fieldset className="mt-6">
+          <legend className="text-label text-fg">{t('size')}</legend>
+          <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {variants.map((option) => {
               const selected = option.id === variant.id;
               const optionSoldOut = option.stockLevel === 'out_of_stock';
@@ -97,11 +103,10 @@ export function PurchasePanel({
                 <label
                   key={option.id}
                   className={cn(
-                    'relative flex cursor-pointer flex-col rounded-2xl border-2 px-4 py-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-forest-700',
+                    'flex cursor-pointer items-start gap-3 rounded-control border bg-surface p-3.5 transition-[border-color,box-shadow] duration-150',
                     selected
-                      ? 'border-forest-900 bg-white'
-                      : 'border-ivory-300 bg-white/60 hover:border-forest-900/40',
-                    optionSoldOut && 'opacity-60',
+                      ? 'border-brand shadow-[inset_0_0_0_1px_var(--color-brand)]'
+                      : 'border-line-strong/45 hover:border-brand/50',
                   )}
                 >
                   <input
@@ -113,22 +118,23 @@ export function PurchasePanel({
                       setVariantId(option.id);
                       setQuantity(1);
                     }}
-                    className="sr-only"
+                    className={cn(radioDotClasses, 'mt-0.5')}
                   />
-                  <span className="font-semibold text-forest-900">
-                    {packLabel(option, format, locale, units)}
+                  <span className={cn('min-w-0', optionSoldOut && 'opacity-60')}>
+                    <span className="block text-title-sm text-fg">
+                      {packLabel(option, format, locale, units)}
+                    </span>
+                    <Price
+                      amount={option.price}
+                      compareAt={option.compareAtPrice}
+                      className="mt-0.5 text-body-sm"
+                    />
+                    {optionSoldOut ? (
+                      <span className="mt-0.5 block text-helper text-fg-subtle">
+                        {t('outOfStock')}
+                      </span>
+                    ) : null}
                   </span>
-                  <Price
-                    amount={option.price}
-                    compareAt={option.compareAtPrice}
-                    className="text-sm"
-                  />
-                  {optionSoldOut ? (
-                    <span className="mt-0.5 text-xs text-ink-500">{t('outOfStock')}</span>
-                  ) : null}
-                  {selected ? (
-                    <Check aria-hidden className="absolute top-3 right-3 h-4 w-4 text-forest-900" />
-                  ) : null}
                 </label>
               );
             })}
@@ -136,9 +142,8 @@ export function PurchasePanel({
         </fieldset>
       ) : null}
 
-      <StockStatus level={variant.stockLevel} maxQuantity={variant.maxQuantity} />
-
-      <div className="flex flex-col gap-3 sm:flex-row">
+      {/* Side by side when the column is wide enough for the priced label, stacked otherwise. */}
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
         {!soldOut ? (
           <QuantityStepper
             value={quantity}
@@ -147,44 +152,46 @@ export function PurchasePanel({
             label={`${t('quantity')} — ${productName}`}
           />
         ) : null}
-        <button
+        <Button
           ref={buttonRef}
-          type="button"
+          size="lg"
           onClick={() => void add()}
-          disabled={soldOut || pending}
-          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-forest-900 px-6 text-sm font-semibold text-ivory-50 shadow-soft transition-colors hover:bg-forest-800 disabled:opacity-60"
+          disabled={soldOut}
+          loading={pending}
+          className="flex-1"
         >
-          {pending ? (
-            <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-          ) : (
-            <ShoppingBag aria-hidden className="h-4 w-4" />
-          )}
+          {pending ? null : <ShoppingBag aria-hidden className="h-[1.125rem] w-[1.125rem]" />}
           {pending ? t('adding') : addLabel}
-        </button>
+        </Button>
       </div>
-      <p aria-live="polite" className="min-h-5 text-sm">
-        {justAdded ? <span className="font-semibold text-leaf-600">{t('added')}</span> : null}
-        {errorMessage && !justAdded ? (
-          <span className="text-danger-700">{errorMessage}</span>
+      <p aria-live="polite" className="mt-2 min-h-5 text-body-sm">
+        {justAdded ? (
+          <span className="inline-flex items-center gap-1.5 font-semibold text-success">
+            <Check aria-hidden className="h-4 w-4" />
+            {t('added')}
+          </span>
         ) : null}
+        {errorMessage && !justAdded ? <span className="text-danger">{errorMessage}</span> : null}
       </p>
 
-      {/* Sticky mobile purchase bar (the reference has none). */}
-      {!soldOut && !buttonVisible ? (
-        <div className="glass fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-x-0 border-b-0 bg-ivory-50/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-forest-900">{productName}</p>
-            <Price amount={variant.price} className="text-sm" />
+      {/* Sticky purchase bar on phones and tablets once the main button has scrolled away. */}
+      {!soldOut && scrolledPast ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 shadow-overlay backdrop-blur-md motion-safe:animate-fade-in lg:hidden">
+          <div className="container-page flex items-center gap-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-title-sm text-fg">{productName}</p>
+              <p className="flex items-baseline gap-1.5 text-body-sm">
+                <Price amount={variant.price} compareAt={variant.compareAtPrice} />
+                <span className="truncate text-fg-subtle">
+                  · {packLabel(variant, format, locale, units)}
+                </span>
+              </p>
+            </div>
+            <Button onClick={() => void add()} loading={pending}>
+              {pending ? null : <ShoppingBag aria-hidden className="h-4 w-4" />}
+              {t('addToCart')}
+            </Button>
           </div>
-          <button
-            type="button"
-            onClick={() => void add()}
-            disabled={pending}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-forest-900 px-5 text-sm font-semibold text-ivory-50"
-          >
-            <ShoppingBag aria-hidden className="h-4 w-4" />
-            {t('addToCart')}
-          </button>
         </div>
       ) : null}
     </div>
@@ -200,9 +207,9 @@ function StockStatus({
 }) {
   const t = useTranslations('Product');
   const styles = {
-    in_stock: 'bg-leaf-100 text-leaf-600',
-    low_stock: 'bg-gold-100 text-gold-800',
-    out_of_stock: 'bg-sage-200 text-ink-700',
+    in_stock: 'text-success',
+    low_stock: 'text-warning',
+    out_of_stock: 'text-fg-muted',
   } as const;
   const label =
     level === 'in_stock'
@@ -212,10 +219,7 @@ function StockStatus({
         : t('outOfStock');
   return (
     <p
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold',
-        styles[level],
-      )}
+      className={cn('mt-2 inline-flex items-center gap-2 text-body-sm font-medium', styles[level])}
     >
       <span aria-hidden className="h-2 w-2 rounded-full bg-current" />
       {label}

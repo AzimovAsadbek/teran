@@ -64,7 +64,7 @@ export function ArticleEditor({ article }: { article: AdminArticle | null }) {
       noValidate
       className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start"
     >
-      <div className="space-y-4 rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5 sm:p-6">
+      <div className="space-y-4 rounded-card border border-line bg-surface p-5 sm:p-6">
         <FormErrorSummary message={form.summary} />
         <TranslationEditor
           value={translations}
@@ -99,7 +99,7 @@ export function ArticleEditor({ article }: { article: AdminArticle | null }) {
           ]}
         />
       </div>
-      <div className="space-y-4 rounded-[var(--radius-card)] border border-ivory-200 bg-white p-5 xl:sticky xl:top-6">
+      <div className="space-y-4 rounded-card border border-line bg-surface p-5 xl:sticky xl:top-6">
         <SelectField
           label={t('common.status')}
           name="status"

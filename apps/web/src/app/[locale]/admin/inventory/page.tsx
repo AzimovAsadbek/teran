@@ -14,6 +14,7 @@ import {
 import { Link } from '@/i18n/navigation';
 import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
 import { cn } from '@/lib/cn';
+import { Checkbox } from '@/components/ui/field';
 
 const FILTERS = ['q', 'lowStockOnly'] as const;
 
@@ -37,14 +38,8 @@ export default async function AdminInventoryPage({
     <>
       <AdminPageHeader title={t('inventory.title')} />
       <FilterForm action="/admin/inventory" q={param(params, 'q')}>
-        <label className="flex h-11 items-center gap-2 rounded-full border border-sage-500 bg-white px-4 text-sm">
-          <input
-            type="checkbox"
-            name="lowStockOnly"
-            value="true"
-            defaultChecked={lowOnly}
-            className="h-4 w-4 accent-forest-900"
-          />
+        <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-control border border-line-strong bg-surface px-3.5 text-body-sm shadow-xs">
+          <Checkbox name="lowStockOnly" value="true" defaultChecked={lowOnly} />
           {t('inventory.lowStockOnly')}
         </label>
       </FilterForm>
@@ -79,16 +74,15 @@ export default async function AdminInventoryPage({
               {rows.items.map((row) => {
                 const low = row.isActive && row.stockQuantity <= row.lowStockThreshold;
                 return (
-                  <tr
-                    key={row.variantId}
-                    className={cn('hover:bg-ivory-50', !row.isActive && 'opacity-60')}
-                  >
+                  <tr key={row.variantId} className={row.isActive ? undefined : 'opacity-60'}>
                     <td className={table.td}>
                       <Link href={`/admin/products/${row.productId}`} className={table.link}>
                         {row.productName}
                       </Link>
                       {!row.isActive ? (
-                        <span className="ml-2 text-xs text-ink-500">({t('common.inactive')})</span>
+                        <span className="ml-2 text-xs text-fg-subtle">
+                          ({t('common.inactive')})
+                        </span>
                       ) : null}
                     </td>
                     <td className={`${table.td} font-mono text-xs`}>{row.sku}</td>
@@ -104,12 +98,12 @@ export default async function AdminInventoryPage({
                       className={cn(
                         table.td,
                         'text-right font-semibold tabular-nums',
-                        row.stockQuantity === 0 ? 'text-danger-700' : low ? 'text-gold-800' : '',
+                        row.stockQuantity === 0 ? 'text-danger' : low ? 'text-warning' : '',
                       )}
                     >
                       {row.stockQuantity}
                     </td>
-                    <td className={`${table.td} text-right text-ink-500 tabular-nums`}>
+                    <td className={`${table.td} text-right text-fg-subtle tabular-nums`}>
                       {row.lowStockThreshold}
                     </td>
                     <td className={`${table.td} text-right`}>

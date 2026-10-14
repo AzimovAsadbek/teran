@@ -10,6 +10,7 @@ import { ApiError, readErrorBody } from '@/lib/api/errors';
 import { useApiErrorMessage } from '@/lib/use-api-error-message';
 import { ConfirmDialog } from './confirm-dialog';
 import { useAdminAction } from './use-admin-action';
+import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
 type ProductImage = AdminProductDetail['images'][number];
 
@@ -73,24 +74,24 @@ export function ProductImages({
   return (
     <div className="space-y-4">
       {images.length > 0 ? (
-        <ol className="grid grid-cols-2 gap-3">
+        <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {images.map((image, index) => (
-            <li key={image.id} className="overflow-hidden rounded-2xl border border-ivory-200">
+            <li key={image.id} className="overflow-hidden rounded-card border border-line">
               {/* API images come in fixed widths; the smallest is enough for the editor. */}
               {/* eslint-disable-next-line @next/next/no-img-element -- see docs/architecture/decisions.md (ADR-009) */}
               <img
                 src={`${image.src}/${image.widths[0]}.webp`}
                 alt={name}
-                className="aspect-square w-full bg-ivory-100 object-cover"
+                className="aspect-square w-full bg-surface-muted object-cover"
               />
               <div className="flex items-center justify-between gap-1 p-1.5">
-                <span className="pl-1 text-xs text-ink-500">{index + 1}</span>
+                <span className="pl-1 text-xs text-fg-subtle">{index + 1}</span>
                 <span className="flex">
                   <button
                     type="button"
                     onClick={() => void move(index, -1)}
                     disabled={index === 0 || action.pending}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-ivory-100 disabled:opacity-30"
+                    className={iconButtonClasses('ghost', 'sm')}
                     aria-label={t('products.moveUp')}
                   >
                     <ArrowUp aria-hidden className="h-4 w-4" />
@@ -99,7 +100,7 @@ export function ProductImages({
                     type="button"
                     onClick={() => void move(index, 1)}
                     disabled={index === images.length - 1 || action.pending}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-ivory-100 disabled:opacity-30"
+                    className={iconButtonClasses('ghost', 'sm')}
                     aria-label={t('products.moveDown')}
                   >
                     <ArrowDown aria-hidden className="h-4 w-4" />
@@ -107,7 +108,7 @@ export function ProductImages({
                   <button
                     type="button"
                     onClick={() => setDeleting(image.id)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-danger-700 hover:bg-danger-100"
+                    className={iconButtonClasses('danger', 'sm')}
                     aria-label={t('products.deleteImage')}
                   >
                     <Trash2 aria-hidden className="h-4 w-4" />
@@ -122,7 +123,11 @@ export function ProductImages({
       <div>
         <label
           htmlFor={inputId}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-forest-900/25 px-4 py-2 text-sm font-semibold text-forest-900 hover:bg-forest-900/[0.04] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-forest-700"
+          className={buttonClasses(
+            'secondary',
+            'sm',
+            'cursor-pointer has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
+          )}
         >
           {uploading ? (
             <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
@@ -143,12 +148,12 @@ export function ProductImages({
             }}
           />
         </label>
-        <p className="mt-2 text-xs text-ink-500">{t('products.imagesHint')}</p>
+        <p className="mt-2 text-xs text-fg-subtle">{t('products.imagesHint')}</p>
       </div>
       {uploadMessage || action.error ? (
         <p
           role="alert"
-          className="rounded-xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
+          className="rounded-control bg-danger-soft px-4 py-3 text-body-sm font-medium text-danger"
         >
           {uploadMessage ?? action.error}
         </p>

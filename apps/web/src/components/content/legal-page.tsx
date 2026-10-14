@@ -41,7 +41,7 @@ export async function LegalPage({
         intro={page.intro ? <RichText text={page.intro} /> : undefined}
         illustration="white"
       />
-      <div className="container-page py-14 sm:py-20">
+      <div className="container-page py-12 sm:py-16">
         {isDraft ? <DraftNotice>{t('draftNotice')}</DraftNotice> : null}
         <LongForm sections={page.sections} tocLabel={t('onThisPage')} numbered />
       </div>

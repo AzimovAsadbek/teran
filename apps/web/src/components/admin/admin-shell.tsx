@@ -25,6 +25,7 @@ import { LogoutButton } from '@/components/account/account-forms';
 import { Wordmark } from '@/components/brand/logo';
 import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
 type NavKey =
   | 'dashboard'
@@ -107,7 +108,7 @@ export function AdminShell({ user, children }: { user: CurrentUserDto; children:
         if (visible.length === 0) return null;
         return (
           <div key={group}>
-            <p className="px-3 text-[0.68rem] font-bold tracking-[0.12em] text-ink-500 uppercase">
+            <p className="px-3 text-caption font-semibold tracking-[0.12em] text-fg-subtle uppercase">
               {t(`nav.${group}`)}
             </p>
             <ul className="mt-2 space-y-0.5">
@@ -120,10 +121,10 @@ export function AdminShell({ user, children }: { user: CurrentUserDto; children:
                       onClick={() => setMenuOpen(false)}
                       aria-current={active ? 'page' : undefined}
                       className={cn(
-                        'flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors',
+                        'flex h-10 items-center gap-3 rounded-control px-3 text-body-sm font-medium transition-colors',
                         active
-                          ? 'bg-forest-900 text-ivory-50'
-                          : 'text-ink-700 hover:bg-ivory-100 hover:text-forest-900',
+                          ? 'bg-brand text-fg-inverse'
+                          : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
                       )}
                     >
                       <Icon aria-hidden className="h-4 w-4 shrink-0" />
@@ -140,37 +141,34 @@ export function AdminShell({ user, children }: { user: CurrentUserDto; children:
   );
 
   return (
-    <div className="min-h-dvh bg-ivory-50 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
+    <div className="min-h-dvh bg-canvas lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
       <a
         href="#main"
-        className="sr-only z-50 rounded-full bg-forest-900 px-5 py-3 font-semibold text-ivory-50 focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+        className="sr-only z-50 rounded-control bg-brand px-5 py-3 font-semibold text-fg-inverse shadow-overlay focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
       >
         {tc('skipToContent')}
       </a>
       <aside
         className={cn(
-          'border-ivory-200 bg-white lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto lg:border-r',
+          'border-line bg-surface lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto lg:border-r',
           menuOpen ? 'block border-b' : 'hidden',
         )}
       >
         <div className="hidden items-center justify-between px-5 pt-6 pb-2 lg:flex">
           <Link href="/admin" aria-label={t('brand')}>
-            <Wordmark className="w-[120px] lg:w-[120px]" />
+            <Wordmark size="compact" />
           </Link>
         </div>
         <div className="px-3 py-5">{navigation}</div>
-        <div className="space-y-1 border-t border-ivory-200 px-3 py-4">
-          <p className="truncate px-3 text-sm font-semibold text-forest-900">
+        <div className="space-y-1 border-t border-line px-3 py-4">
+          <p className="truncate px-3 text-body-sm font-semibold text-fg">
             {[user.firstName, user.lastName].filter(Boolean).join(' ')}
           </p>
-          <p className="truncate px-3 text-xs text-ink-500">
+          <p className="truncate px-3 text-helper text-fg-subtle">
             {user.email} · {t(`roles.${user.role}`)}
           </p>
           <div className="flex flex-wrap gap-1 pt-2">
-            <Link
-              href="/"
-              className="inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-forest-900 hover:bg-ivory-100"
-            >
+            <Link href="/" className={buttonClasses('ghost', 'sm')}>
               {t('nav.viewStore')}
             </Link>
             <LogoutButton />
@@ -179,15 +177,15 @@ export function AdminShell({ user, children }: { user: CurrentUserDto; children:
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-ivory-200 bg-white/95 px-4 lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface/95 px-4 lg:hidden">
           <Link href="/admin" aria-label={t('brand')}>
-            <Wordmark className="w-[110px]" />
+            <Wordmark size="compact" />
           </Link>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
             aria-expanded={menuOpen}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-forest-900 hover:bg-ivory-100"
+            className={iconButtonClasses('ghost', 'md')}
           >
             <Menu aria-hidden className="h-5 w-5" />
             <span className="sr-only">{t('nav.openMenu')}</span>

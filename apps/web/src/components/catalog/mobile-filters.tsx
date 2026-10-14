@@ -3,7 +3,9 @@
 import { PRODUCT_SORTS, type FacetsDto } from '@teran/contracts';
 import { SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent, type ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox, inputClasses, radioDotClasses } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
 import {
   parseCatalogFilters,
@@ -14,8 +16,8 @@ import {
 import { useRouter } from '@/i18n/navigation';
 
 /**
- * Mobile filter sheet: one GET form, so several choices are applied together with a single
- * "show results" action (and it still works if JavaScript fails to load).
+ * Filter drawer for phones and tablets: one GET form, so several choices are applied together with
+ * a single "show results" action (and it still works if JavaScript fails to load).
  */
 export function MobileFilters({
   basePath,
@@ -33,6 +35,7 @@ export function MobileFilters({
 }) {
   const t = useTranslations('Catalog');
   const tc = useTranslations('Common');
+  const formId = useId();
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const activeCount =
@@ -59,103 +62,112 @@ export function MobileFilters({
 
   return (
     <div className="lg:hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-11 items-center gap-2 rounded-full border border-forest-900/25 px-4 text-sm font-semibold text-forest-900"
-      >
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
         <SlidersHorizontal aria-hidden className="h-4 w-4" />
         {t('filters')}
         {activeCount > 0 ? (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-forest-900 px-1 text-[0.7rem] text-ivory-50">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-micro font-bold text-fg-inverse figures">
             {activeCount}
           </span>
         ) : null}
-      </button>
+      </Button>
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
-        side="left"
+        side="right"
         title={t('filterBy')}
         closeLabel={tc('close')}
+        footer={
+          <Button type="submit" form={formId} size="lg" className="w-full">
+            {t('showResults', { count: total })}
+          </Button>
+        }
       >
         <form
+          id={formId}
           action={formAction}
           method="get"
-          className="flex h-full flex-col"
           onSubmit={(event) => applyFilters(event)}
+          className="divide-y divide-line-subtle px-5 sm:px-6"
         >
-          <div className="flex-1 space-y-8 px-5 py-6">
-            <fieldset>
-              <legend className="text-eyebrow text-gold-700">{t('format')}</legend>
-              <FormatCheckboxes facets={facets} selected={filters.format} />
-            </fieldset>
+          <Group legend={t('sort')}>
+            {PRODUCT_SORTS.map((sort) => (
+              <label
+                key={sort}
+                className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
+              >
+                <input
+                  type="radio"
+                  name="sort"
+                  value={sort}
+                  defaultChecked={filters.sort === sort}
+                  className={radioDotClasses}
+                />
+                {t(`sortOptions.${sort}`)}
+              </label>
+            ))}
+          </Group>
 
-            <fieldset>
-              <legend className="text-eyebrow text-gold-700">{t('price')}</legend>
-              <div className="mt-3 flex items-center gap-2">
-                <label className="flex-1 text-sm text-ink-700">
-                  {t('minPrice')}
-                  <input
-                    name="minPrice"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    defaultValue={filters.minPrice}
-                    className="mt-1 h-12 w-full rounded-xl border border-sage-500 bg-white px-3"
+          {facets.formats.length > 0 ? (
+            <Group legend={t('format')}>
+              {facets.formats.map(({ value, count }) => (
+                <label
+                  key={value}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
+                >
+                  {/* Checkboxes submit repeated values; the catalogue parser accepts both forms. */}
+                  <Checkbox
+                    name="format"
+                    value={value}
+                    defaultChecked={filters.format.includes(value)}
                   />
+                  <span className="flex-1">{t(`formats.${value}`)}</span>
+                  <span className="text-body-sm text-fg-subtle">{count}</span>
                 </label>
-                <label className="flex-1 text-sm text-ink-700">
-                  {t('maxPrice')}
-                  <input
-                    name="maxPrice"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    defaultValue={filters.maxPrice}
-                    className="mt-1 h-12 w-full rounded-xl border border-sage-500 bg-white px-3"
-                  />
-                </label>
-              </div>
-            </fieldset>
+              ))}
+            </Group>
+          ) : null}
 
-            <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-ink-900">
-              <input
-                type="checkbox"
-                name="inStock"
-                value="true"
-                defaultChecked={filters.inStock}
-                className="h-5 w-5 accent-forest-900"
-              />
+          <Group legend={t('price')}>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <label className="text-helper text-fg-muted">
+                {t('priceMinLabel')}
+                <input
+                  name="minPrice"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  defaultValue={filters.minPrice}
+                  placeholder={
+                    facets.priceRange
+                      ? String(Math.floor(Number(facets.priceRange.min)))
+                      : undefined
+                  }
+                  className={inputClasses({ className: 'mt-1.5' })}
+                />
+              </label>
+              <label className="text-helper text-fg-muted">
+                {t('priceMaxLabel')}
+                <input
+                  name="maxPrice"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  defaultValue={filters.maxPrice}
+                  placeholder={
+                    facets.priceRange ? String(Math.ceil(Number(facets.priceRange.max))) : undefined
+                  }
+                  className={inputClasses({ className: 'mt-1.5' })}
+                />
+              </label>
+            </div>
+          </Group>
+
+          <div className="py-5">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
+              <Checkbox name="inStock" value="true" defaultChecked={filters.inStock} />
               {t('inStockOnly')}
             </label>
-
-            <fieldset>
-              <legend className="text-eyebrow text-gold-700">{t('sort')}</legend>
-              <div className="mt-3 space-y-1">
-                {PRODUCT_SORTS.map((sort) => (
-                  <label
-                    key={sort}
-                    className="flex min-h-11 items-center gap-3 text-sm text-ink-900"
-                  >
-                    <input
-                      type="radio"
-                      name="sort"
-                      value={sort}
-                      defaultChecked={filters.sort === sort}
-                      className="h-5 w-5 accent-forest-900"
-                    />
-                    {t(`sortOptions.${sort}`)}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          </div>
-          <div className="sticky bottom-0 border-t border-ivory-200 bg-ivory-50 px-5 py-4">
-            <button
-              type="submit"
-              className="h-12 w-full rounded-full bg-forest-900 text-sm font-semibold text-ivory-50"
-            >
-              {t('showResults', { count: total })}
-            </button>
           </div>
         </form>
       </Sheet>
@@ -163,27 +175,11 @@ export function MobileFilters({
   );
 }
 
-/**
- * The URL carries formats as one comma-separated value; checkboxes submit repeated values,
- * which the catalogue parser accepts as well (it normalises both forms).
- */
-function FormatCheckboxes({ facets, selected }: { facets: FacetsDto; selected: string[] }) {
-  const t = useTranslations('Catalog');
+function Group({ legend, children }: { legend: string; children: ReactNode }) {
   return (
-    <div className="mt-3 space-y-1">
-      {facets.formats.map(({ value, count }) => (
-        <label key={value} className="flex min-h-11 items-center gap-3 text-sm text-ink-900">
-          <input
-            type="checkbox"
-            name="format"
-            value={value}
-            defaultChecked={selected.includes(value)}
-            className="h-5 w-5 accent-forest-900"
-          />
-          <span className="flex-1">{t(`formats.${value}`)}</span>
-          <span className="text-xs text-ink-500">{count}</span>
-        </label>
-      ))}
-    </div>
+    <fieldset className="py-5">
+      <legend className="float-left mb-2 w-full text-label text-fg">{legend}</legend>
+      <div className="clear-left">{children}</div>
+    </fieldset>
   );
 }

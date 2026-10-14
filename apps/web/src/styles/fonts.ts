@@ -1,23 +1,31 @@
-import { Cormorant_Garamond, Manrope } from 'next/font/google';
+import { EB_Garamond, Onest } from 'next/font/google';
 
 /*
- * Brand typefaces, self-hosted by next/font (no request to Google at runtime). Shared by every
- * root layout: the locale tree, the global 404 and the global error page.
+ * Brand typefaces (docs/design/typography.md), self-hosted by next/font: no request to Google at
+ * runtime, size-adjusted local fallbacks so text does not jump when the fonts arrive. Shared by
+ * every root layout: the locale tree, the global 404 and the global error page.
  *
- * `subsets` only decides what is preloaded. Latin covers Uzbek (including ʻ) and English, the
- * default and most visited versions; the Cyrillic files are still declared through
- * `unicode-range` and download when Russian text appears, instead of on every page.
+ * - EB Garamond (display): classical Roman letterforms that echo the TERAN wordmark; lining
+ *   figures; full Latin, Cyrillic and Uzbek coverage (including ʻ and ʼ).
+ * - Onest (interface): a contemporary grotesque drawn for Latin and Cyrillic; lining figures, with
+ *   tabular figures available for counters; covers ʻ and ʼ, which the previous interface font
+ *   (Manrope) lacked.
+ *
+ * `subsets` only decides what is preloaded. Latin covers Uzbek and English, the default and most
+ * visited versions; Cyrillic files are declared with `unicode-range` and load for Russian text.
  */
 
-const display = Cormorant_Garamond({
+const display = EB_Garamond({
   subsets: ['latin'],
-  variable: '--font-cormorant',
+  weight: 'variable',
+  variable: '--font-eb-garamond',
   display: 'swap',
 });
 
-const sans = Manrope({
+const sans = Onest({
   subsets: ['latin'],
-  variable: '--font-manrope',
+  weight: 'variable',
+  variable: '--font-onest',
   display: 'swap',
 });
 

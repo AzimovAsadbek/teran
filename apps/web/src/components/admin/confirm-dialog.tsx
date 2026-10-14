@@ -1,17 +1,20 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, type ReactNode } from 'react';
-import { cn } from '@/lib/cn';
+import { useId, type ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Notice } from '@/components/ui/notice';
 
 /**
- * Modal confirmation on the native <dialog>: focus is trapped and Esc cancels. Used before
- * irreversible actions (cancelling an order, recording a payment, deleting).
+ * Confirmation before irreversible actions (cancelling an order, recording a payment, deleting),
+ * and small forms such as stock adjustments. Enter submits; Esc and the backdrop cancel unless a
+ * request is running.
  */
 export function ConfirmDialog({
   open,
   title,
+  description,
   children,
   confirmLabel,
   tone = 'primary',
@@ -22,6 +25,7 @@ export function ConfirmDialog({
 }: {
   open: boolean;
   title: string;
+  description?: ReactNode;
   children?: ReactNode;
   confirmLabel: string;
   tone?: 'primary' | 'danger';
@@ -31,70 +35,48 @@ export function ConfirmDialog({
   onClose: () => void;
 }) {
   const t = useTranslations('Admin');
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  const tc = useTranslations('Common');
+  const formId = useId();
 
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby={titleId}
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!pending) onClose();
-      }}
-      className="m-auto w-[min(30rem,calc(100%-2rem))] rounded-[var(--radius-panel)] bg-white p-0 shadow-lift backdrop:bg-forest-950/40"
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      description={description}
+      closeLabel={tc('close')}
+      dismissible={!pending}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={pending}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            variant={tone === 'danger' ? 'danger' : 'primary'}
+            loading={pending}
+          >
+            {confirmLabel}
+          </Button>
+        </>
+      }
     >
       <form
-        method="dialog"
+        id={formId}
         onSubmit={(event) => {
           event.preventDefault();
           onConfirm();
         }}
-        className="space-y-4 p-6"
+        className="space-y-4"
       >
-        <h2 id={titleId} className="font-display text-2xl font-semibold text-forest-900">
-          {title}
-        </h2>
         {children}
         {error ? (
-          <p
-            role="alert"
-            className="rounded-xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
-          >
+          <Notice tone="danger" role="alert">
             {error}
-          </p>
+          </Notice>
         ) : null}
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={pending}
-            className="h-11 rounded-full px-5 text-sm font-semibold text-forest-900 hover:bg-ivory-100"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={pending}
-            className={cn(
-              'inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold text-ivory-50 disabled:opacity-60',
-              tone === 'danger'
-                ? 'bg-danger-700 hover:bg-danger-700/90'
-                : 'bg-forest-900 hover:bg-forest-800',
-            )}
-          >
-            {pending ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
-            {confirmLabel}
-          </button>
-        </div>
       </form>
-    </dialog>
+    </Modal>
   );
 }

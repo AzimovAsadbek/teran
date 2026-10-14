@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
+import { Check, CircleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   useId,
@@ -10,19 +10,32 @@ import {
   type TextareaHTMLAttributes,
 } from 'react';
 import { cn } from '@/lib/cn';
+import {
+  inputClasses,
+  selectClasses,
+  SelectChevron,
+  textareaClasses,
+  type ControlSize,
+} from './controls';
 
 /*
- * Labelled form controls. Each control is wired to its hint and error with aria-describedby, marks
- * itself aria-invalid when it has an error, and shows "optional" on fields that are not required
- * (rather than asterisks on required ones). Errors are text, never colour alone.
+ * Labelled form controls (docs/design/component-audit.md). Each control is wired to its hint and
+ * error with aria-describedby, marks itself aria-invalid when it has an error, and shows
+ * "optional" on fields that are not required (rather than asterisks on required ones). Labels are
+ * always visible; placeholders only give examples. Errors carry an icon and text, never colour
+ * alone. Native elements are kept for selects, checkboxes and radios (keyboard, screen readers and
+ * mobile pickers work as people expect); only their appearance is customised.
  */
 
-const CONTROL =
-  'w-full rounded-2xl border bg-white px-4 text-base text-ink-900 outline-none transition-colors placeholder:text-ink-500 focus:border-forest-700 focus:ring-2 focus:ring-forest-700/15 disabled:bg-ivory-100';
-
-function controlClasses(invalid: boolean, extra?: string): string {
-  return cn(CONTROL, invalid ? 'border-danger-700' : 'border-sage-500', extra);
-}
+// Class helpers live in ./controls (no client directive) so server components can call them too.
+export {
+  inputClasses,
+  radioDotClasses,
+  SelectChevron,
+  selectClasses,
+  textareaClasses,
+  type ControlSize,
+} from './controls';
 
 interface FieldChromeProps {
   label: ReactNode;
@@ -30,6 +43,7 @@ interface FieldChromeProps {
   error?: string;
   required?: boolean;
   className?: string;
+  size?: ControlSize;
 }
 
 function useFieldIds(error: string | undefined, hint: ReactNode) {
@@ -40,21 +54,40 @@ function useFieldIds(error: string | undefined, hint: ReactNode) {
   return { id, hintId, errorId, describedBy };
 }
 
-function Label({
+export function FieldLabel({
   htmlFor,
   required,
   children,
+  className,
 }: {
   htmlFor: string;
   required?: boolean;
   children: ReactNode;
+  className?: string;
 }) {
   const t = useTranslations('Common');
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-semibold text-forest-900">
+    <label htmlFor={htmlFor} className={cn('mb-2 block text-label text-fg', className)}>
       {children}
-      {required ? null : <span className="font-normal text-ink-500"> ({t('optional')})</span>}
+      {required ? null : <span className="font-normal text-fg-subtle"> ({t('optional')})</span>}
     </label>
+  );
+}
+
+export function FieldHint({ id, children }: { id?: string; children: ReactNode }) {
+  return (
+    <p id={id} className="mt-1.5 text-helper text-fg-subtle">
+      {children}
+    </p>
+  );
+}
+
+export function FieldError({ id, children }: { id?: string; children: ReactNode }) {
+  return (
+    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-helper font-medium text-danger">
+      <CircleAlert aria-hidden className="mt-px h-4 w-4 shrink-0" />
+      <span>{children}</span>
+    </p>
   );
 }
 
@@ -71,16 +104,8 @@ function HintAndError({
 }) {
   return (
     <>
-      {hint ? (
-        <p id={hintId} className="mt-1.5 text-sm text-ink-500">
-          {hint}
-        </p>
-      ) : null}
-      {error ? (
-        <p id={errorId} className="mt-1.5 text-sm font-medium text-danger-700">
-          {error}
-        </p>
-      ) : null}
+      {hint ? <FieldHint id={hintId}>{hint}</FieldHint> : null}
+      {error ? <FieldError id={errorId}>{error}</FieldError> : null}
     </>
   );
 }
@@ -91,20 +116,21 @@ export function TextField({
   error,
   required,
   className,
+  size = 'md',
   ...input
-}: FieldChromeProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'id'>) {
+}: FieldChromeProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'id' | 'size'>) {
   const { id, hintId, errorId, describedBy } = useFieldIds(error, hint);
   return (
     <div className={className}>
-      <Label htmlFor={id} required={required}>
+      <FieldLabel htmlFor={id} required={required}>
         {label}
-      </Label>
+      </FieldLabel>
       <input
         id={id}
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={controlClasses(Boolean(error), 'h-12')}
+        className={inputClasses({ invalid: Boolean(error), size })}
         {...input}
       />
       <HintAndError hint={hint} hintId={hintId} error={error} errorId={errorId} />
@@ -123,16 +149,16 @@ export function TextAreaField({
   const { id, hintId, errorId, describedBy } = useFieldIds(error, hint);
   return (
     <div className={className}>
-      <Label htmlFor={id} required={required}>
+      <FieldLabel htmlFor={id} required={required}>
         {label}
-      </Label>
+      </FieldLabel>
       <textarea
         id={id}
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         rows={4}
-        className={controlClasses(Boolean(error), 'min-h-28 py-3 leading-relaxed')}
+        className={textareaClasses({ invalid: Boolean(error) })}
         {...textarea}
       />
       <HintAndError hint={hint} hintId={hintId} error={error} errorId={errorId} />
@@ -148,25 +174,26 @@ export function SelectField({
   className,
   placeholder,
   options,
+  size = 'md',
   ...select
 }: FieldChromeProps &
-  Omit<SelectHTMLAttributes<HTMLSelectElement>, 'className' | 'id'> & {
+  Omit<SelectHTMLAttributes<HTMLSelectElement>, 'className' | 'id' | 'size'> & {
     placeholder?: string;
-    options: readonly { value: string; label: string }[];
+    options: readonly { value: string; label: string; disabled?: boolean }[];
   }) {
   const { id, hintId, errorId, describedBy } = useFieldIds(error, hint);
   return (
     <div className={className}>
-      <Label htmlFor={id} required={required}>
+      <FieldLabel htmlFor={id} required={required}>
         {label}
-      </Label>
+      </FieldLabel>
       <div className="relative">
         <select
           id={id}
           required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={controlClasses(Boolean(error), 'h-12 appearance-none pr-11')}
+          className={selectClasses({ invalid: Boolean(error), size })}
           {...select}
         >
           {placeholder ? (
@@ -175,18 +202,49 @@ export function SelectField({
             </option>
           ) : null}
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} disabled={option.disabled}>
               {option.label}
             </option>
           ))}
         </select>
-        <ChevronDown
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2 text-ink-500"
-        />
+        <SelectChevron />
       </div>
       <HintAndError hint={hint} hintId={hintId} error={error} errorId={errorId} />
     </div>
+  );
+}
+
+/**
+ * A native checkbox drawn to match the controls. The input stays the real, focusable element; the
+ * tick is decoration on top of it.
+ */
+export function Checkbox({
+  className,
+  invalid = false,
+  ...input
+}: { className?: string; invalid?: boolean } & Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'className' | 'type'
+>) {
+  return (
+    <span className={cn('relative inline-flex h-5 w-5 shrink-0', className)}>
+      <input
+        type="checkbox"
+        aria-invalid={invalid || undefined}
+        className={cn(
+          'peer h-5 w-5 cursor-pointer appearance-none rounded-sm border bg-surface transition-colors duration-150',
+          'checked:border-brand checked:bg-brand hover:not-checked:border-fg-subtle checked:hover:bg-brand-hover',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          invalid ? 'border-danger' : 'border-line-strong',
+        )}
+        {...input}
+      />
+      <Check
+        aria-hidden
+        strokeWidth={3}
+        className="pointer-events-none absolute inset-0 m-auto h-3.5 w-3.5 text-fg-inverse opacity-0 transition-opacity duration-150 peer-checked:opacity-100"
+      />
+    </span>
   );
 }
 
@@ -204,22 +262,21 @@ export function CheckboxField({
   return (
     <div className={className}>
       <div className="flex items-start gap-3">
-        <input
+        <Checkbox
           id={id}
-          type="checkbox"
-          aria-invalid={error ? true : undefined}
+          invalid={Boolean(error)}
           aria-describedby={errorId}
-          className="mt-0.5 h-5 w-5 shrink-0 rounded border-sage-500 accent-forest-900"
+          className="mt-0.5"
           {...input}
         />
-        <label htmlFor={id} className="text-sm leading-relaxed text-ink-700">
+        <label htmlFor={id} className="cursor-pointer text-body-sm text-fg-muted">
           {label}
         </label>
       </div>
       {error ? (
-        <p id={errorId} className="mt-1.5 pl-8 text-sm font-medium text-danger-700">
-          {error}
-        </p>
+        <div className="pl-8">
+          <FieldError id={errorId}>{error}</FieldError>
+        </div>
       ) : null}
     </div>
   );
@@ -231,9 +288,10 @@ export function FormErrorSummary({ message }: { message: string | null }) {
   return (
     <p
       role="alert"
-      className="rounded-2xl bg-danger-100 px-4 py-3 text-sm font-medium text-danger-700"
+      className="flex items-start gap-2.5 rounded-control border border-danger/25 bg-danger-soft px-4 py-3 text-body-sm font-medium text-danger"
     >
-      {message}
+      <CircleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{message}</span>
     </p>
   );
 }

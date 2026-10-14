@@ -5,14 +5,26 @@ export function Skeleton({ className }: { className?: string }) {
     <div
       aria-hidden
       className={cn(
-        'animate-pulse rounded-xl bg-ivory-200/70 motion-reduce:animate-none',
+        'animate-pulse rounded-sm bg-surface-sunken/60 motion-reduce:animate-none',
         className,
       )}
     />
   );
 }
 
-/** Placeholder with the same footprint as a row of product cards (prevents layout shift). */
+/** Placeholder with the same footprint as a product card. */
+export function ProductCardSkeleton() {
+  return (
+    <div aria-hidden>
+      <Skeleton className="aspect-square rounded-card" />
+      <Skeleton className="mt-3.5 h-3 w-1/3" />
+      <Skeleton className="mt-2 h-5 w-3/4" />
+      <Skeleton className="mt-3 h-4 w-1/2" />
+    </div>
+  );
+}
+
+/** Placeholder with the same footprint as a grid of product cards (prevents layout shift). */
 export function ProductGridSkeleton({
   count = 4,
   className,
@@ -26,12 +38,7 @@ export function ProductGridSkeleton({
       aria-hidden
     >
       {Array.from({ length: count }, (_, index) => (
-        <div key={index}>
-          <Skeleton className="aspect-square rounded-[var(--radius-card)]" />
-          <Skeleton className="mt-4 h-3 w-1/3" />
-          <Skeleton className="mt-2 h-5 w-3/4" />
-          <Skeleton className="mt-3 h-4 w-1/2" />
-        </div>
+        <ProductCardSkeleton key={index} />
       ))}
     </div>
   );

@@ -3,13 +3,19 @@
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { IconButton } from './button';
 
 type Side = 'left' | 'right' | 'top';
 
+/*
+ * Each side states its own width (never a max-width override) so no utility can widen the panel.
+ * Tailwind v4 moves panels with the `translate` property, which is what the transition animates.
+ */
 const PANEL: Record<Side, string> = {
-  right: 'ml-auto h-dvh max-h-dvh w-full max-w-[28rem] translate-x-full open:translate-x-0',
-  left: 'mr-auto h-dvh max-h-dvh w-[min(24rem,100%)] -translate-x-full open:translate-x-0',
-  top: 'mx-auto mt-0 w-full max-w-3xl -translate-y-4 opacity-0 open:translate-y-0 open:opacity-100 sm:mt-20 sm:rounded-[var(--radius-panel)]',
+  right:
+    'ml-auto h-dvh w-[min(30rem,100vw)] translate-x-full open:translate-x-0 starting:open:translate-x-full',
+  left: 'mr-auto h-dvh w-[min(26rem,100vw)] -translate-x-full open:translate-x-0 starting:open:-translate-x-full',
+  top: 'mt-0 w-full -translate-y-3 opacity-0 open:translate-y-0 open:opacity-100 starting:open:-translate-y-3 starting:open:opacity-0',
 };
 
 interface SheetProps {
@@ -24,11 +30,16 @@ interface SheetProps {
   className?: string;
   /** Hide the visible title (it is still used as the accessible name). */
   hideTitle?: boolean;
+  /** Extra content in the header row, before the close button (e.g. an item count). */
+  headerExtra?: ReactNode;
+  /** No header row: the content provides its own close control (the title stays as the name). */
+  bare?: boolean;
 }
 
 /**
- * Modal side sheet on top of the native <dialog> element: top layer, inert background,
- * Esc to close and focus containment come from the browser. Focus returns to the opener.
+ * Drawer on top of the native <dialog> element: top layer, inert background, Esc to close and
+ * focus containment come from the browser. Focus returns to the opener. Used for the bag, the
+ * mobile menu, filters, search and admin side panels.
  */
 export function Sheet({
   open,
@@ -40,6 +51,8 @@ export function Sheet({
   footer,
   className,
   hideTitle = false,
+  headerExtra,
+  bare = false,
 }: SheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -49,8 +62,9 @@ export function Sheet({
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
-      openerRef.current =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const active = document.activeElement;
+      // Focus returns here on close (nothing to return to if focus was on the page itself).
+      openerRef.current = active instanceof HTMLElement && active !== document.body ? active : null;
       dialog.showModal();
     } else if (!open && dialog.open) {
       dialog.close();
@@ -70,41 +84,47 @@ export function Sheet({
         if (event.target === event.currentTarget) onClose();
       }}
       className={cn(
-        'm-0 max-w-none bg-transparent p-0 backdrop:backdrop-blur-[2px]',
-        'transition-[transform,opacity,overlay,display] duration-300 ease-[var(--ease-soft)] transition-discrete',
-        'starting:open:translate-x-0',
+        'm-0 max-h-none max-w-none bg-transparent p-0 backdrop:bg-forest-950/45 backdrop:backdrop-blur-[2px]',
+        'transition-[translate,opacity,overlay,display] duration-300 ease-[var(--ease-soft)] transition-discrete',
         PANEL[side],
-        side === 'right' ? 'starting:open:translate-x-full' : '',
-        side === 'left' ? 'starting:open:-translate-x-full' : '',
-        side === 'top' ? 'starting:open:-translate-y-4 starting:open:opacity-0' : '',
       )}
     >
       <div
         className={cn(
-          'flex h-full flex-col overflow-hidden bg-ivory-50 text-ink-900 shadow-lift',
-          side === 'top' ? 'max-h-[85dvh] sm:rounded-[var(--radius-panel)]' : '',
+          'flex h-full flex-col overflow-hidden bg-canvas text-fg shadow-overlay',
+          side === 'top' ? 'max-h-[min(44rem,92dvh)] rounded-b-panel' : '',
           className,
         )}
       >
-        <header className="glass flex items-center justify-between gap-4 border-x-0 border-t-0 px-5 py-4">
-          <h2
-            id={titleId}
-            className={cn('text-display-md text-[1.6rem] text-forest-900', hideTitle && 'sr-only')}
-          >
+        {bare ? (
+          <h2 id={titleId} className="sr-only">
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full text-forest-900 transition-colors hover:bg-forest-900/[0.06]"
-            aria-label={closeLabel}
-          >
-            <X className="h-5 w-5" aria-hidden />
-          </button>
-        </header>
+        ) : (
+          <header className="flex items-center gap-3 border-b border-line px-5 py-3.5 sm:px-6">
+            <h2
+              id={titleId}
+              className={cn(
+                'min-w-0 flex-1 text-display-sm text-forest-900',
+                hideTitle && 'sr-only',
+              )}
+            >
+              {title}
+            </h2>
+            {headerExtra}
+            <IconButton
+              label={closeLabel}
+              icon={<X />}
+              onClick={onClose}
+              className={cn('-mr-2', hideTitle && 'ml-auto')}
+            />
+          </header>
+        )}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
         {footer ? (
-          <div className="border-t border-ivory-200 bg-ivory-50 px-5 py-4">{footer}</div>
+          <div className="border-t border-line bg-surface px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+            {footer}
+          </div>
         ) : null}
       </div>
     </dialog>

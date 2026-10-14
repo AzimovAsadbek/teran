@@ -11,17 +11,24 @@ import wordmark from '../../../public/brand/teran-wordmark.png';
 export function Wordmark({
   className,
   priority = false,
+  size = 'header',
 }: {
   className?: string;
   priority?: boolean;
+  /** `header`: 132 px, 176 px from 1280 px. `compact`: 120 px (admin, checkout on phones). */
+  size?: 'header' | 'compact';
 }) {
   return (
     <Image
       src={wordmark}
       alt="TERAN"
       priority={priority}
-      sizes="(min-width: 1024px) 190px, 140px"
-      className={cn('h-auto w-[140px] lg:w-[190px]', className)}
+      sizes={size === 'compact' ? '120px' : '(min-width: 1280px) 176px, 132px'}
+      className={cn(
+        'h-auto',
+        size === 'compact' ? 'w-[120px]' : 'w-[132px] xl:w-[176px]',
+        className,
+      )}
     />
   );
 }
@@ -43,10 +50,19 @@ export function StackedLogo({
 }
 
 /** The logo on an ivory plate, for dark surfaces such as the footer. */
-export function LogoPlate({ className }: { className?: string }) {
+export function LogoPlate({
+  className,
+  logoClassName = 'w-40',
+}: {
+  className?: string;
+  /** Width of the logo inside the plate (the plate's padding comes from `className`). */
+  logoClassName?: string;
+}) {
   return (
-    <div className={cn('inline-flex rounded-2xl bg-ivory-50 px-6 py-5 shadow-soft', className)}>
-      <StackedLogo className="w-40" sizes="160px" />
+    <div
+      className={cn('inline-flex rounded-card bg-ivory-50 shadow-soft', className ?? 'px-6 py-5')}
+    >
+      <StackedLogo className={logoClassName} sizes="160px" />
     </div>
   );
 }

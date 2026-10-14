@@ -7,6 +7,15 @@ const isDev = process.env.NODE_ENV === 'development';
 const apiInternalUrl = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
 
 /**
+ * Where product images are served from: the API's /uploads by default, or the Vercel Blob store
+ * when the API keeps its images there. Either way the browser sees same-origin /uploads URLs.
+ */
+const uploadsOrigin = (process.env.UPLOADS_ORIGIN ?? `${apiInternalUrl}/uploads`).replace(
+  /\/$/,
+  '',
+);
+
+/**
  * Header-based CSP (no nonces) so pages keep static prerendering. It allows no third-party
  * origins at all; inline scripts are permitted because Next.js inlines its hydration data.
  * See docs/architecture/security.md for the trade-off.
@@ -40,7 +49,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  output: 'standalone',
+  // Self-hosted images run the standalone server; Vercel builds its own output.
+  output: process.env.VERCEL ? undefined : 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ['@teran/contracts'],
@@ -69,7 +79,7 @@ const nextConfig: NextConfig = {
     // proxy can route these paths straight to the API instead.
     return [
       { source: '/api/v1/:path*', destination: `${apiInternalUrl}/api/v1/:path*` },
-      { source: '/uploads/:path*', destination: `${apiInternalUrl}/uploads/:path*` },
+      { source: '/uploads/:path*', destination: `${uploadsOrigin}/:path*` },
     ];
   },
 };

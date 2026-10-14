@@ -1,0 +1,26 @@
+# Files the Vercel CLI must not upload when deploying from the repository root
+# (docs/deployment/vercel.md). Vercel installs dependencies and builds everything itself.
+node_modules
+.pnpm-store
+.next
+dist
+out
+coverage
+playwright-report
+test-results
+blob-report
+*.log
+*.tsbuildinfo
+.DS_Store
+
+# Secrets and local data: never uploaded
+.env
+.env.*
+!.env.example
+apps/api/storage
+apps/api/public
+apps/api/src/generated
+e2e/.auth
+
+# Not needed to build or run
+docs/design/screenshots

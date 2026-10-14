@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "pnpm --filter @teran/contracts build && pnpm --filter @teran/web build",
+  "regions": ["fra1"]
+}

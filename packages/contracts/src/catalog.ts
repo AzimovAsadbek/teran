@@ -1,23 +1,14 @@
 import { z } from 'zod';
 import { localeSchema, moneySchema, slugSchema } from './common.js';
+import { PRODUCT_FORMATS, PRODUCT_SORTS } from './constants.js';
 
-export const PRODUCT_FORMATS = [
-  'LOOSE_LEAF',
-  'TEA_BAGS',
-  'PYRAMIDS',
-  'GIFT_SET',
-  'ACCESSORY',
-] as const;
 export const productFormatSchema = z.enum(PRODUCT_FORMATS);
-export type ProductFormat = z.infer<typeof productFormatSchema>;
 
 export const CAFFEINE_LEVELS = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const;
 export const caffeineLevelSchema = z.enum(CAFFEINE_LEVELS);
 export type CaffeineLevel = z.infer<typeof caffeineLevelSchema>;
 
-export const PRODUCT_SORTS = ['featured', 'newest', 'price_asc', 'price_desc'] as const;
 export const productSortSchema = z.enum(PRODUCT_SORTS);
-export type ProductSort = z.infer<typeof productSortSchema>;
 
 export const STOCK_LEVELS = ['in_stock', 'low_stock', 'out_of_stock'] as const;
 export const stockLevelSchema = z.enum(STOCK_LEVELS);

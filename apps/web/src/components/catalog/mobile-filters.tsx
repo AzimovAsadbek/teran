@@ -1,6 +1,7 @@
 'use client';
 
-import { PRODUCT_SORTS, type FacetsDto } from '@teran/contracts';
+import type { FacetsDto } from '@teran/contracts';
+import { PRODUCT_SORTS } from '@teran/contracts/constants';
 import { SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState, type FormEvent, type ReactNode } from 'react';

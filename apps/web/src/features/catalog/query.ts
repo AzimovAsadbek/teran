@@ -1,9 +1,10 @@
+// Used by client filters too: the constants entry keeps Zod out of their bundle.
 import {
   PRODUCT_FORMATS,
   PRODUCT_SORTS,
   type ProductFormat,
   type ProductSort,
-} from '@teran/contracts';
+} from '@teran/contracts/constants';
 
 /** Catalogue filters as they appear in the storefront URL. */
 export interface CatalogFilters {

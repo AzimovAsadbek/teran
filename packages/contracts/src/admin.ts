@@ -1,12 +1,5 @@
 import { z } from 'zod';
-import {
-  emailSchema,
-  moneySchema,
-  optionalText,
-  slugSchema,
-  type Locale,
-  type Money,
-} from './common.js';
+import { emailSchema, moneySchema, optionalText, slugSchema, type Money } from './common.js';
 import {
   caffeineLevelSchema,
   illustrationKeySchema,
@@ -14,8 +7,8 @@ import {
   type CaffeineLevel,
   type IllustrationKey,
   type ImageDto,
-  type ProductFormat,
 } from './catalog.js';
+import type { Locale, ProductFormat } from './constants.js';
 import { inquiryStatusSchema, type BusinessType, type InquiryStatus } from './inquiries.js';
 import {
   orderStatusSchema,

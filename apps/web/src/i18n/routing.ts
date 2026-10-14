@@ -1,4 +1,5 @@
-import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from '@teran/contracts';
+// The constants entry has no Zod: navigation is imported by nearly every client component.
+import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from '@teran/contracts/constants';
 import { defineRouting } from 'next-intl/routing';
 
 /**

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { emailSchema, localeSchema, optionalText } from './common.js';
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from './constants.js';
 import { uzPhoneSchema } from './uzbekistan.js';
 
 export const USER_ROLES = ['CUSTOMER', 'MANAGER', 'ADMIN'] as const;
@@ -11,9 +12,6 @@ export const STAFF_ROLES: readonly UserRole[] = ['MANAGER', 'ADMIN'];
 export function isStaffRole(role: UserRole): boolean {
   return STAFF_ROLES.includes(role);
 }
-
-export const PASSWORD_MIN_LENGTH = 10;
-export const PASSWORD_MAX_LENGTH = 128;
 
 export const passwordSchema = z
   .string()

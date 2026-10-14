@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Locale } from './common.js';
+import type { Locale } from './constants.js';
 
 /**
  * First-level administrative divisions of Uzbekistan with their ISO 3166-2 codes.

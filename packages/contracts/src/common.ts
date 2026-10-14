@@ -1,14 +1,7 @@
 import { z } from 'zod';
+import { LOCALES } from './constants.js';
 
-/** Locales the platform can serve. Which of them are enabled is a deployment setting. */
-export const LOCALES = ['uz', 'ru', 'en'] as const;
-export type Locale = (typeof LOCALES)[number];
-export const DEFAULT_LOCALE: Locale = 'uz';
 export const localeSchema = z.enum(LOCALES);
-
-export function isLocale(value: unknown): value is Locale {
-  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
-}
 
 /** ISO-4217 code of the only currency sold in at launch. */
 export const DEFAULT_CURRENCY = 'UZS';

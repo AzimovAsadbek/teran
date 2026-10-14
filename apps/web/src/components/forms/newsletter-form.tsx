@@ -1,6 +1,5 @@
 'use client';
 
-import { newsletterSubscribeSchema } from '@teran/contracts';
 import { CheckCircle2, CircleAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useState, type FormEvent } from 'react';
@@ -32,6 +31,9 @@ export function NewsletterForm({
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const website = new FormData(event.currentTarget).get('website');
+    // Loaded on submit: the form sits in every page's footer, and the shared schemas (with Zod)
+    // would otherwise be part of every page's first JavaScript.
+    const { newsletterSubscribeSchema } = await import('@teran/contracts');
     const parsed = newsletterSubscribeSchema.safeParse({
       email,
       locale,

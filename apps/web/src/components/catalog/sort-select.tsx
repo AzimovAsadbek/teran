@@ -1,6 +1,6 @@
 'use client';
 
-import { PRODUCT_SORTS, type ProductSort } from '@teran/contracts';
+import { PRODUCT_SORTS, type ProductSort } from '@teran/contracts/constants';
 import { useTranslations } from 'next-intl';
 import { useId, useTransition } from 'react';
 import { SelectChevron, selectClasses } from '@/components/ui/field';

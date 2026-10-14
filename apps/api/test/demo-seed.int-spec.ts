@@ -10,7 +10,7 @@ import {
   DEMO_SUBSCRIBERS,
   DEMO_WHOLESALE_INQUIRIES,
 } from '../prisma/seed/demo-activity.js';
-import { DEMO_PRODUCTS } from '../prisma/seed/demo-catalog.js';
+import { DEMO_COLLECTIONS, DEMO_PRODUCTS, EARLIER_DEMO_COPY } from '../prisma/seed/demo-catalog.js';
 import { removeDemoData } from '../prisma/seed/remove.js';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { createProduct, createUser, resetDatabase } from './helpers/fixtures.js';
@@ -57,6 +57,89 @@ describe('demo seed', () => {
       wholesaleInquiries: 0,
       subscribers: 0,
       skipped: [],
+    });
+  });
+
+  it('updates identifier products seeded before the packs once, and leaves edited ones alone', async () => {
+    const prisma = ctx.prisma;
+    const oolong = await prisma.category.findUniqueOrThrow({ where: { slug: 'oolong' } });
+    const premium = await prisma.collection.findUniqueOrThrow({ where: { slug: 'teran-premium' } });
+    const earlier = EARLIER_DEMO_COPY.collections['teran-premium']!;
+
+    // XC2025 as an earlier seed wrote it: an oolong with invented copy and a 100 g pack.
+    const xc = await prisma.product.findUniqueOrThrow({ where: { slug: 'teran-xc2025' } });
+    await prisma.product.update({
+      where: { id: xc.id },
+      data: { categoryId: oolong.id, isFeatured: false, brewTempCelsius: 85 },
+    });
+    await prisma.productTranslation.update({
+      where: { productId_locale: { productId: xc.id, locale: 'uz' } },
+      data: { description: `XC2025. ${EARLIER_DEMO_COPY.identifierMarker} ulun choyi sifatida.` },
+    });
+    await prisma.productVariant.update({
+      where: { sku: 'TRN-XC2025-400' },
+      data: { sku: 'TRN-XC2025-100', weightGrams: 100 },
+    });
+    // G8810 edited in the admin since (no earlier demo copy): must stay as it is.
+    const g = await prisma.product.findUniqueOrThrow({ where: { slug: 'teran-g8810' } });
+    await prisma.product.update({ where: { id: g.id }, data: { categoryId: oolong.id } });
+    await prisma.productTranslation.update({
+      where: { productId_locale: { productId: g.id, locale: 'uz' } },
+      data: { description: 'Admin yozgan tavsif.' },
+    });
+    // The collection text: English as the earlier seed wrote it, Russian edited by the owner.
+    await prisma.collectionTranslation.update({
+      where: { collectionId_locale: { collectionId: premium.id, locale: 'en' } },
+      data: { description: earlier.en },
+    });
+    await prisma.collectionTranslation.update({
+      where: { collectionId_locale: { collectionId: premium.id, locale: 'ru' } },
+      data: { description: 'Текст владельца.' },
+    });
+
+    const report = await seedCatalogue(prisma, { uploadsDir, emblem: null });
+    expect(report).toEqual({ products: 0, articles: 0, structure: 2 });
+
+    const updated = await prisma.product.findUniqueOrThrow({
+      where: { id: xc.id },
+      include: { category: true, variants: true, translations: true },
+    });
+    expect(updated.category.slug).toBe('green-tea');
+    expect(updated.isFeatured).toBe(true);
+    expect(updated.brewTempCelsius).toBe(90);
+    expect(
+      updated.variants.map((variant) => [variant.sku, variant.weightGrams, variant.isActive]),
+    ).toEqual(
+      expect.arrayContaining([
+        ['TRN-XC2025-100', 100, false],
+        ['TRN-XC2025-400', 400, true],
+      ]),
+    );
+    const uz = updated.translations.find((translation) => translation.locale === 'uz')!;
+    expect(uz.description).toMatch(/400 g qadoqda/);
+    expect(uz.origin).toBe('Xitoy');
+    expect(Number(updated.minPrice)).toBe(189000);
+
+    const untouched = await prisma.product.findUniqueOrThrow({
+      where: { id: g.id },
+      include: { category: true, translations: { where: { locale: 'uz' } } },
+    });
+    expect(untouched.category.slug).toBe('oolong');
+    expect(untouched.translations[0]!.description).toBe('Admin yozgan tavsif.');
+
+    const texts = await prisma.collectionTranslation.findMany({
+      where: { collectionId: premium.id },
+    });
+    const text = (locale: string) => texts.find((entry) => entry.locale === locale)?.description;
+    const current = DEMO_COLLECTIONS.find((item) => item.slug === 'teran-premium')!.description;
+    expect(text('en')).toBe(current.en);
+    expect(text('ru')).toBe('Текст владельца.');
+
+    // Once only.
+    expect(await seedCatalogue(prisma, { uploadsDir, emblem: null })).toEqual({
+      products: 0,
+      articles: 0,
+      structure: 0,
     });
   });
 

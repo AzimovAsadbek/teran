@@ -203,7 +203,7 @@ export const DEMO_ORDERS: DemoOrder[] = [
     delivery: tashkent('Namuna koʻchasi, 40-uy'),
     items: [
       { sku: 'TRN-HET8800-250', quantity: 1 },
-      { sku: 'TRN-G8810-100', quantity: 1 },
+      { sku: 'TRN-G8810-400', quantity: 1 },
     ],
     status: 'DELIVERED',
     paid: true,
@@ -228,7 +228,7 @@ export const DEMO_ORDERS: DemoOrder[] = [
     locale: 'uz',
     delivery: tashkent('Namuna koʻchasi, 15-uy, 22-xonadon'),
     items: [
-      { sku: 'TRN-XC2025-50', quantity: 2 },
+      { sku: 'TRN-XC2025-400', quantity: 2 },
       { sku: 'TRN-WHT-50', quantity: 1 },
     ],
     status: 'DELIVERED',
@@ -255,8 +255,8 @@ export const DEMO_ORDERS: DemoOrder[] = [
     locale: 'ru',
     delivery: region('UZ-AN', 'Андижан', 'ул. Намуна, 11'),
     items: [
-      { sku: 'TRN-STD8009-200', quantity: 1 },
-      { sku: 'TRN-8830-50', quantity: 1 },
+      { sku: 'TRN-STD8009-400', quantity: 1 },
+      { sku: 'TRN-8830-400', quantity: 1 },
     ],
     // Delivered but the cash has not been recorded yet: shows the "record payment" action.
     status: 'DELIVERED',
@@ -268,7 +268,7 @@ export const DEMO_ORDERS: DemoOrder[] = [
     locale: 'uz',
     delivery: tashkent('Namuna koʻchasi, 12-uy, 5-xonadon', 'Bozor yonida'),
     items: [
-      { sku: 'TRN-G8810-250', quantity: 1 },
+      { sku: 'TRN-G8810-400', quantity: 1 },
       { sku: 'TRN-HET8800-100', quantity: 1 },
     ],
     status: 'DELIVERED',
@@ -308,7 +308,7 @@ export const DEMO_ORDERS: DemoOrder[] = [
     delivery: region('UZ-SA', 'Samarqand', 'Namuna koʻchasi, 21-uy'),
     items: [
       { sku: 'TRN-GFT-DUO', quantity: 1 },
-      { sku: 'TRN-XC2025-100', quantity: 1 },
+      { sku: 'TRN-XC2025-400', quantity: 1 },
     ],
     status: 'DELIVERED',
     paid: true,
@@ -333,8 +333,8 @@ export const DEMO_ORDERS: DemoOrder[] = [
     locale: 'ru',
     delivery: tashkent('ул. Намуна, 8, кв. 14'),
     items: [
-      { sku: 'TRN-8830-100', quantity: 1 },
-      { sku: 'TRN-G8810-100', quantity: 2 },
+      { sku: 'TRN-8830-400', quantity: 1 },
+      { sku: 'TRN-G8810-400', quantity: 2 },
     ],
     status: 'DELIVERED',
     paid: true,
@@ -360,7 +360,7 @@ export const DEMO_ORDERS: DemoOrder[] = [
     delivery: tashkent('Namuna koʻchasi, 27-uy'),
     items: [
       { sku: 'TRN-OOL-RST-250', quantity: 1 },
-      { sku: 'TRN-XC2025-50', quantity: 1 },
+      { sku: 'TRN-XC2025-400', quantity: 1 },
     ],
     status: 'DELIVERED',
     paid: true,
@@ -385,7 +385,7 @@ export const DEMO_ORDERS: DemoOrder[] = [
     locale: 'uz',
     delivery: region('UZ-XO', 'Urganch', 'Namuna koʻchasi, 2-uy'),
     items: [
-      { sku: 'TRN-STD8009-200', quantity: 1 },
+      { sku: 'TRN-STD8009-400', quantity: 1 },
       { sku: 'TRN-HET8800-250', quantity: 1 },
     ],
     status: 'SHIPPED',
@@ -408,7 +408,7 @@ export const DEMO_ORDERS: DemoOrder[] = [
     customer: { name: 'Anvar Mirzayev', phone: '+998900000207' },
     locale: 'uz',
     delivery: region('UZ-NG', 'Namangan', 'Namuna koʻchasi, 44-uy'),
-    items: [{ sku: 'TRN-G8810-100', quantity: 3 }],
+    items: [{ sku: 'TRN-G8810-400', quantity: 3 }],
     status: 'PROCESSING',
   },
   {
@@ -418,8 +418,8 @@ export const DEMO_ORDERS: DemoOrder[] = [
     locale: 'en',
     delivery: tashkent('Namuna Street 30, apartment 4'),
     items: [
-      { sku: 'TRN-XC2025-100', quantity: 1 },
-      { sku: 'TRN-8830-50', quantity: 1 },
+      { sku: 'TRN-XC2025-400', quantity: 1 },
+      { sku: 'TRN-8830-400', quantity: 1 },
     ],
     status: 'CONFIRMED',
   },

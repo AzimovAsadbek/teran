@@ -11,7 +11,9 @@ import { DEMO_CATEGORIES, DEMO_COLLECTIONS, DEMO_PRODUCTS } from './demo-catalog
 import { DEMO_DELIVERY_METHODS } from './demo-content.js';
 import { assertResetAllowed, assertSeedAllowed, databaseTarget, describeTarget } from './guard.js';
 
-const IDENTIFIERS = ['XC2025', 'G8810', 'HET8800', '8830', 'STD8009'];
+const IDENTIFIERS = ['XC2025', 'G8810', 'HET8800', '8830', '8009'];
+/** Identifiers with packaging: described from their packs (2026-10-14). */
+const PACKAGED = ['XC2025', 'G8810', '8830', '8009'];
 const LOCAL_URL = 'postgresql://teran:not-a-real-password@127.0.0.1:5434/teran_demo?schema=public';
 const REMOTE_URL = 'postgresql://teran:not-a-real-password@db.example.net:5432/teran_demo';
 
@@ -100,7 +102,17 @@ describe('demo catalogue fixtures', () => {
       IDENTIFIERS.map((code) => `TERAN ${code}`).sort(),
     );
     for (const product of premium) {
-      expect(product.description.en).toMatch(/placeholders, not information about the actual/);
+      const packaged = PACKAGED.some((code) => product.name.en === `TERAN ${code}`);
+      expect(Boolean(product.packaging)).toBe(packaged);
+      if (packaged) {
+        // From the pack: green tea, 400 g, the pack's brewing; only price and stock are invented.
+        expect(product.category).toBe('green-tea');
+        expect(product.variants.map((variant) => variant.weightGrams)).toEqual([400]);
+        expect(product.brewing).toEqual({ tempC: 90, minSeconds: 120, maxSeconds: 180, grams: 5 });
+        expect(product.description.en).toMatch(/taken from the TERAN pack; the price and stock/);
+      } else {
+        expect(product.description.en).toMatch(/placeholders, not information about the actual/);
+      }
       expect(product.description.ru).toMatch(/условные/);
       expect(product.description.uz).toMatch(/taxminiy/);
     }
@@ -116,10 +128,14 @@ describe('demo catalogue fixtures', () => {
         product.shortDescription.en,
         product.description.en,
         product.tastingNotes?.en ?? '',
+        product.origin?.en ?? '',
       ].join(' ');
+      // The packs' health benefits and nutrition table are not published without confirmation.
       expect(copy).not.toMatch(
-        /certif|organic|health|antioxid|caffeine|award|review|yunnan|fujian|anhui|zhejiang|harvest/i,
+        /certif|organic|health|antioxid|immun|stress|caffeine|award|review|harvest/i,
       );
+      // Regions only where the pack itself names them.
+      if (!product.packaging) expect(copy).not.toMatch(/hunan|yunnan|fujian|anhui|zhejiang/i);
     }
   });
 

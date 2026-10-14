@@ -1,11 +1,12 @@
 /**
  * Loads the demonstration catalogue and content: categories (Tea with the tea types as
  * subcategories, and gift sets), collections, product types with their attributes, products (with
- * code-drawn images and demonstration attribute values), delivery methods, site settings and
- * journal articles.
+ * images rendered from the TERAN packs, or code-drawn art, and demonstration attribute values),
+ * delivery methods, site settings and journal articles.
  *
  * Insert-only: a record that already exists (matched by slug, code or key) is left untouched, so
- * re-running never overwrites changes made in the admin area.
+ * re-running never overwrites changes made in the admin area. The exceptions are one-time
+ * upgrades of records that still hold exactly what an earlier version of this seed wrote.
  */
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -14,7 +15,11 @@ import { LOCALES, type Locale } from '@teran/contracts';
 import { Prisma, type PrismaClient } from '../../src/generated/prisma/client.js';
 import { refreshMinPrice } from '../../src/catalog/product-pricing.js';
 import { productSearchText } from '../../src/catalog/product-search.js';
-import { productImagePrefix, storeImage } from '../../src/media/image-processing.js';
+import {
+  deleteStoredImage,
+  productImagePrefix,
+  storeImage,
+} from '../../src/media/image-processing.js';
 import { renderLeafStudy, renderPackshot } from './demo-art.js';
 import {
   DEMO_ATTRIBUTE_VALUES,
@@ -23,7 +28,9 @@ import {
   DEMO_PRODUCT_TYPES,
   DEMO_PRODUCTS,
   demoProductType,
+  EARLIER_DEMO_COPY,
   type DemoProduct,
+  type DemoVariant,
 } from './demo-catalog.js';
 import {
   DEMO_ANNOUNCEMENT,
@@ -51,7 +58,8 @@ export interface CatalogueReport {
   articles: number;
   /**
    * Structural changes: categories and product types created, demo categories placed under their
-   * parent and demo products given their product type (databases seeded by earlier versions).
+   * parent, demo products given their product type, and identifier products updated to what their
+   * packs say (databases seeded by earlier versions).
    */
   structure: number;
 }
@@ -108,6 +116,17 @@ async function seedTaxonomies(prisma: PrismaClient): Promise<number> {
     });
   }
   for (const [position, collection] of DEMO_COLLECTIONS.entries()) {
+    const earlier = EARLIER_DEMO_COPY.collections[collection.slug];
+    if (earlier) {
+      // Text an earlier version of this seed wrote, never edited since: bring it up to date.
+      for (const locale of LOCALES) {
+        const updated = await prisma.collectionTranslation.updateMany({
+          where: { collection: { slug: collection.slug }, locale, description: earlier[locale] },
+          data: { description: collection.description[locale] },
+        });
+        changes += updated.count;
+      }
+    }
     await prisma.collection.upsert({
       where: { slug: collection.slug },
       update: {},
@@ -270,6 +289,50 @@ async function seedContent(prisma: PrismaClient, now: Date): Promise<number> {
   return created;
 }
 
+async function createDemoVariant(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  variant: DemoVariant,
+  position: number,
+  stockedAt: Date,
+): Promise<void> {
+  const created = await tx.productVariant.create({
+    data: {
+      productId,
+      sku: variant.sku,
+      weightGrams: variant.weightGrams,
+      unitCount: variant.unitCount ?? null,
+      price: new Prisma.Decimal(variant.price),
+      compareAtPrice: variant.compareAtPrice ? new Prisma.Decimal(variant.compareAtPrice) : null,
+      stockQuantity: variant.stock,
+      lowStockThreshold: variant.lowStockThreshold ?? 5,
+      position,
+    },
+  });
+  if (variant.stock > 0) {
+    await tx.inventoryMovement.create({
+      data: {
+        variantId: created.id,
+        delta: variant.stock,
+        quantityAfter: variant.stock,
+        reason: 'INITIAL_STOCK',
+        note: 'Demo seed',
+        createdAt: stockedAt,
+      },
+    });
+  }
+}
+
+function translationCopy(demo: DemoProduct, locale: Locale) {
+  return {
+    name: demo.name[locale],
+    shortDescription: demo.shortDescription[locale],
+    description: demo.description[locale],
+    tastingNotes: demo.tastingNotes?.[locale] ?? null,
+    origin: demo.origin?.[locale] ?? null,
+  };
+}
+
 async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date): Promise<string> {
   const category = await prisma.category.findUniqueOrThrow({ where: { slug: demo.category } });
   const collections = await prisma.collection.findMany({
@@ -295,12 +358,7 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
         publishedAt,
         translations: {
           create: perLocale((locale) => {
-            const copy = {
-              name: demo.name[locale],
-              shortDescription: demo.shortDescription[locale],
-              description: demo.description[locale],
-              tastingNotes: demo.tastingNotes?.[locale] ?? null,
-            };
+            const copy = translationCopy(demo, locale);
             return { ...copy, searchText: productSearchText(copy) };
           }),
         },
@@ -309,39 +367,28 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
     });
 
     for (const [position, variant] of demo.variants.entries()) {
-      const created = await tx.productVariant.create({
-        data: {
-          productId: product.id,
-          sku: variant.sku,
-          weightGrams: variant.weightGrams,
-          unitCount: variant.unitCount ?? null,
-          price: new Prisma.Decimal(variant.price),
-          compareAtPrice: variant.compareAtPrice
-            ? new Prisma.Decimal(variant.compareAtPrice)
-            : null,
-          stockQuantity: variant.stock,
-          lowStockThreshold: variant.lowStockThreshold ?? 5,
-          position,
-        },
-      });
-      if (variant.stock > 0) {
-        await tx.inventoryMovement.create({
-          data: {
-            variantId: created.id,
-            delta: variant.stock,
-            quantityAfter: variant.stock,
-            reason: 'INITIAL_STOCK',
-            note: 'Demo seed',
-            // Dated with the product, so the ledger reads in order next to demo orders.
-            createdAt: publishedAt ?? now,
-          },
-        });
-      }
+      // Dated with the product, so the ledger reads in order next to demo orders.
+      await createDemoVariant(tx, product.id, variant, position, publishedAt ?? now);
     }
     await refreshMinPrice(tx, product.id);
     await assignDemoAttributes(tx, product.id, demo);
     return product.id;
   });
+}
+
+/** The pack's front and back when the product has packaging, otherwise code-drawn art. */
+async function demoImages(demo: DemoProduct, emblem: Buffer): Promise<Buffer[]> {
+  if (demo.packaging) {
+    return Promise.all(
+      [demo.packaging.front, demo.packaging.back].map((file) =>
+        readFile(resolve(seedDir, 'assets/packaging', file)),
+      ),
+    );
+  }
+  return [
+    await renderPackshot({ style: demo.art.style, shape: demo.art.shape, emblem }),
+    await renderLeafStudy({ style: demo.art.style, accent: demo.art.accent, seed: demo.slug }),
+  ];
 }
 
 async function attachDemoImages(
@@ -351,10 +398,7 @@ async function attachDemoImages(
   emblem: Buffer,
   uploadsDir: string,
 ): Promise<void> {
-  const renders = [
-    await renderPackshot({ style: demo.art.style, shape: demo.art.shape, emblem }),
-    await renderLeafStudy({ style: demo.art.style, accent: demo.art.accent, seed: demo.slug }),
-  ];
+  const renders = await demoImages(demo, emblem);
   for (const [position, render] of renders.entries()) {
     const stored = await storeImage(render, uploadsDir, productImagePrefix(productId));
     await prisma.productImage.create({
@@ -368,6 +412,77 @@ async function attachDemoImages(
       },
     });
   }
+}
+
+/**
+ * Databases seeded before TERAN supplied its packs hold invented copy, pack sizes and art for the
+ * identifiers that now have packaging. They are replaced once, and only while the product still
+ * carries exactly the copy the earlier seed wrote, so nothing edited in the admin area is touched.
+ * Earlier pack sizes stay (orders refer to them) but are switched off.
+ */
+async function upgradeToPackaging(
+  prisma: PrismaClient,
+  productId: string,
+  demo: DemoProduct,
+  options: CatalogueOptions,
+  now: Date,
+): Promise<boolean> {
+  if (!demo.packaging) return false;
+  const earlier = await prisma.productTranslation.findUnique({
+    where: { productId_locale: { productId, locale: 'uz' } },
+    select: { description: true },
+  });
+  if (!earlier?.description?.includes(EARLIER_DEMO_COPY.identifierMarker)) return false;
+
+  const category = await prisma.category.findUniqueOrThrow({
+    where: { slug: demo.category },
+    select: { id: true },
+  });
+  const replacedImages = await prisma.$transaction(async (tx) => {
+    await tx.product.update({
+      where: { id: productId },
+      data: {
+        categoryId: category.id,
+        isFeatured: demo.featured,
+        illustrationKey: demo.illustrationKey,
+        brewTempCelsius: demo.brewing?.tempC ?? null,
+        brewTimeMinSeconds: demo.brewing?.minSeconds ?? null,
+        brewTimeMaxSeconds: demo.brewing?.maxSeconds ?? null,
+        brewAmountGrams:
+          demo.brewing?.grams != null ? new Prisma.Decimal(demo.brewing.grams) : null,
+      },
+    });
+    for (const locale of LOCALES) {
+      const copy = translationCopy(demo, locale);
+      await tx.productTranslation.update({
+        where: { productId_locale: { productId, locale } },
+        data: { ...copy, searchText: productSearchText(copy) },
+      });
+    }
+    const skus = demo.variants.map((variant) => variant.sku);
+    await tx.productVariant.updateMany({
+      where: { productId, sku: { notIn: skus } },
+      data: { isActive: false },
+    });
+    for (const [position, variant] of demo.variants.entries()) {
+      const exists = await tx.productVariant.findUnique({ where: { sku: variant.sku } });
+      if (!exists) await createDemoVariant(tx, productId, variant, position, now);
+    }
+    await refreshMinPrice(tx, productId);
+    const images = await tx.productImage.findMany({
+      where: { productId },
+      select: { storageKey: true },
+    });
+    await tx.productImage.deleteMany({ where: { productId } });
+    return images;
+  });
+  for (const image of replacedImages) {
+    await deleteStoredImage(options.uploadsDir, image.storageKey);
+  }
+  if (options.emblem) {
+    await attachDemoImages(prisma, productId, demo, options.emblem, options.uploadsDir);
+  }
+  return true;
 }
 
 export async function seedCatalogue(
@@ -392,6 +507,7 @@ export async function seedCatalogue(
         );
         if (typed) structure += 1;
       }
+      if (await upgradeToPackaging(prisma, existing.id, demo, options, now)) structure += 1;
       continue;
     }
     const productId = await createProduct(prisma, demo, now);

@@ -3,32 +3,39 @@
 /*
  * TERAN design system (docs/design/design-system.md, docs/design/typography.md).
  *
- * Two layers: the brand palette measured on the supplied logo (forest, leaf, gold, ivory, sage,
- * ink), and semantic tokens that components use (canvas, surface, fg, brand, accent, line,
- * success…). Every text/background pairing used in the interface meets WCAG 2.2 AA.
+ * Two layers: the brand palette measured on the TERAN packaging print files (forest, leaf, gold;
+ * ivory, sage and ink are the storefront's neutrals), and semantic tokens that components use
+ * (canvas, surface, fg, brand, accent, line, success…). Every text/background pairing used in the
+ * interface meets WCAG 2.2 AA.
  */
 @theme {
   /* ── Brand palette ──────────────────────────────────────────────────────────────────────── */
-  --color-forest-950: #061f10;
-  --color-forest-900: #0b2e19;
-  --color-forest-800: #123f24;
-  --color-forest-700: #1a5530;
-  --color-forest-600: #24683d;
+  /* Greens: the logo's #1a5317 is forest-700; deeper shades for dark bands and type. */
+  --color-forest-950: #082b0d;
+  --color-forest-900: #0e3d12;
+  --color-forest-800: #154a17;
+  --color-forest-700: #1a5317;
+  --color-forest-600: #236b23;
 
-  --color-leaf-700: #255622;
-  --color-leaf-600: #2f6b2c;
-  --color-leaf-500: #3e8535;
-  --color-leaf-300: #8db86a;
-  --color-leaf-100: #e4edd9;
+  /* The leaves' brighter greens. */
+  --color-leaf-700: #24601f;
+  --color-leaf-600: #2b7a26;
+  --color-leaf-500: #2f9431;
+  --color-leaf-300: #8fc46f;
+  --color-leaf-100: #e3f0d8;
 
-  --color-gold-800: #6b4c10;
-  --color-gold-700: #876118;
-  --color-gold-600: #a87a24;
-  --color-gold-500: #c5963a;
-  --color-gold-400: #d8b160;
-  --color-gold-300: #e7c878;
-  --color-gold-100: #f5eacb;
-  --color-gold-50: #fbf6e9;
+  /* The packaging gold (#b87800 to #e8c820); 700 and darker are safe for text on light. */
+  --color-gold-800: #6b4a00;
+  --color-gold-700: #855c00;
+  --color-gold-600: #b07c00;
+  --color-gold-500: #d0a20a;
+  --color-gold-400: #e2b918;
+  --color-gold-300: #efcf4a;
+  --color-gold-100: #f8edc6;
+  --color-gold-50: #fdf8e8;
+
+  /* The red of the ® and the 茶叶 seal; ornament only, never text. */
+  --color-seal: #e3000f;
 
   --color-ivory-50: #fcfaf4;
   --color-ivory-100: #f6f0e3;
@@ -143,10 +150,12 @@
   --radius-panel: 1.25rem;
 
   /* ── Elevation ──────────────────────────────────────────────────────────────────────────── */
-  --shadow-xs: 0 1px 2px rgb(11 46 25 / 0.06);
-  --shadow-soft: 0 1px 2px rgb(11 46 25 / 0.05), 0 10px 28px -16px rgb(11 46 25 / 0.2);
-  --shadow-lift: 0 2px 4px rgb(11 46 25 / 0.06), 0 22px 44px -22px rgb(11 46 25 / 0.3);
-  --shadow-overlay: 0 24px 64px -24px rgb(6 31 16 / 0.42), 0 2px 6px rgb(6 31 16 / 0.08);
+  --shadow-xs: 0 1px 2px rgb(14 61 18 / 0.06);
+  --shadow-soft: 0 1px 2px rgb(14 61 18 / 0.05), 0 10px 28px -16px rgb(14 61 18 / 0.2);
+  --shadow-lift: 0 2px 4px rgb(14 61 18 / 0.06), 0 22px 44px -22px rgb(14 61 18 / 0.3);
+  --shadow-overlay: 0 24px 64px -24px rgb(8 43 13 / 0.42), 0 2px 6px rgb(8 43 13 / 0.08);
+  /* A pack standing on a surface. */
+  --shadow-pack: 0 30px 40px -24px rgb(32 24 8 / 0.45), 0 8px 14px -10px rgb(32 24 8 / 0.3);
 
   /* ── Motion ─────────────────────────────────────────────────────────────────────────────── */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -236,7 +245,7 @@
   }
 
   dialog::backdrop {
-    background: rgb(6 31 16 / 0.46);
+    background: rgb(8 43 13 / 0.46);
   }
 
   :focus-visible {

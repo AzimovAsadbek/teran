@@ -195,7 +195,7 @@ function MegaPanel({ id, open, children }: { id: string; open: boolean; children
     <div
       id={id}
       hidden={!open}
-      className="absolute inset-x-0 top-full border-t border-line-subtle bg-surface shadow-[0_28px_56px_-32px_rgb(11_46_25_/_0.4)] motion-safe:animate-fade-in"
+      className="absolute inset-x-0 top-full border-t border-line-subtle bg-surface shadow-[0_28px_56px_-32px_rgb(14_61_18_/_0.4)] motion-safe:animate-fade-in"
     >
       <div className="container-page py-8">{children}</div>
     </div>

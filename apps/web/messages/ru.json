@@ -115,6 +115,8 @@
     "metaTitle": "TERAN — интернет-магазин премиального чая",
     "heroCta": "Смотреть чай",
     "heroSecondaryCta": "Для бизнеса",
+    "heroPacks": "Упаковки TERAN: XC2025, 8009, G8810 и 8830 — китайский зелёный чай",
+    "valuesTitle": "Ценности TERAN",
     "showcaseTitle": "Выберите свой любимый чай",
     "showcaseTabs": "Подборки товаров",
     "tabFeatured": "Рекомендуем",
@@ -150,7 +152,8 @@
     "minutesSingle": "{min} мин",
     "celsius": "{value} °C",
     "gramsPerCup": "{grams} г / 250 мл",
-    "chooseType": "Выберите вид чая"
+    "chooseType": "Выберите вид чая",
+    "method": "Способ приготовления"
   },
   "Catalog": {
     "title": "Весь чай",

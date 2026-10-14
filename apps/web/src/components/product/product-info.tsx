@@ -134,12 +134,21 @@ export async function ProductInfo({ product }: { product: ProductDetailDto }) {
   );
 }
 
-/** Brewing guidance from the product data as an attribute row (temperature · time · amount). */
+/**
+ * Brewing guidance from the product data, styled after the pack's "Tayyorlash usuli" panel: a
+ * green title bar, then amount · temperature · time side by side.
+ */
 export async function BrewingFacts({ brewing }: { brewing: ProductDetailDto['brewing'] }) {
   if (!brewing) return null;
-  const t = await getTranslations('Product');
   const tb = await getTranslations('Brewing');
   const facts = [
+    brewing.amountGrams !== null
+      ? {
+          icon: Scale,
+          label: tb('amount'),
+          value: tb('gramsPerCup', { grams: Number(brewing.amountGrams) }),
+        }
+      : null,
     brewing.temperatureCelsius !== null
       ? {
           icon: Thermometer,
@@ -160,35 +169,41 @@ export async function BrewingFacts({ brewing }: { brewing: ProductDetailDto['bre
               : tb('minutesSingle', { min: minutes(brewing.timeMinSeconds) }),
         }
       : null,
-    brewing.amountGrams !== null
-      ? {
-          icon: Scale,
-          label: tb('amount'),
-          value: tb('gramsPerCup', { grams: Number(brewing.amountGrams) }),
-        }
-      : null,
   ].filter((fact) => fact !== null);
   if (facts.length === 0) return null;
   const columns = ['grid-cols-1', 'grid-cols-2', 'grid-cols-3'][facts.length - 1];
 
   return (
-    <section aria-labelledby="brewing-facts" className="mt-8">
-      <h2 id="brewing-facts" className="text-label text-fg">
-        {t('brewing')}
-      </h2>
-      <dl
-        className={cn(
-          'mt-2.5 grid divide-x divide-line rounded-card border border-line bg-surface',
-          columns,
-        )}
+    <section
+      aria-labelledby="brewing-facts"
+      className="mt-8 overflow-hidden rounded-card border border-line bg-surface"
+    >
+      <h2
+        id="brewing-facts"
+        className="bg-forest-700 px-4 py-2 text-center text-caption font-bold tracking-[0.16em] text-ivory-50 uppercase"
       >
-        {facts.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="min-w-0 px-3 py-3.5 sm:px-4">
-            <dt className="flex items-center gap-1.5 text-caption text-fg-subtle">
-              <Icon aria-hidden className="h-3.5 w-3.5 shrink-0 text-accent-fg" />
-              {label}
-            </dt>
-            <dd className="mt-1 text-title-sm text-fg">{value}</dd>
+        {tb('method')}
+      </h2>
+      <dl className={cn('grid', columns)}>
+        {facts.map(({ icon: Icon, label, value }, index) => (
+          <div
+            key={label}
+            className={cn(
+              'flex min-w-0 flex-col items-center px-2 py-4 text-center sm:px-3',
+              index > 0 && 'border-l border-line',
+            )}
+          >
+            {/* The label reads first; on screen it sits under the value, as on the pack. */}
+            <dt className="order-2 mt-1 text-caption text-fg-subtle">{label}</dt>
+            <dd className="order-1 flex flex-col items-center">
+              <span
+                aria-hidden
+                className="flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-forest-700 text-forest-700"
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="mt-2 text-title-sm text-fg">{value}</span>
+            </dd>
           </div>
         ))}
       </dl>

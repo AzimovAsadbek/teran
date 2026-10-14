@@ -27,7 +27,7 @@ export function StickyHeader({ children }: { children: ReactNode }) {
       <div
         ref={headerRef}
         data-scrolled="false"
-        className="group/header sticky top-0 z-40 border-b border-line-subtle bg-canvas transition-[background-color,box-shadow,border-color] duration-300 data-[scrolled=true]:border-line data-[scrolled=true]:shadow-[0_12px_32px_-24px_rgb(11_46_25_/_0.45)] supports-[backdrop-filter]:data-[scrolled=true]:bg-canvas/90 [@media(prefers-reduced-transparency:reduce)]:data-[scrolled=true]:bg-canvas supports-[backdrop-filter]:data-[scrolled=true]:backdrop-blur-xl supports-[backdrop-filter]:data-[scrolled=true]:backdrop-saturate-150"
+        className="group/header sticky top-0 z-40 border-b border-line-subtle bg-canvas transition-[background-color,box-shadow,border-color] duration-300 data-[scrolled=true]:border-line data-[scrolled=true]:shadow-[0_12px_32px_-24px_rgb(14_61_18_/_0.45)] supports-[backdrop-filter]:data-[scrolled=true]:bg-canvas/90 [@media(prefers-reduced-transparency:reduce)]:data-[scrolled=true]:bg-canvas supports-[backdrop-filter]:data-[scrolled=true]:backdrop-blur-xl supports-[backdrop-filter]:data-[scrolled=true]:backdrop-saturate-150"
       >
         {children}
       </div>

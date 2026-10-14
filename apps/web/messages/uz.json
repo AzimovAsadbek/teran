@@ -115,6 +115,8 @@
     "metaTitle": "TERAN — premium choy onlayn doʻkoni",
     "heroCta": "Choylarni koʻrish",
     "heroSecondaryCta": "Biznes uchun",
+    "heroPacks": "TERAN qadoqlari: XC2025, 8009, G8810 va 8830 — Xitoy yashil choyi",
+    "valuesTitle": "TERAN qadriyatlari",
     "showcaseTitle": "Sevimli choylaringizni tanlang",
     "showcaseTabs": "Mahsulotlar toʻplami",
     "tabFeatured": "Tavsiya etamiz",
@@ -150,7 +152,8 @@
     "minutesSingle": "{min} daq",
     "celsius": "{value} °C",
     "gramsPerCup": "{grams} g / 250 ml",
-    "chooseType": "Choy turini tanlang"
+    "chooseType": "Choy turini tanlang",
+    "method": "Tayyorlash usuli"
   },
   "Catalog": {
     "title": "Barcha choylar",

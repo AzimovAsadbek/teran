@@ -1,11 +1,12 @@
 import type { IllustrationKey } from '@teran/contracts';
 import type { ReactNode } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
+import { WavePattern } from '@/components/brand/ornaments';
 import { Notice } from '@/components/ui/notice';
 
 /**
- * Header for information pages: eyebrow, serif title and intro, with the tea-type medallion in
- * gold rings on wide screens (always whole, never cropped).
+ * Header for information pages: eyebrow, serif title and intro under the pack's seigaiha waves,
+ * with the tea-type medallion in gold rings on wide screens (always whole, never cropped).
  */
 export function PageHeader({
   eyebrow,
@@ -21,7 +22,8 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header className="border-b border-line-subtle">
+    <header className="relative isolate border-b border-line-subtle">
+      <WavePattern className="inset-x-0 top-0 -z-10 h-28 opacity-25" />
       <div className="container-page grid items-center gap-10 py-12 sm:py-16 lg:grid-cols-12">
         <div className="lg:col-span-8">
           {eyebrow ? <p className="text-eyebrow text-accent-fg">{eyebrow}</p> : null}

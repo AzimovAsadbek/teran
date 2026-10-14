@@ -6,8 +6,9 @@ import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense, type ReactNode } from 'react';
 import { LogoPlate } from '@/components/brand/logo';
+import { TeaSeal } from '@/components/brand/ornaments';
 import { NewsletterForm } from '@/components/forms/newsletter-form';
-import { BRAND, brandCopy } from '@/content/brand';
+import { BRAND, brandCopy, PACKAGING } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { getCategories, leafCategories } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
@@ -122,8 +123,11 @@ export async function SiteFooter() {
       <div className="container-page grid grid-cols-1 gap-12 py-14 lg:grid-cols-12 lg:py-16">
         <div className="lg:col-span-4">
           <LogoPlate className="px-5 py-4" logoClassName="w-32" />
-          {/* The descriptor, not the tagline: the homepage already leads with the tagline. */}
-          <p className="mt-6 text-eyebrow text-accent-on-inverse">
+          {/* The line printed under the logo on every pack (Uzbek in every language, as printed). */}
+          <p lang="uz" className="mt-5 font-display text-[1.1875rem] leading-snug text-ivory-50">
+            {PACKAGING.tagline}
+          </p>
+          <p className="mt-4 text-eyebrow text-accent-on-inverse">
             {BRAND.name}® · {BRAND.descriptor}
           </p>
           <p className="mt-3 text-body-sm text-ivory-100/80">
@@ -233,6 +237,15 @@ export async function SiteFooter() {
           </div>
         </div>
       </div>
+
+      {/* The slogan along the bottom edge of the pack. */}
+      <p
+        lang="uz"
+        className="flex items-center justify-center gap-3 bg-forest-700 px-4 py-2.5 text-center text-micro tracking-[0.18em] text-ivory-50 uppercase sm:text-caption"
+      >
+        <TeaSeal className="w-3.5 shrink-0" />
+        <span>{PACKAGING.slogan.join(' • ')}</span>
+      </p>
     </footer>
   );
 }

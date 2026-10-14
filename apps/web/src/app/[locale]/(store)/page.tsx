@@ -15,6 +15,7 @@ import {
   ShowcaseSection,
 } from '@/components/home/home-sections';
 import { StorySection } from '@/components/home/story-section';
+import { BrandValues } from '@/components/brand/ornaments';
 import { Reveal } from '@/components/ui/reveal';
 import { brandCopy } from '@/content/brand';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
@@ -68,6 +69,13 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
+      {/* The pack's four values, right under the packs as on the pack itself. */}
+      <section aria-labelledby="values-title" className="container-page pt-6 pb-section-sm sm:pt-8">
+        <h2 id="values-title" className="sr-only">
+          {t('valuesTitle')}
+        </h2>
+        <BrandValues locale={locale} className="mx-auto max-w-3xl" />
+      </section>
       <Suspense fallback={<CategoryRailFallback />}>
         <CategoryRailSection />
       </Suspense>

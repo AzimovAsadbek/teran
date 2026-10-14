@@ -115,6 +115,8 @@
     "metaTitle": "TERAN — premium tea online store",
     "heroCta": "Shop teas",
     "heroSecondaryCta": "For business",
+    "heroPacks": "TERAN packs: XC2025, 8009, G8810 and 8830 — Chinese green tea",
+    "valuesTitle": "What TERAN stands for",
     "showcaseTitle": "Choose your favourite tea",
     "showcaseTabs": "Product selections",
     "tabFeatured": "Our picks",
@@ -150,7 +152,8 @@
     "minutesSingle": "{min} min",
     "celsius": "{value} °C",
     "gramsPerCup": "{grams} g / 250 ml",
-    "chooseType": "Choose a tea type"
+    "chooseType": "Choose a tea type",
+    "method": "How to brew"
   },
   "Catalog": {
     "title": "All teas",

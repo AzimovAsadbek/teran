@@ -9,7 +9,8 @@ import type { Localized } from './types';
  *   drafted for the website and waiting for the owner's approval
  *   (docs/business-information-required.md).
  *
- * Nothing here describes products: the collection identifiers are names only.
+ * Product facts (tea type, weight, brewing, origin) live with the products, not here; the
+ * packaging they come from is described in docs/design/packaging.md.
  */
 
 export const BRAND = {
@@ -20,8 +21,49 @@ export const BRAND = {
   website: { href: 'https://www.terantrade.uz', label: 'www.terantrade.uz' },
 } as const;
 
-/** Product or collection identifiers supplied by TERAN; their tea types are not confirmed yet. */
-export const COLLECTION_CODES = ['XC2025', 'G8810', 'HET8800', '8830', 'STD8009'] as const;
+/**
+ * Product identifiers supplied by TERAN. XC2025, G8810, 8830 and 8009 are printed on their packs
+ * (2026-10-14: each "Xitoy yashil choy", 400 g). The owner's first list said "STD8009"; the pack
+ * says "8009", which is what customers see. HET8800 has no packaging file yet.
+ */
+export const COLLECTION_CODES = ['XC2025', 'G8810', 'HET8800', '8830', '8009'] as const;
+
+/**
+ * Copy printed on the TERAN packaging (print files supplied by the owner, 2026-10-14). Uzbek is
+ * exactly as printed and is used as the brand signature in every language, like the tagline;
+ * the Russian and English value labels are drafts for the website, awaiting approval.
+ */
+export const PACKAGING = {
+  /** Under the logo on every pack. */
+  tagline: 'Fikrlang, tabiatning xushta’m lazzati.',
+  /** Along the bottom edge of the back ("SOF TABIAT • YAXSHI KAYFIYAT • TERAN BILAN"). */
+  slogan: ['Sof tabiat', 'Yaxshi kayfiyat', 'Teran bilan'],
+} as const;
+
+/** The four values printed with icons under the product name on every pack. */
+export const BRAND_VALUES = ['natural', 'taste', 'vigour', 'quality'] as const;
+export type BrandValue = (typeof BRAND_VALUES)[number];
+
+export const brandValueLabels: Localized<Record<BrandValue, string>> = {
+  uz: {
+    natural: 'Tabiiy mahsulot',
+    taste: 'Nafis ta’m',
+    vigour: 'Har kungi tetiklik',
+    quality: 'Sifatli tanlov',
+  },
+  ru: {
+    natural: 'Натуральный продукт',
+    taste: 'Изысканный вкус',
+    vigour: 'Бодрость каждый день',
+    quality: 'Качественный выбор',
+  },
+  en: {
+    natural: 'Natural product',
+    taste: 'Refined taste',
+    vigour: 'Everyday vigour',
+    quality: 'Quality choice',
+  },
+};
 
 /** Slug of the demonstration collection that groups the five identifiers. */
 export const PREMIUM_COLLECTION_SLUG = 'teran-premium';

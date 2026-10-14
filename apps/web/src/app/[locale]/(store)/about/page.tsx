@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Emblem } from '@/components/brand/logo';
+import { BrandValues } from '@/components/brand/ornaments';
 import { BrandPrinciples } from '@/components/content/brand-principles';
 import { Blocks } from '@/components/content/long-form';
 import { PageHeader } from '@/components/content/page-header';
@@ -26,6 +27,7 @@ export default async function AboutPage() {
   const page = aboutPage[locale];
   const copy = brandCopy[locale];
   const tn = await getTranslations('Nav');
+  const th = await getTranslations('Home');
   const tp = await getTranslations('Pages');
   const range = page.sections.find((section) => section.id === 'range');
   const history = page.sections.find((section) => section.id === 'history');
@@ -75,6 +77,14 @@ export default async function AboutPage() {
           </h2>
           <BrandPrinciples locale={locale} className="lg:col-span-8" />
         </div>
+      </section>
+
+      {/* The four values printed on every TERAN pack. */}
+      <section aria-labelledby="values-title" className="container-page py-section-sm">
+        <h2 id="values-title" className="text-center text-display-md text-forest-900">
+          {th('valuesTitle')}
+        </h2>
+        <BrandValues locale={locale} className="mx-auto mt-10 max-w-3xl" />
       </section>
 
       {range ? (

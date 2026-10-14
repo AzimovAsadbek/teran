@@ -4,7 +4,9 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
+import Image from 'next/image';
 import { TeaTypeArt } from '@/components/brand/illustrations';
+import { GoldRule, WavePattern } from '@/components/brand/ornaments';
 import { ProductCard } from '@/components/catalog/product-card';
 import { ArticleCard } from '@/components/content/article-card';
 import { ButtonLink } from '@/components/ui/button';
@@ -13,8 +15,10 @@ import { SectionHeading } from '@/components/ui/section-heading';
 import { ProductCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { brandCopy, COLLECTION_CODES, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
+import { cn } from '@/lib/cn';
 import { getCategories, getCollections, getProductList, leafCategories } from '@/lib/data/catalog';
 import { getArticles } from '@/lib/data/content';
+import terraces from '../../../public/brand/art/terraces.webp';
 import { ProductShowcase } from './product-showcase';
 
 /*
@@ -22,12 +26,12 @@ import { ProductShowcase } from './product-showcase';
  * Suspense boundary, reads through the cached loaders, and degrades to nothing if the API fails.
  */
 
-const RAIL_FRAME = 'container-page relative z-10 -mt-24 sm:-mt-28';
+const RAIL_FRAME = 'container-page';
 const RAIL_ROW =
   '-mx-gutter flex snap-x snap-mandatory scroll-px-gutter gap-3 overflow-x-auto px-gutter py-3 [scrollbar-width:thin] lg:gap-4';
 const RAIL_ITEM = 'h-40 min-w-[8.5rem] flex-1 snap-start lg:min-w-[7.25rem]';
 
-/** Tea types as a row of cards overlapping the hero's lower edge: discovery starts on screen one. */
+/** Tea types as a row of cards, straight after the brand values. */
 export async function CategoryRailSection() {
   await connection();
   const locale = await getLocale();
@@ -38,10 +42,8 @@ export async function CategoryRailSection() {
 
   return (
     <section aria-labelledby="categories-title" className={RAIL_FRAME}>
-      <h2 id="categories-title" className="sr-only">
-        {t('categoriesTitle')}
-      </h2>
-      <ul className={RAIL_ROW}>
+      <SectionHeading id="categories-title" title={t('categoriesTitle')} />
+      <ul className={cn(RAIL_ROW, 'mt-6')}>
         {categories.map((category) => (
           <li key={category.slug} className={RAIL_ITEM}>
             <Link
@@ -69,7 +71,8 @@ export async function CategoryRailSection() {
 export function CategoryRailFallback() {
   return (
     <div aria-hidden className={RAIL_FRAME}>
-      <div className={RAIL_ROW}>
+      <Skeleton className="h-10 w-64" />
+      <div className={cn(RAIL_ROW, 'mt-6')}>
         {Array.from({ length: 7 }, (_, index) => (
           <div key={index} className={RAIL_ITEM}>
             <div className="h-full rounded-card border border-line bg-surface shadow-soft" />
@@ -131,9 +134,9 @@ const COLLECTION_GRID =
 const COLLECTION_ITEM = 'w-[62%] shrink-0 snap-start sm:w-auto';
 
 /**
- * The TERAN premium collection (official copy): heading, supporting line and the five identifiers
- * exactly as supplied are part of the static page; the link and the matching products stream in,
- * each into a placeholder of the same size.
+ * The TERAN premium collection (official copy) on the tea terraces from the back of the pack:
+ * heading, supporting line and the identifiers are part of the static page; the link and the
+ * matching products stream in, each into a placeholder of the same size.
  */
 export async function CollectionSection() {
   const locale = (await rootParams.locale()) as Locale;
@@ -143,30 +146,35 @@ export async function CollectionSection() {
   return (
     <section aria-labelledby="collection-title" className="container-page pt-section-sm pb-section">
       <Reveal>
-        <div className="on-dark relative isolate overflow-hidden rounded-panel bg-surface-inverse px-6 py-10 text-fg-inverse sm:px-10 lg:px-14 lg:py-14">
-          <span
-            aria-hidden
-            className="absolute -top-28 -right-28 -z-10 h-80 w-80 rounded-full border border-gold-300/20"
+        <div className="relative isolate overflow-hidden rounded-panel border border-line bg-surface px-6 pt-10 pb-44 sm:px-10 sm:pb-56 lg:px-14 lg:py-16">
+          <Image
+            src={terraces}
+            alt=""
+            sizes="(min-width: 1024px) 66vw, 100vw"
+            fetchPriority="low"
+            className="absolute right-0 bottom-0 -z-20 w-full max-w-none lg:top-1/2 lg:w-[68%] lg:-translate-y-1/2"
           />
-          <span
+          <div
             aria-hidden
-            className="absolute -top-14 -right-14 -z-10 h-52 w-52 rounded-full border border-gold-300/15"
+            className="absolute inset-0 -z-10 bg-linear-to-b from-surface from-45% to-transparent to-75% lg:bg-linear-to-r lg:from-surface lg:from-35% lg:to-transparent lg:to-60%"
           />
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-eyebrow text-accent-on-inverse">{t('featuredEyebrow')}</p>
-              <h2 id="collection-title" className="mt-4 text-display-lg">
-                {copy.collection.heading}
-              </h2>
-              <p className="mt-4 text-body-lg text-ivory-100/85">{copy.collection.text}</p>
+          <WavePattern className="inset-x-0 top-0 -z-10 h-28 opacity-30" />
+          <div className="max-w-xl">
+            <p className="text-eyebrow text-accent-fg">{t('featuredEyebrow')}</p>
+            <h2 id="collection-title" className="mt-4 text-display-lg text-forest-900">
+              {copy.collection.heading}
+            </h2>
+            <p className="mt-4 text-body-lg text-fg-muted">{copy.collection.text}</p>
+            <GoldRule className="mt-8 max-w-sm" />
+            <p className="mt-5 font-display text-[1.5rem] leading-snug tracking-[0.04em] text-accent-fg sm:text-[1.875rem]">
+              {COLLECTION_CODES.join(' · ')}
+            </p>
+            <div className="mt-8">
+              <Suspense fallback={<div aria-hidden className="h-11 w-56" />}>
+                <CollectionLink label={t('featuredCta')} />
+              </Suspense>
             </div>
-            <Suspense fallback={<div aria-hidden className="h-11 w-56" />}>
-              <CollectionLink label={t('featuredCta')} />
-            </Suspense>
           </div>
-          <p className="mt-10 border-t border-line-inverse pt-8 font-display text-[1.625rem] leading-snug tracking-[0.04em] text-accent-on-inverse sm:text-[2rem]">
-            {COLLECTION_CODES.join(' · ')}
-          </p>
         </div>
         <Suspense
           fallback={
@@ -195,11 +203,7 @@ async function CollectionLink({ label }: { label: string }) {
     (collection) => collection.slug === PREMIUM_COLLECTION_SLUG && collection.productCount > 0,
   );
   return (
-    <ButtonLink
-      href={ready ? `/collections/${PREMIUM_COLLECTION_SLUG}` : '/catalog'}
-      variant="accent"
-      className="self-start lg:self-auto"
-    >
+    <ButtonLink href={ready ? `/collections/${PREMIUM_COLLECTION_SLUG}` : '/catalog'}>
       {label} <ArrowRight aria-hidden className="h-4 w-4" />
     </ButtonLink>
   );

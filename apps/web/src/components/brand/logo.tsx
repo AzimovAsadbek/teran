@@ -5,7 +5,8 @@ import fullLogo from '../../../public/brand/teran-logo.png';
 import wordmark from '../../../public/brand/teran-wordmark.png';
 
 /**
- * The supplied TERAN artwork (transparent cut-outs of the original logo file). It is designed
+ * The TERAN logo exactly as printed on the packaging (flat TERAN green, gold steam and saucer, red
+ * ®), cut out of the print files by scripts/packaging/build-packaging-assets.mjs. It is designed
  * for light backgrounds; on dark surfaces place it on an ivory plate (see LogoPlate).
  */
 export function Wordmark({
@@ -39,6 +40,7 @@ export function Emblem({ className, sizes = '64px' }: { className?: string; size
   );
 }
 
+/** Cup emblem above the wordmark. */
 export function StackedLogo({
   className,
   sizes = '240px',

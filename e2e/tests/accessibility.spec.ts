@@ -31,7 +31,9 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
       '/ru',
       '/en',
       '/en/catalog',
-      '/en/catalog/black-tea',
+      '/en/tea',
+      '/en/tea/black-tea',
+      '/en/gift-sets',
       '/en/collections/everyday-classics',
       '/en/products/classic-black-tea',
       '/en/search?q=tea',
@@ -85,6 +87,8 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
       '/en/admin/orders',
       '/en/admin/products',
       '/en/admin/products/new',
+      '/en/admin/categories',
+      '/en/admin/product-types',
       '/en/admin/inventory',
       '/en/admin/customers',
       '/en/admin/inquiries',
@@ -96,6 +100,52 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
       await visit(page, path);
       await expectAccessible(page, path);
     }
+  });
+
+  test('account area, order and payment pages', async ({ page }) => {
+    test.setTimeout(150_000);
+    await visit(page, '/en/account/register');
+    const main = page.getByRole('main');
+    await main.getByLabel('First name').fill('Axe');
+    await main.getByLabel('Email').fill(`axe-${Date.now()}@example.test`);
+    await main.getByLabel(/^Password/).fill('axe-password-12345');
+    await main.getByLabel('Repeat password').fill('axe-password-12345');
+    await main.getByRole('button', { name: 'Create account' }).click();
+    await expect(page).toHaveURL(/\/en\/account$/);
+    for (const path of [
+      '/en/account',
+      '/en/account/orders',
+      '/en/account/purchases',
+      '/en/account/addresses',
+      '/en/account/profile',
+      '/en/account/security',
+    ]) {
+      await visit(page, path);
+      await expectAccessible(page, path);
+    }
+    await page.getByRole('banner').getByLabel('Account menu').first().click();
+    await expectAccessible(page, 'open account menu');
+
+    // A demo online payment: the demonstration payment page and the order awaiting payment.
+    await visit(page, '/en/products/classic-black-tea');
+    await page.getByRole('button', { name: /^Add to bag · / }).click();
+    await expect(page.getByRole('dialog', { name: 'Your bag' })).toBeVisible();
+    await visit(page, '/en/checkout');
+    await main.getByLabel('Phone number').fill('90 765 43 21');
+    await main.getByLabel('Region').selectOption('UZ-TK');
+    await main.getByLabel('City or district').fill('Tashkent');
+    await main.getByLabel('Address', { exact: false }).first().fill('Axe street 1');
+    await main.getByRole('radio', { name: /Payme/ }).check();
+    await main.getByRole('checkbox', { name: /terms of use/ }).check();
+    await main.getByRole('button', { name: /^Place order · / }).click();
+    await expect(page).toHaveURL(/\/en\/payments\/demo\//);
+    await page.waitForLoadState('networkidle');
+    await expectAccessible(page, 'demonstration payment page');
+    await page.getByRole('button', { name: 'Simulate a declined payment' }).click();
+    await page.getByRole('link', { name: 'Continue to the order' }).click();
+    await expect(page).toHaveURL(/\/en\/account\/orders\/TRN-/);
+    await page.waitForLoadState('networkidle');
+    await expectAccessible(page, 'order awaiting payment');
   });
 
   test('phone menu drawer and filters @mobile', async ({ page }) => {

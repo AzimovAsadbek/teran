@@ -20,7 +20,7 @@ test.describe('phone', () => {
 
     await page.getByRole('button', { name: 'Open menu' }).click();
     const menu = page.getByRole('dialog', { name: 'Explore' });
-    await menu.getByRole('link', { name: 'All teas' }).click();
+    await menu.getByRole('link', { name: 'All products' }).click();
     await expect(page).toHaveURL(/\/en\/catalog$/);
     await expect(menu).toBeHidden();
     await expect(

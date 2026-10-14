@@ -66,6 +66,9 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         THROTTLE_DISABLED: 'true',
         WEB_REVALIDATE_URL: `${E2E_WEB_URL}/api/revalidate`,
         REVALIDATE_SECRET,
+        // Online payments are simulated by the demo provider: no provider is contacted.
+        PAYMENT_PROVIDER_MODE: 'demo',
+        PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY,CLICK,PAYME,CARD',
       };
     case 'web-build':
       // Rewrites to the API are resolved at build time, so the web app is built for this stack.

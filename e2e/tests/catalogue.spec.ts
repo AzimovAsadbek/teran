@@ -26,7 +26,7 @@ test.describe('catalogue', () => {
   });
 
   test('filters, sorts and keeps the state in the URL', async ({ page }) => {
-    await page.goto('/en/catalog/pu-erh');
+    await page.goto('/en/tea/pu-erh');
     await expect(count(page, '3 products')).toBeVisible();
 
     await visible(page.getByRole('main').getByRole('link', { name: /^In stock only/ })).click();
@@ -50,7 +50,7 @@ test.describe('catalogue', () => {
 
     // Clearing removes the filters and keeps the chosen sort order.
     await visible(page.getByRole('link', { name: 'Clear filters' })).click();
-    await expect(page).toHaveURL(/\/en\/catalog\/pu-erh\?sort=price_asc$/);
+    await expect(page).toHaveURL(/\/en\/tea\/pu-erh\?sort=price_asc$/);
     await expect(count(page, '3 products')).toBeVisible();
   });
 

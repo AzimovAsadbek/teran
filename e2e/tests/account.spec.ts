@@ -34,10 +34,13 @@ test.describe('customer account', () => {
     await expect(visible(page.getByRole('heading', { name: 'Welcome, Aziza!' }))).toBeVisible();
     await expect(visible(page.getByText('No orders yet.'))).toBeVisible();
 
+    await visible(main(page).getByRole('link', { name: 'Profile' })).click();
+    await expect(page).toHaveURL(/\/en\/account\/profile$/);
     await field(page, 'Phone').fill('90 111 22 33');
-    await main(page).getByRole('button', { name: 'Save' }).click();
+    await main(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(visible(page.getByText('Saved'))).toBeVisible();
 
+    await visible(main(page).getByRole('link', { name: 'Overview' })).click();
     await main(page).getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL(/\/en$/);
     await page.goto('/en/account');
@@ -56,6 +59,7 @@ test.describe('customer account', () => {
     await field(page, 'Password').fill(PASSWORD);
     await main(page).getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/en\/account$/);
+    await page.goto('/en/account/profile');
     await expect(field(page, 'Phone')).toHaveValue('+998 90 111 22 33');
   });
 

@@ -30,6 +30,8 @@ async function placeGuestOrder(browser: Browser, slug: string): Promise<string> 
   await field(page, 'Region').selectOption('UZ-TK');
   await field(page, 'City or district').fill('Tashkent');
   await field(page, /^Address/).fill('Test street 5');
+  // Cash on delivery: staff record the payment in this journey.
+  await page.getByRole('radio', { name: /Cash on delivery/ }).check();
   await page.getByRole('checkbox', { name: /terms of use/ }).check();
   await page.getByRole('button', { name: /^Place order · / }).click();
   await expect(page).toHaveURL(/\/en\/orders\/TRN-/);

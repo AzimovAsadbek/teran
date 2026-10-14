@@ -47,6 +47,7 @@ test.describe('guest checkout', () => {
     await page.getByLabel('Region').selectOption('UZ-TK');
     await page.getByLabel('City or district').fill('Tashkent');
     await page.getByLabel('Address', { exact: false }).first().fill('Test street 1');
+    await page.getByRole('radio', { name: /Cash on delivery/ }).check();
     await page.getByRole('checkbox', { name: /terms of use/ }).check();
 
     // The button shows the server-calculated total once the delivery quote has loaded.

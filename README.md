@@ -86,6 +86,11 @@ docs                Documentation (below)
 | [Security](docs/architecture/security.md)                              | Controls, headers, secrets, known gaps                     |
 | [Decisions](docs/architecture/decisions.md)                            | Architecture decision records                              |
 | [Design system](docs/design/design-system.md)                          | Colours, contrast, typography, components, accessibility   |
+| [Typography](docs/design/typography.md)                                | Typefaces, type scale, Uzbek and Russian rules             |
+| [Component audit](docs/design/component-audit.md)                      | Every control: variants, states, keyboard behaviour        |
+| [Design audit](docs/design/current-design-audit.md)                    | Findings before the redesign, by severity                  |
+| [Competitive benchmark](docs/design/competitive-benchmark.md)          | DAVIDsTEA compared with TERAN, dimension by dimension      |
+| [Redesign checklist](docs/design/redesign-checklist.md)                | Route by route: before, problems, changes, verification    |
 | [Reference audit](docs/design/reference-audit.md)                      | What was taken from the references, and what was not       |
 | [Local development](docs/development/setup.md)                         | Setup, commands, troubleshooting                           |
 | [Test strategy](docs/testing/test-strategy.md)                         | Test layers, coverage, production rehearsal                |

@@ -85,6 +85,10 @@ Notes for writing tests:
   role usually points at an accessibility problem.
 - `E2E_BASE_URL` runs the suite against an existing stack instead of starting one; tests then
   create real orders in that stack's database.
+- If a local build shows styles from before a change to `apps/web/src/styles/globals.css`,
+  delete `apps/web/.next/cache/turbopack` and build again: Turbopack's persistent build cache
+  served a stale Tailwind stylesheet once during the redesign (CI and Docker builds start
+  without that cache and are not affected).
 
 ## Rehearsing the production stack
 
@@ -115,7 +119,9 @@ backup and restore commands worked.
 - Homepage composition against both references
   ([reference audit §8](../design/reference-audit.md#8-homepage-composition-check-to-repeat-before-sign-off)).
 - Keyboard-only pass through browse, bag, checkout and the admin order page; a screen reader spot
-  check (VoiceOver or NVDA) of the product page and checkout.
+  check (VoiceOver or NVDA) of the product page and checkout. The redesign's scripted checks
+  (skip link, mega menu, search, showcase tabs, pack sizes, bag drawer, price popover, filter
+  drawer) are listed in the [redesign checklist](../design/redesign-checklist.md).
 - Real phones (iOS Safari and Android Chrome) for the sticky purchase bar and drawers.
 - Lighthouse on the home, catalogue and product pages of a production build.
 

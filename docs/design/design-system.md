@@ -2,7 +2,9 @@
 
 The visual language of the TERAN storefront and admin. Tokens live in
 [`apps/web/src/styles/globals.css`](../../apps/web/src/styles/globals.css) (Tailwind CSS v4,
-CSS-first `@theme`); components in `apps/web/src/components`.
+CSS-first `@theme`); components in `apps/web/src/components`. Typography has its own document:
+[typography](./typography.md). Components and their states are listed in the
+[component audit](./component-audit.md).
 
 ## Sources
 
@@ -19,114 +21,160 @@ imagery, illustration style or palette is used ([ADR-015](../architecture/decisi
 
 Colours measured on the logo: deep greens `#01250D`–`#0F4119` with botanical highlights
 `#406D1E` and `#55A92A`; golds `#AE781D` and `#C58D35` with highlights `#EAB248` and `#F9E988`.
-The token scales below are derived from them and tuned for contrast on ivory and forest surfaces.
 
-| Scale    | Tokens                                                                                                        | Role                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `forest` | 950 `#061f10` · 900 `#0b2e19` · 800 `#123f24` · 700 `#1a5530`                                                 | Brand surfaces (header bar, footer, primary buttons), headings, focus ring                           |
-| `leaf`   | 600 `#2f6b2c` · 500 `#3e8535` · 300 `#8db86a` · 100 `#e4edd9`                                                 | Positive states (in stock, success), category badges                                                 |
-| `gold`   | 800 `#6b4c10` · 700 `#876118` · 600 `#a87a24` · 500 `#c5963a` · 400 `#d8b160` · 300 `#e7c878` · 100 `#f5eacb` | Accents: eyebrows and links on light (700), text on dark (300), gold button (500), notices (100/800) |
-| `ivory`  | 50 `#fcfaf4` · 100 `#f6f0e3` · 200 `#ece3d0` · 300 `#e0d3b8`                                                  | Page background and panels, borders                                                                  |
-| `sage`   | 100 `#eef1e8` · 200 `#d6ddcb` · 300 `#b9c3ad` · 500 `#7e8975`                                                 | Quiet surfaces, form field borders (500)                                                             |
-| `ink`    | 900 `#1c211d` · 700 `#3a423c` · 500 `#5d665f`                                                                 | Body text, secondary text, captions                                                                  |
-| `danger` | 700 `#a8261d` · 100 `#f9e3e0`                                                                                 | Errors and destructive actions                                                                       |
+There are two layers. The **brand palette** keeps the measured scales; components use the
+**semantic tokens** on top of it, so a surface or text role changes in one place.
+
+### Brand palette
+
+| Scale    | Tokens                                                                                                                       | Notes                                                 |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `forest` | 950 `#061f10` · 900 `#0b2e19` · 800 `#123f24` · 700 `#1a5530` · 600 `#24683d`                                                | Brand surfaces, primary buttons, headings, focus ring |
+| `leaf`   | 700 `#255622` · 600 `#2f6b2c` · 500 `#3e8535` · 300 `#8db86a` · 100 `#e4edd9`                                                | Success                                               |
+| `gold`   | 800 `#6b4c10` · 700 `#876118` · 600 `#a87a24` · 500 `#c5963a` · 400 `#d8b160` · 300 `#e7c878` · 100 `#f5eacb` · 50 `#fbf6e9` | Accent, warning                                       |
+| `ivory`  | 50 `#fcfaf4` · 100 `#f6f0e3` · 200 `#ece3d0` · 300 `#e0d3b8`                                                                 | Page and muted surfaces                               |
+| `sage`   | 100 `#eef1e8` · 200 `#d6ddcb` · 300 `#b9c3ad` · 500 `#7e8975`                                                                | Field borders, quiet chips                            |
+| `ink`    | 900 `#1c211d` · 700 `#3a423c` · 500 `#5d665f`                                                                                | Text                                                  |
+| `danger` | 700 `#a8261d` · 100 `#f9e3e0`                                                                                                | Errors and destructive actions                        |
+
+### Semantic tokens
+
+| Token                                                | Value                                         | Role                                                   |
+| ---------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| `canvas`                                             | ivory-50                                      | Page background                                        |
+| `surface`                                            | white                                         | Cards, panels, fields, drawers' content cards          |
+| `surface-muted`                                      | ivory-100                                     | Image wells, quiet panels, table headers               |
+| `surface-sunken`                                     | ivory-200                                     | Skeletons, progress tracks, neutral pills              |
+| `surface-inverse` / `-deep`                          | forest-900 / forest-950                       | Dark bands, footer, announcement bar                   |
+| `fg` / `fg-muted` / `fg-subtle` / `fg-inverse`       | ink-900 / ink-700 / ink-500 / ivory-50        | Text hierarchy                                         |
+| `brand`, `brand-hover`, `brand-soft`                 | forest-900, forest-800, sage-100              | Primary actions, selected states, active-filter chips  |
+| `accent`, `accent-hover`                             | gold-500, gold-400                            | Marketing buttons on dark or brand surfaces, progress  |
+| `accent-fg` / `accent-on-inverse`                    | gold-700 / gold-300                           | Eyebrows and icons on light / on dark                  |
+| `line`, `line-subtle`, `line-strong`, `line-inverse` | `#e7dece`, `#f0eadc`, sage-500, ivory at 18 % | Dividers, card borders, field borders, borders on dark |
+| `focus` / `focus-inverse`                            | forest-700 / gold-300                         | Focus ring on light / on dark (`.on-dark`)             |
+| `success`, `warning`, `danger`, `info` (+ `-soft`)   | leaf-700, gold-800, danger-700, forest-700    | Status text and its tinted background                  |
 
 There is no dark theme; `color-scheme: light` and the browser theme colour is forest-900.
 
 ### Contrast (WCAG 2.2 AA)
 
-Every text and background pairing used in the interface meets AA (4.5:1 for text, 3:1 for
-large text and non-text indicators). Ratios computed from the tokens:
+Computed from the tokens (text needs 4.5:1, large text and non-text indicators 3:1):
 
-| Foreground on background                  | Ratio               | Foreground on background             | Ratio       |
-| ----------------------------------------- | ------------------- | ------------------------------------ | ----------- |
-| ink-900 on ivory-50                       | 15.66               | gold-300 on forest-900               | 9.11        |
-| ink-700 on ivory-50 / ivory-100 / white   | 9.94 / 9.13 / 10.37 | gold-300 on forest-950               | 10.68       |
-| ink-500 on ivory-50 / ivory-100 / white   | 5.70 / 5.24 / 5.95  | forest-950 on gold-500 (gold button) | 6.44        |
-| ivory-50 on forest-900                    | 14.18               | gold-800 on gold-100 (notices)       | 6.57        |
-| gold-700 on ivory-50 / ivory-100 / white  | 5.36 / 4.93 / 5.60  | danger-700 on danger-100 / white     | 5.77 / 7.09 |
-| leaf-600 on leaf-100                      | 5.34                | ink-700 on sage-200                  | 7.44        |
-| ivory-100 at 85 % on forest-950 (footer)  | 11.27               | forest-700 focus ring on ivory-50    | 8.43        |
-| sage-500 field border on white (non-text) | 3.67                | gold-300 focus ring on forest-900    | 9.11        |
+| Foreground                                            | Background                              | Ratio              |
+| ----------------------------------------------------- | --------------------------------------- | ------------------ |
+| fg (ink-900)                                          | canvas / surface                        | 15.66 / 16.35      |
+| fg-muted (ink-700)                                    | canvas / surface-muted / surface-sunken | 9.94 / 9.13 / 8.13 |
+| fg-subtle (ink-500)                                   | canvas / surface / surface-muted        | 5.70 / 5.95 / 5.24 |
+| accent-fg (gold-700)                                  | canvas / surface / surface-muted        | 5.36 / 5.60 / 4.93 |
+| brand (forest-900)                                    | canvas                                  | 14.18              |
+| fg-inverse (ivory-50)                                 | surface-inverse / surface-inverse-deep  | 14.18 / 16.61      |
+| accent-on-inverse (gold-300)                          | surface-inverse / surface-inverse-deep  | 9.11 / 10.68       |
+| ivory-100 at 85 % / 70 % (footer links / legal)       | surface-inverse-deep                    | 11.24 / 7.96       |
+| forest-950 (accent button text)                       | accent / accent-hover                   | 6.44 / 8.57        |
+| success                                               | success-soft / surface                  | 7.16 / 8.63        |
+| warning                                               | warning-soft                            | 6.57               |
+| danger                                                | danger-soft / surface                   | 5.77 / 7.09        |
+| info                                                  | info-soft                               | 7.70               |
+| forest-900 (filter chips)                             | brand-soft                              | 12.95              |
+| line-strong (text-field and select borders, non-text) | surface / canvas                        | 3.67 / 3.52        |
+| focus ring (forest-700, non-text)                     | canvas                                  | 8.43               |
+| focus ring on dark (gold-300, non-text)               | surface-inverse                         | 9.11               |
 
 Rules that keep it that way:
 
-- Gold lighter than 700 is never text on light surfaces (gold-500 on ivory is 2.6:1); it appears
-  only in decorative icons and list markers.
-- Dark sections carry the `on-dark` class, which switches the focus ring from forest-700 (1.68:1
-  on forest-900, not enough) to gold-300.
-- Errors are stated in text, never by colour alone.
+- Gold lighter than 700 is never text on light surfaces (gold-500 on ivory is 2.6:1).
+- Text fields and selects keep the full `line-strong` border: their boundary is the only cue that
+  identifies an empty field (WCAG 1.4.11). Lighter borders are used only around controls that
+  carry their own text or icon.
+- Dark sections carry the `on-dark` class, which switches the focus ring to gold-300.
+- Errors and statuses are stated in words; colour and the status dot only support them.
 
 ## Typography
 
-| Role    | Typeface                              | Notes                                                                                    |
-| ------- | ------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Display | Cormorant Garamond (`--font-display`) | Headlines; classical serif echoing the logo. Variable weights, Latin and Cyrillic.       |
-| Text/UI | Manrope (`--font-sans`)               | Body, navigation, forms, prices (tabular figures). Variable weights, Latin and Cyrillic. |
+EB Garamond for display (headings, 500 weight) and Onest for the interface, both self-hosted,
+variable and preloaded in Latin only. Display sizes are fluid (`clamp()` in rem). The full role
+scale (display, page, section, product titles, body, supporting text, navigation, prices,
+buttons, labels, helper, validation, captions) and the Uzbek and Russian rules are in
+[typography](./typography.md).
 
-Both are self-hosted through `next/font` (`apps/web/src/styles/fonts.ts`), shared by every root
-layout including the global 404 and error pages, with `display: swap` and system fallbacks.
-Only the Latin subsets are preloaded (Uzbek and English); the Cyrillic files are declared with
-`unicode-range` and download when Russian text appears.
+## Layout
 
-| Utility            | Size                                     | Weight / style                  |
-| ------------------ | ---------------------------------------- | ------------------------------- |
-| `.text-display-xl` | `clamp(2.6rem, 1.4rem + 4.6vw, 5.4rem)`  | 600, display face               |
-| `.text-display-lg` | `clamp(2.1rem, 1.4rem + 2.6vw, 3.6rem)`  | 600, display face               |
-| `.text-display-md` | `clamp(1.75rem, 1.3rem + 1.4vw, 2.5rem)` | 600, display face               |
-| `.text-eyebrow`    | 0.75rem                                  | 700, uppercase, 0.18em tracking |
+- `.container-page`: max width 88rem, side padding `--spacing-gutter` =
+  `clamp(1rem, 4vw, 2.5rem)` (also available as `px-gutter`, `-mx-gutter`, `scroll-px-gutter`
+  for rows that bleed to the screen edge).
+- Section rhythm: `--spacing-section` `clamp(3.5rem, 2.25rem + 4.5vw, 7rem)` and
+  `--spacing-section-sm` `clamp(2.5rem, 1.75rem + 3vw, 4.5rem)` (`py-section`, `pt-section-sm`…).
+- Breakpoints are Tailwind's defaults (sm 40rem, md 48rem, lg 64rem, xl 80rem). The full desktop
+  navigation starts at xl (1280 px); below it the header shows the menu drawer.
+- Twelve-column grids for page layouts (product 7/5, catalogue toolbar, footer 4/7, checkout
+  form + 24–26rem summary). Grids whose columns start at a breakpoint also declare
+  `grid-cols-1`, so long content cannot widen the page.
+- Horizontal rows (tea-type rail, product showcase, featured collection and journal on phones)
+  scroll with snap points inside a `-mx-gutter px-gutter` bleed; their focusable items keep room
+  for the focus ring.
 
-## Layout, shape and depth
+## Shape and depth
 
-- `.container-page`: max width 88rem, side padding `clamp(1rem, 4vw, 2.5rem)`.
-- Tailwind's default breakpoints (sm 40rem, md 48rem, lg 64rem, xl 80rem) and spacing scale.
-  Layouts are written mobile first.
-- Grids whose columns are defined only from a breakpoint also declare `grid-cols-1` (a
-  `minmax(0, 1fr)` track), so long content scrolls inside its panel instead of widening the page.
-  The end-to-end suite fails if a phone page scrolls sideways.
-- Radii: `--radius-card` 1.25rem, `--radius-panel` 1.75rem; buttons and inputs are pills.
-- Shadows: `--shadow-soft` (cards), `--shadow-lift` (hover), `--shadow-glass` (floating glass).
-- Touch targets are at least 44 px (`h-11`) for icon buttons and form controls.
+| Token              | Value            | Used for                                               |
+| ------------------ | ---------------- | ------------------------------------------------------ |
+| `--radius-xs`      | 0.25rem          | Focus ring corners, highlights                         |
+| `--radius-sm`      | 0.375rem         | Skeleton bars, checkboxes                              |
+| `--radius-control` | 0.625rem (10 px) | Buttons, fields, selects, small cards, notices         |
+| `--radius-card`    | 0.875rem (14 px) | Product and article cards, tiles, tables, popovers     |
+| `--radius-panel`   | 1.25rem (20 px)  | Panels, dialogs, drawers' top sheet, large media       |
+| `rounded-full`     | —                | Icon buttons, badges, chips, status pills, radios only |
+
+Shadows are soft and green-tinted: `shadow-xs` (fields, buttons), `shadow-soft` (cards, tiles),
+`shadow-lift` (hover), `shadow-overlay` (dialogs, drawers, popovers, the sticky purchase bar).
+Most cards are flat with a 1 px `line` border; shadows mark what floats.
 
 ## Glass
 
-`.glass` (ivory at 86 % opacity, 18 px blur) and `.glass-dark` (forest at 58 % with a gold
-hairline) are reserved for floating UI: the sticky header after scrolling, the hero card and the
-mobile purchase bar. Text never sits on glass over busy imagery without enough opacity. Without
-`backdrop-filter` support, or with `prefers-reduced-transparency: reduce`, they fall back to solid
-ivory-50 or forest-900.
+Used only where content passes underneath: the sticky header becomes `canvas` at 90 % with a
+backdrop blur once the page scrolls, and the sticky mobile purchase bar uses `surface` at 95 %.
+Without `backdrop-filter`, or with `prefers-reduced-transparency: reduce`, both are opaque. Text
+never sits on glass over imagery. (The earlier glass hero card and glass quick-add pill were
+removed.)
 
 ## Motion
 
-- Tokens: `--ease-soft` `cubic-bezier(0.22, 1, 0.36, 1)`; `reveal` 700 ms, `rise` 900 ms
-  (transform only, so it never delays the largest contentful paint), `fade-in` 400 ms, `marquee`
-  48 s.
-- Scroll reveals skip elements already in view and are disabled under reduced motion.
-- The category ribbon (marquee) has a pause button; under reduced motion it becomes a static,
-  scrollable strip.
-- `prefers-reduced-motion: reduce` shortens every animation and transition to near zero and
-  disables smooth scrolling.
+- Easing `--ease-standard` `cubic-bezier(0.2, 0, 0, 1)` for state changes and `--ease-soft`
+  `cubic-bezier(0.22, 1, 0.36, 1)` for movement. Durations: 150 ms for colour and border
+  changes, 200–300 ms for movement, drawers and menus, 500 ms for image zoom and progress bars.
+- Animations: `rise` (hero headline, transform only, so it never delays the largest contentful
+  paint), `reveal` (sections entering the viewport; skipped for content already in view),
+  `fade-in` (menu panels, sticky bar), `pop-in` (dialogs, popovers). The marquee was removed.
+- Hover: tea-type tiles lift 2 px, product images scale 3 %, article art 5 %, arrows nudge
+  2 px; buttons press 1 px.
+- Drawers slide with the `translate` property and fade their backdrop; the top sheet (search)
+  drops 12 px.
+- `prefers-reduced-motion: reduce` shortens every animation and transition to near zero, shows
+  revealed content immediately and disables smooth scrolling; the showcase's arrow buttons then
+  jump instead of scrolling smoothly.
 
 ## Components
 
-| Group      | Components (`apps/web/src/components`)                                                                                                                                                                                                            |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Primitives | `ui/button` (primary, secondary, gold, ghost, light, outline-light; sm/md/lg), `ui/badge`, `ui/field` (text, textarea, select, checkbox, error summary), `ui/price`, `ui/sheet` (native `<dialog>`), `ui/skeleton`, `ui/reveal`, `ui/demo-notice` |
-| Layout     | announcement bar, sticky header, desktop mega menus, mobile drawer, header actions, language switcher, footer                                                                                                                                     |
-| Brand      | `brand/logo` (wordmark, emblem, stacked logo, logo plate for dark surfaces), `brand/illustrations` (tea-type art, hero landscape)                                                                                                                 |
-| Catalogue  | product card with quick add, category tile, listing header, filter bar and mobile filters, sort, pagination, breadcrumbs, product image                                                                                                           |
-| Product    | gallery (arrow keys, thumbnails), purchase panel (pack sizes as radios, quantity stepper, sticky mobile bar), product information disclosures                                                                                                     |
-| Commerce   | bag drawer and page, checkout form with choice cards and order summary, order progress and details                                                                                                                                                |
-| Content    | page header with draft notice, long-form legal pages with table of contents and highlighted `[placeholders]`, article body (plain text), help footer                                                                                              |
-| Admin      | shell with grouped navigation, tables and status pills, filter forms, confirm dialog, editors for products, images, translations, taxonomy, stock, orders, delivery, settings, staff, articles and enquiries                                      |
+See the [component audit](./component-audit.md) for every primitive, its variants, states and
+accessibility behaviour. In short:
+
+| Group      | Components                                                                                                                                                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Primitives | `ui/button` (Button, ButtonLink, IconButton, CountBadge), `ui/controls` (input, select, textarea, radio classes; select chevron), `ui/field` (labelled fields, checkbox, error summary), `ui/notice`, `ui/badge`, `ui/price`, `ui/sheet`, `ui/modal`, `ui/section-heading`, `ui/skeleton`, `ui/demo-notice`, `ui/reveal` |
+| Layout     | announcement bar, sticky header, desktop mega menus, mobile drawer, header actions, search overlay, language switcher, footer, checkout header and footer, skip link                                                                                                                                                     |
+| Catalogue  | product card and quick add, listing header with tea-type chips, filter bar, price popover, mobile filters, sort, pagination, breadcrumbs                                                                                                                                                                                 |
+| Product    | gallery, purchase panel with pack-size cards and sticky bar, brewing facts, delivery facts, information disclosures                                                                                                                                                                                                      |
+| Commerce   | bag drawer and page, quantity stepper, checkout with numbered sections, choice cards, order summary, order progress and details                                                                                                                                                                                          |
+| Content    | page header, long-form pages, article card and body, help footer, contact and wholesale forms                                                                                                                                                                                                                            |
+| Admin      | shell, page header, panels, tables, status pills, filter forms, confirm dialog, editors                                                                                                                                                                                                                                  |
 
 ### Navigation pattern
 
-Announcement bar (forest) → sticky header with menu button (phones), desktop mega menus for teas,
-collections and about (WAI-ARIA disclosure buttons, open on click or hover, Esc closes and returns
-focus), centred wordmark, search, account and bag. The bag opens as a side drawer after adding a
-product. Phones get a full-height drawer with category tiles, collections, links and the language
-switcher.
+Announcement bar (forest-950) → sticky header: on phones and tablets a menu button, the centred
+wordmark, search, account and bag; from 1280 px the category triggers on the left with mega
+menus (WAI-ARIA disclosure buttons; each panel follows its button in the DOM so Tab moves into
+it; open on click, Enter, Space or a short hover; Esc closes and returns focus) and a search
+field-style button on the right. The bag opens as a 30rem side drawer after adding a product.
+Checkout uses a distraction-free header (back to bag, wordmark) and a footer with the policies.
 
 ## Imagery
 
@@ -147,26 +195,63 @@ switcher.
 - **Product photos** are uploaded in the admin and served as WebP renditions with `srcset`
   ([ADR-009](../architecture/decisions.md)). Until real photography exists, the seed draws
   demonstration pack shots and leaf studies in code ([ADR-014](../architecture/decisions.md)).
-- **Illustrations** (hero landscape, ten tea-type motifs) are inline SVG components, also used as
-  the placeholder when a product has no photo.
+- **Illustrations** (hero landscape, ten tea-type medallions) are inline SVG components, also used
+  as the placeholder when a product has no photo. Medallions are always shown whole (never
+  cropped by a container edge); large decorative rings and the emblem watermark are the only art
+  that bleeds off a panel.
 - **Alternative text:** product images use the product name (plus "demonstration image" in demo
   mode); decorative art is hidden from assistive technology.
 
+### Art direction for future photography
+
+The layout is ready for real photography; until it exists, the code-drawn art fills every slot.
+To keep the store consistent when photos arrive:
+
+- **Pack shots:** one style for every product — the pack facing the camera, centred on a
+  seamless ivory background (`#f6f0e3`), soft shadow below, square crop, at least 2000 px on
+  the long side (the admin creates the smaller sizes). The product card and the product page
+  show the image on `surface-muted`, so a matching background blends in.
+- **Second images:** the dry leaf on a plain plate or a cup of the brewed tea, same light.
+- **Hero (optional):** a landscape or table scene with calm space in the upper middle for the
+  centred headline; the scrim keeps the text readable, but busy detail behind the words should
+  be avoided.
+- **About and journal:** only real places, people and processes, with permission.
+
+### Missing assets
+
+| Asset                                            | Used in                                  | Status                                                                     |
+| ------------------------------------------------ | ---------------------------------------- | -------------------------------------------------------------------------- |
+| Product photographs (pack shots, leaf or cup)    | Product cards, product page, search, bag | Missing; code-drawn demonstration art is shown and labelled                |
+| Vector logo (SVG or PDF)                         | Header, footer, favicon, social image    | Missing; assets are cut from the supplied raster (sharp at all used sizes) |
+| Official brand colour values                     | Tokens                                   | Measured on the logo; to be confirmed                                      |
+| About page imagery (history, production, people) | `/about`                                 | Missing; a highlighted placeholder explains what will appear               |
+| Journal article images                           | Article cards and pages                  | Missing; tea-type medallions stand in                                      |
+| Hero photography                                 | Home                                     | Optional; the illustrated landscape is designed to stay                    |
+
+Product facts and permissions are tracked in
+[business information required](../business-information-required.md).
+
 ## Accessibility patterns
 
-- Skip link to `#main` in the store and the admin; landmarks with labelled navigation regions.
-- Dialogs (bag, search, menu, filters, confirmations) use the native `<dialog>` with `showModal()`:
-  focus is contained, Esc closes, focus returns to the opener, and the page behind does not scroll.
+- Skip link to `#main` in the store, checkout and admin; landmarks with labelled navigation.
+- Dialogs (bag, search, menu, filters, confirmations) use the native `<dialog>` with
+  `showModal()`: focus is contained, Esc closes, focus returns to the opener, the page behind
+  does not scroll, and dialogs always align text to the reading direction.
+- Buttons that are busy stay focusable (`aria-disabled` + `aria-busy`, clicks ignored), so a
+  keyboard user does not lose focus to the page while an action runs; the same applies to the
+  quantity stepper at its limits.
 - Forms: visible labels, "(optional)" on optional fields, hints and errors linked with
-  `aria-describedby`, `aria-invalid`, an error summary with `role="alert"`, and focus moved to the
-  first invalid field. Validation messages are translated keys shared with the API.
+  `aria-describedby`, `aria-invalid`, an error summary with `role="alert"`, focus moved to the
+  first invalid field, and an error disappears as soon as its field is corrected (checkout).
 - Live regions announce search results, result counts, add-to-bag status and order totals.
-- Choices use native radios (pack sizes, brewing guide, delivery and payment), so arrow keys work
-  without custom scripting.
+- Choices use native radios (pack sizes, brewing guide, delivery, payment, sort) and native
+  checkboxes, styled but never replaced.
+- The product card is one stretched link (one tab stop) whose focus ring outlines the whole card.
 - Charts in the admin are hidden from assistive technology and duplicated as a visually hidden
   table.
-- Verified by the end-to-end suite: no sideways scrolling on phones; keyboard-reachable dialogs
-  and forms are exercised in the journeys.
+- Verified by the end-to-end suite (axe, WCAG 2.2 A/AA rules, on 22 storefront pages, checkout
+  with errors, admin and phone dialogs) and by keyboard scripts listed in the
+  [redesign checklist](./redesign-checklist.md).
 
 ## Numbers and dates
 

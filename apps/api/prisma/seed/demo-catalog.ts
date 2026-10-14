@@ -1,10 +1,18 @@
 /**
  * DEMONSTRATION CATALOGUE — NOT VERIFIED TERAN PRODUCT DATA.
  *
- * Generic tea styles with neutral copy and placeholder prices so the storefront can be developed
- * and reviewed. Deliberately absent: ingredients, origins, caffeine levels, tasting notes,
- * certifications and reviews — those must come from TERAN. Brewing values are the same general
- * guidance shown on the homepage. Replace everything here with verified data before launch.
+ * A coherent range of Chinese tea styles with neutral copy and placeholder prices, so the
+ * storefront and the admin area can be demonstrated end to end.
+ *
+ * - The five collection identifiers (XC2025, G8810, HET8800, 8830, STD8009) were supplied by
+ *   TERAN. The tea type, description, price and pack sizes shown for each of them are invented
+ *   for the demo, and every one of those product pages says so.
+ * - Tasting notes describe what is typical of a tea style, not a verified product.
+ * - Deliberately absent: origins, ingredients, caffeine levels, certifications, health claims
+ *   and reviews. Those must come from TERAN.
+ * - Brewing values are general guidance for each tea type.
+ *
+ * Replace everything here with verified data before launch (docs/demo-mode.md).
  */
 import type { ArtAccent, ArtStyle, PackShape } from './demo-art.js';
 
@@ -33,6 +41,8 @@ export interface DemoVariant {
 
 export interface DemoProduct {
   slug: string;
+  /** DRAFT products exist only in the admin area (e.g. to demonstrate publishing). */
+  status?: 'ACTIVE' | 'DRAFT';
   category: string;
   collections: string[];
   format: 'LOOSE_LEAF' | 'TEA_BAGS' | 'PYRAMIDS' | 'GIFT_SET';
@@ -44,6 +54,7 @@ export interface DemoProduct {
   name: Localized<string>;
   shortDescription: Localized<string>;
   description: Localized<string>;
+  tastingNotes?: Localized<string>;
   variants: DemoVariant[];
 }
 
@@ -52,9 +63,124 @@ const BREW = {
   green: { tempC: 80, minSeconds: 120, maxSeconds: 180, grams: 2 },
   white: { tempC: 85, minSeconds: 180, maxSeconds: 300, grams: 2.5 },
   oolong: { tempC: 90, minSeconds: 180, maxSeconds: 300, grams: 3 },
-  herbal: { tempC: 100, minSeconds: 300, maxSeconds: 420, grams: 2 },
-  fruit: { tempC: 100, minSeconds: 360, maxSeconds: 480, grams: 3 },
+  puerh: { tempC: 95, minSeconds: 180, maxSeconds: 300, grams: 3 },
 } as const;
+
+/** What is typical of each style — general tea knowledge, not a description of TERAN products. */
+const NOTES = {
+  black: {
+    uz: 'Uslubga xos: toʻyimli va iliq taʼm, toza yakun.',
+    ru: 'Типично для стиля: насыщенный тёплый вкус и чистое послевкусие.',
+    en: 'Typical of the style: full and warm, with a clean finish.',
+  },
+  earlGrey: {
+    uz: 'Uslubga xos: sitrusli xushboʻylik va qora choy taʼmi.',
+    ru: 'Типично для стиля: цитрусовый аромат и вкус чёрного чая.',
+    en: 'Typical of the style: a citrus aroma over black tea.',
+  },
+  green: {
+    uz: 'Uslubga xos: yengil, yangi va oʻtsimon taʼm.',
+    ru: 'Типично для стиля: лёгкий, свежий, травянистый вкус.',
+    en: 'Typical of the style: light, fresh and grassy.',
+  },
+  jasmine: {
+    uz: 'Uslubga xos: yasmin gullarining xushboʻyligi va yengil yashil choy taʼmi.',
+    ru: 'Типично для стиля: аромат жасмина и лёгкий вкус зелёного чая.',
+    en: 'Typical of the style: jasmine fragrance over a light green tea.',
+  },
+  mint: {
+    uz: 'Uslubga xos: yalpizning salqin xushboʻyligi va yashil choy taʼmi.',
+    ru: 'Типично для стиля: прохладный аромат мяты и вкус зелёного чая.',
+    en: 'Typical of the style: cool mint over green tea.',
+  },
+  white: {
+    uz: 'Uslubga xos: nozik, yumshoq va biroz shirin taʼm.',
+    ru: 'Типично для стиля: деликатный, мягкий, сладковатый вкус.',
+    en: 'Typical of the style: delicate, soft and gently sweet.',
+  },
+  oolong: {
+    uz: 'Uslubga xos: gulli xushboʻylik va qatlamli taʼm.',
+    ru: 'Типично для стиля: цветочный аромат и многослойный вкус.',
+    en: 'Typical of the style: a floral aroma and a layered taste.',
+  },
+  roastedOolong: {
+    uz: 'Uslubga xos: qovurilgan, iliq va chuqur taʼm.',
+    ru: 'Типично для стиля: тёплый, глубокий вкус с нотами обжарки.',
+    en: 'Typical of the style: toasty, warm and deep.',
+  },
+  puerh: {
+    uz: 'Uslubga xos: chuqur, yumshoq va tuproqsimon taʼm.',
+    ru: 'Типично для стиля: глубокий, мягкий, землистый вкус.',
+    en: 'Typical of the style: deep, smooth and earthy.',
+  },
+} satisfies Record<string, Localized<string>>;
+
+type ProposedStyle = 'green' | 'black' | 'white' | 'oolong' | 'puerh';
+
+/** How each identifier is presented in the demo: the proposed tea type and general advice. */
+const PROPOSED: Record<ProposedStyle, { label: Localized<string>; advice: Localized<string> }> = {
+  green: {
+    label: { uz: 'yashil choy', ru: 'зелёный чай', en: 'a green tea' },
+    advice: {
+      uz: 'Yashil choy odatda qaynoq emas, biroz sovutilgan suvda damlanadi — shunda taʼmi yumshoqroq boʻladi. Bu sahifadagi damlash tavsiyasi choy turi uchun umumiy maslahat.',
+      ru: 'Зелёный чай обычно заваривают не кипятком, а слегка остывшей водой — так вкус мягче. Рекомендации по завариванию на этой странице — общие советы для этого вида чая.',
+      en: 'Green tea is usually brewed with slightly cooled rather than boiling water, which keeps the taste softer. The brewing guidance on this page is general advice for the tea type.',
+    },
+  },
+  black: {
+    label: { uz: 'qora choy', ru: 'чёрный чай', en: 'a black tea' },
+    advice: {
+      uz: 'Qora choy uchun yangi qaynagan suv mos keladi; uni sof holda yoki sut bilan ichish mumkin. Bu sahifadagi damlash tavsiyasi choy turi uchun umumiy maslahat.',
+      ru: 'Чёрному чаю подходит свежий кипяток; его пьют в чистом виде или с молоком. Рекомендации по завариванию на этой странице — общие советы для этого вида чая.',
+      en: 'Black tea suits freshly boiled water and can be enjoyed plain or with milk. The brewing guidance on this page is general advice for the tea type.',
+    },
+  },
+  white: {
+    label: { uz: 'oq choy', ru: 'белый чай', en: 'a white tea' },
+    advice: {
+      uz: 'Oq choy ehtiyotkorlik bilan, qaynoq boʻlmagan suvda damlanadi. Bu sahifadagi damlash tavsiyasi choy turi uchun umumiy maslahat.',
+      ru: 'Белый чай заваривают бережно, водой ниже точки кипения. Рекомендации по завариванию на этой странице — общие советы для этого вида чая.',
+      en: 'White tea is brewed gently, with water below boiling. The brewing guidance on this page is general advice for the tea type.',
+    },
+  },
+  oolong: {
+    label: { uz: 'ulun choyi', ru: 'улун', en: 'an oolong' },
+    advice: {
+      uz: 'Ulun choylari odatda bir necha marta damlanadi va har damlamada taʼmi biroz oʻzgaradi. Bu sahifadagi damlash tavsiyasi choy turi uchun umumiy maslahat.',
+      ru: 'Улуны обычно заваривают несколько раз, и каждый настой немного отличается по вкусу. Рекомендации по завариванию на этой странице — общие советы для этого вида чая.',
+      en: 'Oolong is usually steeped several times, and each infusion tastes a little different. The brewing guidance on this page is general advice for the tea type.',
+    },
+  },
+  puerh: {
+    label: { uz: 'pu-erh choyi', ru: 'пуэр', en: 'a pu-erh' },
+    advice: {
+      uz: 'Pu-erh koʻpincha presslangan kulcha shaklida boʻladi: har bir damlash uchun undan kichik boʻlak ajratib olinadi. Bu sahifadagi damlash tavsiyasi choy turi uchun umumiy maslahat.',
+      ru: 'Пуэр часто прессуют в блины: для каждой заварки от него отламывают небольшой кусочек. Рекомендации по завариванию на этой странице — общие советы для этого вида чая.',
+      en: 'Pu-erh is often pressed into a cake, and a small piece is broken off for each pot. The brewing guidance on this page is general advice for the tea type.',
+    },
+  },
+};
+
+/** Name and copy for a product listed under one of TERAN's collection identifiers. */
+function identifierCopy(
+  code: string,
+  style: ProposedStyle,
+): Pick<DemoProduct, 'name' | 'shortDescription' | 'description'> {
+  const { label, advice } = PROPOSED[style];
+  return {
+    name: { uz: `TERAN ${code}`, ru: `TERAN ${code}`, en: `TERAN ${code}` },
+    shortDescription: {
+      uz: `Namoyish: ${label.uz} sifatida koʻrsatilgan.`,
+      ru: `Демо: показан как ${label.ru}.`,
+      en: `Demo listing, shown as ${label.en}.`,
+    },
+    description: {
+      uz: `${code} — TERAN premium kolleksiyasining identifikatorlaridan biri. Ushbu namoyish saytida u ${label.uz} sifatida koʻrsatilgan: choy turi, tavsif, narx va qadoq hajmlari taxminiy boʻlib, haqiqiy TERAN mahsuloti haqidagi maʼlumot emas.\n\n${advice.uz}`,
+      ru: `${code} — один из идентификаторов премиальной коллекции TERAN. На этом демонстрационном сайте он показан как ${label.ru}: вид чая, описание, цена и фасовка условные и не являются сведениями о настоящем продукте TERAN.\n\n${advice.ru}`,
+      en: `${code} is one of the identifiers of the TERAN premium collection. On this demonstration site it is shown as ${label.en}: the tea type, this description, the price and the pack sizes are placeholders, not information about the actual TERAN product.\n\n${advice.en}`,
+    },
+  };
+}
 
 export const DEMO_CATEGORIES: DemoCategory[] = [
   {
@@ -98,23 +224,14 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
     },
   },
   {
-    slug: 'herbal',
-    illustrationKey: 'herbal',
-    name: { uz: 'Giyohli damlamalar', ru: 'Травяные сборы', en: 'Herbal infusions' },
+    slug: 'pu-erh',
+    // No dedicated pu-erh illustration exists yet; the black-tea artwork is the closest match.
+    illustrationKey: 'black',
+    name: { uz: 'Pu-erh', ru: 'Пуэр', en: 'Pu-erh' },
     description: {
-      uz: 'Choy bargisiz giyohli damlamalar — kechki dam olish uchun.',
-      ru: 'Травяные сборы без чайного листа — для спокойного вечера.',
-      en: 'Infusions without tea leaves, for a calm evening.',
-    },
-  },
-  {
-    slug: 'fruit',
-    illustrationKey: 'fruit',
-    name: { uz: 'Mevali damlamalar', ru: 'Фруктовые сборы', en: 'Fruit infusions' },
-    description: {
-      uz: 'Yorqin rangli va xushboʻy mevali damlamalar.',
-      ru: 'Яркие и ароматные фруктовые сборы.',
-      en: 'Bright, aromatic fruit infusions.',
+      uz: 'Fermentlangan pu-erh choylari — bargli va presslangan.',
+      ru: 'Ферментированные чаи пуэр — листовые и прессованные.',
+      en: 'Fermented pu-erh teas, loose and pressed.',
     },
   },
   {
@@ -131,6 +248,20 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
 
 export const DEMO_COLLECTIONS: DemoCategory[] = [
   {
+    slug: 'teran-premium',
+    illustrationKey: 'gift',
+    name: {
+      uz: 'TERAN premium kolleksiyasi',
+      ru: 'Премиальная коллекция TERAN',
+      en: 'TERAN premium collection',
+    },
+    description: {
+      uz: 'Har didga oʻziga xos tanlov: XC2025 · G8810 · HET8800 · 8830 · STD8009. Namoyish rejimida choy turlari taxminiy.',
+      ru: 'Свой выбор для каждого вкуса: XC2025 · G8810 · HET8800 · 8830 · STD8009. В демо-версии виды чая условные.',
+      en: 'A choice for every taste: XC2025 · G8810 · HET8800 · 8830 · STD8009. Tea types in this demo are provisional.',
+    },
+  },
+  {
     slug: 'everyday-classics',
     illustrationKey: 'black',
     name: { uz: 'Kundalik klassika', ru: 'Повседневная классика', en: 'Everyday classics' },
@@ -142,12 +273,12 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
   },
   {
     slug: 'evening-calm',
-    illustrationKey: 'herbal',
+    illustrationKey: 'white',
     name: { uz: 'Kechki osoyishtalik', ru: 'Вечерний покой', en: 'Evening calm' },
     description: {
-      uz: 'Kechki sokin damlar uchun yengil damlamalar.',
-      ru: 'Мягкие сборы для тихого вечера.',
-      en: 'Gentle infusions for a quiet evening.',
+      uz: 'Kechki sokin damlar uchun yumshoq choylar.',
+      ru: 'Мягкие чаи для тихого вечера.',
+      en: 'Soft teas for a quiet evening.',
     },
   },
   {
@@ -163,6 +294,94 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
 ];
 
 export const DEMO_PRODUCTS: DemoProduct[] = [
+  // ─── TERAN premium collection (identifiers supplied by TERAN; everything else is a demo) ───
+  {
+    slug: 'teran-xc2025',
+    category: 'oolong',
+    collections: ['teran-premium'],
+    format: 'LOOSE_LEAF',
+    featured: false,
+    illustrationKey: 'oolong',
+    publishedDaysAgo: 30,
+    brewing: BREW.oolong,
+    art: { style: 'oolong', shape: 'box' },
+    ...identifierCopy('XC2025', 'oolong'),
+    variants: [
+      { sku: 'TRN-XC2025-50', weightGrams: 50, price: '68000', stock: 24 },
+      { sku: 'TRN-XC2025-100', weightGrams: 100, price: '124000', stock: 14 },
+    ],
+  },
+  {
+    slug: 'teran-g8810',
+    category: 'green-tea',
+    collections: ['teran-premium'],
+    format: 'LOOSE_LEAF',
+    featured: false,
+    illustrationKey: 'green',
+    publishedDaysAgo: 36,
+    brewing: BREW.green,
+    art: { style: 'green', shape: 'box' },
+    ...identifierCopy('G8810', 'green'),
+    variants: [
+      { sku: 'TRN-G8810-100', weightGrams: 100, price: '79000', stock: 36 },
+      { sku: 'TRN-G8810-250', weightGrams: 250, price: '176000', stock: 15 },
+    ],
+  },
+  {
+    slug: 'teran-het8800',
+    category: 'black-tea',
+    collections: ['teran-premium'],
+    format: 'LOOSE_LEAF',
+    featured: false,
+    illustrationKey: 'black',
+    publishedDaysAgo: 34,
+    brewing: BREW.black,
+    art: { style: 'black', shape: 'box' },
+    ...identifierCopy('HET8800', 'black'),
+    variants: [
+      { sku: 'TRN-HET8800-100', weightGrams: 100, price: '89000', stock: 40 },
+      { sku: 'TRN-HET8800-250', weightGrams: 250, price: '198000', stock: 18 },
+    ],
+  },
+  {
+    slug: 'teran-8830',
+    category: 'white-tea',
+    collections: ['teran-premium'],
+    format: 'LOOSE_LEAF',
+    featured: false,
+    illustrationKey: 'white',
+    publishedDaysAgo: 28,
+    brewing: BREW.white,
+    art: { style: 'white', shape: 'box' },
+    ...identifierCopy('8830', 'white'),
+    variants: [
+      { sku: 'TRN-8830-50', weightGrams: 50, price: '96000', stock: 20 },
+      { sku: 'TRN-8830-100', weightGrams: 100, price: '182000', stock: 8 },
+    ],
+  },
+  {
+    slug: 'teran-std8009',
+    category: 'pu-erh',
+    collections: ['teran-premium'],
+    format: 'LOOSE_LEAF',
+    featured: false,
+    illustrationKey: 'black',
+    publishedDaysAgo: 26,
+    brewing: BREW.puerh,
+    art: { style: 'puerh', shape: 'cake' },
+    ...identifierCopy('STD8009', 'puerh'),
+    variants: [
+      {
+        sku: 'TRN-STD8009-200',
+        weightGrams: 200,
+        price: '165000',
+        stock: 7,
+        lowStockThreshold: 5,
+      },
+    ],
+  },
+
+  // ─── Black tea ───
   {
     slug: 'classic-black-tea',
     category: 'black-tea',
@@ -184,6 +403,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Классический чёрный чай для ежедневного стола. Пейте в чистом виде, с молоком или со сладостями.\n\nЭто демонстрационный товар: описание будет заменено проверенными данными TERAN.',
       en: 'A classic black tea for the everyday table. Enjoy it plain, with milk or alongside something sweet.\n\nThis is a demonstration product: the description will be replaced with verified TERAN data.',
     },
+    tastingNotes: NOTES.black,
     variants: [
       { sku: 'TRN-BLK-CLS-100', weightGrams: 100, price: '45000', stock: 48 },
       { sku: 'TRN-BLK-CLS-250', weightGrams: 250, price: '98000', stock: 22 },
@@ -210,6 +430,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Чёрный чай в пакетиках для быстрого и удобного заваривания. Один пакетик на чашку.\n\nЭто демонстрационный товар.',
       en: 'Black tea in bags for quick, easy brewing. One bag per cup.\n\nThis is a demonstration product.',
     },
+    tastingNotes: NOTES.black,
     variants: [
       { sku: 'TRN-BLK-BAG-25', weightGrams: 50, unitCount: 25, price: '32000', stock: 60 },
       { sku: 'TRN-BLK-BAG-100', weightGrams: 200, unitCount: 100, price: '110000', stock: 15 },
@@ -236,11 +457,14 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Ароматный чёрный чай в стиле «Эрл Грей» — для утреннего и дневного чаепития.\n\nЭто демонстрационный товар: состав и описание должны быть подтверждены TERAN.',
       en: 'An aromatic black tea in the Earl Grey style, for morning and afternoon cups.\n\nThis is a demonstration product: composition and description must be confirmed by TERAN.',
     },
+    tastingNotes: NOTES.earlGrey,
     variants: [
       { sku: 'TRN-EGR-100', weightGrams: 100, price: '52000', compareAtPrice: '58000', stock: 30 },
       { sku: 'TRN-EGR-250', weightGrams: 250, price: '118000', stock: 12 },
     ],
   },
+
+  // ─── Green tea ───
   {
     slug: 'classic-green-tea',
     category: 'green-tea',
@@ -262,6 +486,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Лёгкий зелёный чай на любое время дня. Заваривайте не слишком горячей водой — так вкус будет мягче.\n\nЭто демонстрационный товар.',
       en: 'A light green tea for any time of day. Brew it with water that is not too hot for a softer taste.\n\nThis is a demonstration product.',
     },
+    tastingNotes: NOTES.green,
     variants: [
       { sku: 'TRN-GRN-CLS-100', weightGrams: 100, price: '48000', stock: 40 },
       { sku: 'TRN-GRN-CLS-250', weightGrams: 250, price: '105000', stock: 18 },
@@ -288,6 +513,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Зелёный чай с цветочным ароматом — для бесед с гостями.\n\nЭто демонстрационный товар: состав должен быть подтверждён TERAN.',
       en: 'A green tea with a floral fragrance, for conversations with guests.\n\nThis is a demonstration product: its composition must be confirmed by TERAN.',
     },
+    tastingNotes: NOTES.jasmine,
     variants: [
       { sku: 'TRN-GRN-JAS-100', weightGrams: 100, price: '56000', stock: 3, lowStockThreshold: 5 },
     ],
@@ -317,6 +543,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Зелёный чай в пакетиках-пирамидках. Одна пирамидка на чашку.\n\nЭто демонстрационный товар.',
       en: 'Green tea in pyramid-shaped bags. One pyramid per cup.\n\nThis is a demonstration product.',
     },
+    tastingNotes: NOTES.green,
     variants: [
       { sku: 'TRN-GRN-PYR-20', weightGrams: 50, unitCount: 20, price: '38000', stock: 35 },
     ],
@@ -342,8 +569,36 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Освежающий чай, приятный и в жаркий день, и в прохладный вечер.\n\nЭто демонстрационный товар: состав должен быть подтверждён TERAN.',
       en: 'A refreshing tea for hot days and cool evenings alike.\n\nThis is a demonstration product: its composition must be confirmed by TERAN.',
     },
+    tastingNotes: NOTES.mint,
     variants: [{ sku: 'TRN-GRN-MNT-100', weightGrams: 100, price: '50000', stock: 26 }],
   },
+  {
+    slug: 'spring-green-tea',
+    status: 'DRAFT',
+    category: 'green-tea',
+    collections: [],
+    format: 'LOOSE_LEAF',
+    featured: false,
+    illustrationKey: 'green',
+    publishedDaysAgo: 0,
+    brewing: BREW.green,
+    art: { style: 'green', shape: 'tin' },
+    name: { uz: 'Bahorgi yashil choy', ru: 'Весенний зелёный чай', en: 'Spring green tea' },
+    shortDescription: {
+      uz: 'Hali eʼlon qilinmagan qoralama mahsulot.',
+      ru: 'Черновик товара, ещё не опубликован.',
+      en: 'A draft product, not yet published.',
+    },
+    description: {
+      uz: 'Bu qoralama namoyish mahsuloti: u faqat admin panelida koʻrinadi. Uni eʼlon qilib, katalogda paydo boʻlishini tekshirish mumkin.',
+      ru: 'Это демонстрационный черновик: он виден только в админ-панели. Опубликуйте его, чтобы проверить, как товар появляется в каталоге.',
+      en: 'This is a demonstration draft: it is only visible in the admin area. Publish it to see a product appear in the catalogue.',
+    },
+    tastingNotes: NOTES.green,
+    variants: [{ sku: 'TRN-GRN-SPR-100', weightGrams: 100, price: '85000', stock: 20 }],
+  },
+
+  // ─── White tea ───
   {
     slug: 'white-tea',
     category: 'white-tea',
@@ -365,11 +620,14 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Деликатный белый чай для неспешного заваривания.\n\nЭто демонстрационный товар.',
       en: 'A delicate white tea for unhurried brewing.\n\nThis is a demonstration product.',
     },
+    tastingNotes: NOTES.white,
     variants: [
       { sku: 'TRN-WHT-50', weightGrams: 50, price: '75000', stock: 16 },
       { sku: 'TRN-WHT-100', weightGrams: 100, price: '140000', stock: 9 },
     ],
   },
+
+  // ─── Oolong ───
   {
     slug: 'oolong-tea',
     category: 'oolong',
@@ -391,102 +649,93 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       ru: 'Заваривайте улун несколько раз и открывайте новый вкус с каждой заваркой.\n\nЭто демонстрационный товар.',
       en: 'Steep this oolong several times and discover a different cup each time.\n\nThis is a demonstration product.',
     },
+    tastingNotes: NOTES.oolong,
     variants: [{ sku: 'TRN-OOL-100', weightGrams: 100, price: '82000', stock: 20 }],
   },
   {
-    slug: 'mountain-herbs',
-    category: 'herbal',
+    slug: 'roasted-oolong',
+    category: 'oolong',
     collections: ['evening-calm'],
     format: 'LOOSE_LEAF',
     featured: true,
-    illustrationKey: 'herbal',
-    publishedDaysAgo: 50,
-    brewing: BREW.herbal,
-    art: { style: 'herbal', shape: 'tin' },
-    name: { uz: 'Togʻ giyohlari', ru: 'Горные травы', en: 'Mountain herbs' },
+    illustrationKey: 'oolong',
+    publishedDaysAgo: 45,
+    brewing: BREW.oolong,
+    art: { style: 'oolong', shape: 'tin' },
+    name: { uz: 'Qovurilgan ulun', ru: 'Улун сильной обжарки', en: 'Roasted oolong' },
     shortDescription: {
-      uz: 'Kechki choy uchun giyohli damlama.',
-      ru: 'Травяной сбор для вечернего чаепития.',
-      en: 'A herbal infusion for the evening.',
+      uz: 'Qovurilgan ulun uslubidagi choy.',
+      ru: 'Чай в стиле улуна сильной обжарки.',
+      en: 'A tea in the roasted oolong style.',
     },
     description: {
-      uz: 'Kun yakunida damlash uchun giyohli damlama.\n\nBu namoyish mahsuloti: tarkib TERAN tomonidan tasdiqlanishi kerak.',
-      ru: 'Травяной сбор, чтобы завершить день.\n\nЭто демонстрационный товар: состав должен быть подтверждён TERAN.',
-      en: 'A herbal infusion to end the day.\n\nThis is a demonstration product: its composition must be confirmed by TERAN.',
+      uz: 'Qovurilgan ulunlar odatda iliqroq va chuqurroq taʼmga ega. Uni ham bir necha marta damlash mumkin.\n\nBu namoyish mahsuloti.',
+      ru: 'У улунов сильной обжарки обычно более тёплый и глубокий вкус. Его тоже можно заваривать несколько раз.\n\nЭто демонстрационный товар.',
+      en: 'Roasted oolongs usually taste warmer and deeper. This one can be steeped several times too.\n\nThis is a demonstration product.',
     },
-    variants: [{ sku: 'TRN-HRB-MTN-80', weightGrams: 80, price: '42000', stock: 33 }],
-  },
-  {
-    slug: 'chamomile-infusion',
-    category: 'herbal',
-    collections: ['evening-calm'],
-    format: 'TEA_BAGS',
-    featured: false,
-    illustrationKey: 'herbal',
-    publishedDaysAgo: 70,
-    brewing: { ...BREW.herbal, grams: null },
-    art: { style: 'herbal', shape: 'box', accent: 'chamomile' },
-    name: { uz: 'Moychechak damlamasi', ru: 'Ромашковый сбор', en: 'Chamomile infusion' },
-    shortDescription: {
-      uz: 'Paketchalardagi moychechakli damlama.',
-      ru: 'Ромашковый сбор в пакетиках.',
-      en: 'A chamomile infusion in bags.',
-    },
-    description: {
-      uz: 'Kechki sokin daqiqalar uchun moychechakli damlama.\n\nBu namoyish mahsuloti: tarkib TERAN tomonidan tasdiqlanishi kerak.',
-      ru: 'Ромашковый сбор для спокойных вечерних минут.\n\nЭто демонстрационный товар: состав должен быть подтверждён TERAN.',
-      en: 'A chamomile infusion for calm evening moments.\n\nThis is a demonstration product: its composition must be confirmed by TERAN.',
-    },
+    tastingNotes: NOTES.roastedOolong,
     variants: [
-      { sku: 'TRN-HRB-CHM-20', weightGrams: 30, unitCount: 20, price: '28000', stock: 44 },
+      { sku: 'TRN-OOL-RST-100', weightGrams: 100, price: '92000', stock: 22 },
+      { sku: 'TRN-OOL-RST-250', weightGrams: 250, price: '209000', stock: 6 },
+    ],
+  },
+
+  // ─── Pu-erh ───
+  {
+    slug: 'pu-erh-tea',
+    category: 'pu-erh',
+    collections: ['evening-calm', 'everyday-classics'],
+    format: 'LOOSE_LEAF',
+    featured: true,
+    illustrationKey: 'black',
+    publishedDaysAgo: 50,
+    brewing: BREW.puerh,
+    art: { style: 'puerh', shape: 'tin' },
+    name: { uz: 'Pu-erh choyi', ru: 'Пуэр', en: 'Pu-erh tea' },
+    shortDescription: {
+      uz: 'Pu-erh uslubidagi bargli choy.',
+      ru: 'Листовой чай в стиле пуэра.',
+      en: 'A loose-leaf tea in the pu-erh style.',
+    },
+    description: {
+      uz: 'Pu-erh — fermentlangan choy turi. Bargli pu-erhni oddiy choynakda damlash qulay.\n\nBu namoyish mahsuloti.',
+      ru: 'Пуэр — ферментированный вид чая. Рассыпной пуэр удобно заваривать в обычном чайнике.\n\nЭто демонстрационный товар.',
+      en: 'Pu-erh is a fermented type of tea. Loose pu-erh is easy to brew in an ordinary teapot.\n\nThis is a demonstration product.',
+    },
+    tastingNotes: NOTES.puerh,
+    variants: [
+      { sku: 'TRN-PUE-100', weightGrams: 100, price: '69000', stock: 28 },
+      { sku: 'TRN-PUE-250', weightGrams: 250, price: '154000', stock: 10 },
     ],
   },
   {
-    slug: 'rosehip-hibiscus',
-    category: 'fruit',
+    slug: 'mini-pu-erh',
+    category: 'pu-erh',
     collections: [],
     format: 'LOOSE_LEAF',
     featured: false,
-    illustrationKey: 'fruit',
-    publishedDaysAgo: 3,
-    brewing: BREW.fruit,
-    art: { style: 'fruit', shape: 'tin', accent: 'hibiscus' },
-    name: { uz: 'Naʼmatak va karkade', ru: 'Шиповник и каркаде', en: 'Rosehip & hibiscus' },
+    illustrationKey: 'black',
+    publishedDaysAgo: 15,
+    brewing: { ...BREW.puerh, grams: null },
+    art: { style: 'puerh', shape: 'box' },
+    name: { uz: 'Mini pu-erh', ru: 'Мини-пуэр', en: 'Mini pu-erh' },
     shortDescription: {
-      uz: 'Yorqin rangli mevali damlama.',
-      ru: 'Фруктовый сбор яркого цвета.',
-      en: 'A brightly coloured fruit infusion.',
+      uz: 'Bir damlamalik presslangan pu-erh boʻlakchalari.',
+      ru: 'Прессованные порции пуэра на одну заварку.',
+      en: 'Pressed pu-erh portions, one per pot.',
     },
     description: {
-      uz: 'Issiq yoki sovutilgan holda ichish mumkin boʻlgan yorqin damlama.\n\nBu namoyish mahsuloti: tarkib TERAN tomonidan tasdiqlanishi kerak.',
-      ru: 'Яркий сбор, который можно пить горячим или охлаждённым.\n\nЭто демонстрационный товар: состав должен быть подтверждён TERAN.',
-      en: 'A vivid infusion to enjoy hot or chilled.\n\nThis is a demonstration product: its composition must be confirmed by TERAN.',
+      uz: 'Har bir boʻlakcha — bitta choynak uchun. Sindirish yoki tortish shart emas.\n\nBu namoyish mahsuloti («mavjud emas» holatini koʻrsatish uchun).',
+      ru: 'Каждая порция — на один чайник: ничего не нужно отламывать или взвешивать.\n\nЭто демонстрационный товар (показывает состояние «нет в наличии»).',
+      en: 'Each portion makes one pot, with nothing to break off or weigh.\n\nThis is a demonstration product (it demonstrates the out-of-stock state).',
     },
-    variants: [{ sku: 'TRN-FRT-RHB-100', weightGrams: 100, price: '44000', stock: 27 }],
+    tastingNotes: NOTES.puerh,
+    variants: [
+      { sku: 'TRN-PUE-MINI-20', weightGrams: 100, unitCount: 20, price: '74000', stock: 0 },
+    ],
   },
-  {
-    slug: 'berry-infusion',
-    category: 'fruit',
-    collections: [],
-    format: 'LOOSE_LEAF',
-    featured: false,
-    illustrationKey: 'fruit',
-    publishedDaysAgo: 45,
-    brewing: BREW.fruit,
-    art: { style: 'fruit', shape: 'tin' },
-    name: { uz: 'Rezavor damlama', ru: 'Ягодный сбор', en: 'Berry infusion' },
-    shortDescription: {
-      uz: 'Rezavor mevalar uslubidagi damlama.',
-      ru: 'Сбор в ягодном стиле.',
-      en: 'A berry-style infusion.',
-    },
-    description: {
-      uz: 'Rezavor mevalar uslubidagi mevali damlama.\n\nBu namoyish mahsuloti (hozircha mavjud emas holatini koʻrsatish uchun).',
-      ru: 'Фруктовый сбор в ягодном стиле.\n\nЭто демонстрационный товар (показывает состояние «нет в наличии»).',
-      en: 'A fruit infusion in a berry style.\n\nThis is a demonstration product (it demonstrates the out-of-stock state).',
-    },
-    variants: [{ sku: 'TRN-FRT-BRY-100', weightGrams: 100, price: '46000', stock: 0 }],
-  },
+
+  // ─── Gift sets ───
   {
     slug: 'gift-set-trio',
     category: 'gift-sets',
@@ -523,4 +772,78 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       },
     ],
   },
+  {
+    slug: 'gift-set-duo',
+    category: 'gift-sets',
+    collections: ['gift-ideas'],
+    format: 'GIFT_SET',
+    featured: false,
+    illustrationKey: 'gift',
+    publishedDaysAgo: 18,
+    brewing: null,
+    art: { style: 'gift', shape: 'gift' },
+    name: {
+      uz: 'Sovgʻa toʻplami: yashil va oq choy',
+      ru: 'Подарочный набор: зелёный и белый чай',
+      en: 'Gift set: green and white tea',
+    },
+    shortDescription: {
+      uz: 'Ikki xil choydan iborat ixcham sovgʻa.',
+      ru: 'Небольшой подарок из двух видов чая.',
+      en: 'A small gift of two teas.',
+    },
+    description: {
+      uz: 'Yashil va oq choy — ikki banka bitta chiroyli qutida.\n\nBu namoyish mahsuloti: toʻplam tarkibi TERAN tomonidan tasdiqlanishi kerak.',
+      ru: 'Зелёный и белый чай — две банки в одной красивой коробке.\n\nЭто демонстрационный товар: состав набора должен быть подтверждён TERAN.',
+      en: 'Green and white tea: two tins in one handsome box.\n\nThis is a demonstration product: the set contents must be confirmed by TERAN.',
+    },
+    variants: [{ sku: 'TRN-GFT-DUO', weightGrams: null, unitCount: 2, price: '150000', stock: 14 }],
+  },
+  {
+    slug: 'teran-premium-gift-box',
+    category: 'gift-sets',
+    collections: ['gift-ideas'],
+    format: 'GIFT_SET',
+    featured: true,
+    illustrationKey: 'gift',
+    publishedDaysAgo: 2,
+    brewing: null,
+    art: { style: 'gift', shape: 'gift' },
+    name: {
+      uz: 'TERAN premium: sovgʻa qutisi',
+      ru: 'TERAN premium: подарочная коробка',
+      en: 'TERAN premium gift box',
+    },
+    shortDescription: {
+      uz: 'Premium kolleksiyadagi beshta choy — bitta sovgʻa qutisida.',
+      ru: 'Пять чаёв премиальной коллекции в одной подарочной коробке.',
+      en: 'Five teas from the premium collection in one gift box.',
+    },
+    description: {
+      uz: 'Premium kolleksiyaning beshta choyi kichik bankalarda, bitta sovgʻa qutisida.\n\nBu namoyish mahsuloti: toʻplam tarkibi, narx va qadoq TERAN tomonidan tasdiqlanishi kerak.',
+      ru: 'Пять чаёв премиальной коллекции в маленьких банках, в одной подарочной коробке.\n\nЭто демонстрационный товар: состав набора, цена и упаковка должны быть подтверждены TERAN.',
+      en: 'The five teas of the premium collection in small tins, in one gift box.\n\nThis is a demonstration product: the contents, price and packaging must be confirmed by TERAN.',
+    },
+    variants: [
+      {
+        sku: 'TRN-GFT-PREMIUM-5',
+        weightGrams: 125,
+        unitCount: 5,
+        price: '349000',
+        compareAtPrice: '389000',
+        stock: 12,
+        lowStockThreshold: 3,
+      },
+    ],
+  },
 ];
+
+/**
+ * Demo products, categories and collections from earlier versions of this file. The guarded demo
+ * reset removes them too, so an older demo database ends up with exactly the current catalogue.
+ */
+export const RETIRED_DEMO = {
+  products: ['mountain-herbs', 'chamomile-infusion', 'rosehip-hibiscus', 'berry-infusion'],
+  categories: ['herbal', 'fruit'],
+  collections: [] as string[],
+} as const;

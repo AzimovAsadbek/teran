@@ -23,6 +23,8 @@
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @teran/api prisma:migrate:dev",
     "db:seed": "pnpm --filter @teran/api db:seed",
+    "db:seed:demo": "pnpm --filter @teran/api db:seed:demo",
+    "db:demo:reset": "pnpm --filter @teran/api db:demo:reset",
     "audit:prod": "pnpm audit --prod --audit-level high"
   },
   "devDependencies": {

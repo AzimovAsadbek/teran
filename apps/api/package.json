@@ -18,6 +18,8 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:seed:demo": "tsx prisma/seed/index.ts --with-activity",
+    "db:demo:reset": "tsx prisma/seed/reset.ts",
     "admin:create": "tsx src/cli/create-admin.ts"
   },
   "dependencies": {

@@ -2,14 +2,16 @@
  * Original, code-drawn demonstration artwork for the demo catalogue.
  *
  * TERAN has no product photography yet, so every demo product gets two illustrations:
- * a packshot (tin, box or gift box carrying the real TERAN emblem) and a "loose-leaf study".
+ * a packshot (tin, box, gift box or wrapped pu-erh cake carrying the real TERAN emblem) and a
+ * "loose-leaf study".
  * Rendering is deterministic (seeded) so re-running the seed produces identical images.
  * Replace these with real photography through the admin area at any time.
  */
 import sharp from 'sharp';
 
-export type ArtStyle = 'black' | 'green' | 'white' | 'oolong' | 'herbal' | 'fruit' | 'gift';
-export type PackShape = 'tin' | 'box' | 'gift';
+export type ArtStyle =
+  'black' | 'green' | 'white' | 'oolong' | 'puerh' | 'herbal' | 'fruit' | 'gift';
+export type PackShape = 'tin' | 'box' | 'gift' | 'cake';
 export type ArtAccent = 'jasmine' | 'mint' | 'chamomile' | 'hibiscus';
 
 interface Palette {
@@ -43,6 +45,12 @@ const PALETTES: Record<ArtStyle, Palette> = {
     dark: '#0f3432',
     light: '#3f8a85',
     leaves: ['#2f4a2a', '#3b5a30', '#2a3f25', '#46663a', '#22361f'],
+  },
+  puerh: {
+    body: '#5a2a1c',
+    dark: '#2e140c',
+    light: '#8a4a32',
+    leaves: ['#3a1e12', '#4a2818', '#2c160d', '#5a321e', '#3f2214'],
   },
   herbal: {
     body: '#6e8a5a',
@@ -138,11 +146,34 @@ function giftSvg(palette: Palette): string {
     <circle cx="420" cy="740" r="96" fill="none" stroke="#c5963a" stroke-opacity="0.45" stroke-width="1"/>`;
 }
 
+/** A pressed tea cake in its paper wrapper, seen from above, with a printed band and label. */
+function cakeSvg(palette: Palette): string {
+  // Soft creases where the paper folds over the rim (fixed offsets keep the render deterministic).
+  const pleats = Array.from({ length: 30 }, (_, index) => {
+    const angle = index * 12 + (index % 3) * 3.5;
+    const depth = 26 + ((index * 7) % 5) * 7;
+    return `<path d="M600 254 q5 ${depth / 2} -1 ${depth}" stroke="#a8946b" stroke-opacity="0.2" stroke-width="2.5" stroke-linecap="round" fill="none" transform="rotate(${angle} 600 592)"/>`;
+  }).join('');
+  return `
+    <circle cx="600" cy="592" r="340" fill="url(#paper)"/>
+    <circle cx="600" cy="592" r="340" fill="none" stroke="#cbb994" stroke-width="5"/>
+    ${pleats}
+    <circle cx="600" cy="592" r="292" fill="none" stroke="url(#gold)" stroke-width="4"/>
+    <circle cx="600" cy="592" r="268" fill="none" stroke="${palette.body}" stroke-width="32"/>
+    <circle cx="600" cy="592" r="244" fill="none" stroke="url(#gold)" stroke-width="4"/>
+    <circle cx="600" cy="592" r="212" fill="#fbf7ee"/>
+    <circle cx="600" cy="592" r="200" fill="none" stroke="#c5963a" stroke-opacity="0.55" stroke-width="1.5"/>
+    <path d="M532 704 H668" stroke="#c5963a" stroke-width="2"/>
+    <path d="M600 696 l8 8 l-8 8 l-8 -8 z" fill="#c5963a"/>
+    <rect x="550" y="726" width="100" height="6" rx="3" fill="${palette.body}"/>`;
+}
+
 /** Where the emblem is composited for each pack shape (centre x, top y, width), in scene units. */
 const EMBLEM_SLOTS: Record<PackShape, { centerX: number; top: number; width: number }> = {
   tin: { centerX: 600, top: 518, width: 214 },
   box: { centerX: 565, top: 504, width: 196 },
   gift: { centerX: 420, top: 676, width: 140 },
+  cake: { centerX: 600, top: 456, width: 190 },
 };
 
 /** Visible square of the 1200×1200 scene per shape, so the pack fills the product card. */
@@ -150,6 +181,14 @@ const VIEWPORTS: Record<PackShape, { x: number; y: number; size: number }> = {
   tin: { x: 190, y: 200, size: 820 },
   box: { x: 180, y: 200, size: 850 },
   gift: { x: 150, y: 230, size: 900 },
+  cake: { x: 190, y: 182, size: 820 },
+};
+
+const SHAPES: Record<PackShape, (palette: Palette) => string> = {
+  tin: tinSvg,
+  box: boxSvg,
+  gift: giftSvg,
+  cake: cakeSvg,
 };
 
 const OUTPUT_SIZE = 1200;
@@ -160,16 +199,13 @@ export async function renderPackshot(options: {
   emblem: Buffer;
 }): Promise<Buffer> {
   const palette = PALETTES[options.style];
-  const shapeSvg =
-    options.shape === 'tin'
-      ? tinSvg(palette)
-      : options.shape === 'box'
-        ? boxSvg(palette)
-        : giftSvg(palette);
+  const shapeSvg = SHAPES[options.shape](palette);
   const shadow =
     options.shape === 'gift'
       ? '<ellipse cx="620" cy="935" rx="420" ry="40" fill="#3b2a12" opacity="0.2" filter="url(#soft)"/>'
-      : '<ellipse cx="610" cy="950" rx="290" ry="40" fill="#3b2a12" opacity="0.22" filter="url(#soft)"/>';
+      : options.shape === 'cake'
+        ? '<ellipse cx="612" cy="618" rx="352" ry="352" fill="#3b2a12" opacity="0.2" filter="url(#soft)"/>'
+        : '<ellipse cx="610" cy="950" rx="290" ry="40" fill="#3b2a12" opacity="0.22" filter="url(#soft)"/>';
 
   const view = VIEWPORTS[options.shape];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${OUTPUT_SIZE}" height="${OUTPUT_SIZE}" viewBox="${view.x} ${view.y} ${view.size} ${view.size}">
@@ -189,6 +225,11 @@ export async function renderPackshot(options: {
         <stop offset="1" stop-color="${palette.dark}"/>
       </linearGradient>
       <linearGradient id="gold" x1="0" x2="1">${GOLD_STOPS}</linearGradient>
+      <radialGradient id="paper" cx="46%" cy="40%" r="70%">
+        <stop offset="0" stop-color="#fdf9f0"/>
+        <stop offset="0.7" stop-color="#f1e7d2"/>
+        <stop offset="1" stop-color="#e2d3b4"/>
+      </radialGradient>
       <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter>
     </defs>
     <rect x="${view.x}" y="${view.y}" width="${view.size}" height="${view.size}" fill="url(#bg)"/>
@@ -261,13 +302,24 @@ export async function renderLeafStudy(options: {
       pieces.push(
         `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rotation})"><ellipse rx="${radius.toFixed(1)}" ry="${(radius * 0.78).toFixed(1)}" fill="${color}"/><ellipse cx="${(-radius * 0.3).toFixed(1)}" cy="${(-radius * 0.3).toFixed(1)}" rx="${(radius * 0.35).toFixed(1)}" ry="${(radius * 0.2).toFixed(1)}" fill="#ffffff" opacity="0.12"/></g>`,
       );
+    } else if (options.style === 'puerh' && random() < 0.3) {
+      // Pieces broken from a pressed cake: irregular, flat chunks.
+      const size = 22 + random() * 22;
+      const points = Array.from({ length: 6 }, (_, corner) => {
+        const angle = (corner / 6) * Math.PI * 2;
+        const radius = size * (0.55 + random() * 0.45);
+        return `${(Math.cos(angle) * radius).toFixed(1)},${(Math.sin(angle) * radius * 0.8).toFixed(1)}`;
+      }).join(' ');
+      pieces.push(
+        `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rotation})"><polygon points="${points}" fill="${color}"/><polygon points="${points}" fill="#ffffff" opacity="0.06" transform="translate(-2 -2) scale(0.8)"/></g>`,
+      );
     } else if (options.style === 'fruit' && random() < 0.55) {
       const size = 12 + random() * 16;
       pieces.push(
         `<rect x="${(x - size / 2).toFixed(1)}" y="${(y - size / 2).toFixed(1)}" width="${size.toFixed(1)}" height="${(size * 0.8).toFixed(1)}" rx="3" fill="${color}" transform="rotate(${rotation} ${x.toFixed(1)} ${y.toFixed(1)})"/>`,
       );
     } else {
-      const narrow = options.style === 'black' ? 0.22 : 0.36;
+      const narrow = options.style === 'black' || options.style === 'puerh' ? 0.22 : 0.36;
       const length = 30 + random() * 36;
       const width = length * (narrow + random() * 0.1);
       pieces.push(

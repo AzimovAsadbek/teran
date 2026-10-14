@@ -79,6 +79,8 @@ export const EMPTY_CONTACT = {
 
 export interface DemoArticle {
   slug: string;
+  /** DRAFT articles exist only in the admin area (to demonstrate the journal editor). */
+  status?: 'PUBLISHED' | 'DRAFT';
   illustrationKey: string;
   publishedDaysAgo: number;
   title: Localized<string>;
@@ -129,14 +131,75 @@ export const DEMO_ARTICLES: DemoArticle[] = [
       en: 'Types of tea: a short guide',
     },
     excerpt: {
-      uz: 'Qora, yashil, oq choy va ulun bir-biridan nimasi bilan farq qiladi?',
-      ru: 'Чем отличаются чёрный, зелёный, белый чай и улун?',
-      en: 'What makes black, green and white tea and oolong different?',
+      uz: 'Qora, yashil, oq choy, ulun va pu-erh bir-biridan nimasi bilan farq qiladi?',
+      ru: 'Чем отличаются чёрный, зелёный, белый чай, улун и пуэр?',
+      en: 'What makes black, green and white tea, oolong and pu-erh different?',
     },
     body: {
-      uz: 'Qora, yashil, oq choy va ulun bir oʻsimlik — choy butasi (Camellia sinensis) barglaridan tayyorlanadi. Ularning farqi asosan barglarga qanday ishlov berilishidan kelib chiqadi.\n\n## Asosiy turlar\n- Yashil choy: barglar oksidlanishdan himoyalanadi, shuning uchun taʼmi yengil va oʻtsimon boʻladi.\n- Oq choy: eng kam ishlov beriladigan choylardan biri, taʼmi nozik.\n- Ulun: qisman oksidlanadi, taʼmi yashil va qora choy oraligʻida.\n- Qora choy: toʻliq oksidlanadi, taʼmi toʻyimli va quyuq.\n\n## Giyohli damlamalar\nGiyohli va mevali damlamalar choy butasidan emas, boshqa oʻsimliklardan tayyorlanadi. Shuning uchun ular alohida guruhga kiradi.',
-      ru: 'Чёрный, зелёный, белый чай и улун делают из листьев одного растения — чайного куста (Camellia sinensis). Различия возникают в основном из-за того, как обрабатывают лист.\n\n## Основные виды\n- Зелёный чай: лист защищают от окисления, поэтому вкус лёгкий и травянистый.\n- Белый чай: один из наименее обработанных, вкус деликатный.\n- Улун: частично окисленный, вкус между зелёным и чёрным.\n- Чёрный чай: полностью окисленный, вкус насыщенный и плотный.\n\n## Травяные сборы\nТравяные и фруктовые сборы делают не из чайного куста, а из других растений, поэтому их выделяют в отдельную группу.',
-      en: 'Black, green and white tea and oolong are all made from the leaves of the same plant, the tea bush (Camellia sinensis). The differences come mostly from how the leaves are processed.\n\n## The main types\n- Green tea: the leaves are protected from oxidation, giving a light, grassy taste.\n- White tea: among the least processed teas, with a delicate taste.\n- Oolong: partly oxidised, sitting between green and black tea.\n- Black tea: fully oxidised, with a fuller, deeper taste.\n\n## Herbal infusions\nHerbal and fruit infusions are made from other plants rather than the tea bush, so they form a separate group.',
+      uz: 'Qora, yashil, oq choy, ulun va pu-erh bir oʻsimlik — choy butasi (Camellia sinensis) barglaridan tayyorlanadi. Ularning farqi asosan barglarga qanday ishlov berilishidan kelib chiqadi.\n\n## Asosiy turlar\n- Yashil choy: barglar oksidlanishdan himoyalanadi, shuning uchun taʼmi yengil va oʻtsimon boʻladi.\n- Oq choy: eng kam ishlov beriladigan choylardan biri, taʼmi nozik.\n- Ulun: qisman oksidlanadi, taʼmi yashil va qora choy oraligʻida.\n- Qora choy: toʻliq oksidlanadi, taʼmi toʻyimli va quyuq.\n- Pu-erh: fermentlangan choy, koʻpincha presslab saqlanadi; taʼmi chuqur va yumshoq.\n\n## Giyohli damlamalar\nGiyohli va mevali damlamalar choy butasidan emas, boshqa oʻsimliklardan tayyorlanadi. Shuning uchun ular alohida guruhga kiradi.',
+      ru: 'Чёрный, зелёный, белый чай, улун и пуэр делают из листьев одного растения — чайного куста (Camellia sinensis). Различия возникают в основном из-за того, как обрабатывают лист.\n\n## Основные виды\n- Зелёный чай: лист защищают от окисления, поэтому вкус лёгкий и травянистый.\n- Белый чай: один из наименее обработанных, вкус деликатный.\n- Улун: частично окисленный, вкус между зелёным и чёрным.\n- Чёрный чай: полностью окисленный, вкус насыщенный и плотный.\n- Пуэр: ферментированный чай, который часто прессуют; вкус глубокий и мягкий.\n\n## Травяные сборы\nТравяные и фруктовые сборы делают не из чайного куста, а из других растений, поэтому их выделяют в отдельную группу.',
+      en: 'Black, green and white tea, oolong and pu-erh are all made from the leaves of the same plant, the tea bush (Camellia sinensis). The differences come mostly from how the leaves are processed.\n\n## The main types\n- Green tea: the leaves are protected from oxidation, giving a light, grassy taste.\n- White tea: among the least processed teas, with a delicate taste.\n- Oolong: partly oxidised, sitting between green and black tea.\n- Black tea: fully oxidised, with a fuller, deeper taste.\n- Pu-erh: a fermented tea, often pressed into cakes, with a deep, smooth taste.\n\n## Herbal infusions\nHerbal and fruit infusions are made from other plants rather than the tea bush, so they form a separate group.',
+    },
+  },
+  {
+    slug: 'tea-at-the-uzbek-table',
+    illustrationKey: 'green',
+    publishedDaysAgo: 2,
+    title: {
+      uz: 'Oʻzbek dasturxonida choy',
+      ru: 'Чай за узбекским дастарханом',
+      en: 'Tea at the Uzbek table',
+    },
+    excerpt: {
+      uz: 'Nega mezbon piyolaga ozgina quyadi va mehmonga choy uzatishning boshqa odatlari.',
+      ru: 'Почему хозяин наливает совсем немного, и другие обычаи чаепития с гостями.',
+      en: 'Why the host pours only a little, and other customs of serving tea to guests.',
+    },
+    body: {
+      uz: 'Oʻzbek xonadonida mehmonga eng avval choy taklif qilinadi. Choy uzatishning bir necha oddiy odati bor.\n\n## Qaytarish\nChoy damlangach, mezbon odatda uni piyolaga quyib, choynakka ikki-uch marta qaytaradi. Shunda choy bir tekis damlanadi.\n\n## Oz-ozdan\nPiyola toʻla quyilmaydi: shunda choy issiq qoladi va mezbon yana quyib beradi. Toʻla piyola esa mehmonga ketish vaqti boʻlganiga ishora deb ham tushuniladi.\n\n## Uzatish\nPiyola oʻng qoʻl bilan uzatiladi, chap qoʻl esa hurmat belgisi sifatida koʻpincha koʻksiga qoʻyiladi.',
+      ru: 'В узбекском доме гостю первым делом предлагают чай. У чаепития есть несколько простых обычаев.\n\n## Кайтариш\nПосле заваривания хозяин обычно наливает чай в пиалу и возвращает его в чайник два-три раза, чтобы чай заварился равномерно. По-узбекски это называется «кайтариш».\n\n## Понемногу\nПиалу наполняют не до краёв: так чай остаётся горячим, а хозяин может подлить ещё. Полная пиала может даже намекать гостю, что пора уходить.\n\n## Подача\nПиалу подают правой рукой, часто приложив левую к груди в знак уважения.',
+      en: 'In an Uzbek home, tea is the first thing offered to a guest. Serving it follows a few simple customs.\n\n## Pouring back\nAfter brewing, the host usually pours a bowl and returns it to the teapot two or three times so the tea brews evenly. In Uzbek this is called qaytarish.\n\n## A little at a time\nThe piyola is never filled to the brim: the tea stays hot and the host can offer more. A full bowl can even hint that it is time for the guest to leave.\n\n## Serving\nThe bowl is passed with the right hand, often with the left hand on the chest as a sign of respect.',
+    },
+  },
+  {
+    slug: 'brewing-in-a-small-teapot',
+    illustrationKey: 'oolong',
+    publishedDaysAgo: 6,
+    title: {
+      uz: 'Kichik choynakda damlash',
+      ru: 'Заваривание в маленьком чайнике',
+      en: 'Brewing in a small teapot',
+    },
+    excerpt: {
+      uz: 'Koʻproq barg, kamroq suv va qisqa damlash: choy taʼmi piyoladan piyolaga qanday oʻzgarishini his qilish usuli.',
+      ru: 'Больше листа, меньше воды и короткие проливы: способ почувствовать, как вкус чая меняется от чашки к чашке.',
+      en: 'More leaf, less water and short steeps: a way to taste how a tea changes from cup to cup.',
+    },
+    body: {
+      uz: 'Koʻplab Xitoy choylari, ayniqsa ulun va pu-erh, koʻpincha kichik choynakda yoki qopqoqli kosada damlanadi. Gʻoya oddiy: koʻproq barg, kamroq suv va qisqaroq vaqt.\n\n## Qanday boshlash kerak\n- Taxminan 100–150 ml hajmli kichik choynak yoki gayvan oling.\n- Avval uni issiq suv bilan isitib, suvni toʻkib tashlang.\n- Odatdagidan koʻproq barg soling — taxminan 5–7 g.\n- Dastlabki damlashlarni qisqa qiling: 10–20 soniya.\n\n## Bir necha damlama\nHar safar choyni toʻliq quyib oling va yana damlang, har gal biroz uzoqroq. Bir xil barglardan bir necha piyola choy chiqadi va har birining taʼmi biroz farq qiladi.\n\n## Qoida emas\nBu damlash usullaridan biri, xolos. Har bir mahsulot sahifasidagi tavsiya oddiy choynakda ham yaxshi natija beradi.',
+      ru: 'Многие китайские чаи, особенно улуны и пуэры, часто заваривают в маленьком чайнике или гайвани. Идея проста: больше листа, меньше воды, короче настаивание.\n\n## С чего начать\n- Возьмите маленький чайник или гайвань объёмом около 100–150 мл.\n- Сначала прогрейте посуду горячей водой и слейте её.\n- Положите больше листа, чем обычно, — примерно 5–7 г.\n- Первые проливы делайте короткими: 10–20 секунд.\n\n## Несколько настоев\nКаждый раз сливайте весь настой и заваривайте снова, чуть дольше. Один и тот же лист даёт несколько чашек, и вкус каждой немного отличается.\n\n## Не правило\nЭто лишь один из способов заваривания. Рекомендации на странице каждого товара так же хорошо работают в обычном чайнике.',
+      en: 'Many Chinese teas, especially oolong and pu-erh, are often brewed in a small teapot or a lidded bowl. The idea is simple: more leaf, less water, shorter steeps.\n\n## How to start\n- Use a small teapot or gaiwan of about 100–150 ml.\n- Warm it with hot water first, then pour that water away.\n- Add more leaf than usual, roughly 5–7 g.\n- Keep the first steeps short: 10–20 seconds.\n\n## Several infusions\nPour off all the tea each time, then steep again, a little longer each round. The same leaves give several cups, and each tastes slightly different.\n\n## Not a rule\nThis is one way of brewing, not the only one. The guidance on each product page works just as well in an ordinary teapot.',
+    },
+  },
+  {
+    slug: 'new-season-notes',
+    status: 'DRAFT',
+    illustrationKey: 'green',
+    publishedDaysAgo: 0,
+    title: {
+      uz: 'Yangi mavsum qaydlari (qoralama)',
+      ru: 'Заметки о новом сезоне (черновик)',
+      en: 'New season notes (draft)',
+    },
+    excerpt: {
+      uz: 'Jurnal muharririni koʻrsatish uchun qoralama maqola.',
+      ru: 'Черновик статьи для демонстрации редактора журнала.',
+      en: 'A draft article used to demonstrate the journal editor.',
+    },
+    body: {
+      uz: 'Bu qoralama maqola. U faqat admin panelida koʻrinadi va maqola qanday yoziladi, koʻrib chiqiladi va eʼlon qilinishini koʻrsatadi.\n\nIshga tushirishdan oldin uni almashtiring yoki oʻchiring.',
+      ru: 'Это черновик статьи. Он виден только в админ-панели и показывает, как статью пишут, просматривают и публикуют.\n\nЗамените или удалите его перед запуском.',
+      en: 'This is a draft article. It is only visible in the admin area and shows how an article is written, previewed and published.\n\nReplace or delete it before launch.',
     },
   },
 ];

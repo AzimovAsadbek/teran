@@ -86,8 +86,9 @@ Secrets live only in the Vercel projects; nothing is committed.
 
 Both projects are connected to the GitHub repository: **every push to `main` deploys both to
 production** (each build installs the workspace, migrates the database for the API and replaces
-the live deployment once it is ready). Pushes to other branches and pull requests are skipped by
-`ignoreCommand` in each `vercel.json`, because only the production environment has settings.
+the live deployment once it is ready). Other branches get preview deployments, but only the
+production environment has settings, so previews of the API do not build: work on `main`, or add
+preview settings first.
 
 A deployment can also be made from a developer machine, from the repository root (the CLI uploads
 the repository minus `.vercelignore`):

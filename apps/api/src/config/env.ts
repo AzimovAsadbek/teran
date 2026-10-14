@@ -47,6 +47,15 @@ const envObjectSchema = z.object({
 
   UPLOADS_DIR: z.string().min(1).default('./storage/uploads'),
   UPLOAD_MAX_BYTES: z.coerce.number().int().min(100_000).max(20_000_000).default(5_242_880),
+  /** Vercel Blob read-write token: image renditions go to Blob instead of UPLOADS_DIR. */
+  BLOB_READ_WRITE_TOKEN: z.string().min(20).optional(),
+  /** Set by Vercel on its own builds and functions ("1"). */
+  VERCEL: z.string().optional(),
+  /**
+   * Secret for the scheduled-jobs endpoint (GET /api/v1/internal/jobs/run, Bearer token), used where
+   * the API cannot run its own timers (Vercel Cron sends it). Unset: the endpoint does not exist.
+   */
+  CRON_SECRET: z.string().min(32).optional(),
 
   WEB_REVALIDATE_URL: z.url().optional(),
   REVALIDATE_SECRET: z.string().min(32).optional(),
@@ -130,6 +139,14 @@ export const envSchema = z
     envObjectSchema,
   )
   .superRefine((env, ctx) => {
+    if (env.VERCEL && !env.BLOB_READ_WRITE_TOKEN) {
+      // Vercel functions have no lasting disk: uploads written to UPLOADS_DIR would vanish.
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BLOB_READ_WRITE_TOKEN'],
+        message: 'is required on Vercel (connect a Blob store to the project)',
+      });
+    }
     if (env.NODE_ENV === 'production') {
       if (!env.COOKIE_SECURE) {
         ctx.addIssue({
@@ -164,6 +181,7 @@ export const envSchema = z
         'APP_SECRET',
         'REVALIDATE_SECRET',
         'INTERNAL_API_KEY',
+        'CRON_SECRET',
         'PAYME_KEY',
         'CLICK_SECRET_KEY',
       ] as const) {

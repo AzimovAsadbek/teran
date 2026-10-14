@@ -11,6 +11,7 @@
  * Destructive: only ever called through the guarded reset command (reset.ts).
  */
 import { deleteStoredImage } from '../../src/media/image-processing.js';
+import { seedImageStore } from './catalogue.js';
 import type { PrismaClient } from '../../src/generated/prisma/client.js';
 import { DISABLED_PASSWORD_HASH } from './activity.js';
 import {
@@ -67,7 +68,7 @@ export async function removeDemoData(
   });
   await prisma.product.deleteMany({ where: { id: { in: products.map((product) => product.id) } } });
   for (const image of products.flatMap((product) => product.images)) {
-    await deleteStoredImage(uploadsDir, image.storageKey);
+    await deleteStoredImage(seedImageStore(uploadsDir), image.storageKey);
   }
 
   // Product types the demo created, once no product uses them (their definitions go with them).

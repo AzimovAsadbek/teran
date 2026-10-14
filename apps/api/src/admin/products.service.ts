@@ -30,6 +30,8 @@ import { Prisma } from '../generated/prisma/client.js';
 import {
   deleteStoredImage,
   ImageRejectedError,
+  imageStore,
+  type ImageStore,
   productImagePrefix,
   storeImage,
 } from '../media/image-processing.js';
@@ -65,7 +67,7 @@ type DetailRow = Prisma.ProductGetPayload<{ include: typeof detailInclude }>;
 
 @Injectable()
 export class AdminProductsService {
-  private readonly uploadsDir: string;
+  private readonly images: ImageStore;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -73,7 +75,10 @@ export class AdminProductsService {
     private readonly revalidation: RevalidationService,
     config: ConfigService<Env, true>,
   ) {
-    this.uploadsDir = config.get('UPLOADS_DIR', { infer: true });
+    this.images = imageStore({
+      uploadsDir: config.get('UPLOADS_DIR', { infer: true }),
+      blobToken: config.get('BLOB_READ_WRITE_TOKEN', { infer: true }),
+    });
   }
 
   async list(query: ListQuery): Promise<Paginated<AdminProductListItem>> {
@@ -307,7 +312,7 @@ export class AdminProductsService {
 
     let stored;
     try {
-      stored = await storeImage(file, this.uploadsDir, productImagePrefix(productId));
+      stored = await storeImage(file, this.images, productImagePrefix(productId));
     } catch (error) {
       if (error instanceof ImageRejectedError) {
         throw error.reason === 'too_small'
@@ -347,7 +352,7 @@ export class AdminProductsService {
         );
       });
     } catch (error) {
-      await deleteStoredImage(this.uploadsDir, stored.storageKey);
+      await deleteStoredImage(this.images, stored.storageKey);
       throw error;
     }
     this.revalidation.notify('catalog');
@@ -405,7 +410,7 @@ export class AdminProductsService {
       return found;
     });
     // Files go only after the row is gone, so the storefront never references a missing file.
-    await deleteStoredImage(this.uploadsDir, image.storageKey);
+    await deleteStoredImage(this.images, image.storageKey);
     this.revalidation.notify('catalog');
     return this.get(productId);
   }

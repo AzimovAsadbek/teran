@@ -17,6 +17,8 @@ import { refreshMinPrice } from '../../src/catalog/product-pricing.js';
 import { productSearchText } from '../../src/catalog/product-search.js';
 import {
   deleteStoredImage,
+  imageStore,
+  type ImageStore,
   productImagePrefix,
   storeImage,
 } from '../../src/media/image-processing.js';
@@ -46,6 +48,11 @@ const seedDir = dirname(fileURLToPath(import.meta.url));
 /** Where uploaded images live (UPLOADS_DIR, as for the API). */
 export function uploadsDirectory(): string {
   return resolve(process.env.UPLOADS_DIR ?? './storage/uploads');
+}
+
+/** Images go where the API keeps them: Vercel Blob when BLOB_READ_WRITE_TOKEN is set, else the directory. */
+export function seedImageStore(uploadsDir: string): ImageStore {
+  return imageStore({ uploadsDir, blobToken: process.env.BLOB_READ_WRITE_TOKEN });
 }
 
 /** The real TERAN emblem, composited onto the demo packshots. */
@@ -400,7 +407,11 @@ async function attachDemoImages(
 ): Promise<void> {
   const renders = await demoImages(demo, emblem);
   for (const [position, render] of renders.entries()) {
-    const stored = await storeImage(render, uploadsDir, productImagePrefix(productId));
+    const stored = await storeImage(
+      render,
+      seedImageStore(uploadsDir),
+      productImagePrefix(productId),
+    );
     await prisma.productImage.create({
       data: {
         productId,
@@ -477,7 +488,7 @@ async function upgradeToPackaging(
     return images;
   });
   for (const image of replacedImages) {
-    await deleteStoredImage(options.uploadsDir, image.storageKey);
+    await deleteStoredImage(seedImageStore(options.uploadsDir), image.storageKey);
   }
   if (options.emblem) {
     await attachDemoImages(prisma, productId, demo, options.emblem, options.uploadsDir);

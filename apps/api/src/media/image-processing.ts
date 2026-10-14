@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
+import { del, list, put } from '@vercel/blob';
 import sharp, { type Metadata } from 'sharp';
 
 /**
@@ -37,6 +38,60 @@ export interface StoredImage {
 }
 
 /**
+ * Where renditions are kept: `<key>/<width>.webp` in the uploads directory (served by the API under
+ * /uploads), or in Vercel Blob when a token is configured (a serverless deployment has no lasting
+ * disk; the storefront then proxies /uploads to the Blob store). The keys are the same either way.
+ */
+export interface ImageStore {
+  save(storageKey: string, width: number, data: Buffer): Promise<void>;
+  /** Removes every rendition under the key. Unknown or malformed keys are ignored. */
+  remove(storageKey: string): Promise<void>;
+}
+
+export function imageStore(options: { uploadsDir: string; blobToken?: string }): ImageStore {
+  return options.blobToken ? blobStore(options.blobToken) : directoryStore(options.uploadsDir);
+}
+
+function directoryStore(uploadsDir: string): ImageStore {
+  return {
+    async save(storageKey, width, data) {
+      const directory = storageDirectory(uploadsDir, storageKey);
+      await mkdir(directory, { recursive: true });
+      await writeFile(join(directory, `${width}.webp`), data);
+    },
+    async remove(storageKey) {
+      if (!STORAGE_KEY_PATTERN.test(storageKey)) return;
+      await rm(storageDirectory(uploadsDir, storageKey), { recursive: true, force: true });
+    },
+  };
+}
+
+function blobStore(token: string): ImageStore {
+  return {
+    async save(storageKey, width, data) {
+      await put(`${storageKey}/${width}.webp`, data, {
+        access: 'public',
+        token,
+        contentType: 'image/webp',
+        addRandomSuffix: false,
+        allowOverwrite: false,
+        // Keys are random and never reused, so the files can be cached for a year.
+        cacheControlMaxAge: 31_536_000,
+      });
+    },
+    async remove(storageKey) {
+      if (!STORAGE_KEY_PATTERN.test(storageKey)) return;
+      const { blobs } = await list({ prefix: `${storageKey}/`, token });
+      if (blobs.length > 0)
+        await del(
+          blobs.map((blob) => blob.url),
+          { token },
+        );
+    },
+  };
+}
+
+/**
  * Validates and re-encodes an uploaded image.
  *
  * - The bytes are decoded by sharp, so the client-supplied MIME type and file name are irrelevant.
@@ -46,7 +101,7 @@ export interface StoredImage {
  */
 export async function storeImage(
   input: Buffer,
-  uploadsDir: string,
+  store: ImageStore,
   prefix: string,
 ): Promise<StoredImage> {
   let metadata: Metadata;
@@ -66,9 +121,6 @@ export async function storeImage(
   }
 
   const storageKey = `${prefix}/${randomBytes(9).toString('base64url')}`;
-  const directory = storageDirectory(uploadsDir, storageKey);
-  await mkdir(directory, { recursive: true });
-
   const candidateWidths = IMAGE_WIDTHS.filter((candidate) => candidate <= width);
   const widths = candidateWidths.length > 0 ? [...candidateWidths] : [width];
   const pipeline = sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
@@ -80,10 +132,10 @@ export async function storeImage(
         .resize({ width: target, withoutEnlargement: true })
         .webp({ quality: 82, effort: 5 })
         .toBuffer();
-      await writeFile(join(directory, `${target}.webp`), output);
+      await store.save(storageKey, target, output);
     }
   } catch (error) {
-    await rm(directory, { recursive: true, force: true });
+    await store.remove(storageKey);
     throw error;
   }
 
@@ -91,9 +143,8 @@ export async function storeImage(
 }
 
 /** Deletes every rendition of a stored image. Unknown or malformed keys are ignored. */
-export async function deleteStoredImage(uploadsDir: string, storageKey: string): Promise<void> {
-  if (!STORAGE_KEY_PATTERN.test(storageKey)) return;
-  await rm(storageDirectory(uploadsDir, storageKey), { recursive: true, force: true });
+export async function deleteStoredImage(store: ImageStore, storageKey: string): Promise<void> {
+  await store.remove(storageKey);
 }
 
 export function productImagePrefix(productId: string): string {

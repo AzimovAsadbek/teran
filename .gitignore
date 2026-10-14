@@ -22,6 +22,8 @@ apps/api/src/generated/
 
 # Runtime data
 apps/api/storage/
+# Created by the API's Vercel build (an empty static output next to the function)
+apps/api/public/
 uploads/
 *.log
 logs/

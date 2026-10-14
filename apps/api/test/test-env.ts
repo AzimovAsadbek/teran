@@ -32,6 +32,7 @@ export const TEST_ENV: Record<string, string> = {
   THROTTLE_DISABLED: 'true',
   WEB_REVALIDATE_URL: '',
   REVALIDATE_SECRET: '',
+  CRON_SECRET: 'test-cron-secret-0123456789-abcdefghijkl',
   // Payments: live mode without provider credentials (cash only) unless a suite overrides it.
   PAYMENT_PROVIDER_MODE: 'live',
   PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY',

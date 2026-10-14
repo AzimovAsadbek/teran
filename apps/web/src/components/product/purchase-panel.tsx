@@ -55,9 +55,15 @@ export function PurchasePanel({
   useEffect(() => {
     const button = buttonRef.current;
     if (!button) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry) setScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
-    });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry) setScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
+      // The root reaches far below the screen, so the button only stops intersecting once it
+      // leaves past the top edge. That change is reported even when the page jumps past the button
+      // in one go (End key, a fast fling), which a viewport-sized root would miss.
+      { rootMargin: '0px 0px 100000px 0px' },
+    );
     observer.observe(button);
     return () => observer.disconnect();
   }, []);
@@ -158,7 +164,8 @@ export function PurchasePanel({
           onClick={() => void add()}
           disabled={soldOut}
           loading={pending}
-          className="flex-1"
+          // grow, not flex-1: a 0% basis would collapse the button's height in the column layout.
+          className="grow"
         >
           {pending ? null : <ShoppingBag aria-hidden className="h-[1.125rem] w-[1.125rem]" />}
           {pending ? t('adding') : addLabel}

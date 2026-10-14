@@ -1,4 +1,5 @@
 import {
+  formatUzPhone,
   INQUIRY_STATUSES,
   regionName,
   type AdminContactInquiry,
@@ -105,7 +106,9 @@ export default async function AdminInquiriesPage({
                       : item.name}
                   </p>
                   <p className="text-body-sm text-fg-muted">
-                    {[item.phone, item.email].filter(Boolean).join(' · ')}
+                    {[item.phone ? formatUzPhone(item.phone) : null, item.email]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </p>
                   {'businessType' in item ? (
                     <p className="text-body-sm text-fg-subtle">

@@ -1,3 +1,4 @@
+import { formatUzPhone } from '@teran/contracts';
 import type { AdminCustomer, Locale, Paginated } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -79,7 +80,9 @@ export default async function AdminCustomersPage({
                     ) : null}
                   </td>
                   <td className={`${table.td} break-all`}>{customer.email}</td>
-                  <td className={table.td}>{customer.phone ?? '—'}</td>
+                  <td className={table.td}>
+                    {customer.phone ? formatUzPhone(customer.phone) : '—'}
+                  </td>
                   <td className={`${table.td} text-right tabular-nums`}>{customer.orderCount}</td>
                   <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
                     {formatDate(customer.createdAt, locale as Locale)}

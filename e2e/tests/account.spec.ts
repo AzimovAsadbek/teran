@@ -59,6 +59,34 @@ test.describe('customer account', () => {
     await expect(field(page, 'Phone')).toHaveValue('+998 90 111 22 33');
   });
 
+  test('keeps what was typed before the page became interactive', async ({ page }) => {
+    // Hold the scripts back so the fields are filled in before React hydrates the form.
+    let release = () => {};
+    const scripts = new Promise<void>((resolve) => (release = resolve));
+    await page.route('**/_next/static/chunks/**/*.js', async (route) => {
+      await scripts;
+      await route.continue();
+    });
+    await page.goto('/en/account/login', { waitUntil: 'commit' });
+    const email = main(page).locator('input[name="email"]');
+    await email.pressSequentially('nobody@example.test');
+    await main(page).locator('input[name="password"]').pressSequentially('not-the-password');
+    release();
+    // React has attached to the field (the property name is a React implementation detail).
+    await expect
+      .poll(() =>
+        email.evaluate((node) => Object.keys(node).some((key) => key.startsWith('__react'))),
+      )
+      .toBe(true);
+
+    await main(page).getByRole('button', { name: 'Sign in' }).click();
+    // The early input reached the form state: the server answers, not the client-side validation.
+    await expect(
+      visible(page.getByRole('alert').filter({ hasText: 'Incorrect e-mail or password.' })),
+    ).toBeVisible();
+    await expect(main(page).getByText('Enter a valid email address')).toHaveCount(0);
+  });
+
   test('ignores off-site redirects after signing in', async ({ page }) => {
     const email = `e2e-next-${Date.now()}@example.test`;
     await page.goto('/en/account/register');

@@ -1,3 +1,4 @@
+import { formatUzPhone } from '@teran/contracts';
 import type { AdminCustomer, AdminOrderListItem, Locale } from '@teran/contracts';
 import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -50,7 +51,7 @@ export default async function AdminCustomerPage({
       </Link>
       <AdminPageHeader
         title={[customer.firstName, customer.lastName].filter(Boolean).join(' ')}
-        description={`${customer.email}${customer.phone ? ` · ${customer.phone}` : ''} · ${t('customers.registered')}: ${formatDate(customer.createdAt, locale as Locale)}`}
+        description={`${customer.email}${customer.phone ? ` · ${formatUzPhone(customer.phone)}` : ''} · ${t('customers.registered')}: ${formatDate(customer.createdAt, locale as Locale)}`}
       />
       <Panel title={`${t('customers.orders')} (${customer.orderCount})`}>
         {orders.length === 0 ? (

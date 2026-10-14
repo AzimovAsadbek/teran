@@ -3,7 +3,10 @@
 import { Check, CircleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
+  useEffect,
   useId,
+  useRef,
+  type ChangeEvent,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -44,6 +47,26 @@ interface FieldChromeProps {
   required?: boolean;
   className?: string;
   size?: ControlSize;
+}
+
+/**
+ * Text typed or autofilled before the page became interactive is in the element but not in the
+ * form's state, because a controlled field only learns about input through onChange. Once
+ * hydrated, the field hands such a value to onChange, so what people see is what gets sent.
+ */
+function useEarlyInput<E extends HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+  value: unknown,
+  onChange: ((event: ChangeEvent<E>) => void) | undefined,
+) {
+  const ref = useRef<E>(null);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !onChange || value === undefined || element.value === String(value)) return;
+    onChange({ target: element, currentTarget: element } as ChangeEvent<E>);
+    // Runs once, right after hydration; later input arrives through onChange as usual.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return ref;
 }
 
 function useFieldIds(error: string | undefined, hint: ReactNode) {
@@ -120,12 +143,14 @@ export function TextField({
   ...input
 }: FieldChromeProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'id' | 'size'>) {
   const { id, hintId, errorId, describedBy } = useFieldIds(error, hint);
+  const ref = useEarlyInput(input.value, input.onChange);
   return (
     <div className={className}>
       <FieldLabel htmlFor={id} required={required}>
         {label}
       </FieldLabel>
       <input
+        ref={ref}
         id={id}
         required={required}
         aria-invalid={error ? true : undefined}
@@ -147,12 +172,14 @@ export function TextAreaField({
   ...textarea
 }: FieldChromeProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'className' | 'id'>) {
   const { id, hintId, errorId, describedBy } = useFieldIds(error, hint);
+  const ref = useEarlyInput(textarea.value, textarea.onChange);
   return (
     <div className={className}>
       <FieldLabel htmlFor={id} required={required}>
         {label}
       </FieldLabel>
       <textarea
+        ref={ref}
         id={id}
         required={required}
         aria-invalid={error ? true : undefined}
@@ -182,6 +209,7 @@ export function SelectField({
     options: readonly { value: string; label: string; disabled?: boolean }[];
   }) {
   const { id, hintId, errorId, describedBy } = useFieldIds(error, hint);
+  const ref = useEarlyInput(select.value, select.onChange);
   return (
     <div className={className}>
       <FieldLabel htmlFor={id} required={required}>
@@ -189,6 +217,7 @@ export function SelectField({
       </FieldLabel>
       <div className="relative">
         <select
+          ref={ref}
           id={id}
           required={required}
           aria-invalid={error ? true : undefined}

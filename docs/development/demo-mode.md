@@ -25,21 +25,31 @@ The same command production uses for an optional review environment (`prisma db 
 | Product types with demonstration characteristic values (tea, gift set)   | 2                                                    |
 | Collections (TERAN premium, everyday classics, evening calm, gift ideas) | 4                                                    |
 | Products                                                                 | 21 (20 published, 1 draft to demonstrate publishing) |
-| Pack sizes (variants) with stock and ledger entries                      | 32                                                   |
-| Code-drawn product images (packshot + loose-leaf study)                  | 42                                                   |
+| Pack sizes (variants) with stock and ledger entries                      | 29                                                   |
+| Product images: pack shots from the packaging print files (front, back)  | 8 (four products)                                    |
+| Code-drawn product images (packshot + loose-leaf study)                  | 34                                                   |
 | Delivery methods                                                         | 2 (courier in Tashkent, delivery to the regions)     |
 | Journal articles                                                         | 6 (5 published, 1 draft)                             |
 | Settings                                                                 | announcement; contact channels left empty            |
 
 The five products of the **TERAN premium collection** carry the identifiers TERAN supplied
-(XC2025, G8810, HET8800, 8830, STD8009). Their tea types (shown as oolong, green, black, white and
-pu-erh), descriptions, prices and pack sizes are invented for the demo, and each product page says
-so in all three languages. The other products are generic Chinese tea styles. Tasting notes
-describe what is typical of a style; no product has an origin, ingredient list, caffeine level,
-certification, health claim or review. The states a shop needs to show are included: an
-out-of-stock product (Mini pu-erh), low stock (Jasmine green tea; TERAN STD8009 once the demo
-orders are loaded), a sale price
-(Earl Grey, TERAN premium gift box) and a draft (Spring green tea).
+(XC2025, G8810, HET8800, 8830, 8009). Four of them are described from their packaging (supplied
+2026-10-14; see [packaging](../design/packaging.md)): Chinese green tea in a 400 g pack, the pack's
+brewing (5 g per 250 ml, 90 °C, 2–3 minutes), product sentence, taste, storage, shelf life,
+producer and importer, origin "China", and images made from the print files. Their prices and
+stock are placeholders, which their descriptions say. HET8800 has no packaging yet: its tea type
+(shown as black tea), description, price and pack sizes are invented, and its page says so in all
+three languages. The other products are generic Chinese tea styles. Tasting notes describe what is
+typical of a style; no product has an ingredient list, caffeine level, certification, health
+claim or review (the benefits list and nutrition table on the packs are not published). The states
+a shop needs to show are included: an out-of-stock product (Mini pu-erh), low stock (Jasmine green
+tea; TERAN 8009 once the demo orders are loaded), a sale price (Earl Grey, TERAN premium gift box)
+and a draft (Spring green tea).
+
+A database seeded by an earlier version is brought up to date by the next `pnpm db:seed`: the four
+identifier products are switched to their packaging data once — only while they still hold the
+earlier demo copy, so nothing edited in the admin area changes. Their earlier pack sizes stay
+(orders refer to them) but are switched off.
 
 ### Activity — `pnpm db:seed:demo`
 

@@ -19,7 +19,7 @@ the footer. Have a lawyer review all three documents; they are drafts.
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------- |
 | Company legal name and legal form (supplied as "TERAN TRADE MChJ", Namangan — shown in the footer, contact and wholesale pages; still to be placed in the legal texts)                   | Privacy, terms          | Text            |
 | State registration details (registration number, date, authority)                                                                                                                        | Terms                   | Text            |
-| Legal address                                                                                                                                                                            | Privacy, terms          | Text            |
+| Legal address (the packs print the importer's address: Namangan viloyati, Namangan shahri, Dashtbogʻ MFY, Toʻraqoʻrgʻon koʻchasi, 200-uy — confirm it is the legal address)              | Privacy, terms          | Text            |
 | Whether prices include VAT                                                                                                                                                               | Terms                   | Text            |
 | Trademark: confirm "TERAN®" is a registered trademark, the rights holder and registration details — or the ® mark and the footer sentence "TERAN® is a registered trademark" are removed | Footer, terms, logo     | Text            |
 | Competent court for disputes, liability wording                                                                                                                                          | Terms                   | Text (lawyer)   |
@@ -43,16 +43,19 @@ the footer. Have a lawyer review all three documents; they are drafts.
 ## 3. Products (launch blocker)
 
 The current catalogue is **demonstration data** (see [demo mode](./development/demo-mode.md)):
-21 products — the five TERAN premium collection identifiers (XC2025, G8810, HET8800, 8830,
-STD8009), shown with provisional tea types, and generic Chinese tea styles — with placeholder
-prices and pack sizes, code-drawn images and tasting notes that describe a style, not a product.
-None has ingredients, origins, caffeine levels, certifications or reviews. Replace it product by
-product in the admin (archive the demo products when done); photographs are specified in the
-[asset replacement brief](./design/asset-replacement-brief.md).
+21 products with placeholder prices and stock. Four of them — XC2025, G8810, 8830 and 8009 — are
+described from their packaging (supplied 2026-10-14): Chinese green tea, 400 g, brewing,
+description, taste, storage, shelf life, producer and importer, with images made from the print
+files ([packaging](./design/packaging.md)). HET8800 has no packaging yet and is still shown with
+a provisional tea type, labelled as such. The others are generic Chinese tea styles with
+code-drawn images and tasting notes that describe a style, not a product. Replace the catalogue
+product by product in the admin (archive the demo products when done); photographs are specified
+in the [asset replacement brief](./design/asset-replacement-brief.md).
 
-For the five collection identifiers in particular: the real product name, tea type, description,
-pack sizes and prices. The site currently shows each one as "TERAN XC2025" etc. with a provisional
-tea type that is labelled as such.
+Still needed for the identifiers: prices and stock for all five; HET8800's tea type,
+description, pack sizes and packaging; and the answers to the
+[packaging questions](./design/packaging.md#questions-for-teran) (region, 8009 or STD8009, the
+benefits list and nutrition table, the printer's note in the window, artwork rights).
 
 For each product:
 
@@ -87,7 +90,10 @@ the real ones in Admin → Delivery (administrators only):
 
 All contact channels are currently empty, so the site hides them. Fill in what should be public
 in Admin → Settings (administrators only): phone, e-mail, Telegram, Instagram, address, working
-hours. They appear in the footer, the contact page and structured data.
+hours. They appear in the footer, the contact page and structured data. The packs print
++998 97 570 70 07, terantea.uz and www.terantrade.uz, and icons for Instagram, Telegram, YouTube
+and WhatsApp without account names — supply the account names, and say whether the packaging
+phone number is the one customers should call.
 
 ## 6. Brand content
 
@@ -99,6 +105,7 @@ a no-break space before each dash, so a line never starts with "—".
 | Item                                                                                                                                                       | Where                                   | How           |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------- |
 | Approve or correct the **Russian** translation of all brand texts, and the **English** translations other than the supplied tagline (drafted for the site) | Home, About, Wholesale, Contact, footer | Text          |
+| Approve the Russian and English labels of the four values printed on the packs ("Tabiiy mahsulot", "Nafis ta’m", "Har kungi tetiklik", "Sifatli tanlov")   | Home, About                             | Text          |
 | TERAN's history, production and photographs                                                                                                                | About (`/about`)                        | Text + images |
 | Announcement bar message (currently "Welcome to the TERAN online store")                                                                                   | Every page                              | Admin         |
 | Journal: the five published demonstration articles (and one draft) contain only general tea knowledge — keep, edit or replace                              | Journal                                 | Admin         |

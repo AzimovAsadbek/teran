@@ -8,19 +8,23 @@ CSS-first `@theme`); components in `apps/web/src/components`. Typography has its
 
 ## Sources
 
-| Source                                  | Used for                                                                                            |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| TERAN logo (raster, 1774×887, supplied) | Colours, emblem, wordmark. Used as supplied; nothing redrawn or re-typeset.                         |
-| TERAN concept screenshot                | Brand mood only: deep forest green, gold accents, ivory surfaces, classical serif headlines.        |
-| DAVIDsTEA                               | Page structure, navigation and shopping patterns (see the [reference audit](./reference-audit.md)). |
+| Source                                          | Used for                                                                                                                                             |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TERAN packaging print files (4 packs, supplied) | Primary source since 2026-10-14: logo as printed, colours, ornaments, artwork, pack shots and the pack's layout ideas ([packaging](./packaging.md)). |
+| TERAN logo (raster, 1774×887, supplied earlier) | Superseded by the packaging version; kept in `apps/web/assets/brand` for reference.                                                                  |
+| TERAN concept screenshot                        | Brand mood only: deep forest green, gold accents, ivory surfaces, classical serif headlines.                                                         |
+| DAVIDsTEA                                       | Page structure, navigation and shopping patterns (see the [reference audit](./reference-audit.md)).                                                  |
 
 The concept screenshot's composition is deliberately not reproduced, and no DAVIDsTEA copy,
 imagery, illustration style or palette is used ([ADR-015](../architecture/decisions.md)).
 
 ## Colour
 
-Colours measured on the logo: deep greens `#01250D`–`#0F4119` with botanical highlights
-`#406D1E` and `#55A92A`; golds `#AE781D` and `#C58D35` with highlights `#EAB248` and `#F9E988`.
+Colours measured on the packaging print files, converted with their own ISO Coated v2 profile:
+logo green `#1A5317` (shades `#0C410F`–`#185010`, leaf highlights `#207020`–`#27A735`); gold from
+`#B87800` to `#E8C820`; the red of the ® and the seal `#E3000F`. The pack colours (XC2025 red
+`#C00808`, 8009 green `#207020`, G8810 charcoal `#404040`, 8830 blue `#0078B8`) stay on the packs
+themselves; the interface uses only the brand greens and golds.
 
 There are two layers. The **brand palette** keeps the measured scales; components use the
 **semantic tokens** on top of it, so a surface or text role changes in one place.
@@ -29,9 +33,10 @@ There are two layers. The **brand palette** keeps the measured scales; component
 
 | Scale    | Tokens                                                                                                                       | Notes                                                 |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `forest` | 950 `#061f10` · 900 `#0b2e19` · 800 `#123f24` · 700 `#1a5530` · 600 `#24683d`                                                | Brand surfaces, primary buttons, headings, focus ring |
-| `leaf`   | 700 `#255622` · 600 `#2f6b2c` · 500 `#3e8535` · 300 `#8db86a` · 100 `#e4edd9`                                                | Success                                               |
-| `gold`   | 800 `#6b4c10` · 700 `#876118` · 600 `#a87a24` · 500 `#c5963a` · 400 `#d8b160` · 300 `#e7c878` · 100 `#f5eacb` · 50 `#fbf6e9` | Accent, warning                                       |
+| `forest` | 950 `#082b0d` · 900 `#0e3d12` · 800 `#154a17` · 700 `#1a5317` (logo) · 600 `#236b23`                                         | Brand surfaces, primary buttons, headings, focus ring |
+| `leaf`   | 700 `#24601f` · 600 `#2b7a26` · 500 `#2f9431` · 300 `#8fc46f` · 100 `#e3f0d8`                                                | Success                                               |
+| `gold`   | 800 `#6b4a00` · 700 `#855c00` · 600 `#b07c00` · 500 `#d0a20a` · 400 `#e2b918` · 300 `#efcf4a` · 100 `#f8edc6` · 50 `#fdf8e8` | Accent, warning                                       |
+| `seal`   | `#e3000f`                                                                                                                    | The ® and the 茶叶 seal only; never text or UI        |
 | `ivory`  | 50 `#fcfaf4` · 100 `#f6f0e3` · 200 `#ece3d0` · 300 `#e0d3b8`                                                                 | Page and muted surfaces                               |
 | `sage`   | 100 `#eef1e8` · 200 `#d6ddcb` · 300 `#b9c3ad` · 500 `#7e8975`                                                                | Field borders, quiet chips                            |
 | `ink`    | 900 `#1c211d` · 700 `#3a423c` · 500 `#5d665f`                                                                                | Text                                                  |
@@ -65,24 +70,28 @@ Computed from the tokens (text needs 4.5:1, large text and non-text indicators 3
 | fg (ink-900)                                          | canvas / surface                        | 15.66 / 16.35      |
 | fg-muted (ink-700)                                    | canvas / surface-muted / surface-sunken | 9.94 / 9.13 / 8.13 |
 | fg-subtle (ink-500)                                   | canvas / surface / surface-muted        | 5.70 / 5.95 / 5.24 |
-| accent-fg (gold-700)                                  | canvas / surface / surface-muted        | 5.36 / 5.60 / 4.93 |
-| brand (forest-900)                                    | canvas                                  | 14.18              |
-| fg-inverse (ivory-50)                                 | surface-inverse / surface-inverse-deep  | 14.18 / 16.61      |
-| accent-on-inverse (gold-300)                          | surface-inverse / surface-inverse-deep  | 9.11 / 10.68       |
-| ivory-100 at 85 % / 70 % (footer links / legal)       | surface-inverse-deep                    | 11.24 / 7.96       |
-| forest-950 (accent button text)                       | accent / accent-hover                   | 6.44 / 8.57        |
-| success                                               | success-soft / surface                  | 7.16 / 8.63        |
-| warning                                               | warning-soft                            | 6.57               |
+| accent-fg (gold-700)                                  | canvas / surface / surface-muted        | 5.70 / 5.95 / 5.24 |
+| brand (forest-900)                                    | canvas                                  | 11.87              |
+| fg-inverse (ivory-50)                                 | surface-inverse / surface-inverse-deep  | 11.87 / 14.78      |
+| ivory-50 (title bars, ribbon, slogan strip)           | forest-700                              | 8.77               |
+| accent-on-inverse (gold-300)                          | surface-inverse / surface-inverse-deep  | 8.08 / 10.06       |
+| ivory-100 at 85 % / 70 % (footer links / legal)       | surface-inverse-deep                    | 10.10 / 7.32       |
+| forest-950 (accent button text)                       | accent / accent-hover                   | 6.50 / 8.22        |
+| success                                               | success-soft / surface                  | 6.40 / 7.59        |
+| warning                                               | warning-soft                            | 6.88               |
 | danger                                                | danger-soft / surface                   | 5.77 / 7.09        |
-| info                                                  | info-soft                               | 7.70               |
-| forest-900 (filter chips)                             | brand-soft                              | 12.95              |
+| info                                                  | info-soft                               | 8.01               |
+| forest-900 (filter chips)                             | brand-soft                              | 10.85              |
+| Hero text on its mist (darkest pixel behind any line) | the lake painting                       | ≥ 4.97             |
 | line-strong (text-field and select borders, non-text) | surface / canvas                        | 3.67 / 3.52        |
-| focus ring (forest-700, non-text)                     | canvas                                  | 8.43               |
-| focus ring on dark (gold-300, non-text)               | surface-inverse                         | 9.11               |
+| focus ring (forest-700, non-text)                     | canvas                                  | 8.77               |
+| focus ring on dark (gold-300, non-text)               | surface-inverse                         | 8.08               |
 
 Rules that keep it that way:
 
-- Gold lighter than 700 is never text on light surfaces (gold-500 on ivory is 2.6:1).
+- Gold lighter than 700 is never text on light surfaces (gold-500 on ivory is 2.3:1).
+- Text over artwork sits on a mist or scrim measured against the darkest pixel behind it (the
+  hero is checked at desktop and phone sizes in all three languages).
 - Text fields and selects keep the full `line-strong` border: their boundary is the only cue that
   identifies an empty field (WCAG 1.4.11). Lighter borders are used only around controls that
   carry their own text or icon.
@@ -95,7 +104,10 @@ EB Garamond for display (headings, 500 weight) and Onest for the interface, both
 variable and preloaded in Latin only. Display sizes are fluid (`clamp()` in rem). The full role
 scale (display, page, section, product titles, body, supporting text, navigation, prices,
 buttons, labels, helper, validation, captions) and the Uzbek and Russian rules are in
-[typography](./typography.md).
+[typography](./typography.md). From the packaging, without adding typefaces: the pack's bold
+uppercase labels (the four values, the "Tayyorlash usuli" title bars, the slogan strip) are set
+in Onest 700 with wide tracking, and the gold rule with a diamond separates a headline from its
+signature line.
 
 ## Layout
 
@@ -165,6 +177,7 @@ accessibility behaviour. In short:
 | Product    | gallery, purchase panel with pack-size cards and sticky bar, brewing facts, delivery facts, information disclosures                                                                                                                                                                                                      |
 | Commerce   | bag drawer and page, quantity stepper, checkout with numbered sections, choice cards, order summary, order progress and details                                                                                                                                                                                          |
 | Content    | page header, long-form pages, article card and body, help footer, contact and wholesale forms                                                                                                                                                                                                                            |
+| Brand      | logo set (`Wordmark`, `Emblem`, `StackedLogo`, `LogoPlate`), ornaments from the pack (`BrandValues`, `Pennant`, `GoldRule`, `WavePattern`, `GreenTeaCalligraphy`, `TeaSeal`, `MoonGate`), tea-type medallions                                                                                                            |
 | Admin      | shell, page header, panels, tables, status pills, filter forms, confirm dialog, editors                                                                                                                                                                                                                                  |
 
 ### Navigation pattern
@@ -178,27 +191,25 @@ Checkout uses a distraction-free header (back to bag, wordmark) and a footer wit
 
 ## Imagery
 
-- **Brand assets** are generated from the supplied raster by `apps/web/scripts/generate-brand-assets.mjs`
-  (run by hand). White is removed by an exact colour-to-alpha un-multiply, then the logo is cropped
-  — geometry measured on the 1774×887 original, as `left, top, width, height`:
-
-  | Asset     | Crop                                                                                               | Output                                 |
-  | --------- | -------------------------------------------------------------------------------------------------- | -------------------------------------- |
-  | Full logo | `230, 10, 1314, 866`                                                                               | `public/brand/teran-logo` 1200×785     |
-  | Emblem    | `560, 10, 660, 572`                                                                                | `public/brand/teran-emblem` 612×560    |
-  | Wordmark  | `230, 550, 1314, 326`, then the emblem's gold tip above the letters is cleared (`470, 0, 340, 42`) | `public/brand/teran-wordmark` 1200×289 |
-
-  PNG and WebP copies are written; the web app imports the PNGs through `next/image`, which serves
-  modern formats. Favicon, app icons (emblem on ivory) and the default social image (1200×630)
-  come from the same script.
-
+- **Brand assets** come from the packaging print files ([packaging](./packaging.md)):
+  `scripts/packaging/extract-packaging.py` renders them, `scripts/packaging/build-packaging-assets.mjs`
+  cuts out the logo set (`teran-logo`, `-emblem`, `-wordmark`, and `-lockup` with the pack's line
+  and rule, used for the social image), the artwork (`art/lake`, `art/terraces`, `art/sprig-1`), the pack fronts (`packs/*`) and
+  the ornaments (`ornaments/*.svg`), and `scripts/generate-brand-assets.mjs` makes the favicon, app
+  icons (emblem on ivory) and the default social image (1200×630) from the logo set. PNG and WebP
+  copies are written; the web app imports them through `next/image`, which serves modern formats.
+- **Ornaments** (`components/brand/ornaments.tsx`): the pack's four ringed icons and their labels
+  (`BrandValues`), 绿茶 with the 茶叶 seal, the seal alone, the "PREMIUM CHINESE TEA" ribbon
+  (`Pennant`), the gold rule with a diamond (`GoldRule`), seigaiha waves (`WavePattern`) and the
+  round view onto the lake (`MoonGate`). All decorative; the text beside them is real text.
 - **Product photos** are uploaded in the admin and served as WebP renditions with `srcset`
-  ([ADR-009](../architecture/decisions.md)). Until real photography exists, the seed draws
-  demonstration pack shots and leaf studies in code ([ADR-014](../architecture/decisions.md)).
-- **Illustrations** (hero landscape, ten tea-type medallions) are inline SVG components, also used
-  as the placeholder when a product has no photo. Medallions are always shown whole (never
-  cropped by a container edge); large decorative rings and the emblem watermark are the only art
-  that bleeds off a panel.
+  ([ADR-009](../architecture/decisions.md)). XC2025, G8810, 8830 and 8009 have pack shots made
+  from their print files (front and back); the other demonstration products keep pack shots and
+  leaf studies drawn in code ([ADR-014](../architecture/decisions.md)).
+- **Illustrations** (ten tea-type medallions) are inline SVG components, also used as the
+  placeholder when a product has no photo. Medallions are always shown whole (never cropped by a
+  container edge); large decorative rings, the hero's tea sprigs and the emblem watermark are the
+  only art that bleeds off a panel.
 - **Alternative text:** product images use the product name (plus "demonstration image" in demo
   mode); decorative art is hidden from assistive technology.
 
@@ -212,21 +223,21 @@ To keep the store consistent when photos arrive:
   the long side (the admin creates the smaller sizes). The product card and the product page
   show the image on `surface-muted`, so a matching background blends in.
 - **Second images:** the dry leaf on a plain plate or a cup of the brewed tea, same light.
-- **Hero (optional):** a landscape or table scene with calm space in the upper middle for the
-  centred headline; the scrim keeps the text readable, but busy detail behind the words should
-  be avoided.
+- **Hero:** the lake from the front of the pack, with the packs standing on its shore. A future
+  photograph should keep calm space in the upper middle for the centred headline; the mist keeps
+  the text readable, but busy detail behind the words should be avoided.
 - **About and journal:** only real places, people and processes, with permission.
 
 ### Missing assets
 
-| Asset                                            | Used in                                  | Status                                                                     |
-| ------------------------------------------------ | ---------------------------------------- | -------------------------------------------------------------------------- |
-| Product photographs (pack shots, leaf or cup)    | Product cards, product page, search, bag | Missing; code-drawn demonstration art is shown and labelled                |
-| Vector logo (SVG or PDF)                         | Header, footer, favicon, social image    | Missing; assets are cut from the supplied raster (sharp at all used sizes) |
-| Official brand colour values                     | Tokens                                   | Measured on the logo; to be confirmed                                      |
-| About page imagery (history, production, people) | `/about`                                 | Missing; a highlighted placeholder explains what will appear               |
-| Journal article images                           | Article cards and pages                  | Missing; tea-type medallions stand in                                      |
-| Hero photography                                 | Home                                     | Optional; the illustrated landscape is designed to stay                    |
+| Asset                                            | Used in                                  | Status                                                                                                  |
+| ------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Product photographs (pack shots, leaf or cup)    | Product cards, product page, search, bag | Four products have pack shots made from the print files; photographs are still missing for all products |
+| Vector logo (SVG or PDF)                         | Header, footer, favicon, social image    | The print files hold it, but its gold parts are gradients; it is used as a 1200 dpi cut-out             |
+| Official brand colour values                     | Tokens                                   | Measured on the print files with their ICC profile; Pantone or CMYK references from TERAN welcome       |
+| Rights to the packaging illustrations            | Hero, collection panel, philosophy       | To be confirmed by TERAN ([packaging](./packaging.md#questions-for-teran))                              |
+| About page imagery (history, production, people) | `/about`                                 | Missing; a highlighted placeholder explains what will appear                                            |
+| Journal article images                           | Article cards and pages                  | Missing; tea-type medallions stand in                                                                   |
 
 Product facts and permissions are tracked in
 [business information required](../business-information-required.md).

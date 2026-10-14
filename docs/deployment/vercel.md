@@ -84,7 +84,13 @@ Secrets live only in the Vercel projects; nothing is committed.
 
 ## Deploying
 
-From the repository root (the CLI uploads the repository minus `.vercelignore`):
+Both projects are connected to the GitHub repository: **every push to `main` deploys both to
+production** (each build installs the workspace, migrates the database for the API and replaces
+the live deployment once it is ready). Pushes to other branches and pull requests are skipped by
+`ignoreCommand` in each `vercel.json`, because only the production environment has settings.
+
+A deployment can also be made from a developer machine, from the repository root (the CLI uploads
+the repository minus `.vercelignore`):
 
 ```bash
 VERCEL_ORG_ID=<team id> VERCEL_PROJECT_ID=<teran-api id> npx vercel deploy --prod

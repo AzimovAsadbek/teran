@@ -5,7 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import { notFound, redirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { OrderDetails, OrderProgress } from '@/components/orders/order-details';
+import { OrderStatusView } from '@/components/orders/order-view';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link, getPathname } from '@/i18n/navigation';
 import { ApiError } from '@/lib/api/errors';
@@ -49,13 +49,13 @@ async function AccountOrder({
   if (!order) notFound();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Link
-        href="/account"
+        href="/account/orders"
         className="inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 underline-offset-4 hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
-        {ta('backToAccount')}
+        {ta('orders')}
       </Link>
       <div>
         <p className="text-eyebrow text-accent-fg">{t('statusTitle')}</p>
@@ -63,14 +63,7 @@ async function AccountOrder({
           {t('orderTitle', { number: order.number })}
         </h1>
       </div>
-      <section aria-label={t('statusTitle')} className="rounded-panel bg-surface p-5 sm:p-7">
-        <p className="mb-4 text-body-sm text-fg-muted">
-          {t('statusTitle')}:{' '}
-          <strong className="text-forest-900">{t(`statuses.${order.status}`)}</strong>
-        </p>
-        <OrderProgress status={order.status} />
-      </section>
-      <OrderDetails order={order} locale={locale} />
+      <OrderStatusView order={order} locale={locale} token={null} account />
     </div>
   );
 }
@@ -79,17 +72,15 @@ export default function AccountOrderPage({
   params,
 }: PageProps<'/[locale]/account/orders/[number]'>) {
   return (
-    <div className="container-page pt-10 pb-24">
-      <Suspense
-        fallback={
-          <div className="space-y-6" aria-hidden>
-            <Skeleton className="h-14 w-1/2" />
-            <Skeleton className="h-80 rounded-panel" />
-          </div>
-        }
-      >
-        <AccountOrder params={params} />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <div className="space-y-6" aria-hidden>
+          <Skeleton className="h-14 w-1/2" />
+          <Skeleton className="h-80 rounded-panel" />
+        </div>
+      }
+    >
+      <AccountOrder params={params} />
+    </Suspense>
   );
 }

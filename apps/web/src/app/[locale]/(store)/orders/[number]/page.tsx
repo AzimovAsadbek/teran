@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { OrderDetails, OrderProgress } from '@/components/orders/order-details';
+import { OrderStatusView } from '@/components/orders/order-view';
 import { ButtonLink } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFindAsVisitor } from '@/lib/api/server';
@@ -84,18 +84,7 @@ async function OrderView({
         </div>
       )}
 
-      <section
-        aria-label={t('statusTitle')}
-        className="rounded-panel border border-line bg-surface p-5 sm:p-7"
-      >
-        <p className="mb-4 text-body-sm text-fg-muted">
-          {t('statusTitle')}:{' '}
-          <strong className="text-forest-900">{t(`statuses.${order.status}`)}</strong>
-        </p>
-        <OrderProgress status={order.status} />
-      </section>
-
-      <OrderDetails order={order} locale={locale as Locale} />
+      <OrderStatusView order={order} locale={locale as Locale} token={token} account={false} />
 
       <ButtonLink href="/catalog" variant="secondary">
         {t('continueShopping')}

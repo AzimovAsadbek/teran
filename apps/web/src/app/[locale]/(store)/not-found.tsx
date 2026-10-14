@@ -16,7 +16,7 @@ export default async function NotFound() {
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <ButtonLink href="/">{t('backHome')}</ButtonLink>
         <ButtonLink href="/catalog" variant="secondary">
-          {tn('allTeas')}
+          {tn('shopAll')}
         </ButtonLink>
       </div>
     </div>

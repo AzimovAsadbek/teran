@@ -22,16 +22,19 @@ import { table } from './ui';
 import { useAdminAction } from './use-admin-action';
 import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
-const KEYS = ['name', 'description', 'seoTitle', 'seoDescription'] as const;
+const KEYS = ['name', 'description', 'body', 'seoTitle', 'seoDescription'] as const;
 type Kind = 'categories' | 'collections';
 
 function TaxonomyForm({
   kind,
   item,
+  items,
   onDone,
 }: {
   kind: Kind;
   item: AdminTaxonomy | null;
+  /** Every category, to choose a parent from. */
+  items: AdminTaxonomy[];
   onDone: () => void;
 }) {
   const t = useTranslations('Admin');
@@ -43,6 +46,13 @@ function TaxonomyForm({
   const [position, setPosition] = useState(String(item?.position ?? 0));
   const [isActive, setIsActive] = useState(item?.isActive ?? true);
   const [illustrationKey, setIllustrationKey] = useState<string>(item?.illustrationKey ?? '');
+  const [parentId, setParentId] = useState<string>(item?.parentId ?? '');
+  const locale = useLocale() as Locale;
+  // Two levels: a parent must be top-level, and a category with subcategories stays top-level.
+  const parents = items.filter(
+    (candidate) => candidate.parentId === null && candidate.id !== item?.id,
+  );
+  const canHaveParent = kind === 'categories' && (item?.childCount ?? 0) === 0;
   const [translations, setTranslations] = useState(() =>
     fromTranslation(item?.translations ?? null, KEYS),
   );
@@ -55,6 +65,7 @@ function TaxonomyForm({
       position: Number(position) || 0,
       isActive,
       illustrationKey: illustrationKey || null,
+      parentId: kind === 'categories' && parentId ? parentId : null,
       translations: toTranslationPayload(translations),
     };
     const saved = await form.submit(taxonomyUpsertSchema, payload, (data) =>
@@ -102,6 +113,23 @@ function TaxonomyForm({
           onChange={(event) => setIllustrationKey(event.target.value)}
         />
       </div>
+      {canHaveParent ? (
+        <SelectField
+          label={t('categories.parent')}
+          name="parentId"
+          hint={t('categories.parentHint')}
+          options={[
+            { value: '', label: t('categories.topLevel') },
+            ...parents.map((candidate) => ({
+              value: candidate.id,
+              label: candidate.translations[locale]?.name ?? candidate.translations.uz.name,
+            })),
+          ]}
+          value={parentId}
+          onChange={(event) => setParentId(event.target.value)}
+          error={error('parentId')}
+        />
+      ) : null}
       <CheckboxField
         label={t('common.active')}
         name="isActive"
@@ -121,6 +149,18 @@ function TaxonomyForm({
             rows: 3,
             maxLength: 1000,
           },
+          ...(kind === 'categories'
+            ? [
+                {
+                  key: 'body' as const,
+                  label: t('categories.body'),
+                  hint: t('categories.bodyHint'),
+                  multiline: true,
+                  rows: 6,
+                  maxLength: 4000,
+                },
+              ]
+            : []),
           { key: 'seoTitle', label: t('products.seoTitle'), maxLength: 70 },
           {
             key: 'seoDescription',
@@ -152,6 +192,14 @@ export function TaxonomyManager({ kind, items }: { kind: Kind; items: AdminTaxon
   const name = (item: AdminTaxonomy) =>
     item.translations[locale]?.name ?? item.translations.uz.name;
   const newLabel = kind === 'categories' ? t('taxonomy.newCategory') : t('taxonomy.newCollection');
+  // Each top-level category followed by its subcategories (collections have no parents).
+  const ordered = items
+    .filter((item) => item.parentId === null)
+    .flatMap((top) => [top, ...items.filter((item) => item.parentId === top.id)]);
+  const parentName = (id: string) => {
+    const parent = items.find((item) => item.id === id);
+    return parent ? name(parent) : '';
+  };
 
   return (
     <>
@@ -195,9 +243,27 @@ export function TaxonomyManager({ kind, items }: { kind: Kind; items: AdminTaxon
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {ordered.map((item) => (
                 <tr key={item.id}>
-                  <td className={`${table.td} font-semibold`}>{name(item)}</td>
+                  <td className={`${table.td} font-semibold`}>
+                    {item.parentId ? (
+                      <span className="pl-5 text-fg-muted" aria-hidden>
+                        ↳{' '}
+                      </span>
+                    ) : null}
+                    {name(item)}
+                    {item.parentId ? (
+                      <span className="sr-only">
+                        {' '}
+                        ({t('categories.subcategoryOf', { name: parentName(item.parentId) })})
+                      </span>
+                    ) : null}
+                    {item.childCount > 0 ? (
+                      <span className="ml-2 text-xs font-normal text-fg-subtle">
+                        {t('categories.children', { count: item.childCount })}
+                      </span>
+                    ) : null}
+                  </td>
                   <td className={`${table.td} font-mono text-xs`}>{item.slug}</td>
                   <td className={`${table.td} text-right tabular-nums`}>{item.position}</td>
                   <td className={`${table.td} text-right tabular-nums`}>{item.productCount}</td>
@@ -243,6 +309,7 @@ export function TaxonomyManager({ kind, items }: { kind: Kind; items: AdminTaxon
             key={editing === 'new' ? 'new' : editing.id}
             kind={kind}
             item={editing === 'new' ? null : editing}
+            items={items}
             onDone={() => setEditing(null)}
           />
         ) : null}

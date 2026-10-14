@@ -1,4 +1,4 @@
-import type { AdminTaxonomy, Locale } from '@teran/contracts';
+import type { AdminProductType, AdminTaxonomy, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -14,18 +14,24 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewProductPage() {
   const t = await getTranslations('Admin');
-  const [categories, collections] = await Promise.all([
+  const [categories, collections, productTypes] = await Promise.all([
     adminGet<AdminTaxonomy[]>('/categories'),
     adminGet<AdminTaxonomy[]>('/collections'),
+    adminGet<AdminProductType[]>('/product-types'),
   ]);
-  if (!categories || !collections) return <AccessDenied />;
+  if (!categories || !collections || !productTypes) return <AccessDenied />;
   return (
     <>
       <AdminPageHeader
         title={t('products.newProduct')}
         description={t('products.imagesAfterSave')}
       />
-      <ProductEditor product={null} categories={categories} collections={collections} />
+      <ProductEditor
+        product={null}
+        categories={categories}
+        collections={collections}
+        productTypes={productTypes}
+      />
     </>
   );
 }

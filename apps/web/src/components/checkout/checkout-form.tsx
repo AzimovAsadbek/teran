@@ -3,8 +3,11 @@
 import {
   checkoutSchema,
   formatUzPhone,
+  isOnlinePaymentMethod,
   normalizeUzPhone,
   REGIONS,
+  regionName,
+  type AddressDto,
   type CheckoutInput,
   type CheckoutOptionsDto,
   type CheckoutQuoteDto,
@@ -72,17 +75,31 @@ const ERROR_PATHS: Record<keyof Values, string> = {
 
 type QuoteResult = { key: string; quote: CheckoutQuoteDto } | { key: string; failed: true };
 
-function initialValues(user: CurrentUserDto | null, options: CheckoutOptionsDto): Values {
+/** The first delivery method that serves a region (methods without regions serve everywhere). */
+function firstMethodFor(options: CheckoutOptionsDto, regionCode: string): string {
+  return (
+    options.deliveryMethods.find(
+      (candidate) =>
+        candidate.regionCodes.length === 0 || candidate.regionCodes.includes(regionCode),
+    )?.code ?? ''
+  );
+}
+
+function initialValues(
+  user: CurrentUserDto | null,
+  options: CheckoutOptionsDto,
+  address: AddressDto | null,
+): Values {
   const phone = user?.phone ? normalizeUzPhone(user.phone) : null;
   return {
     name: user ? [user.firstName, user.lastName].filter(Boolean).join(' ') : '',
     phone: phone ? formatUzPhone(phone) : '',
     email: user?.email ?? '',
-    regionCode: '',
-    city: '',
-    addressLine: '',
-    landmark: '',
-    methodCode: '',
+    regionCode: address?.regionCode ?? '',
+    city: address?.city ?? '',
+    addressLine: address?.addressLine ?? '',
+    landmark: address?.landmark ?? '',
+    methodCode: address ? firstMethodFor(options, address.regionCode) : '',
     paymentMethod: options.paymentMethods.length === 1 ? (options.paymentMethods[0] ?? '') : '',
     note: '',
     acceptTerms: false,
@@ -98,9 +115,12 @@ function initialValues(user: CurrentUserDto | null, options: CheckoutOptionsDto)
 export function CheckoutForm({
   options,
   user,
+  addresses,
 }: {
   options: CheckoutOptionsDto;
   user: CurrentUserDto | null;
+  /** The signed-in customer's address book (empty for guests). */
+  addresses: AddressDto[];
 }) {
   const t = useTranslations('Checkout');
   const tv = useTranslations('Validation');
@@ -112,7 +132,11 @@ export function CheckoutForm({
   const validationMessage = useValidationMessage();
   const { cart, status: cartStatus } = useCart();
 
-  const [values, setValues] = useState<Values>(() => initialValues(user, options));
+  const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
+  const [savedAddressId, setSavedAddressId] = useState(defaultAddress?.id ?? '');
+  const [values, setValues] = useState<Values>(() => initialValues(user, options, defaultAddress));
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<ApiError | null>(null);
@@ -182,6 +206,34 @@ export function CheckoutForm({
     clearError(ERROR_PATHS[key]);
   }
 
+  /** Fills the delivery fields from a saved address (the customer can still edit them). */
+  function chooseSavedAddress(id: string) {
+    setSavedAddressId(id);
+    const address = addresses.find((candidate) => candidate.id === id);
+    if (!address) return;
+    clearError(
+      'delivery.regionCode',
+      'delivery.city',
+      'delivery.addressLine',
+      'delivery.methodCode',
+    );
+    setValues((current) => ({
+      ...current,
+      regionCode: address.regionCode,
+      city: address.city,
+      addressLine: address.addressLine,
+      landmark: address.landmark ?? '',
+      methodCode: options.deliveryMethods.some(
+        (candidate) =>
+          candidate.code === current.methodCode &&
+          (candidate.regionCodes.length === 0 ||
+            candidate.regionCodes.includes(address.regionCode)),
+      )
+        ? current.methodCode
+        : firstMethodFor(options, address.regionCode),
+    }));
+  }
+
   function chooseRegion(regionCode: string) {
     const available = options.deliveryMethods.filter(
       (candidate) =>
@@ -229,6 +281,7 @@ export function CheckoutForm({
       paymentMethod: values.paymentMethod as PaymentMethod,
       note: values.note,
       expectedTotal: currentQuote?.total,
+      ...(user && saveAddress ? { saveAddress: true } : {}),
       acceptTerms: values.acceptTerms as true,
     };
     const parsed = checkoutSchema.safeParse(input);
@@ -265,6 +318,13 @@ export function CheckoutForm({
         body: parsed.data,
       });
       cartActions.clear();
+      if (placed.payment?.redirectUrl) {
+        // Online payment: continue on the provider's page (or the labelled demo page). The order
+        // is only marked paid when the provider confirms it to the API.
+        setRedirecting(true);
+        window.location.assign(placed.payment.redirectUrl);
+        return;
+      }
       const query = new URLSearchParams({ token: placed.accessToken, placed: '1' });
       router.replace(`/orders/${placed.order.number}?${query.toString()}`);
     } catch (caught) {
@@ -404,6 +464,26 @@ export function CheckoutForm({
         </Section>
 
         <Section step={2} title={t('deliverySection')}>
+          {addresses.length > 0 ? (
+            <SelectField
+              label={t('savedAddress')}
+              name="savedAddress"
+              placeholder={t('savedAddressPlaceholder')}
+              options={addresses.map((address) => ({
+                value: address.id,
+                label: [
+                  address.label,
+                  regionName(address.regionCode, locale),
+                  address.city,
+                  address.addressLine,
+                ]
+                  .filter(Boolean)
+                  .join(', '),
+              }))}
+              value={savedAddressId}
+              onChange={(event) => chooseSavedAddress(event.target.value)}
+            />
+          ) : null}
           <div className="grid gap-5 sm:grid-cols-2">
             <SelectField
               label={t('region')}
@@ -444,6 +524,14 @@ export function CheckoutForm({
             hint={t('landmarkHint')}
             error={error('delivery.landmark')}
           />
+          {user ? (
+            <CheckboxField
+              name="saveAddress"
+              checked={saveAddress}
+              onChange={(event) => setSaveAddress(event.target.checked)}
+              label={t('saveAddressToBook')}
+            />
+          ) : null}
 
           <fieldset
             aria-describedby={errors['delivery.methodCode'] ? 'delivery-method-error' : undefined}
@@ -511,7 +599,7 @@ export function CheckoutForm({
           <fieldset aria-describedby={errors.paymentMethod ? 'payment-method-error' : undefined}>
             <legend className="sr-only">{t('paymentSection')}</legend>
             <div className="space-y-2.5">
-              {options.paymentMethods.map((payment) => (
+              {options.paymentOptions.map(({ method: payment, availability }) => (
                 <ChoiceCard
                   key={payment}
                   name="paymentMethod"
@@ -519,13 +607,27 @@ export function CheckoutForm({
                   checked={values.paymentMethod === payment}
                   onChange={(value) => set('paymentMethod', value as PaymentMethod)}
                   invalid={Boolean(errors.paymentMethod)}
+                  disabled={availability === 'unavailable'}
                   title={t(`paymentMethods.${payment}`)}
+                  aside={
+                    availability === 'live' ? undefined : t(`paymentAvailability.${availability}`)
+                  }
                   description={t(`paymentDescriptions.${payment}`)}
                 />
               ))}
             </div>
             {errors.paymentMethod ? (
               <FieldError id="payment-method-error">{error('paymentMethod')}</FieldError>
+            ) : null}
+            {options.paymentOptions.some((option) => option.availability === 'demo') ? (
+              <Notice tone="neutral" compact className="mt-3">
+                {t('paymentDemoNote')}
+              </Notice>
+            ) : null}
+            {values.paymentMethod && isOnlinePaymentMethod(values.paymentMethod) ? (
+              <p className="mt-3 text-body-sm text-fg-muted">
+                {t('paymentRedirectNote', { minutes: options.onlinePaymentWindowMinutes })}
+              </p>
             ) : null}
           </fieldset>
         </Section>
@@ -585,11 +687,13 @@ export function CheckoutForm({
             className="w-full"
           >
             {submitting ? null : <Lock aria-hidden className="h-4 w-4" />}
-            {submitting
-              ? t('placing')
-              : currentQuote
-                ? `${t('placeOrder')} · ${formatMoney(currentQuote.total, locale, currency)}`
-                : t('placeOrder')}
+            {redirecting
+              ? t('redirectingToPayment')
+              : submitting
+                ? t('placing')
+                : currentQuote
+                  ? `${t('placeOrder')} · ${formatMoney(currentQuote.total, locale, currency)}`
+                  : t('placeOrder')}
           </Button>
         </div>
       </form>

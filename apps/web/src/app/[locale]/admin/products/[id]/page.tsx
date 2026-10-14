@@ -1,4 +1,4 @@
-import type { AdminProductDetail, AdminTaxonomy, Locale } from '@teran/contracts';
+import type { AdminProductDetail, AdminProductType, AdminTaxonomy, Locale } from '@teran/contracts';
 import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -25,12 +25,13 @@ export default async function EditProductPage({
 }: PageProps<'/[locale]/admin/products/[id]'>) {
   const [{ id }, query, t] = await Promise.all([params, searchParams, getTranslations('Admin')]);
   if (!UUID.test(id)) notFound();
-  const [product, categories, collections] = await Promise.all([
+  const [product, categories, collections, productTypes] = await Promise.all([
     adminGet<AdminProductDetail>(`/products/${id}`).catch(() => null),
     adminGet<AdminTaxonomy[]>('/categories'),
     adminGet<AdminTaxonomy[]>('/collections'),
+    adminGet<AdminProductType[]>('/product-types'),
   ]);
-  if (!product || !categories || !collections) notFound();
+  if (!product || !categories || !collections || !productTypes) notFound();
 
   return (
     <>
@@ -66,6 +67,7 @@ export default async function EditProductPage({
         product={product}
         categories={categories}
         collections={collections}
+        productTypes={productTypes}
       />
     </>
   );

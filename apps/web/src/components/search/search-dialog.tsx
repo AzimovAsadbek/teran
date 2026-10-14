@@ -143,7 +143,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                   {results.categories.map((category) => (
                     <li key={category.slug}>
                       <Link
-                        href={`/catalog/${category.slug}`}
+                        href={`/${category.path}`}
                         onClick={close}
                         className="flex min-h-11 items-center justify-between rounded-control px-3 text-body font-medium text-fg transition-colors hover:bg-surface-muted hover:text-brand"
                       >

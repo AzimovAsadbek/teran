@@ -13,6 +13,7 @@ import {
 } from '@/features/catalog/query';
 import { useRouter } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { HiddenFilterInputs } from './hidden-filter-inputs';
 
 /**
  * Price range in a popover. Built on <details>, so it opens and submits (as a GET form) even
@@ -93,13 +94,7 @@ export function PriceFilter({
       </summary>
       <div className="absolute top-full left-0 z-30 mt-2 w-[19rem] rounded-card border border-line bg-surface p-4 shadow-overlay motion-safe:animate-pop-in">
         <form action={formAction} method="get" onSubmit={apply}>
-          {filters.format.length > 0 ? (
-            <input type="hidden" name="format" value={[...filters.format].sort().join(',')} />
-          ) : null}
-          {filters.inStock ? <input type="hidden" name="inStock" value="true" /> : null}
-          {filters.sort !== 'featured' ? (
-            <input type="hidden" name="sort" value={filters.sort} />
-          ) : null}
+          <HiddenFilterInputs filters={filters} omitPrice />
           <fieldset>
             <legend className="text-label text-fg">{t('price')}</legend>
             <div className="mt-3 grid grid-cols-2 gap-3">

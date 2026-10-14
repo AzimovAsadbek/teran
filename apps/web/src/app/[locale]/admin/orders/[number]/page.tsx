@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { OrderActions } from '@/components/admin/order-actions';
+import { RecordRefund } from '@/components/admin/order-payments';
 import {
   AdminPageHeader,
   OrderStatusPill,
@@ -132,6 +133,79 @@ export default async function AdminOrderPage({
             </dl>
           </Panel>
 
+          <Panel title={t('payments.title')}>
+            {order.payments.length === 0 ? (
+              <p className="text-body-sm text-fg-muted">{t('payments.none')}</p>
+            ) : (
+              <ol className="space-y-4">
+                {order.payments.map((payment) => (
+                  <li key={payment.id} className="rounded-control border border-line-subtle p-4">
+                    <div className="flex flex-wrap items-center gap-2 text-body-sm">
+                      <span className="font-semibold text-forest-900">
+                        {tco(`paymentMethods.${payment.method}`)}
+                      </span>
+                      <span className="text-fg-subtle">
+                        · {t(`payments.providers.${payment.provider}`)}
+                      </span>
+                      <PaymentStatusPill status={payment.status} />
+                      <span className="ml-auto font-semibold tabular-nums">
+                        {money(payment.amount)}
+                      </span>
+                    </div>
+                    {payment.provider === 'DEMO' ? (
+                      <p className="mt-1 text-xs font-semibold text-warning">
+                        {t('payments.demoNote')}
+                      </p>
+                    ) : null}
+                    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                      {payment.providerReference ? (
+                        <>
+                          <dt className="text-fg-subtle">{t('payments.reference')}</dt>
+                          <dd className="font-mono break-all">{payment.providerReference}</dd>
+                        </>
+                      ) : null}
+                      {payment.expiresAt ? (
+                        <>
+                          <dt className="text-fg-subtle">{t('payments.expires')}</dt>
+                          <dd>{formatDateTime(payment.expiresAt, locale)}</dd>
+                        </>
+                      ) : null}
+                      {payment.failureCode ? (
+                        <>
+                          <dt className="text-fg-subtle">{t('payments.failure')}</dt>
+                          <dd className="font-mono">{payment.failureCode}</dd>
+                        </>
+                      ) : null}
+                    </dl>
+                    {payment.events.length > 0 ? (
+                      <details className="mt-2 text-xs">
+                        <summary className="cursor-pointer font-semibold text-fg-muted">
+                          {t('payments.history')}
+                        </summary>
+                        <ol className="mt-2 space-y-1.5 border-l-2 border-line pl-3">
+                          {payment.events.map((event) => (
+                            <li key={event.id}>
+                              <span className="font-semibold">
+                                {tco(`paymentStatuses.${event.toStatus}`)}
+                              </span>{' '}
+                              · {t(`payments.sources.${event.source as 'customer'}`)}
+                              {event.detail ? ` · ${event.detail}` : ''}
+                              {event.actorName ? ` · ${event.actorName}` : ''}
+                              <span className="block text-fg-subtle">
+                                {formatDateTime(event.createdAt, locale)}
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+            <RecordRefund order={order} />
+          </Panel>
+
           <Panel title={t('orders.historySection')}>
             <ol className="space-y-3 border-l-2 border-line pl-5 text-body-sm">
               <li>
@@ -225,7 +299,11 @@ export default async function AdminOrderPage({
               {order.cancelReason ? (
                 <div>
                   <dt className="text-xs text-fg-subtle">{t('orders.cancelReason')}</dt>
-                  <dd className="whitespace-pre-line">{order.cancelReason}</dd>
+                  <dd className="whitespace-pre-line">
+                    {order.cancelReason === 'PAYMENT_NOT_COMPLETED'
+                      ? tco('cancelReasons.payment_not_completed')
+                      : order.cancelReason}
+                  </dd>
                 </div>
               ) : null}
               <div>

@@ -1,6 +1,8 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
+import { accountRedirect } from './lib/account-redirect';
+import { legacyCategoryRedirect } from './lib/legacy-category-redirect';
 
 const handleI18nRouting = createMiddleware(routing);
 
@@ -10,7 +12,9 @@ const handleI18nRouting = createMiddleware(routing);
  * Accept-Language never does, so crawlers and first-time visitors always get the language of the
  * URL they requested and every language version stays reachable and indexable.
  */
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
+  const redirect = accountRedirect(request) ?? (await legacyCategoryRedirect(request));
+  if (redirect) return redirect;
   if (!request.headers.has('accept-language')) return handleI18nRouting(request);
   const headers = new Headers(request.headers);
   headers.delete('accept-language');

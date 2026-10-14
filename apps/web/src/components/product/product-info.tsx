@@ -1,4 +1,4 @@
-import type { CheckoutOptionsDto, ProductDetailDto } from '@teran/contracts';
+import type { CheckoutOptionsDto, ProductAttributeDto, ProductDetailDto } from '@teran/contracts';
 import { ChevronDown, CreditCard, Scale, Thermometer, Timer, Truck } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
@@ -44,10 +44,35 @@ function minutes(seconds: number): string {
   return Number.isInteger(seconds / 60) ? String(seconds / 60) : (seconds / 60).toFixed(1);
 }
 
+/** An attribute value as text: options, yes/no, a number with its unit, or plain text. */
+function attributeValue(
+  attribute: ProductAttributeDto,
+  t: (key: 'yes' | 'no') => string,
+): string | null {
+  switch (attribute.kind) {
+    case 'SELECT':
+    case 'MULTI_SELECT':
+      return attribute.options.map((option) => option.label).join(', ') || null;
+    case 'BOOLEAN':
+      return attribute.boolean === null ? null : t(attribute.boolean ? 'yes' : 'no');
+    case 'NUMBER':
+      return attribute.number === null
+        ? null
+        : [attribute.number, attribute.unit].filter(Boolean).join(' ');
+    default:
+      return attribute.text;
+  }
+}
+
 /** Description, ingredients, brewing and details — only sections the product data supports. */
 export async function ProductInfo({ product }: { product: ProductDetailDto }) {
   const t = await getTranslations('Product');
   const tc = await getTranslations('Catalog');
+  const characteristics = product.attributes
+    .map((attribute) => ({ attribute, value: attributeValue(attribute, (key) => t(key)) }))
+    .filter((entry): entry is { attribute: ProductAttributeDto; value: string } =>
+      Boolean(entry.value),
+    );
 
   return (
     <div className="mt-10 border-t border-line">
@@ -66,6 +91,20 @@ export async function ProductInfo({ product }: { product: ProductDetailDto }) {
       {product.tastingNotes ? (
         <Disclosure title={t('tastingNotes')}>
           <Paragraphs text={product.tastingNotes} />
+        </Disclosure>
+      ) : null}
+
+      {characteristics.length > 0 ? (
+        <Disclosure title={t('characteristics')} open>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2.5 text-body-sm">
+            {characteristics.map(({ attribute, value }) => (
+              <div key={attribute.key} className="contents">
+                <dt className="text-fg-subtle">{attribute.label}</dt>
+                {/* Plain text from the product data, never HTML. */}
+                <dd className="whitespace-pre-line text-fg">{value}</dd>
+              </div>
+            ))}
+          </dl>
         </Disclosure>
       ) : null}
 
@@ -206,7 +245,15 @@ export async function DeliveryInfo({ options }: { options: CheckoutOptionsDto | 
         {options && options.paymentMethods.length > 0 ? (
           <li className="flex items-start gap-3 px-4 py-3 text-fg">
             <CreditCard aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-accent-fg" />
-            {options.paymentMethods.map((method) => tco(`paymentMethods.${method}`)).join(' · ')}
+            {/* Only methods that can be used now; simulated ones say so. */}
+            {options.paymentOptions
+              .filter((option) => option.availability !== 'unavailable')
+              .map((option) =>
+                option.availability === 'demo'
+                  ? `${tco(`paymentMethods.${option.method}`)} (${tco('demoBadge')})`
+                  : tco(`paymentMethods.${option.method}`),
+              )
+              .join(' · ')}
           </li>
         ) : null}
       </ul>

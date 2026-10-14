@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const data = await getSitemapEntries().catch(() => null);
   return [
     ...STATIC_PAGES.flatMap((path) => entries(path)),
-    ...(data?.categories ?? []).flatMap((item) => entries(`/catalog/${item.slug}`, item.updatedAt)),
+    ...(data?.categories ?? []).flatMap((item) => entries(`/${item.path}`, item.updatedAt)),
     ...(data?.collections ?? []).flatMap((item) =>
       entries(`/collections/${item.slug}`, item.updatedAt),
     ),

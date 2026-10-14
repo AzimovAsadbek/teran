@@ -1,14 +1,15 @@
 import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
 import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/catalog-results';
 import { ListingHeader, ListingHeaderSkeleton } from '@/components/catalog/listing-header';
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
-import { getCollections } from '@/lib/data/catalog';
+import { getCollections, getSlugRedirect } from '@/lib/data/catalog';
+import { getPathname } from '@/i18n/navigation';
 import { pageMetadata } from '@/lib/seo';
 
 async function findCollection(locale: Locale, slug: string) {
@@ -46,7 +47,12 @@ async function CollectionListing({
     getTranslations('Nav'),
   ]);
   const collection = await findCollection(locale, slug);
-  if (!collection) notFound();
+  if (!collection) {
+    // A renamed collection keeps its old links working.
+    const current = await getSlugRedirect('collections', slug).catch(() => null);
+    if (current) permanentRedirect(getPathname({ href: `/collections/${current}`, locale }));
+    notFound();
+  }
 
   return (
     <>

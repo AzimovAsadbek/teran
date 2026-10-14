@@ -1,6 +1,7 @@
 import 'server-only';
 import type {
   CategoryDto,
+  CategoryPageDto,
   CollectionDto,
   Locale,
   ProductDetailDto,
@@ -23,6 +24,46 @@ export async function getCategories(locale: Locale): Promise<CategoryDto[]> {
   cacheLife('hours');
   cacheTag('catalog');
   return apiGet<CategoryDto[]>(`/catalog/categories?locale=${locale}`);
+}
+
+/**
+ * Categories a shopper browses directly: subcategories, and top-level categories without
+ * subcategories (e.g. Green tea, Black tea, Gift sets), with products, in the API's order.
+ */
+export function leafCategories(categories: CategoryDto[]): CategoryDto[] {
+  const parents = new Set(
+    categories
+      .filter((category) => category.productCount > 0)
+      .map((category) => category.parentSlug),
+  );
+  return categories.filter((category) => category.productCount > 0 && !parents.has(category.slug));
+}
+
+/** A category page by path ("tea", "tea/green-tea"), its new address if moved, or null. */
+export async function getCategoryPage(
+  locale: Locale,
+  path: string,
+): Promise<CategoryPageDto | null> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('catalog');
+  return apiGetOrNull<CategoryPageDto>(
+    `/catalog/category-page?locale=${locale}&path=${encodeURIComponent(path)}`,
+  );
+}
+
+/** The current slug of a renamed product or collection, for permanent redirects. */
+export async function getSlugRedirect(
+  entity: 'products' | 'collections',
+  slug: string,
+): Promise<string | null> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('catalog');
+  const found = await apiGetOrNull<{ slug: string }>(
+    `/catalog/redirects/${entity}/${encodeURIComponent(slug)}`,
+  );
+  return found?.slug ?? null;
 }
 
 export async function getCollections(locale: Locale): Promise<CollectionDto[]> {

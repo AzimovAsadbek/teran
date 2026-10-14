@@ -11,8 +11,15 @@ import { cn } from '@/lib/cn';
 
 export interface NavCategory {
   slug: string;
+  /** Address below the locale: "tea" or "tea/green-tea". */
+  path: string;
   name: string;
   illustrationKey: IllustrationKey | null;
+}
+
+/** A top-level category with its subcategories (both come from the API). */
+export interface NavCategoryTree extends NavCategory {
+  children: NavCategory[];
 }
 
 export interface NavCollection {
@@ -21,11 +28,11 @@ export interface NavCollection {
 }
 
 export interface Navigation {
-  categories: NavCategory[];
+  categories: NavCategoryTree[];
   collections: NavCollection[];
 }
 
-type MenuId = 'teas' | 'collections' | 'about';
+type MenuId = 'shop' | 'collections' | 'about';
 
 const OPEN_DELAY_MS = 120;
 const CLOSE_DELAY_MS = 220;
@@ -108,17 +115,17 @@ export function DesktopNav({ navigation }: { navigation: Promise<Navigation> }) 
         <ul className="-ml-3 flex items-center">
           {/* Each panel follows its trigger in the DOM, so Tab moves from a button into its menu. */}
           <li>
-            {trigger('teas', t('teas'))}
-            <MegaPanel id={`${panelId}-teas`} open={openMenu === 'teas'}>
+            {trigger('shop', t('shop'))}
+            <MegaPanel id={`${panelId}-shop`} open={openMenu === 'shop'}>
               <div className="grid grid-cols-12 gap-10">
-                <Suspense fallback={<TeaLists categories={[]} collections={[]} />}>
-                  <StreamedTeaLists navigation={navigation} />
+                <Suspense fallback={<ShopLists categories={[]} collections={[]} />}>
+                  <StreamedShopLists navigation={navigation} />
                 </Suspense>
                 <FeatureCard
                   className="col-span-3"
                   title={t('discoverTitle')}
                   text={t('discoverText')}
-                  cta={t('allTeas')}
+                  cta={t('shopAll')}
                 />
               </div>
             </MegaPanel>
@@ -137,7 +144,7 @@ export function DesktopNav({ navigation }: { navigation: Promise<Navigation> }) 
                   className="col-span-3"
                   title={t('discoverTitle')}
                   text={t('discoverText')}
-                  cta={t('allTeas')}
+                  cta={t('shopAll')}
                 />
               </div>
             </MegaPanel>
@@ -240,34 +247,48 @@ function FeatureCard({
   );
 }
 
-function StreamedTeaLists({ navigation }: { navigation: Promise<Navigation> }) {
-  return <TeaLists {...use(navigation)} />;
+function StreamedShopLists({ navigation }: { navigation: Promise<Navigation> }) {
+  return <ShopLists {...use(navigation)} />;
 }
 
-/** Tea types and featured collections in the "Teas" panel (empty while data is on its way). */
-function TeaLists({ categories, collections }: Navigation) {
+/**
+ * The category tree and featured collections in the "Shop" panel (empty while data is on its way).
+ * Every category comes from the API: a new one appears here once it is active and has products.
+ */
+function ShopLists({ categories, collections }: Navigation) {
   const t = useTranslations('Nav');
   return (
     <>
-      <div className="col-span-6">
-        <p className="text-eyebrow text-accent-fg">{t('shopByType')}</p>
-        <ul className="mt-4 grid grid-cols-2 gap-1">
-          {categories.map((category) => (
-            <li key={category.slug}>
-              <Link
-                href={`/catalog/${category.slug}`}
-                className="group flex items-center gap-3 rounded-control px-2 py-2 transition-colors duration-150 hover:bg-surface-muted"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-muted p-1.5 transition-colors group-hover:bg-surface">
-                  <TeaTypeArt kind={category.illustrationKey} />
-                </span>
-                <span className="text-title-sm font-medium text-fg group-hover:text-brand">
-                  {category.name}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      <div className="col-span-6 grid grid-cols-2 gap-x-8 gap-y-6">
+        {categories.map((category) => (
+          <div key={category.slug}>
+            <Link
+              href={`/${category.path}`}
+              className="group flex items-center gap-3 rounded-control px-2 py-1.5 transition-colors duration-150 hover:bg-surface-muted"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-muted p-1.5 transition-colors group-hover:bg-surface">
+                <TeaTypeArt kind={category.illustrationKey} />
+              </span>
+              <span className="text-title-sm font-semibold text-forest-900 group-hover:text-brand">
+                {category.name}
+              </span>
+            </Link>
+            {category.children.length > 0 ? (
+              <ul className="mt-1 ml-[3.75rem] space-y-0.5">
+                {category.children.map((child) => (
+                  <li key={child.slug}>
+                    <Link
+                      href={`/${child.path}`}
+                      className="block rounded-control px-2 py-1.5 text-body text-fg transition-colors duration-150 hover:bg-surface-muted hover:text-brand"
+                    >
+                      {child.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ))}
       </div>
       <div className="col-span-3 border-l border-line-subtle pl-8">
         <p className="text-eyebrow text-accent-fg">{t('featured')}</p>
@@ -287,7 +308,7 @@ function TeaLists({ categories, collections }: Navigation) {
           href="/catalog"
           className="group mt-4 inline-flex items-center gap-2 px-2 text-button text-brand hover:underline hover:underline-offset-4"
         >
-          {t('allTeas')}
+          {t('shopAll')}
           <ArrowRight
             aria-hidden
             className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5"

@@ -1,4 +1,4 @@
-import type { CurrentUserDto, Locale } from '@teran/contracts';
+import type { AddressDto, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -8,6 +8,7 @@ import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
+import { currentUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
@@ -25,8 +26,11 @@ async function CheckoutLoader() {
   const [options, user] = await Promise.all([
     getCheckoutOptions(locale).catch(() => null),
     // Prefill for signed-in customers only; a guest (or an API hiccup) simply gets empty fields.
-    apiGetAsVisitor<CurrentUserDto>('/auth/me').catch(() => null),
+    currentUser(),
   ]);
+  const addresses = user
+    ? await apiGetAsVisitor<AddressDto[]>('/account/addresses').catch(() => null)
+    : null;
 
   if (!options) {
     return (
@@ -35,7 +39,7 @@ async function CheckoutLoader() {
       </Notice>
     );
   }
-  return <CheckoutForm options={options} user={user} />;
+  return <CheckoutForm options={options} user={user} addresses={addresses ?? []} />;
 }
 
 export default async function CheckoutPage() {

@@ -1,12 +1,19 @@
-import type { FacetsDto, ProductFormat } from '@teran/contracts';
+import type { AttributeFacetDto, FacetsDto, ProductFormat } from '@teran/contracts';
 import { Check, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link, getPathname } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/format';
-import { toSearchParams, toggleFormat, type CatalogFilters } from '@/features/catalog/query';
+import {
+  toSearchParams,
+  toggleAttribute,
+  toggleFormat,
+  withAttribute,
+  type CatalogFilters,
+} from '@/features/catalog/query';
 import { MobileFilters } from './mobile-filters';
 import { PriceFilter } from './price-filter';
+import { RangeFilter } from './range-filter';
 import { SortSelect } from './sort-select';
 
 const CHIP =
@@ -54,6 +61,36 @@ export async function FilterBar({
           ? t('priceChipMax', { max: money(maxPrice) })
           : null;
 
+  const optionLabel = (facet: AttributeFacetDto | undefined, value: string) => {
+    if (facet?.kind === 'BOOLEAN') return value === 'true' ? t('yes') : t('no');
+    return facet?.options.find((option) => option.key === value)?.label ?? value;
+  };
+  const rangeLabel = (facet: AttributeFacetDto | undefined, value: string) => {
+    const [min = '', max = ''] = value.split('~');
+    const unit = facet?.unit ? ` ${facet.unit}` : '';
+    if (min && max) return `${min}–${max}${unit}`;
+    return min ? `≥ ${min}${unit}` : `≤ ${max}${unit}`;
+  };
+  const facetFor = (key: string) => facets.attributes.find((facet) => facet.key === key);
+  const attributeChips = Object.entries(filters.attributes).flatMap(([key, values]) => {
+    const facet = facetFor(key);
+    const label = facet?.label ?? key;
+    if (facet?.kind === 'NUMBER' || values.some((value) => value.includes('~'))) {
+      return [
+        {
+          key: `attr-${key}`,
+          label: t('rangeChip', { label, range: rangeLabel(facet, values[0] ?? '') }),
+          href: href(withAttribute(filters, key, [])),
+        },
+      ];
+    }
+    return values.map((value) => ({
+      key: `attr-${key}-${value}`,
+      label: `${label}: ${optionLabel(facet, value)}`,
+      href: href(toggleAttribute(filters, key, value)),
+    }));
+  });
+
   const active = [
     ...filters.format.map((format) => ({
       key: `format-${format}`,
@@ -78,6 +115,7 @@ export async function FilterBar({
           },
         ]
       : []),
+    ...attributeChips,
   ];
   const clearAll = href({
     ...filters,
@@ -85,6 +123,7 @@ export async function FilterBar({
     inStock: false,
     minPrice: undefined,
     maxPrice: undefined,
+    attributes: {},
     page: 1,
   });
 
@@ -138,6 +177,17 @@ export async function FilterBar({
             }}
             chipClassName={CHIP}
           />
+          {facets.attributes.map((facet) => (
+            <AttributeChips
+              key={facet.key}
+              facet={facet}
+              filters={filters}
+              basePath={basePath}
+              formAction={formAction}
+              href={href}
+              yes={t('yes')}
+            />
+          ))}
         </div>
 
         <MobileFilters
@@ -183,5 +233,92 @@ export async function FilterBar({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The filter of one product attribute in the desktop bar: chips for choices and yes/no
+ * attributes, a range popover for numbers. Counts come from the API for the current listing.
+ */
+function AttributeChips({
+  facet,
+  filters,
+  basePath,
+  formAction,
+  href,
+  yes,
+}: {
+  facet: AttributeFacetDto;
+  filters: CatalogFilters;
+  basePath: string;
+  formAction: string;
+  href: (next: CatalogFilters) => string;
+  yes: string;
+}) {
+  const selected = filters.attributes[facet.key] ?? [];
+  if (facet.kind === 'NUMBER') {
+    if (!facet.range) return null;
+    const [min = '', max = ''] = (selected[0] ?? '').split('~');
+    const unit = facet.unit ? ` ${facet.unit}` : '';
+    const summary =
+      min || max
+        ? `${facet.label}: ${min || facet.range.min}–${max || facet.range.max}${unit}`
+        : facet.label;
+    return (
+      <RangeFilter
+        basePath={basePath}
+        formAction={formAction}
+        filters={filters}
+        attributeKey={facet.key}
+        label={facet.unit ? `${facet.label}, ${facet.unit}` : facet.label}
+        summary={summary}
+        placeholders={{ min: facet.range.min, max: facet.range.max }}
+        chipClassName={CHIP}
+      />
+    );
+  }
+  if (facet.kind === 'BOOLEAN') {
+    const option = facet.options.find((entry) => entry.key === 'true');
+    if (!option) return null;
+    const on = selected.includes('true');
+    return (
+      <Link
+        href={href(withAttribute(filters, facet.key, on ? [] : ['true']))}
+        rel="nofollow"
+        scroll={false}
+        className={cn(CHIP, on ? CHIP_ON : CHIP_OFF)}
+      >
+        {on ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
+        {facet.label}
+        <span className="sr-only">: {yes}</span>
+        <span className={cn('text-caption', on ? 'text-ivory-100/75' : 'text-fg-subtle')}>
+          {option.count}
+        </span>
+      </Link>
+    );
+  }
+  return (
+    <span role="group" aria-label={facet.label} className="flex flex-wrap items-center gap-2">
+      <span aria-hidden className="mx-1 h-6 w-px bg-line" />
+      <span className="text-caption font-semibold text-fg-subtle">{facet.label}</span>
+      {facet.options.map((option) => {
+        const on = selected.includes(option.key);
+        return (
+          <Link
+            key={option.key}
+            href={href(toggleAttribute(filters, facet.key, option.key))}
+            rel="nofollow"
+            scroll={false}
+            className={cn(CHIP, on ? CHIP_ON : CHIP_OFF)}
+          >
+            {on ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
+            {option.label}
+            <span className={cn('text-caption', on ? 'text-ivory-100/75' : 'text-fg-subtle')}>
+              {option.count}
+            </span>
+          </Link>
+        );
+      })}
+    </span>
   );
 }

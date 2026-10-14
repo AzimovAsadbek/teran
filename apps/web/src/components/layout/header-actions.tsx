@@ -1,18 +1,19 @@
 'use client';
 
-import { Search, ShoppingBag, UserRound } from 'lucide-react';
+import { Search, ShoppingBag } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { SearchDialog } from '@/components/search/search-dialog';
-import { IconButton, iconButtonClasses } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/button';
 import { cartActions, useCart } from '@/features/cart/cart-store';
-import { Link } from '@/i18n/navigation';
+import type { HeaderAccount } from '@/lib/session';
+import { AccountMenu } from './account-menu';
 
 /**
  * Search, account and bag. Wide screens show a search box-like button (easier to discover than an
  * icon); every other breakpoint uses 44 px icon buttons with accessible names.
  */
-export function HeaderActions() {
+export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) {
   const t = useTranslations('Nav');
   const ts = useTranslations('Search');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -38,9 +39,7 @@ export function HeaderActions() {
         aria-haspopup="dialog"
         className="xl:hidden"
       />
-      <Link href="/account" aria-label={t('account')} className={iconButtonClasses('ghost', 'md')}>
-        <UserRound aria-hidden />
-      </Link>
+      <AccountMenu account={account} />
       <IconButton
         label={t('cartCount', { count })}
         icon={<ShoppingBag />}

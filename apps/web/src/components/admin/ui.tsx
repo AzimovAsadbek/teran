@@ -104,8 +104,13 @@ const ORDER_TONES: Record<OrderStatus, Tone> = {
 };
 const PAYMENT_TONES: Record<PaymentStatus, Tone> = {
   PENDING: 'gold',
+  REQUIRES_ACTION: 'gold',
+  PROCESSING: 'blue',
   PAID: 'leaf',
   FAILED: 'danger',
+  EXPIRED: 'danger',
+  REFUND_PENDING: 'blue',
+  PARTIALLY_REFUNDED: 'muted',
   REFUNDED: 'muted',
   CANCELLED: 'muted',
 };

@@ -2,6 +2,7 @@ import {
   formatUzPhone,
   regionName,
   type Locale,
+  type OrderCancelReason,
   type OrderDto,
   type OrderStatus,
 } from '@teran/contracts';
@@ -22,8 +23,14 @@ const PROGRESS: readonly OrderStatus[] = [
   'DELIVERED',
 ];
 
-/** Where the order is in its lifecycle; a cancelled order says so instead of showing steps. */
-export async function OrderProgress({ status }: { status: OrderStatus }) {
+/** Where the order is in its lifecycle; a cancelled order says why instead of showing steps. */
+export async function OrderProgress({
+  status,
+  cancelReason = null,
+}: {
+  status: OrderStatus;
+  cancelReason?: OrderCancelReason | null;
+}) {
   const t = await getTranslations('Checkout');
   if (status === 'CANCELLED') {
     return (
@@ -31,7 +38,7 @@ export async function OrderProgress({ status }: { status: OrderStatus }) {
         <CircleX aria-hidden className="mt-0.5 h-5 w-5 shrink-0" />
         <span>
           <strong className="block">{t('statuses.CANCELLED')}</strong>
-          {t('cancelledText')}
+          {t(`cancelReasons.${cancelReason ?? 'store'}`)}
         </span>
       </p>
     );
@@ -170,6 +177,26 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
           <span className="block text-fg-subtle">
             {t(`paymentStatuses.${order.paymentStatus}`)}
           </span>
+          {order.payments.length > 1 || order.payments.some((payment) => payment.demo) ? (
+            <span className="mt-2 block space-y-1 border-t border-line-subtle pt-2">
+              {order.payments.map((payment) => (
+                <span key={payment.createdAt} className="block text-caption text-fg-muted">
+                  {t(`paymentMethods.${payment.method}`)} · {t(`paymentStatuses.${payment.status}`)}
+                  {payment.paidAt
+                    ? ` · ${t('paidAt', { date: formatDateTime(payment.paidAt, locale) })}`
+                    : ''}
+                  {payment.demo ? (
+                    <span className="ml-1.5 rounded-full bg-gold-100 px-1.5 py-px text-micro font-bold text-forest-900 uppercase">
+                      {t('demoBadge')}
+                    </span>
+                  ) : null}
+                </span>
+              ))}
+              {order.payments.some((payment) => payment.demo) ? (
+                <span className="block text-caption text-fg-subtle">{t('demoPaymentNote')}</span>
+              ) : null}
+            </span>
+          ) : null}
         </InfoCard>
         {order.note ? <InfoCard title={t('note')}>{order.note}</InfoCard> : null}
       </aside>
@@ -183,5 +210,38 @@ function InfoCard({ title, children }: { title: string; children: ReactNode }) {
       <h3 className="text-eyebrow text-accent-fg">{title}</h3>
       <p className="mt-1.5 text-body-sm text-fg">{children}</p>
     </div>
+  );
+}
+
+/** Status changes with their dates (never staff notes). */
+export async function OrderTimeline({ order, locale }: { order: OrderDto; locale: Locale }) {
+  const t = await getTranslations('Checkout');
+  if (order.events.length === 0) return null;
+  return (
+    <section
+      aria-labelledby="order-timeline"
+      className="rounded-panel border border-line bg-surface p-5 sm:p-7"
+    >
+      <h2 id="order-timeline" className="text-display-sm text-forest-900">
+        {t('timeline')}
+      </h2>
+      <ol className="mt-4 space-y-3 border-l border-line pl-5">
+        {[...order.events].reverse().map((event, index) => (
+          <li key={`${event.status}-${event.at}`} className="relative">
+            <span
+              aria-hidden
+              className={cn(
+                'absolute top-1.5 -left-[1.6rem] h-2.5 w-2.5 rounded-full ring-4 ring-surface',
+                index === 0 ? 'bg-brand' : 'bg-line-strong',
+              )}
+            />
+            <span className="block text-title-sm text-fg">{t(`statuses.${event.status}`)}</span>
+            <time dateTime={event.at} className="text-body-sm text-fg-subtle">
+              {formatDateTime(event.at, locale)}
+            </time>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

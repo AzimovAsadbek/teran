@@ -14,6 +14,57 @@ export interface CatalogFilters {
   inStock: boolean;
   sort: ProductSort;
   page: number;
+  /**
+   * Product attribute filters, `attr.<key>=<values>` in the URL: option keys (several allowed),
+   * "true"/"false", or a number range "min~max". Keys and values use the API's rules.
+   */
+  attributes: Record<string, string[]>;
+}
+
+const ATTRIBUTE_PREFIX = 'attr.';
+const ATTRIBUTE_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const NUMBER = /^\d{1,9}(?:\.\d{1,3})?$/;
+const ATTRIBUTE_VALUE =
+  /^(?:[a-z0-9]+(?:-[a-z0-9]+)*|(?:\d{1,9}(?:\.\d{1,3})?)?~(?:\d{1,9}(?:\.\d{1,3})?)?)$/;
+const MAX_ATTRIBUTES = 10;
+
+/**
+ * Reads `attr.<key>` parameters (and the separate `attrmin.<key>` / `attrmax.<key>` fields a
+ * number range form submits without JavaScript). Malformed keys or values are dropped.
+ */
+function parseAttributes(params: RawSearchParams): Record<string, string[]> {
+  const attributes: Record<string, string[]> = {};
+  const ranges: Record<string, { min?: string; max?: string }> = {};
+  for (const [name, raw] of Object.entries(params)) {
+    const values = (Array.isArray(raw) ? raw : [raw ?? ''])
+      .flatMap((value) => value.split(','))
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (name.startsWith(ATTRIBUTE_PREFIX)) {
+      const key = name.slice(ATTRIBUTE_PREFIX.length);
+      const valid = values.filter((value) => ATTRIBUTE_VALUE.test(value) && value !== '~');
+      if (ATTRIBUTE_KEY.test(key) && valid.length > 0) {
+        attributes[key] = [...new Set([...(attributes[key] ?? []), ...valid])].slice(0, 20);
+      }
+    } else if (name.startsWith('attrmin.') || name.startsWith('attrmax.')) {
+      const key = name.slice('attrmin.'.length);
+      const value = values[0];
+      if (!ATTRIBUTE_KEY.test(key) || !value || !NUMBER.test(value)) continue;
+      ranges[key] = { ...ranges[key], [name.startsWith('attrmin.') ? 'min' : 'max']: value };
+    }
+  }
+  for (const [key, range] of Object.entries(ranges)) {
+    attributes[key] = [`${range.min ?? ''}~${range.max ?? ''}`];
+  }
+  return Object.fromEntries(Object.entries(attributes).slice(0, MAX_ATTRIBUTES));
+}
+
+/** Writes the attribute filters into URL parameters, keys and values sorted. */
+function writeAttributes(params: URLSearchParams, attributes: Record<string, string[]>): void {
+  for (const key of Object.keys(attributes).sort()) {
+    const values = attributes[key] ?? [];
+    if (values.length > 0) params.set(`${ATTRIBUTE_PREFIX}${key}`, [...values].sort().join(','));
+  }
 }
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -48,6 +99,7 @@ export function parseCatalogFilters(params: RawSearchParams): CatalogFilters {
     format: [...new Set(formats)],
     minPrice,
     maxPrice,
+    attributes: parseAttributes(params),
     inStock: first(params.inStock) === 'true',
     sort:
       sort && (PRODUCT_SORTS as readonly string[]).includes(sort)
@@ -64,7 +116,8 @@ export function hasRefinements(filters: CatalogFilters): boolean {
     filters.minPrice !== undefined ||
     filters.maxPrice !== undefined ||
     filters.inStock ||
-    filters.sort !== 'featured'
+    filters.sort !== 'featured' ||
+    Object.keys(filters.attributes).length > 0
   );
 }
 
@@ -80,6 +133,7 @@ export function toSearchParams(
   if (filters.inStock) params.set('inStock', 'true');
   if (filters.sort !== 'featured') params.set('sort', filters.sort);
   if (filters.page > 1) params.set('page', String(filters.page));
+  writeAttributes(params, filters.attributes);
   params.sort();
   return params.toString();
 }
@@ -101,6 +155,7 @@ export function toApiQuery(
   params.set('sort', filters.sort);
   params.set('page', String(filters.page));
   params.set('pageSize', String(pageSize));
+  writeAttributes(params, filters.attributes);
   params.sort();
   return params.toString();
 }
@@ -110,4 +165,29 @@ export function toggleFormat(filters: CatalogFilters, format: ProductFormat): Ca
     ? filters.format.filter((value) => value !== format)
     : [...filters.format, format];
   return { ...filters, format: next, page: 1 };
+}
+
+/** Adds or removes one value of a choice (or yes/no) attribute filter. */
+export function toggleAttribute(
+  filters: CatalogFilters,
+  key: string,
+  value: string,
+): CatalogFilters {
+  const current = filters.attributes[key] ?? [];
+  const next = current.includes(value)
+    ? current.filter((entry) => entry !== value)
+    : [...current, value];
+  return withAttribute(filters, key, next);
+}
+
+/** Replaces the values of one attribute filter (an empty list removes it). */
+export function withAttribute(
+  filters: CatalogFilters,
+  key: string,
+  values: string[],
+): CatalogFilters {
+  const attributes = { ...filters.attributes };
+  if (values.length > 0) attributes[key] = values;
+  else delete attributes[key];
+  return { ...filters, attributes, page: 1 };
 }

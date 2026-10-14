@@ -4,6 +4,7 @@ import {
   parseCatalogFilters,
   toApiQuery,
   toSearchParams,
+  toggleAttribute,
   toggleFormat,
 } from './query';
 
@@ -21,6 +22,7 @@ describe('catalogue URL filters', () => {
       format: ['TEA_BAGS', 'LOOSE_LEAF'],
       minPrice: 50000,
       maxPrice: undefined,
+      attributes: {},
       inStock: true,
       sort: 'featured',
       page: 1,
@@ -71,5 +73,37 @@ describe('catalogue URL filters', () => {
   it('detects refinements that should not be indexed', () => {
     expect(hasRefinements(parseCatalogFilters({ page: '2' }))).toBe(false);
     expect(hasRefinements(parseCatalogFilters({ inStock: 'true' }))).toBe(true);
+  });
+
+  it('reads attribute filters, drops malformed ones and writes them back in a stable order', () => {
+    const filters = parseCatalogFilters({
+      'attr.leaf-style': 'rolled,whole-leaf',
+      'attr.flavoured': ['true'],
+      'attr.Bad Key': 'x',
+      'attr.roast': "dark'--",
+      'attrmin.net-weight': '100',
+      'attrmax.net-weight': '250',
+    });
+    expect(filters.attributes).toEqual({
+      'leaf-style': ['rolled', 'whole-leaf'],
+      flavoured: ['true'],
+      'net-weight': ['100~250'],
+    });
+    expect(hasRefinements(filters)).toBe(true);
+    expect(toSearchParams(filters)).toBe(
+      'attr.flavoured=true&attr.leaf-style=rolled%2Cwhole-leaf&attr.net-weight=100%7E250',
+    );
+    expect(toApiQuery(filters, { category: 'tea' }, 24)).toContain(
+      'attr.leaf-style=rolled%2Cwhole-leaf',
+    );
+  });
+
+  it('toggles one attribute value and goes back to the first page', () => {
+    const filters = { ...parseCatalogFilters({ 'attr.leaf-style': 'rolled' }), page: 3 };
+    expect(toggleAttribute(filters, 'leaf-style', 'cut')).toMatchObject({
+      attributes: { 'leaf-style': ['rolled', 'cut'] },
+      page: 1,
+    });
+    expect(toggleAttribute(filters, 'leaf-style', 'rolled').attributes).toEqual({});
   });
 });

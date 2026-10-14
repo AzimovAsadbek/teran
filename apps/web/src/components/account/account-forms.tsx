@@ -152,8 +152,8 @@ export function ChangePasswordForm() {
   );
 }
 
-export function LogoutButton() {
-  const t = useTranslations('Account');
+/** Signs out, then shows the empty bag of a signed-out visitor and goes home. */
+export function useLogout(): { pending: boolean; logout: () => Promise<void> } {
   const locale = useLocale() as Locale;
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -169,6 +169,13 @@ export function LogoutButton() {
       router.refresh();
     }
   }
+
+  return { pending, logout };
+}
+
+export function LogoutButton() {
+  const t = useTranslations('Account');
+  const { pending, logout } = useLogout();
 
   return (
     <Button variant="ghost" onClick={() => void logout()} loading={pending}>

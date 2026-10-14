@@ -69,7 +69,19 @@
     "cartCount": "{count, plural, =0 {Savat boʻsh} other {Savatda # ta mahsulot}}",
     "explore": "Kashf eting",
     "discoverTitle": "Oʻzingizga mos choyni toping",
-    "discoverText": "Choy turi, shakli va taʼm yoʻnalishi boʻyicha tanlang."
+    "discoverText": "Choy turi, shakli va taʼm yoʻnalishi boʻyicha tanlang.",
+    "shop": "Katalog",
+    "shopAll": "Barcha mahsulotlar",
+    "shopIn": "Barchasi: {name}",
+    "signIn": "Kirish",
+    "register": "Roʻyxatdan oʻtish",
+    "accountMenu": "Hisob menyusi",
+    "myAccount": "Mening hisobim",
+    "myOrders": "Buyurtmalarim",
+    "addresses": "Saqlangan manzillar",
+    "staffArea": "Boshqaruv paneli",
+    "signOut": "Chiqish",
+    "signedInAs": "Siz {name} sifatida kirgansiz"
   },
   "Footer": {
     "shop": "Doʻkon",
@@ -183,7 +195,16 @@
     "emptyTitle": "Hech narsa topilmadi",
     "emptyText": "Filtrlarni oʻzgartirib koʻring yoki barcha choylarni koʻring.",
     "loadError": "Katalogni yuklab boʻlmadi. Birozdan soʻng qayta urinib koʻring.",
-    "collectionTitle": "{name} kolleksiyasi"
+    "collectionTitle": "{name} kolleksiyasi",
+    "shopAllTitle": "Barcha mahsulotlar",
+    "shopAllDescription": "TERAN doʻkonidagi barcha mahsulotlar: toifa, shakl va narx boʻyicha tanlang.",
+    "yes": "Ha",
+    "no": "Yoʻq",
+    "rangeFrom": "Dan",
+    "rangeTo": "Gacha",
+    "rangeChip": "{label}: {range}",
+    "allIn": "Barchasi: {name}",
+    "subcategories": "Toifalar"
   },
   "Product": {
     "addToCart": "Savatga qoʻshish",
@@ -224,7 +245,7 @@
     "delivery": "Yetkazib berish va toʻlov",
     "deliveryText": "Yetkazib berish usuli va narxi buyurtma rasmiylashtirilayotganda tanlanadi.",
     "deliveryLink": "Yetkazib berish shartlari",
-    "paymentText": "Toʻlov: yetkazib berishda naqd pul bilan.",
+    "paymentText": "Toʻlov: kuryerga naqd yoki onlayn — buyurtma berishda mavjud usullarga qarab.",
     "related": "Sizga yoqishi mumkin",
     "gallery": "Mahsulot rasmlari",
     "showImage": "{index}-rasmni koʻrsatish",
@@ -237,7 +258,10 @@
       "TEA_BAGS": "{count} ta paketcha",
       "PYRAMIDS": "{count} ta piramidka",
       "default": "{count} dona"
-    }
+    },
+    "characteristics": "Xususiyatlari",
+    "yes": "Ha",
+    "no": "Yoʻq"
   },
   "Cart": {
     "title": "Savat",
@@ -371,10 +395,16 @@
     "free": "Bepul",
     "freeFrom": "{amount} dan bepul",
     "paymentMethods": {
-      "CASH_ON_DELIVERY": "Yetkazib berishda naqd pul bilan"
+      "CASH_ON_DELIVERY": "Yetkazib berishda naqd pul bilan",
+      "CLICK": "Click",
+      "PAYME": "Payme",
+      "CARD": "Bank kartasi (Visa)"
     },
     "paymentDescriptions": {
-      "CASH_ON_DELIVERY": "Buyurtmani qabul qilganingizda kuryerga toʻlaysiz."
+      "CASH_ON_DELIVERY": "Buyurtmani qabul qilganingizda kuryerga toʻlaysiz.",
+      "CLICK": "Click toʻlov sahifasida toʻlang.",
+      "PAYME": "Payme toʻlov sahifasida toʻlang.",
+      "CARD": "Karta toʻlov shlyuzi orqali toʻlang."
     },
     "summary": "Buyurtma tarkibi",
     "subtotal": "Mahsulotlar",
@@ -411,7 +441,12 @@
       "PAID": "Toʻlangan",
       "FAILED": "Toʻlov amalga oshmadi",
       "REFUNDED": "Qaytarildi",
-      "CANCELLED": "Bekor qilindi"
+      "CANCELLED": "Bekor qilindi",
+      "REQUIRES_ACTION": "Toʻlov kutilmoqda",
+      "PROCESSING": "Toʻlov amalga oshirilmoqda",
+      "EXPIRED": "Toʻlov muddati tugadi",
+      "REFUND_PENDING": "Pul qaytarilmoqda",
+      "PARTIALLY_REFUNDED": "Qisman qaytarildi"
     },
     "orderNotFound": "Buyurtma topilmadi yoki havola notoʻgʻri.",
     "continueShopping": "Xaridni davom ettirish",
@@ -422,7 +457,33 @@
     "cancelledText": "Bu buyurtma bekor qilingan. Savollaringiz boʻlsa, biz bilan bogʻlaning.",
     "accountHint": "Hisobingiz bormi? <login>Kiring</login> — buyurtmalaringiz bir joyda saqlanadi.",
     "contactSummary": "Qabul qiluvchi",
-    "discount": "Chegirma"
+    "discount": "Chegirma",
+    "paymentAvailability": {
+      "demo": "Demo · pul yechilmaydi",
+      "unavailable": "Hozircha mavjud emas"
+    },
+    "paymentDemoNote": "Namoyish rejimi: onlayn toʻlov taqlid qilinadi. Karta maʼlumotlari soʻralmaydi va pul oʻtkazilmaydi.",
+    "paymentRedirectNote": "Buyurtmani rasmiylashtirgach toʻlov sahifasiga oʻtasiz. Mahsulotlar {minutes} daqiqaga band qilinadi.",
+    "redirectingToPayment": "Toʻlov sahifasi ochilmoqda…",
+    "savedAddress": "Saqlangan manzil",
+    "savedAddressPlaceholder": "Saqlangan manzilni tanlang",
+    "saveAddressToBook": "Bu manzilni hisobimda saqlash",
+    "timeline": "Buyurtma tarixi",
+    "paymentsTitle": "Toʻlovlar",
+    "demoBadge": "Demo",
+    "demoPaymentNote": "Taqlidiy toʻlov: pul yechilmagan.",
+    "paidAt": "{date} da toʻlangan",
+    "awaitingPaymentTitle": "Toʻlov kutilmoqda",
+    "awaitingPaymentText": "Toʻlovni {time} gacha amalga oshiring. Shundan keyin buyurtma bekor qilinadi va mahsulotlar sotuvga qaytadi.",
+    "payWith": "{method} orqali toʻlash",
+    "paymentFailedText": "Oxirgi toʻlov urinishi amalga oshmadi. Qayta urinib koʻring yoki boshqa usulni tanlang.",
+    "paymentProcessingText": "Toʻlov tizimidan tasdiq kutilmoqda. Natija kelishi bilan shu sahifada koʻrinadi.",
+    "checkAgain": "Qayta tekshirish",
+    "paymentReceived": "Toʻlov qabul qilindi",
+    "cancelReasons": {
+      "payment_not_completed": "Onlayn toʻlov oʻz vaqtida yakunlanmadi, shuning uchun buyurtma bekor qilindi va mahsulotlar sotuvga qaytarildi.",
+      "store": "Bu buyurtma bekor qilingan. Savollaringiz boʻlsa, biz bilan bogʻlaning."
+    }
   },
   "Forms": {
     "name": "Ismingiz",
@@ -493,7 +554,77 @@
     "backToAccount": "Hisobga qaytish",
     "profileText": "Bu maʼlumotlar buyurtma berishda avtomatik toʻldiriladi.",
     "passwordText": "Parol oʻzgartirilgach, boshqa qurilmalardagi seanslar yakunlanadi.",
-    "signInToSee": "Buyurtmalaringizni koʻrish uchun hisobingizga kiring."
+    "signInToSee": "Buyurtmalaringizni koʻrish uchun hisobingizga kiring.",
+    "overview": "Umumiy",
+    "sections": "Hisob boʻlimlari",
+    "purchases": "Sotib olingan mahsulotlar",
+    "addresses": "Manzillar",
+    "security": "Xavfsizlik",
+    "statOrders": "Buyurtmalar",
+    "statActive": "Jarayonda",
+    "statAddresses": "Saqlangan manzillar",
+    "memberSince": "{date} dan beri xaridor",
+    "attentionTitle": "Toʻlovingizni kutmoqda",
+    "attentionText": "{time} gacha toʻlang, aks holda buyurtma bekor qilinadi va mahsulotlar sotuvga qaytadi.",
+    "payNow": "Toʻlash",
+    "recentOrders": "Soʻnggi buyurtmalar",
+    "allOrders": "Barcha buyurtmalar",
+    "orderFilters": {
+      "all": "Barchasi",
+      "active": "Jarayonda",
+      "completed": "Yetkazilgan",
+      "cancelled": "Bekor qilingan"
+    },
+    "orderFilterLabel": "Buyurtmalarni koʻrsatish",
+    "noOrdersInFilter": "Bu yerda buyurtmalar yoʻq.",
+    "itemCount": "{count, plural, other {# ta mahsulot}}",
+    "purchasesText": "Buyurtmalaringizdagi mahsulotlar va ularning bugungi mavjudligi.",
+    "purchasesEmpty": "Sotib olgan mahsulotlaringiz shu yerda koʻrinadi.",
+    "purchasedSummary": "{count, plural, other {# marta sotib olingan}} · oxirgi marta {date}",
+    "availableNow": "Mavjud",
+    "unavailableNow": "Hozircha mavjud emas",
+    "viewProduct": "Mahsulotni koʻrish",
+    "reorder": "Mahsulotlarni savatga qoʻshish",
+    "reorderHint": "Bugungi narx va mavjudlik amal qiladi. Buyurtma faqat rasmiylashtirgandan keyin beriladi.",
+    "reorderAdded": "{count, plural, other {Savatga # ta mahsulot qoʻshildi.}}",
+    "reorderNone": "Hozir bu mahsulotlarning hech birini qoʻshib boʻlmaydi.",
+    "reorderSkipped": "Qoʻshilmadi: {items}.",
+    "reorderReasons": {
+      "unavailable": "{sku} (endi sotilmaydi)",
+      "out_of_stock": "{sku} (mavjud emas)",
+      "limited": "{sku} (kamroq mavjud)"
+    },
+    "viewBag": "Savatga oʻtish",
+    "addressesText": "Buyurtma berishda saqlangan manzilni tanlang — maʼlumotlarni qayta kiritish shart emas.",
+    "addAddress": "Manzil qoʻshish",
+    "editAddress": "Manzilni tahrirlash",
+    "deleteAddress": "Manzilni oʻchirish",
+    "makeDefault": "Asosiy qilish",
+    "defaultAddress": "Asosiy",
+    "addressLabel": "Nomi (ixtiyoriy)",
+    "addressLabelHint": "Masalan: Uy yoki Ofis.",
+    "recipient": "Qabul qiluvchi",
+    "saveAddress": "Manzilni saqlash",
+    "addressSaved": "Manzil saqlandi.",
+    "addressesEmpty": "Hozircha saqlangan manzillar yoʻq.",
+    "addressLimit": "Koʻpi bilan {max} ta manzil saqlash mumkin.",
+    "confirmDeleteAddress": "“{name}” manzili oʻchirilsinmi?",
+    "emailTitle": "Kirish uchun e-mail",
+    "emailText": "Tasdiqlash uchun joriy parolni kiriting. Boshqa qurilmalarda hisobdan chiqiladi.",
+    "newEmail": "Yangi e-mail",
+    "changeEmail": "E-mailni oʻzgartirish",
+    "emailChanged": "Kirish uchun e-mail oʻzgartirildi.",
+    "sessionsTitle": "Hisobga kirilgan qurilmalar",
+    "sessionsText": "Endi foydalanmayotgan qurilmalarda hisobdan chiqing.",
+    "thisDevice": "Shu qurilma",
+    "unknownDevice": "Nomaʼlum qurilma",
+    "lastActive": "Soʻnggi faollik: {date}",
+    "signOutOthers": "Boshqa barcha qurilmalarda chiqish",
+    "signedOutOthers": "{count, plural, =0 {Boshqa qurilmalarda kirilmagan.} other {# ta qurilmada hisobdan chiqildi.}}",
+    "resetAvailable": "Parolni unutdingizmi? Uni kirish sahifasidan e-mail orqali tiklash mumkin.",
+    "resetNotAvailable": "Parolni e-mail orqali tiklash hozircha mavjud emas. Parolni unutsangiz, biz bilan bogʻlaning.",
+    "accountStatus": "Hisob holati",
+    "statusActive": "Faol"
   },
   "Pages": {
     "onThisPage": "Ushbu sahifada",
@@ -556,7 +687,8 @@
       "catalogue": "Katalog",
       "people": "Odamlar",
       "content": "Kontent",
-      "system": "Tizim"
+      "system": "Tizim",
+      "productTypes": "Mahsulot turlari"
     },
     "common": {
       "save": "Saqlash",
@@ -755,7 +887,15 @@
       "deleteImage": "Rasmni oʻchirish",
       "deleteImageConfirm": "Bu rasm oʻchirilsinmi?",
       "created": "Mahsulot yaratildi.",
-      "openInStore": "Doʻkonda ochish"
+      "openInStore": "Doʻkonda ochish",
+      "productType": "Mahsulot turi",
+      "productTypeHint": "Bu mahsulotning xususiyatlarini belgilaydi.",
+      "attributes": "Xususiyatlar",
+      "noAttributes": "Bu mahsulot turida xususiyatlar yoʻq.",
+      "notSet": "Koʻrsatilmagan",
+      "textUz": "Oʻzbekcha",
+      "textRu": "Ruscha (ixtiyoriy)",
+      "textEn": "Inglizcha (ixtiyoriy)"
     },
     "taxonomy": {
       "categories": "Turkumlar",
@@ -888,6 +1028,102 @@
       "action": "Amal",
       "entity": "Yozuv",
       "ip": "IP-manzil"
+    },
+    "categories": {
+      "parent": "Asosiy toifa",
+      "topLevel": "Yuqori daraja",
+      "parentHint": "Toifalar ikki darajali: yuqori darajadagi toifalar (Choy) va ularning ichki toifalari (Yashil choy).",
+      "body": "Toifa sahifasidagi matn",
+      "bodyHint": "Ixtiyoriy. Oddiy matn; xatboshilar orasida boʻsh qator qoldiring.",
+      "subcategoryOf": "“{name}” ichida",
+      "children": "{count, plural, other {# ta ichki toifa}}"
+    },
+    "productTypes": {
+      "title": "Mahsulot turlari",
+      "intro": "Mahsulot turi uning xususiyatlarini belgilaydi (masalan, qahva uchun qovurish darajasi). Filtr sifatida belgilangan xususiyatlar toifa sahifalarida chiqadi.",
+      "new": "Yangi mahsulot turi",
+      "edit": "Mahsulot turini tahrirlash",
+      "key": "Kalit",
+      "keyHint": "Kichik lotin harflari, raqamlar va chiziqcha, masalan coffee. Tizim ichida ishlatiladi.",
+      "name": "Nomi",
+      "products": "{count, plural, =0 {Mahsulot yoʻq} other {# ta mahsulot}}",
+      "attributes": "Xususiyatlar",
+      "addAttribute": "Xususiyat qoʻshish",
+      "removeAttribute": "Xususiyatni olib tashlash",
+      "attributeKey": "Kalit (filtr havolalarida ishlatiladi)",
+      "attributeLabel": "Nomi",
+      "attributeHint": "Xodimlar uchun izoh",
+      "kind": "Qiymat turi",
+      "kinds": {
+        "TEXT": "Matn",
+        "NUMBER": "Son",
+        "BOOLEAN": "Ha / yoʻq",
+        "SELECT": "Bitta variant",
+        "MULTI_SELECT": "Bir nechta variant"
+      },
+      "unit": "Birlik",
+      "required": "Eʼlon qilish uchun majburiy",
+      "filterable": "Katalogda filtr",
+      "searchable": "Qidiruvda hisobga olish",
+      "visible": "Mahsulot sahifasida koʻrsatish",
+      "options": "Variantlar",
+      "addOption": "Variant qoʻshish",
+      "removeOption": "Variantni olib tashlash",
+      "optionKey": "Kalit",
+      "optionLabel": "Nomi",
+      "inUse": "{count, plural, other {# ta mahsulotda}} ishlatiladi: olib tashlab yoki qiymat turini oʻzgartirib boʻlmaydi.",
+      "deleteConfirm": "“{name}” mahsulot turi oʻchirilsinmi?",
+      "empty": "Hozircha mahsulot turlari yoʻq.",
+      "none": "Turi yoʻq (faqat umumiy maydonlar)"
+    },
+    "payments": {
+      "title": "Toʻlovlar",
+      "provider": "Toʻlov tizimi",
+      "providers": {
+        "CASH": "Naqd",
+        "DEMO": "Demo (taqlid)",
+        "CLICK": "Click",
+        "PAYME": "Payme"
+      },
+      "reference": "Toʻlov identifikatori",
+      "expires": "Toʻlov muddati",
+      "failure": "Sabab",
+      "history": "Tarix",
+      "sources": {
+        "customer": "Xaridor",
+        "provider": "Toʻlov tizimi",
+        "staff": "Xodim",
+        "system": "Tizim",
+        "demo": "Demo"
+      },
+      "none": "Toʻlov urinishlari yoʻq.",
+      "recordRefund": "Qaytarishni qayd etish",
+      "refundNote": "Izoh (majburiy)",
+      "refundHint": "Avval pulni qaytaring: naqd yoki Click sotuvchi kabinetida. Payme kabinetida qilingan qaytarishlar avtomatik qayd etiladi.",
+      "refundConfirm": "{amount} qaytarilganini qayd etasizmi?",
+      "demoNote": "Demo provayder taqlidi: pul oʻtkazilmagan."
     }
+  },
+  "Payment": {
+    "metaTitle": "Toʻlov",
+    "demoTitle": "Namoyish toʻlovi",
+    "demoIntro": "Bu sahifa toʻlov tizimi oʻrnida ishlaydi. Karta maʼlumotlari soʻralmaydi, hech narsa yechilmaydi va pul oʻtkazilmaydi.",
+    "order": "{number} buyurtma",
+    "amount": "Summa",
+    "method": "Usul",
+    "status": "Holat",
+    "payBefore": "Toʻlov muddati",
+    "chooseOutcome": "Taqlid qilinadigan natijani tanlang",
+    "outcomes": {
+      "success": "Muvaffaqiyatli toʻlovni taqlid qilish",
+      "failure": "Rad etilgan toʻlovni taqlid qilish",
+      "cancel": "Toʻlovni bekor qilish",
+      "pending": "Jarayonda qoldirish"
+    },
+    "resultTitle": "Taqlidiy natija: {status}",
+    "continueToOrder": "Buyurtmaga oʻtish",
+    "windowEnded": "Bu buyurtma uchun toʻlov muddati tugagan.",
+    "linkInvalid": "Bu toʻlov havolasi yaroqsiz.",
+    "returnTitle": "Toʻlov sahifasidan qaytish"
   }
 }

@@ -13,6 +13,7 @@ import {
   Menu,
   ScrollText,
   Settings,
+  Shapes,
   ShieldCheck,
   Store,
   Truck,
@@ -35,6 +36,7 @@ type NavKey =
   | 'customers'
   | 'products'
   | 'categories'
+  | 'productTypes'
   | 'collections'
   | 'inventory'
   | 'inquiries'
@@ -66,6 +68,7 @@ const NAV: { group: 'sales' | 'catalogue' | 'content' | 'system'; items: NavItem
     items: [
       { key: 'products', href: '/admin/products', icon: Boxes },
       { key: 'categories', href: '/admin/categories', icon: FolderTree },
+      { key: 'productTypes', href: '/admin/product-types', icon: Shapes },
       { key: 'collections', href: '/admin/collections', icon: Layers },
       { key: 'inventory', href: '/admin/inventory', icon: Store },
     ],

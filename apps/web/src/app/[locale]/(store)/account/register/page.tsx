@@ -1,4 +1,4 @@
-import type { CurrentUserDto, Locale } from '@teran/contracts';
+import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -8,7 +8,7 @@ import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
 import { RegisterForm } from '@/components/account/auth-forms';
 import { ButtonLink } from '@/components/ui/button';
 import { Link, getPathname } from '@/i18n/navigation';
-import { apiGetAsVisitor } from '@/lib/api/server';
+import { currentUser } from '@/lib/account';
 import { getAuthFeatures } from '@/lib/data/content';
 import { safeNextPath } from '@/lib/safe-next';
 import { pageMetadata } from '@/lib/seo';
@@ -34,10 +34,7 @@ async function Register({
     getTranslations('Cart'),
   ]);
   const next = safeNextPath(query.next);
-  const [user, features] = await Promise.all([
-    apiGetAsVisitor<CurrentUserDto>('/auth/me').catch(() => null),
-    getAuthFeatures().catch(() => null),
-  ]);
+  const [user, features] = await Promise.all([currentUser(), getAuthFeatures().catch(() => null)]);
   if (user) redirect(getPathname({ href: next, locale }));
 
   const loginHref =

@@ -42,7 +42,8 @@ export function MobileFilters({
   const activeCount =
     filters.format.length +
     (filters.inStock ? 1 : 0) +
-    (filters.minPrice !== undefined || filters.maxPrice !== undefined ? 1 : 0);
+    (filters.minPrice !== undefined || filters.maxPrice !== undefined ? 1 : 0) +
+    Object.keys(filters.attributes).length;
 
   // With JavaScript, build a clean URL (no empty or default values); without it the GET form still works.
   function applyFilters(event: FormEvent<HTMLFormElement>) {
@@ -163,6 +164,80 @@ export function MobileFilters({
               </label>
             </div>
           </Group>
+
+          {facets.attributes.map((facet) => {
+            const selected = filters.attributes[facet.key] ?? [];
+            if (facet.kind === 'NUMBER') {
+              if (!facet.range) return null;
+              const [min = '', max = ''] = (selected[0] ?? '').split('~');
+              return (
+                <Group
+                  key={facet.key}
+                  legend={facet.unit ? `${facet.label}, ${facet.unit}` : facet.label}
+                >
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <label className="text-helper text-fg-muted">
+                      {t('rangeFrom')}
+                      <input
+                        name={`attrmin.${facet.key}`}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        defaultValue={min}
+                        placeholder={facet.range.min}
+                        className={inputClasses({ className: 'mt-1.5' })}
+                      />
+                    </label>
+                    <label className="text-helper text-fg-muted">
+                      {t('rangeTo')}
+                      <input
+                        name={`attrmax.${facet.key}`}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        defaultValue={max}
+                        placeholder={facet.range.max}
+                        className={inputClasses({ className: 'mt-1.5' })}
+                      />
+                    </label>
+                  </div>
+                </Group>
+              );
+            }
+            if (facet.kind === 'BOOLEAN') {
+              const option = facet.options.find((entry) => entry.key === 'true');
+              if (!option) return null;
+              return (
+                <div key={facet.key} className="py-5">
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
+                    <Checkbox
+                      name={`attr.${facet.key}`}
+                      value="true"
+                      defaultChecked={selected.includes('true')}
+                    />
+                    <span className="flex-1">{facet.label}</span>
+                    <span className="text-body-sm font-normal text-fg-subtle">{option.count}</span>
+                  </label>
+                </div>
+              );
+            }
+            return (
+              <Group key={facet.key} legend={facet.label}>
+                {facet.options.map((option) => (
+                  <label
+                    key={option.key}
+                    className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
+                  >
+                    <Checkbox
+                      name={`attr.${facet.key}`}
+                      value={option.key}
+                      defaultChecked={selected.includes(option.key)}
+                    />
+                    <span className="flex-1">{option.label}</span>
+                    <span className="text-body-sm text-fg-subtle">{option.count}</span>
+                  </label>
+                ))}
+              </Group>
+            );
+          })}
 
           <div className="py-5">
             <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">

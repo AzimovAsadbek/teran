@@ -7,8 +7,10 @@ import {
   PRODUCT_STATUSES,
   productUpsertSchema,
   type AdminProductDetail,
+  type AdminProductType,
   type AdminTaxonomy,
   type Locale,
+  type ProductAttributeInput,
 } from '@teran/contracts';
 import { ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -53,10 +55,27 @@ interface VariantDraft {
   stockQuantity?: number;
 }
 
+/** The editor's value of one attribute (only the field matching its kind is sent). */
+interface AttributeDraft {
+  optionIds: string[];
+  number: string;
+  boolean: '' | 'true' | 'false';
+  text: { uz: string; ru: string; en: string };
+}
+
+const EMPTY_ATTRIBUTE: AttributeDraft = {
+  optionIds: [],
+  number: '',
+  boolean: '',
+  text: { uz: '', ru: '', en: '' },
+};
+
 interface Draft {
   slug: string;
   status: string;
   categoryId: string;
+  productTypeId: string;
+  attributes: Record<string, AttributeDraft>;
   format: string;
   isFeatured: boolean;
   caffeineLevel: string;
@@ -82,11 +101,36 @@ const EMPTY_VARIANT: VariantDraft = {
   initialStock: '0',
 };
 
+function toAttributeDrafts(values: ProductAttributeInput[]): Record<string, AttributeDraft> {
+  return Object.fromEntries(
+    values.map((value) => [
+      value.attributeId,
+      {
+        optionIds: value.optionIds ?? [],
+        number: value.number === null || value.number === undefined ? '' : String(value.number),
+        boolean:
+          value.boolean === null || value.boolean === undefined
+            ? ''
+            : value.boolean
+              ? 'true'
+              : 'false',
+        text: {
+          uz: value.text?.uz ?? '',
+          ru: value.text?.ru ?? '',
+          en: value.text?.en ?? '',
+        },
+      } satisfies AttributeDraft,
+    ]),
+  );
+}
+
 function toDraft(product: AdminProductDetail | null, categories: AdminTaxonomy[]): Draft {
   return {
     slug: product?.slug ?? '',
     status: product?.status ?? 'DRAFT',
     categoryId: product?.categoryId ?? categories[0]?.id ?? '',
+    productTypeId: product?.productTypeId ?? '',
+    attributes: toAttributeDrafts(product?.attributes ?? []),
     format: product?.format ?? 'LOOSE_LEAF',
     isFeatured: product?.isFeatured ?? false,
     caffeineLevel: product?.caffeineLevel ?? '',
@@ -119,11 +163,53 @@ const numberOrNull = (value: string) =>
   value.trim() === '' ? null : Number(value.replace(',', '.'));
 const money = (value: string) => value.replace(/[\s ]/g, '').replace(',', '.');
 
-function toPayload(draft: Draft) {
+/** Values for the chosen type's attributes; attributes left empty are not sent. */
+function attributePayload(
+  draft: Draft,
+  type: AdminProductType | undefined,
+): ProductAttributeInput[] {
+  if (!type) return [];
+  return type.attributes.flatMap((attribute): ProductAttributeInput[] => {
+    const value = draft.attributes[attribute.id] ?? EMPTY_ATTRIBUTE;
+    switch (attribute.kind) {
+      case 'SELECT':
+      case 'MULTI_SELECT':
+        return value.optionIds.length > 0
+          ? [{ attributeId: attribute.id, optionIds: value.optionIds }]
+          : [];
+      case 'NUMBER': {
+        const number = numberOrNull(value.number);
+        return number === null ? [] : [{ attributeId: attribute.id, number }];
+      }
+      case 'BOOLEAN':
+        return value.boolean === ''
+          ? []
+          : [{ attributeId: attribute.id, boolean: value.boolean === 'true' }];
+      case 'TEXT':
+        return value.text.uz.trim()
+          ? [
+              {
+                attributeId: attribute.id,
+                text: {
+                  uz: value.text.uz.trim(),
+                  ru: value.text.ru.trim() || undefined,
+                  en: value.text.en.trim() || undefined,
+                },
+              },
+            ]
+          : [];
+    }
+  });
+}
+
+function toPayload(draft: Draft, types: AdminProductType[]) {
+  const type = types.find((candidate) => candidate.id === draft.productTypeId);
   return {
     slug: draft.slug.trim(),
     status: draft.status,
     categoryId: draft.categoryId,
+    productTypeId: type?.id ?? null,
+    attributes: attributePayload(draft, type),
     format: draft.format,
     isFeatured: draft.isFeatured,
     caffeineLevel: draft.caffeineLevel || null,
@@ -166,10 +252,12 @@ export function ProductEditor({
   product,
   categories,
   collections,
+  productTypes,
 }: {
   product: AdminProductDetail | null;
   categories: AdminTaxonomy[];
   collections: AdminTaxonomy[];
+  productTypes: AdminProductType[];
 }) {
   const t = useTranslations('Admin');
   const tcat = useTranslations('Catalog');
@@ -181,6 +269,29 @@ export function ProductEditor({
   const form = useFormSubmission(formRef);
   const [draft, setDraft] = useState<Draft>(() => toDraft(product, categories));
   const name = (row: AdminTaxonomy) => row.translations[locale]?.name ?? row.translations.uz.name;
+  // Subcategories are shown with their parent: "Tea › Green tea".
+  const categoryLabel = (category: AdminTaxonomy) => {
+    const parent = categories.find((candidate) => candidate.id === category.parentId);
+    return parent ? `${name(parent)} › ${name(category)}` : name(category);
+  };
+  const selectableTypes = productTypes.filter(
+    (type) => type.isActive || type.id === product?.productTypeId,
+  );
+  const currentType = productTypes.find((type) => type.id === draft.productTypeId);
+  const label = (
+    translations: { uz: { label: string } } & Partial<Record<Locale, { label: string } | null>>,
+  ) => translations[locale]?.label ?? translations.uz.label;
+  const setAttribute = (attributeId: string, patch: Partial<AttributeDraft>) =>
+    setDraft((current) => ({
+      ...current,
+      attributes: {
+        ...current.attributes,
+        [attributeId]: { ...(current.attributes[attributeId] ?? EMPTY_ATTRIBUTE), ...patch },
+      },
+    }));
+  const attributeErrors = Object.entries(form.errors)
+    .filter(([path]) => path === 'attributes' || path.startsWith('attributes.'))
+    .map(([, issue]) => issue);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
@@ -195,7 +306,7 @@ export function ProductEditor({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const payload = toPayload(draft);
+    const payload = toPayload(draft, productTypes);
     if (product) {
       const saved = await form.submit(productUpsertSchema, payload, (data) =>
         apiRequest(`/admin/products/${product.id}`, { method: 'PUT', body: data }),
@@ -355,6 +466,147 @@ export function ProductEditor({
           </button>
         </Section>
 
+        {currentType ? (
+          <Section title={t('products.attributes')}>
+            {attributeErrors.length > 0 ? (
+              <p className="text-body-sm font-medium text-danger" role="alert">
+                {attributeErrors
+                  .map((issue) => {
+                    const missing = currentType.attributes.find(
+                      (attribute) => attribute.key === issue?.message,
+                    );
+                    return missing
+                      ? `${label(missing.translations)}: ${t('productTypes.required')}`
+                      : message(issue, undefined);
+                  })
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            ) : null}
+            {currentType.attributes.length === 0 ? (
+              <p className="text-body-sm text-fg-subtle">{t('products.noAttributes')}</p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {currentType.attributes.map((attribute) => {
+                  const value = draft.attributes[attribute.id] ?? EMPTY_ATTRIBUTE;
+                  const title = `${label(attribute.translations)}${attribute.unit ? `, ${attribute.unit}` : ''}${attribute.isRequired ? ' *' : ''}`;
+                  const hint = attribute.translations.uz.hint;
+                  switch (attribute.kind) {
+                    case 'SELECT':
+                      return (
+                        <SelectField
+                          key={attribute.id}
+                          label={title}
+                          name={`attribute-${attribute.key}`}
+                          hint={hint}
+                          options={[
+                            { value: '', label: t('products.notSet') },
+                            ...attribute.options.map((option) => ({
+                              value: option.id,
+                              label: label(option.translations),
+                            })),
+                          ]}
+                          value={value.optionIds[0] ?? ''}
+                          onChange={(event) =>
+                            setAttribute(attribute.id, {
+                              optionIds: event.target.value ? [event.target.value] : [],
+                            })
+                          }
+                        />
+                      );
+                    case 'MULTI_SELECT':
+                      return (
+                        <fieldset key={attribute.id} className="sm:col-span-2">
+                          <legend className="mb-1.5 text-body-sm font-semibold text-forest-900">
+                            {title}
+                          </legend>
+                          <div className="flex flex-wrap gap-x-5">
+                            {attribute.options.map((option) => (
+                              <CheckboxField
+                                key={option.id}
+                                label={label(option.translations)}
+                                name={`attribute-${attribute.key}-${option.key}`}
+                                checked={value.optionIds.includes(option.id)}
+                                onChange={(event) =>
+                                  setAttribute(attribute.id, {
+                                    optionIds: event.target.checked
+                                      ? [...value.optionIds, option.id]
+                                      : value.optionIds.filter((id) => id !== option.id),
+                                  })
+                                }
+                              />
+                            ))}
+                          </div>
+                        </fieldset>
+                      );
+                    case 'NUMBER':
+                      return (
+                        <TextField
+                          key={attribute.id}
+                          label={title}
+                          name={`attribute-${attribute.key}`}
+                          hint={hint}
+                          inputMode="decimal"
+                          value={value.number}
+                          onChange={(event) =>
+                            setAttribute(attribute.id, { number: event.target.value })
+                          }
+                        />
+                      );
+                    case 'BOOLEAN':
+                      return (
+                        <SelectField
+                          key={attribute.id}
+                          label={title}
+                          name={`attribute-${attribute.key}`}
+                          hint={hint}
+                          options={[
+                            { value: '', label: t('products.notSet') },
+                            { value: 'true', label: t('common.yes') },
+                            { value: 'false', label: t('common.no') },
+                          ]}
+                          value={value.boolean}
+                          onChange={(event) =>
+                            setAttribute(attribute.id, {
+                              boolean: event.target.value as AttributeDraft['boolean'],
+                            })
+                          }
+                        />
+                      );
+                    case 'TEXT':
+                      return (
+                        <fieldset key={attribute.id} className="space-y-2 sm:col-span-2">
+                          <legend className="text-body-sm font-semibold text-forest-900">
+                            {title}
+                          </legend>
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            {(['uz', 'ru', 'en'] as const).map((textLocale) => (
+                              <TextField
+                                key={textLocale}
+                                label={t(
+                                  `products.text${textLocale === 'uz' ? 'Uz' : textLocale === 'ru' ? 'Ru' : 'En'}`,
+                                )}
+                                name={`attribute-${attribute.key}-${textLocale}`}
+                                size="sm"
+                                maxLength={300}
+                                value={value.text[textLocale]}
+                                onChange={(event) =>
+                                  setAttribute(attribute.id, {
+                                    text: { ...value.text, [textLocale]: event.target.value },
+                                  })
+                                }
+                              />
+                            ))}
+                          </div>
+                        </fieldset>
+                      );
+                  }
+                })}
+              </div>
+            )}
+          </Section>
+        ) : null}
+
         <Section title={t('products.texts')} hint={t('products.factsHint')}>
           <TranslationEditor
             value={draft.translations}
@@ -430,10 +682,28 @@ export function ProductEditor({
             label={t('products.category')}
             name="categoryId"
             required
-            options={categories.map((category) => ({ value: category.id, label: name(category) }))}
+            options={categories.map((category) => ({
+              value: category.id,
+              label: categoryLabel(category),
+            }))}
             value={draft.categoryId}
             onChange={(event) => set('categoryId', event.target.value)}
             error={error('categoryId')}
+          />
+          <SelectField
+            label={t('products.productType')}
+            name="productTypeId"
+            hint={t('products.productTypeHint')}
+            options={[
+              { value: '', label: t('productTypes.none') },
+              ...selectableTypes.map((type) => ({
+                value: type.id,
+                label: type.translations[locale]?.name ?? type.translations.uz.name,
+              })),
+            ]}
+            value={draft.productTypeId}
+            onChange={(event) => set('productTypeId', event.target.value)}
+            error={error('productTypeId')}
           />
           <SelectField
             label={t('products.format')}

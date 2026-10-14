@@ -67,54 +67,65 @@ const CHIP_ROW =
 const CHIP =
   'inline-flex h-9 shrink-0 items-center rounded-full border px-3.5 text-body-sm font-medium whitespace-nowrap transition-colors duration-150';
 
-/** Tea types as links ("All types" first); the current one is marked with aria-current. */
-export async function CategoryChips({
-  active,
-  categories,
-}: {
-  /** Slug of the current category; omit on the all-teas page. */
-  active?: string;
-  categories: CategoryDto[];
-}) {
-  const t = await getTranslations('Catalog');
-  const items = [
-    { slug: undefined, href: '/catalog', name: t('allCategories') },
-    ...categories
-      .filter((category) => category.productCount > 0 || category.slug === active)
-      .map((category) => ({
-        slug: category.slug,
-        href: `/catalog/${category.slug}`,
-        name: category.name,
-      })),
-  ];
+export interface ChipLink {
+  href: string;
+  name: string;
+  current: boolean;
+}
+
+/** A row of category links; the current one is marked with aria-current. */
+export function CategoryChipRow({ label, items }: { label: string; items: ChipLink[] }) {
   return (
-    <nav aria-label={t('category')}>
+    <nav aria-label={label}>
       <ul className={CHIP_ROW}>
-        {items.map((item) => {
-          const current = item.slug === active;
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={current ? 'page' : undefined}
-                className={cn(
-                  CHIP,
-                  current
-                    ? 'border-brand bg-brand text-fg-inverse'
-                    : 'border-line-strong/45 bg-surface text-fg hover:border-brand/60',
-                )}
-              >
-                {item.name}
-              </Link>
-            </li>
-          );
-        })}
+        {items.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={item.current ? 'page' : undefined}
+              className={cn(
+                CHIP,
+                item.current
+                  ? 'border-brand bg-brand text-fg-inverse'
+                  : 'border-line-strong/45 bg-surface text-fg hover:border-brand/60',
+              )}
+            >
+              {item.name}
+            </Link>
+          </li>
+        ))}
       </ul>
     </nav>
   );
 }
 
-/** Loads the tea types at request time (for pages that have not fetched them already). */
+/** Top-level categories as links ("All products" first), for the all-products listing. */
+export async function CategoryChips({
+  active,
+  categories,
+}: {
+  /** Slug of the current category; omit on the all-products page. */
+  active?: string;
+  categories: CategoryDto[];
+}) {
+  const t = await getTranslations('Catalog');
+  const items: ChipLink[] = [
+    { href: '/catalog', name: t('shopAllTitle'), current: active === undefined },
+    ...categories
+      .filter(
+        (category) =>
+          category.parentSlug === null && (category.productCount > 0 || category.slug === active),
+      )
+      .map((category) => ({
+        href: `/${category.path}`,
+        name: category.name,
+        current: category.slug === active,
+      })),
+  ];
+  return <CategoryChipRow label={t('subcategories')} items={items} />;
+}
+
+/** Loads the categories at request time (for pages that have not fetched them already). */
 export async function CategoryChipsLoader({ active }: { active?: string }) {
   await connection();
   const locale = await getLocale();

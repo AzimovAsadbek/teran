@@ -9,7 +9,7 @@ import { LogoPlate } from '@/components/brand/logo';
 import { NewsletterForm } from '@/components/forms/newsletter-form';
 import { BRAND, brandCopy } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
-import { getCategories } from '@/lib/data/catalog';
+import { getCategories, leafCategories } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
 import { LanguageSwitcherSlot } from './language-switcher';
 
@@ -26,12 +26,12 @@ const linkClass =
 async function ShopLinks() {
   await connection();
   const locale = await getLocale();
-  const categories = await getCategories(locale).catch(() => []);
+  const categories = leafCategories(await getCategories(locale).catch(() => []));
   return (
     <>
       {categories.slice(0, 6).map((category) => (
         <li key={category.slug}>
-          <Link href={`/catalog/${category.slug}`} className={linkClass}>
+          <Link href={`/${category.path}`} className={linkClass}>
             {category.name}
           </Link>
         </li>
@@ -148,7 +148,7 @@ export async function SiteFooter() {
           <LinkGroup title={t('shop')}>
             <li>
               <Link href="/catalog" className={linkClass}>
-                {tn('allTeas')}
+                {tn('shopAll')}
               </Link>
             </li>
             <Suspense fallback={null}>

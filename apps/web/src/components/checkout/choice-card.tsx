@@ -14,6 +14,7 @@ export function ChoiceCard({
   aside,
   description,
   invalid,
+  disabled,
 }: {
   name: string;
   value: string;
@@ -23,16 +24,20 @@ export function ChoiceCard({
   aside?: ReactNode;
   description?: ReactNode;
   invalid?: boolean;
+  /** Shown but not selectable (e.g. a payment method that is not configured). */
+  disabled?: boolean;
 }) {
   return (
     <label
       className={cn(
         'flex cursor-pointer gap-3 rounded-control border px-4 py-3.5 transition-[border-color,box-shadow,background-color] duration-150',
-        checked
-          ? 'border-brand bg-brand-soft/40 shadow-[inset_0_0_0_1px_var(--color-brand)]'
-          : invalid
-            ? 'border-danger/60 bg-surface'
-            : 'border-line-strong/45 bg-surface hover:border-brand/50',
+        disabled
+          ? 'cursor-not-allowed border-line bg-surface-muted/60 text-fg-subtle'
+          : checked
+            ? 'border-brand bg-brand-soft/40 shadow-[inset_0_0_0_1px_var(--color-brand)]'
+            : invalid
+              ? 'border-danger/60 bg-surface'
+              : 'border-line-strong/45 bg-surface hover:border-brand/50',
       )}
     >
       <input
@@ -40,6 +45,7 @@ export function ChoiceCard({
         name={name}
         value={value}
         checked={checked}
+        disabled={disabled}
         onChange={() => onChange(value)}
         className={cn(radioDotClasses, 'mt-0.5')}
       />

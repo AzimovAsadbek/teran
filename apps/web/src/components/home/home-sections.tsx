@@ -13,7 +13,7 @@ import { SectionHeading } from '@/components/ui/section-heading';
 import { ProductCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { brandCopy, COLLECTION_CODES, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
-import { getCategories, getCollections, getProductList } from '@/lib/data/catalog';
+import { getCategories, getCollections, getProductList, leafCategories } from '@/lib/data/catalog';
 import { getArticles } from '@/lib/data/content';
 import { ProductShowcase } from './product-showcase';
 
@@ -33,9 +33,7 @@ export async function CategoryRailSection() {
   const locale = await getLocale();
   const t = await getTranslations('Home');
   const tc = await getTranslations('Catalog');
-  const categories = (await getCategories(locale).catch(() => [])).filter(
-    (category) => category.productCount > 0,
-  );
+  const categories = leafCategories(await getCategories(locale).catch(() => []));
   if (categories.length === 0) return null;
 
   return (
@@ -47,7 +45,7 @@ export async function CategoryRailSection() {
         {categories.map((category) => (
           <li key={category.slug} className={RAIL_ITEM}>
             <Link
-              href={`/catalog/${category.slug}`}
+              href={`/${category.path}`}
               className="group flex h-full flex-col items-center rounded-card border border-line bg-surface px-3 pt-4 pb-3.5 text-center shadow-soft transition-[translate,box-shadow,border-color] duration-200 ease-[var(--ease-standard)] hover:-translate-y-0.5 hover:border-gold-400 hover:shadow-lift"
             >
               <span className="h-14 w-14 shrink-0 transition-transform duration-300 ease-[var(--ease-soft)] group-hover:rotate-6">
@@ -102,7 +100,7 @@ export async function ShowcaseSection() {
         latest: t('tabNew'),
         previous: t('showcasePrevious'),
         next: t('showcaseNext'),
-        allTeas: tn('allTeas'),
+        allTeas: tn('shopAll'),
       }}
     />
   );

@@ -1,7 +1,7 @@
 import type { Locale, ProductDetailDto } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +13,8 @@ import { PurchasePanel } from '@/components/product/purchase-panel';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { ProductGridSkeleton, Skeleton } from '@/components/ui/skeleton';
-import { Link } from '@/i18n/navigation';
-import { getProduct, getRelatedProducts } from '@/lib/data/catalog';
+import { Link, getPathname } from '@/i18n/navigation';
+import { getProduct, getRelatedProducts, getSlugRedirect } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { siteUrl } from '@/lib/site';
@@ -60,7 +60,12 @@ async function ProductView({
 }: Pick<PageProps<'/[locale]/products/[slug]'>, 'params' | 'searchParams'>) {
   const [{ slug }, query, locale] = await Promise.all([params, searchParams, getLocale()]);
   const product = await getProduct(locale, slug);
-  if (!product) notFound();
+  if (!product) {
+    // A renamed product keeps its old links working.
+    const current = await getSlugRedirect('products', slug).catch(() => null);
+    if (current) permanentRedirect(getPathname({ href: `/products/${current}`, locale }));
+    notFound();
+  }
 
   const [t, tc, options] = await Promise.all([
     getTranslations('Product'),
@@ -103,8 +108,7 @@ async function ProductView({
       <Breadcrumbs
         locale={locale}
         items={[
-          { label: tc('title'), href: '/catalog' },
-          { label: product.category.name, href: `/catalog/${product.category.slug}` },
+          ...product.breadcrumbs.map((crumb) => ({ label: crumb.name, href: `/${crumb.path}` })),
           { label: product.name },
         ]}
       />
@@ -119,7 +123,7 @@ async function ProductView({
         <div className="lg:col-span-5">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-eyebrow">
             <Link
-              href={`/catalog/${product.category.slug}`}
+              href={`/${product.category.path}`}
               className="text-accent-fg underline-offset-4 hover:underline"
             >
               {product.category.name}

@@ -24,9 +24,9 @@ export async function generateMetadata({
   return pageMetadata({
     title:
       filters.page > 1
-        ? `${t('metaTitle')} — ${tc('pageN', { page: filters.page })}`
-        : t('metaTitle'),
-    description: t('description'),
+        ? `${t('shopAllTitle')} — ${tc('pageN', { page: filters.page })}`
+        : t('shopAllTitle'),
+    description: t('shopAllDescription'),
     href: '/catalog',
     query: filters.page > 1 ? `page=${filters.page}` : '',
     locale,
@@ -39,8 +39,12 @@ export default async function CatalogPage({ searchParams }: PageProps<'/[locale]
   const t = await getTranslations('Catalog');
   return (
     <div className="container-page pt-4 pb-section sm:pt-6">
-      <Breadcrumbs items={[{ label: t('title') }]} locale={locale} />
-      <ListingHeader title={t('title')} description={t('description')} illustrationKey="green">
+      <Breadcrumbs items={[{ label: t('shopAllTitle') }]} locale={locale} />
+      <ListingHeader
+        title={t('shopAllTitle')}
+        description={t('shopAllDescription')}
+        illustrationKey="green"
+      >
         <Suspense fallback={<CategoryChipsFallback />}>
           <CategoryChipsLoader />
         </Suspense>

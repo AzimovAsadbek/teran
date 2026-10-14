@@ -122,6 +122,9 @@ staff accounts are created in the admin area (Staff, administrators only).
 
 Only for a review or staging environment. The seed refuses to run in production unless explicitly
 allowed, never overwrites existing records, and writes generated demo images to the uploads volume.
+It loads the catalogue only: demo customers and orders (`--with-activity`) do not belong in a
+production database, and the demo reset refuses to run there at all
+([demo mode](../development/demo-mode.md)).
 
 ```bash
 teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed

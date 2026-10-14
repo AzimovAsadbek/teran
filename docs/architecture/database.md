@@ -221,12 +221,19 @@ database.
 
 ## Demonstration seed
 
-`pnpm db:seed` (`apps/api/prisma/seed/index.ts`) loads 7 categories, 3 collections, 14 products
-with 19 variants, 2 delivery methods, the `announcement` and empty `contact` settings and 3
-journal articles. It is idempotent (`upsert` with no updates; products only when the slug is
-absent), refuses `NODE_ENV=production` unless `ALLOW_DEMO_SEED=true`, creates no users, orders or
-enquiries, and draws its product images in code (SVG rendered with sharp, stored as WebP). All of it
-is placeholder data: see [business information required](../business-information-required.md).
+`pnpm db:seed` (`apps/api/prisma/seed/index.ts`, catalogue in `catalogue.ts`) loads 6 categories,
+4 collections, 21 products (one a draft) with 32 variants, 2 delivery methods, the `announcement`
+and empty `contact` settings and 6 journal articles (one a draft). `pnpm db:seed:demo` adds the
+activity in `activity.ts`: 8 customers who cannot sign in, 24 `TRN-DEMO` orders with items,
+status events, payments and ledger entries, 11 enquiries and 10 newsletter subscribers.
+
+Both are idempotent and insert-only (every record is matched by slug, code, order number, e-mail
+or company and skipped if present), refuse `NODE_ENV=production` unless `ALLOW_DEMO_SEED=true`,
+and draw product images in code (SVG rendered with sharp, stored as WebP). `pnpm db:demo:reset`
+removes exactly the demonstration records and reloads them; it never runs in production and needs
+`--confirm=<database>` (`guard.ts`, unit tested). All of it is placeholder data: see
+[demo mode](../development/demo-mode.md) and
+[business information required](../business-information-required.md).
 
 ## Known limitations
 

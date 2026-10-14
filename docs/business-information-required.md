@@ -17,7 +17,7 @@ the footer. Have a lawyer review all three documents; they are drafts.
 
 | Item                                                                                                                                                                                     | Where it appears        | How             |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------- |
-| Company legal name and legal form                                                                                                                                                        | Privacy, terms          | Text            |
+| Company legal name and legal form (supplied as "TERAN TRADE MChJ", Namangan — shown in the footer, contact and wholesale pages; still to be placed in the legal texts)                   | Privacy, terms          | Text            |
 | State registration details (registration number, date, authority)                                                                                                                        | Terms                   | Text            |
 | Legal address                                                                                                                                                                            | Privacy, terms          | Text            |
 | Whether prices include VAT                                                                                                                                                               | Terms                   | Text            |
@@ -42,9 +42,17 @@ the footer. Have a lawyer review all three documents; they are drafts.
 
 ## 3. Products (launch blocker)
 
-The current catalogue is **demonstration data**: 14 generic tea styles with placeholder prices,
-code-drawn images, and no ingredients, origins, caffeine levels, tasting notes, certifications or
-reviews. Replace it product by product in the admin (archive the demo products when done).
+The current catalogue is **demonstration data** (see [demo mode](./development/demo-mode.md)):
+21 products — the five TERAN premium collection identifiers (XC2025, G8810, HET8800, 8830,
+STD8009), shown with provisional tea types, and generic Chinese tea styles — with placeholder
+prices and pack sizes, code-drawn images and tasting notes that describe a style, not a product.
+None has ingredients, origins, caffeine levels, certifications or reviews. Replace it product by
+product in the admin (archive the demo products when done); photographs are specified in the
+[asset replacement brief](./design/asset-replacement-brief.md).
+
+For the five collection identifiers in particular: the real product name, tea type, description,
+pack sizes and prices. The site currently shows each one as "TERAN XC2025" etc. with a provisional
+tea type that is labelled as such.
 
 For each product:
 
@@ -60,7 +68,7 @@ For each product:
 | Certifications or awards, with documents — only if real                                     | Text (needs a field) |
 
 Also confirm the product range described on the About page (loose leaf, tea bags, pyramids and
-gift sets) and the category names.
+gift sets) and the category names (black, green, white, oolong, pu-erh, gift sets).
 
 ## 4. Delivery (launch blocker)
 
@@ -83,13 +91,18 @@ hours. They appear in the footer, the contact page and structured data.
 
 ## 6. Brand content
 
-| Item                                                                                                    | Where            | How           |
-| ------------------------------------------------------------------------------------------------------- | ---------------- | ------------- |
-| TERAN's history, production and photographs                                                             | About (`/about`) | Text + images |
-| Confirmation of the general brand statements (nature, quality, elegance) on the About page and homepage | About, home      | Text          |
-| Announcement bar message (currently "Welcome to the TERAN online store")                                | Every page       | Admin         |
-| Journal: the three demonstration articles contain only general tea knowledge — keep, edit or replace    | Journal          | Admin         |
-| Wholesale terms: minimum order, who it is for, how the process works                                    | `/wholesale`     | Text          |
+The official brand content supplied on 2026-10-14 (name, descriptor, Uzbek tagline and texts,
+English tagline, story, philosophy, collection and partnership texts, company, city and website)
+is used exactly as supplied, in `apps/web/src/content/brand.ts`. The only change is typographic:
+a no-break space before each dash, so a line never starts with "—".
+
+| Item                                                                                                                                                       | Where                                   | How           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------- |
+| Approve or correct the **Russian** translation of all brand texts, and the **English** translations other than the supplied tagline (drafted for the site) | Home, About, Wholesale, Contact, footer | Text          |
+| TERAN's history, production and photographs                                                                                                                | About (`/about`)                        | Text + images |
+| Announcement bar message (currently "Welcome to the TERAN online store")                                                                                   | Every page                              | Admin         |
+| Journal: the five published demonstration articles (and one draft) contain only general tea knowledge — keep, edit or replace                              | Journal                                 | Admin         |
+| Wholesale terms: minimum order, who it is for, how the process works                                                                                       | `/wholesale`                            | Text          |
 
 ## 7. Operations to confirm
 

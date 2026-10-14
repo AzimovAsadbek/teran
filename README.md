@@ -1,13 +1,15 @@
 # TERAN — online tea store
 
-Storefront and administration platform for TERAN, a tea manufacturer in Uzbekistan. Shoppers
+Storefront and administration platform for TERAN® — Premium Chinese Tea (TERAN TRADE MChJ,
+Namangan, Uzbekistan). Shoppers
 browse the catalogue in Uzbek, Russian or English, fill a bag, and order with cash on delivery as
 a guest or with an account. Staff manage products, stock, orders, customers, enquiries, the
 journal, delivery prices and settings in a protected admin area.
 
 > **Demonstration mode.** The catalogue, prices, delivery fees and some texts are placeholders
 > until TERAN supplies real data, and the site tells visitors so and asks search engines not to
-> index it. See [business information required](docs/business-information-required.md).
+> index it. See [demo mode](docs/development/demo-mode.md) and
+> [business information required](docs/business-information-required.md).
 
 ## Features
 
@@ -63,6 +65,8 @@ walkthrough, including creating an administrator, is in
 | `pnpm test:integration`                                  | API integration tests (PostgreSQL `teran_test`)     |
 | `pnpm --filter @teran/e2e build:stack` + `pnpm test:e2e` | End-to-end and accessibility tests                  |
 | `pnpm db:migrate` / `pnpm db:seed`                       | Database migrations and the demonstration catalogue |
+| `pnpm db:seed:demo`                                      | Catalogue plus demo customers, orders and enquiries |
+| `pnpm db:demo:reset -- --confirm=<database>`             | Remove and reload the demo data (guarded, local)    |
 | `pnpm --filter @teran/api admin:create`                  | Create or reset an administrator                    |
 | `pnpm audit:prod`                                        | Known vulnerabilities in production dependencies    |
 

@@ -63,11 +63,13 @@ If you prefer not to enable it globally, prefix every command with `corepack`, f
    pnpm db:migrate
    ```
 
-5. Load the demonstration catalogue (generic tea styles, placeholder prices, code-drawn images).
-   The seed is idempotent and never overwrites records changed in the admin area.
+5. Load the demonstration data (placeholder products and prices, code-drawn images). `db:seed`
+   loads the catalogue and content; `db:seed:demo` also adds demo customers, orders and enquiries
+   for the admin area. Both are idempotent and never overwrite records changed in the admin area;
+   see [demo mode](./demo-mode.md), including the guarded reset.
 
    ```bash
-   pnpm db:seed
+   pnpm db:seed:demo
    ```
 
 6. Create an administrator. The password is read from the environment and never printed. Use a

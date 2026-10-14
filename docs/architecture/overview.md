@@ -1,6 +1,7 @@
 # Architecture overview
 
-TERAN is a storefront and administration area for a tea manufacturer in Uzbekistan: catalogue,
+TERAN is a storefront and administration area for TERAN® — Premium Chinese Tea, a brand of TERAN
+TRADE MChJ in Namangan, Uzbekistan: catalogue,
 bag, cash-on-delivery checkout, customer accounts, enquiries, journal, and a staff area for
 products, stock, orders, customers, content and settings. Uzbek is the default language, with
 Russian and English.

@@ -28,3 +28,17 @@ third-party screenshots are stored in the repository.
 
 The full capture set (97 before, 100 after) was reviewed during the redesign; this folder keeps
 a representative subset to stay small.
+
+## `demo/` — brand content and demo mode (2026-10-14)
+
+Production build with the official brand content and the full demonstration data
+(`db:seed:demo`), captured the same way. The admin captures show the fictional demo customers and
+orders.
+
+| Name                                                                                       | State                                                               |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `desktop-home`, `desktop-home-full`, `desktop-uz-home-full`                                | Homepage with the official copy (English, Uzbek)                    |
+| `mobile-home`, `mobile-uz-home`, `mobile-ru-home`                                          | Homepage first screen on a phone in three languages                 |
+| `desktop-collection`, `desktop-product-identifier`                                         | TERAN premium collection; TERAN STD8009, labelled as a demo listing |
+| `desktop-about-full`, `desktop-wholesale`, `desktop-contact`                               | Story and philosophy; partnership; company card                     |
+| `desktop-admin-dashboard-demo`, `desktop-admin-order-demo`, `desktop-admin-customers-demo` | Admin dashboard, a delivered order awaiting cash, demo customers    |

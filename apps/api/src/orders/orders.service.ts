@@ -1,20 +1,17 @@
-import { createHmac } from 'node:crypto';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  buildPaginated,
   type CheckoutPayload,
   type CheckoutQuoteDto,
   type CheckoutQuoteInput,
   type Locale,
   type OrderDto,
-  type Paginated,
   type PlacedOrderDto,
 } from '@teran/contracts';
 import type { Request } from 'express';
 import { Prisma } from '../generated/prisma/client.js';
 import type { Env } from '../config/env.js';
-import { digestsEqual, generateOrderNumber, sha256 } from '../common/crypto.js';
+import { digestsEqual, generateOrderNumber, orderAccessToken, sha256 } from '../common/crypto.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { uniqueConstraintName } from '../common/prisma-errors.js';
 import { ZERO, toMoney } from '../common/money.js';
@@ -24,6 +21,8 @@ import { DeliveryService } from '../delivery/delivery.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { orderConfirmationEmail } from '../mail/templates.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
+import { saveAddressFromCheckout } from '../account/address-book.js';
 import { orderInclude, toOrderDto, type OrderWithItems } from './order.mapper.js';
 
 const MAX_NUMBER_ATTEMPTS = 3;
@@ -32,7 +31,6 @@ const MAX_NUMBER_ATTEMPTS = 3;
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
   private readonly appSecret: string;
-  private readonly enabledPayments: readonly string[];
 
   constructor(
     private readonly prisma: PrismaService,
@@ -40,20 +38,15 @@ export class OrdersService {
     private readonly delivery: DeliveryService,
     private readonly mail: MailService,
     private readonly revalidation: RevalidationService,
+    private readonly payments: PaymentsService,
     config: ConfigService<Env, true>,
   ) {
     this.appSecret = config.get('APP_SECRET', { infer: true });
-    this.enabledPayments = config.get('PAYMENT_METHODS_ENABLED', { infer: true });
   }
 
-  /**
-   * The guest order-status token is derived from the client's idempotency key, so an idempotent
-   * replay returns the same working link without the raw token ever being stored.
-   */
+  /** The guest order-status token (see orderAccessToken). */
   private accessTokenFor(idempotencyKey: string): string {
-    return createHmac('sha256', this.appSecret)
-      .update(`order-access:${idempotencyKey}`)
-      .digest('base64url');
+    return orderAccessToken(this.appSecret, idempotencyKey);
   }
 
   async quote(request: Request, input: CheckoutQuoteInput): Promise<CheckoutQuoteDto> {
@@ -80,17 +73,12 @@ export class OrdersService {
   }
 
   async placeOrder(request: Request, payload: CheckoutPayload): Promise<PlacedOrderDto> {
-    if (!this.enabledPayments.includes(payload.paymentMethod)) {
-      throw new ApiException(
-        HttpStatus.UNPROCESSABLE_ENTITY,
-        'PAYMENT_METHOD_UNAVAILABLE',
-        'This payment method is not available',
-      );
-    }
-
-    // Idempotent replay: the same submission never creates a second order.
+    // Idempotent replay: the same submission never creates a second order (or payment).
     const previous = await this.findByIdempotencyKey(payload.idempotencyKey);
-    if (previous) return this.placedResponse(previous, payload.idempotencyKey);
+    if (previous) return this.placedResponse(previous, payload);
+
+    // Only a method that can be processed right now (live provider, or the labelled demo).
+    this.payments.requireProvider(payload.paymentMethod);
 
     const cart = await this.cart.findCart(request);
     if (!cart) throw ApiException.badRequest('CART_EMPTY', 'The cart is empty');
@@ -107,13 +95,13 @@ export class OrdersService {
         );
         this.revalidation.notify('catalog');
         void this.sendConfirmation(order, payload.locale, payload.idempotencyKey);
-        return this.placedResponse(order, payload.idempotencyKey);
+        return this.placedResponse(order, payload);
       } catch (error) {
         const target = uniqueConstraintName(error);
         if (target?.includes('idempotencyKey')) {
           // A concurrent duplicate submission won the race; return its order.
           const raced = await this.findByIdempotencyKey(payload.idempotencyKey);
-          if (raced) return this.placedResponse(raced, payload.idempotencyKey);
+          if (raced) return this.placedResponse(raced, payload);
         }
         if (target?.includes('number') && attempt < MAX_NUMBER_ATTEMPTS) continue;
         throw error;
@@ -130,24 +118,6 @@ export class OrdersService {
     return toOrderDto(order);
   }
 
-  async listForCustomer(
-    userId: string,
-    page: number,
-    pageSize: number,
-  ): Promise<Paginated<OrderDto>> {
-    const [total, orders] = await Promise.all([
-      this.prisma.order.count({ where: { userId } }),
-      this.prisma.order.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: orderInclude,
-      }),
-    ]);
-    return buildPaginated(orders.map(toOrderDto), total, page, pageSize);
-  }
-
   async findForCustomer(userId: string, number: string): Promise<OrderDto> {
     const order = await this.prisma.order.findFirst({
       where: { number, userId },
@@ -161,8 +131,15 @@ export class OrdersService {
     return this.prisma.order.findUnique({ where: { idempotencyKey }, include: orderInclude });
   }
 
-  private placedResponse(order: OrderWithItems, idempotencyKey: string): PlacedOrderDto {
-    return { order: toOrderDto(order), accessToken: this.accessTokenFor(idempotencyKey) };
+  private async placedResponse(
+    order: OrderWithItems,
+    payload: Pick<CheckoutPayload, 'idempotencyKey' | 'locale'>,
+  ): Promise<PlacedOrderDto> {
+    return {
+      order: toOrderDto(order),
+      accessToken: this.accessTokenFor(payload.idempotencyKey),
+      payment: await this.payments.sessionForOrder(order.id, payload.locale),
+    };
   }
 
   private async createOrder(
@@ -244,10 +221,25 @@ export class OrdersService {
           })),
         },
         events: { create: { toStatus: 'PENDING', note: 'Order placed' } },
-        payments: { create: { method: payload.paymentMethod, amount: total } },
       },
-      include: orderInclude,
+      select: { id: true },
     });
+    await this.payments.createInitialAttempt(
+      tx,
+      { id: order.id, total, currency: 'UZS' },
+      payload.paymentMethod,
+      new Date(),
+    );
+    if (userId && payload.saveAddress && payload.delivery.addressLine) {
+      await saveAddressFromCheckout(tx, userId, {
+        recipientName: payload.customer.name,
+        phone: payload.customer.phone,
+        regionCode: payload.delivery.regionCode,
+        city: payload.delivery.city,
+        addressLine: payload.delivery.addressLine,
+        landmark: payload.delivery.landmark ?? null,
+      });
+    }
 
     await tx.inventoryMovement.createMany({
       data: reserved.map((line) => ({
@@ -259,7 +251,7 @@ export class OrdersService {
       })),
     });
     await tx.cartItem.deleteMany({ where: { cartId } });
-    return order;
+    return tx.order.findUniqueOrThrow({ where: { id: order.id }, include: orderInclude });
   }
 
   /**

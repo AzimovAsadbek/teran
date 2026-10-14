@@ -2,9 +2,11 @@ import {
   ILLUSTRATION_KEYS,
   MAX_LINE_QUANTITY,
   NEW_PRODUCT_DAYS,
+  type CategoryRefDto,
   type IllustrationKey,
   type ImageDto,
   type Locale,
+  type ProductAttributeDto,
   type ProductDetailDto,
   type ProductSummaryDto,
   type StockLevel,
@@ -16,16 +18,49 @@ import { toMoney, toMoneyOrNull } from '../common/money.js';
 
 export const PUBLIC_UPLOADS_PATH = '/uploads';
 
+/** A category with what links to it need: slug, name and its parent's slug for the path. */
+export function categoryRefSelect(locale: Locale) {
+  const chain = localeChain(locale);
+  const names = { where: { locale: { in: chain } }, select: { locale: true, name: true } };
+  return {
+    slug: true,
+    translations: names,
+    parent: { select: { slug: true, translations: names } },
+  } satisfies Prisma.CategorySelect;
+}
+
+type CategoryRefRow = Prisma.CategoryGetPayload<{ select: ReturnType<typeof categoryRefSelect> }>;
+
+/** Address of a category below the locale: "tea" or "tea/green-tea". */
+export function categoryPath(category: { slug: string; parent: { slug: string } | null }): string {
+  return category.parent ? `${category.parent.slug}/${category.slug}` : category.slug;
+}
+
+export function toCategoryRef(category: CategoryRefRow, locale: Locale): CategoryRefDto {
+  return {
+    slug: category.slug,
+    name: pickTranslation(category.translations, locale)?.name ?? category.slug,
+    path: categoryPath(category),
+  };
+}
+
+/** Top-level category first, then the category itself. */
+export function categoryBreadcrumbs(category: CategoryRefRow, locale: Locale): CategoryRefDto[] {
+  const own = toCategoryRef(category, locale);
+  if (!category.parent) return [own];
+  const parent = {
+    slug: category.parent.slug,
+    name: pickTranslation(category.parent.translations, locale)?.name ?? category.parent.slug,
+    path: category.parent.slug,
+  };
+  return [parent, own];
+}
+
 export function summaryInclude(locale: Locale) {
   const chain = localeChain(locale);
   return {
     translations: { where: { locale: { in: chain } } },
-    category: {
-      select: {
-        slug: true,
-        translations: { where: { locale: { in: chain } }, select: { locale: true, name: true } },
-      },
-    },
+    category: { select: categoryRefSelect(locale) },
     variants: {
       where: { isActive: true },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
@@ -35,9 +70,19 @@ export function summaryInclude(locale: Locale) {
 }
 
 export function detailInclude(locale: Locale) {
+  const chain = localeChain(locale);
+  const labels = { where: { locale: { in: chain } } };
   return {
     ...summaryInclude(locale),
     images: { orderBy: { position: 'asc' } },
+    productType: { include: { translations: labels } },
+    attributeValues: {
+      where: { attribute: { isVisible: true } },
+      include: {
+        attribute: { include: { translations: labels } },
+        option: { include: { translations: labels } },
+      },
+    },
   } satisfies Prisma.ProductInclude;
 }
 
@@ -47,6 +92,70 @@ export type SummaryProduct = Prisma.ProductGetPayload<{
 export type DetailProduct = Prisma.ProductGetPayload<{ include: ReturnType<typeof detailInclude> }>;
 type VariantRow = SummaryProduct['variants'][number];
 type ImageRow = SummaryProduct['images'][number];
+type AttributeValueRow = DetailProduct['attributeValues'][number];
+
+/** Localised plain text stored as { "uz": "…", "ru": "…", "en": "…" } (validated on write). */
+export function pickLocalizedText(value: unknown, locale: Locale): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const texts = value as Record<string, unknown>;
+  for (const candidate of localeChain(locale)) {
+    const text = texts[candidate];
+    if (typeof text === 'string' && text.trim() !== '') return text;
+  }
+  return null;
+}
+
+/**
+ * The product's attribute values grouped per attribute, in the order the product type defines.
+ * Values left over from a previous product type are ignored.
+ */
+export function toProductAttributes(
+  values: readonly AttributeValueRow[],
+  productTypeId: string | null,
+  locale: Locale,
+): ProductAttributeDto[] {
+  const byAttribute = new Map<string, AttributeValueRow[]>();
+  for (const value of values) {
+    if (value.attribute.productTypeId !== productTypeId) continue;
+    const rows = byAttribute.get(value.attributeId) ?? [];
+    rows.push(value);
+    byAttribute.set(value.attributeId, rows);
+  }
+
+  const attributes: (ProductAttributeDto & { position: number })[] = [];
+  for (const rows of byAttribute.values()) {
+    const { attribute } = rows[0]!;
+    const options = rows
+      .flatMap((row) => (row.option ? [row.option] : []))
+      .sort((a, b) => a.position - b.position || a.key.localeCompare(b.key))
+      .map((option) => ({
+        key: option.key,
+        label: pickTranslation(option.translations, locale)?.label ?? option.key,
+      }));
+    const scalar = rows.find((row) => row.optionId === null);
+    const text = scalar ? pickLocalizedText(scalar.textValue, locale) : null;
+    const entry = {
+      key: attribute.key,
+      label: pickTranslation(attribute.translations, locale)?.label ?? attribute.key,
+      kind: attribute.kind,
+      unit: attribute.unit,
+      text,
+      number: scalar?.numberValue?.toString() ?? null,
+      boolean: scalar?.booleanValue ?? null,
+      options,
+      position: attribute.position,
+    };
+    const hasValue =
+      entry.options.length > 0 ||
+      entry.text !== null ||
+      entry.number !== null ||
+      entry.boolean !== null;
+    if (hasValue) attributes.push(entry);
+  }
+  return attributes
+    .sort((a, b) => a.position - b.position || a.key.localeCompare(b.key))
+    .map(({ position: _position, ...attribute }) => attribute);
+}
 
 export function asIllustrationKey(value: string | null): IllustrationKey | null {
   return value !== null && (ILLUSTRATION_KEYS as readonly string[]).includes(value)
@@ -118,10 +227,7 @@ export function toProductSummary(
     slug: product.slug,
     name,
     shortDescription: translation?.shortDescription ?? null,
-    category: {
-      slug: product.category.slug,
-      name: pickTranslation(product.category.translations, locale)?.name ?? product.category.slug,
-    },
+    category: toCategoryRef(product.category, locale),
     format: product.format,
     isFeatured: product.isFeatured,
     isNew: isNew(product.publishedAt, now),
@@ -151,6 +257,16 @@ export function toProductDetail(
 
   return {
     ...summary,
+    productType: product.productType
+      ? {
+          key: product.productType.key,
+          name:
+            pickTranslation(product.productType.translations, locale)?.name ??
+            product.productType.key,
+        }
+      : null,
+    attributes: toProductAttributes(product.attributeValues, product.productTypeId, locale),
+    breadcrumbs: categoryBreadcrumbs(product.category, locale),
     description: translation?.description ?? null,
     ingredients: translation?.ingredients ?? null,
     tastingNotes: translation?.tastingNotes ?? null,

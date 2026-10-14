@@ -49,7 +49,7 @@ describe('demo seed', () => {
   it('is idempotent: a second run adds nothing', async () => {
     const catalogue = await seedCatalogue(ctx.prisma, { uploadsDir, emblem: null });
     const activity = await seedActivity(ctx.prisma);
-    expect(catalogue).toEqual({ products: 0, articles: 0 });
+    expect(catalogue).toEqual({ products: 0, articles: 0, structure: 0 });
     expect(activity).toEqual({
       customers: 0,
       orders: 0,
@@ -118,7 +118,8 @@ describe('demo seed', () => {
     expect(report.orders).toBe(DEMO_ORDERS.length);
     expect(report.products).toBe(DEMO_PRODUCTS.length);
     expect(report.customers).toBe(DEMO_CUSTOMERS.length);
-    expect(report.kept).toEqual(['category green-tea']);
+    // The owner's product keeps its category, and that category keeps its parent.
+    expect(report.kept).toEqual(['category green-tea', 'category tea']);
 
     expect(await prisma.order.count()).toBe(0);
     expect(await prisma.product.findMany({ select: { slug: true } })).toEqual([

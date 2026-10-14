@@ -12,6 +12,7 @@ import { Logger } from 'nestjs-pino';
 import type { Env } from './config/env.js';
 import { createOriginCheckMiddleware } from './common/security/origin-check.middleware.js';
 import { createValidationPipe } from './common/validation/validation-pipe.js';
+import { providerBodyReader } from './payments/provider-body.middleware.js';
 
 export const API_PREFIX = 'api';
 const DOCS_PATH = `${API_PREFIX}/docs`;
@@ -68,6 +69,10 @@ export function configureApp(app: NestExpressApplication): void {
     maxAge: 600,
   });
   app.use(cookieParser());
+  // Payment provider callbacks read their own bodies first (Payme JSON-RPC, Click form data); the
+  // JSON parser then skips them. See payments/provider-body.middleware.ts.
+  app.use(`/${API_PREFIX}/v1/payments/payme`, providerBodyReader('json'));
+  app.use(`/${API_PREFIX}/v1/payments/click`, providerBodyReader('form'));
   app.useBodyParser('json', { limit: JSON_BODY_LIMIT });
   app.use(createOriginCheckMiddleware(allowedOrigins));
 

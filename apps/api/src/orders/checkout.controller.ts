@@ -9,7 +9,6 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import {
@@ -21,26 +20,21 @@ import {
   type CheckoutQuoteDto,
   type CheckoutQuoteInput,
   type LocaleQuery,
-  type PaymentMethod,
   type PlacedOrderDto,
 } from '@teran/contracts';
 import type { Request } from 'express';
-import type { Env } from '../config/env.js';
 import { DeliveryService } from '../delivery/delivery.service.js';
+import { PaymentConfig } from '../payments/payment-config.js';
 import { OrdersService } from './orders.service.js';
 
 @ApiTags('checkout')
 @Controller('checkout')
 export class CheckoutController {
-  private readonly paymentMethods: PaymentMethod[];
-
   constructor(
     private readonly orders: OrdersService,
     private readonly delivery: DeliveryService,
-    config: ConfigService<Env, true>,
-  ) {
-    this.paymentMethods = config.get('PAYMENT_METHODS_ENABLED', { infer: true });
-  }
+    private readonly payments: PaymentConfig,
+  ) {}
 
   @Get('options')
   @Header('Cache-Control', 'public, max-age=60')
@@ -51,7 +45,9 @@ export class CheckoutController {
   ): Promise<CheckoutOptionsDto> {
     return {
       deliveryMethods: await this.delivery.listActive(query.locale),
-      paymentMethods: this.paymentMethods,
+      paymentMethods: this.payments.selectableMethods(),
+      paymentOptions: this.payments.options(),
+      onlinePaymentWindowMinutes: this.payments.windowMinutes,
     };
   }
 

@@ -1,13 +1,7 @@
 import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import {
-  orderLookupQuerySchema,
-  paginationQuerySchema,
-  type OrderDto,
-  type Paginated,
-  type PaginationQuery,
-} from '@teran/contracts';
+import { orderLookupQuerySchema, type OrderDto } from '@teran/contracts';
 import { z } from 'zod';
 import { CurrentAuth, RequireAuth } from '../auth/auth.guard.js';
 import type { RequestAuth } from '../auth/auth.types.js';
@@ -32,18 +26,6 @@ export class OrdersController {
     @Query({ schema: orderLookupQuerySchema }) query: z.output<typeof orderLookupQuerySchema>,
   ): Promise<OrderDto> {
     return this.orders.findForGuest(number, query.token);
-  }
-
-  @Get('account/orders')
-  @RequireAuth()
-  @Header('Cache-Control', 'private, no-store')
-  @ApiOperation({ summary: "The signed-in customer's orders" })
-  @ApiOkResponse({ description: 'Paginated<OrderDto>' })
-  myOrders(
-    @CurrentAuth() auth: RequestAuth,
-    @Query({ schema: paginationQuerySchema }) query: PaginationQuery,
-  ): Promise<Paginated<OrderDto>> {
-    return this.orders.listForCustomer(auth.userId, query.page, Math.min(query.pageSize, 20));
   }
 
   @Get('account/orders/:number')

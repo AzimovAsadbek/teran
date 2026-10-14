@@ -33,7 +33,8 @@ async function main(): Promise<void> {
       emblem: await readEmblem(),
     });
     console.log(
-      `Catalogue: ${catalogue.products} new product(s), ${catalogue.articles} new article(s).`,
+      `Catalogue: ${catalogue.products} new product(s), ${catalogue.articles} new article(s), ` +
+        `${catalogue.structure} category/product-type change(s).`,
     );
 
     const activity = withActivity ? await seedActivity(prisma) : null;
@@ -47,7 +48,7 @@ async function main(): Promise<void> {
     }
 
     const changed =
-      catalogue.products + catalogue.articles > 0 ||
+      catalogue.products + catalogue.articles + catalogue.structure > 0 ||
       (activity !== null &&
         activity.customers +
           activity.orders +

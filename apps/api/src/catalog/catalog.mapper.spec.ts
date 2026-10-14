@@ -50,6 +50,7 @@ describe('toProductSummary', () => {
     slug: 'classic-green-tea',
     status: 'ACTIVE',
     categoryId: 'c',
+    productTypeId: null,
     format: 'LOOSE_LEAF',
     isFeatured: true,
     caffeineLevel: null,
@@ -77,7 +78,11 @@ describe('toProductSummary', () => {
         searchText: '',
       },
     ],
-    category: { slug: 'green-tea', translations: [{ locale: 'uz', name: 'Yashil choy' }] },
+    category: {
+      slug: 'green-tea',
+      translations: [{ locale: 'uz', name: 'Yashil choy' }],
+      parent: { slug: 'tea', translations: [{ locale: 'uz', name: 'Choy' }] },
+    },
     variants: [
       variant({
         id: '0192f7a0-0000-7000-8000-000000000002',
@@ -105,5 +110,11 @@ describe('toProductSummary', () => {
     // The first purchasable pack is chosen, skipping the sold-out one.
     expect(summary.defaultVariant?.sku).toBe('SMALL');
     expect(summary.illustrationKey).toBe('green');
+    // Links to the category use its full path below the top-level category.
+    expect(summary.category).toEqual({
+      slug: 'green-tea',
+      name: 'Yashil choy',
+      path: 'tea/green-tea',
+    });
   });
 });

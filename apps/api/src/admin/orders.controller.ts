@@ -4,6 +4,7 @@ import {
   adminOrderListQuerySchema,
   orderStatusUpdateSchema,
   recordPaymentSchema,
+  recordRefundSchema,
   type AdminOrderDetail,
   type AdminOrderListItem,
   type OrderStatusUpdateInput,
@@ -63,5 +64,20 @@ export class AdminOrdersController {
     @CurrentActor() actor: Actor,
   ): Promise<AdminOrderDetail> {
     return this.orders.recordPayment(number, body.note, actor);
+  }
+
+  @Post(':number/refunds')
+  @ApiOperation({
+    summary: 'Record that a paid order was refunded',
+    description:
+      'The refund itself is made in cash or in the provider cabinet (Click). Payme refunds arrive from Payme automatically.',
+  })
+  @ApiOkResponse({ description: 'AdminOrderDetail' })
+  recordRefund(
+    @Param('number', { schema: orderNumberSchema }) number: string,
+    @Body({ schema: recordRefundSchema }) body: z.output<typeof recordRefundSchema>,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminOrderDetail> {
+    return this.orders.recordRefund(number, body.note, actor);
   }
 }

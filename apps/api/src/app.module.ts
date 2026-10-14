@@ -5,6 +5,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage } from 'node:http';
+import { AccountModule } from './account/account.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { validateEnv, type Env } from './config/env.js';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter.js';
@@ -19,6 +20,7 @@ import { HealthModule } from './health/health.module.js';
 import { InquiriesModule } from './inquiries/inquiries.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { OrdersModule } from './orders/orders.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
@@ -87,7 +89,9 @@ function requestId(request: IncomingMessage): string {
     CatalogModule,
     ContentModule,
     OrdersModule,
+    PaymentsModule,
     AuthModule,
+    AccountModule,
     InquiriesModule,
     AdminModule,
     MaintenanceModule,

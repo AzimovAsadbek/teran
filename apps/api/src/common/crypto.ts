@@ -41,3 +41,14 @@ export function newsletterUnsubscribeToken(appSecret: string, subscriberId: stri
     .update(`newsletter-unsubscribe:${subscriberId}`)
     .digest('base64url');
 }
+
+/**
+ * Secret of the guest order-status link, derived from the order's idempotency key so an idempotent
+ * replay (and the payment return page) can rebuild the same link without the raw token ever being
+ * stored; only its SHA-256 is kept on the order.
+ */
+export function orderAccessToken(appSecret: string, idempotencyKey: string): string {
+  return createHmac('sha256', appSecret)
+    .update(`order-access:${idempotencyKey}`)
+    .digest('base64url');
+}

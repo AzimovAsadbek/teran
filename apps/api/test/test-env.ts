@@ -32,4 +32,15 @@ export const TEST_ENV: Record<string, string> = {
   THROTTLE_DISABLED: 'true',
   WEB_REVALIDATE_URL: '',
   REVALIDATE_SECRET: '',
+  // Payments: live mode without provider credentials (cash only) unless a suite overrides it.
+  PAYMENT_PROVIDER_MODE: 'live',
+  PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY',
+  ALLOW_DEMO_PAYMENTS: '',
+  ONLINE_PAYMENT_WINDOW_MINUTES: '30',
+  PAYME_MERCHANT_ID: '',
+  PAYME_KEY: '',
+  PAYME_CHECK_IP: '',
+  CLICK_SERVICE_ID: '',
+  CLICK_MERCHANT_ID: '',
+  CLICK_SECRET_KEY: '',
 };

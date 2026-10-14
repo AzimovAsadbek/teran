@@ -21,7 +21,13 @@ import {
   DEMO_SUBSCRIBERS,
   DEMO_WHOLESALE_INQUIRIES,
 } from './demo-activity.js';
-import { DEMO_CATEGORIES, DEMO_COLLECTIONS, DEMO_PRODUCTS, RETIRED_DEMO } from './demo-catalog.js';
+import {
+  DEMO_CATEGORIES,
+  DEMO_COLLECTIONS,
+  DEMO_PRODUCT_TYPES,
+  DEMO_PRODUCTS,
+  RETIRED_DEMO,
+} from './demo-catalog.js';
 import { DEMO_ARTICLES } from './demo-content.js';
 
 export interface RemovalReport {
@@ -64,15 +70,34 @@ export async function removeDemoData(
     await deleteStoredImage(uploadsDir, image.storageKey);
   }
 
+  // Product types the demo created, once no product uses them (their definitions go with them).
+  for (const type of DEMO_PRODUCT_TYPES) {
+    const found = await prisma.productType.findUnique({
+      where: { key: type.key },
+      select: { id: true, _count: { select: { products: true } } },
+    });
+    if (!found) continue;
+    if (found._count.products > 0) {
+      kept.push(`product type ${type.key}`);
+      continue;
+    }
+    await prisma.productType.delete({ where: { id: found.id } });
+  }
+
   let categories = 0;
-  const categorySlugs = [...DEMO_CATEGORIES.map((item) => item.slug), ...RETIRED_DEMO.categories];
+  // Subcategories before their parents.
+  const categorySlugs = [
+    ...DEMO_CATEGORIES.filter((item) => item.parent).map((item) => item.slug),
+    ...DEMO_CATEGORIES.filter((item) => !item.parent).map((item) => item.slug),
+    ...RETIRED_DEMO.categories,
+  ];
   for (const slug of categorySlugs) {
     const category = await prisma.category.findUnique({
       where: { slug },
-      select: { id: true, _count: { select: { products: true } } },
+      select: { id: true, _count: { select: { products: true, children: true } } },
     });
     if (!category) continue;
-    if (category._count.products > 0) {
+    if (category._count.products > 0 || category._count.children > 0) {
       kept.push(`category ${slug}`);
       continue;
     }

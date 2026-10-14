@@ -83,6 +83,32 @@ export class SessionService {
     };
   }
 
+  /** The request presents a session cookie (valid or not). */
+  hasToken(request: Request): boolean {
+    return typeof request.cookies?.[this.cookie] === 'string';
+  }
+
+  clearCookie(response: Response): void {
+    response.clearCookie(this.cookie, clearCookieOptions(this.secure));
+  }
+
+  /** Active sessions of a user, newest activity first (for the account's security page). */
+  listForUser(userId: string) {
+    return this.prisma.session.findMany({
+      where: { userId, expiresAt: { gt: new Date() } },
+      orderBy: { lastSeenAt: 'desc' },
+      select: { id: true, createdAt: true, lastSeenAt: true, userAgent: true },
+    });
+  }
+
+  /** Signs out every other device of a user; the current session stays. */
+  async destroyOthers(userId: string, keepSessionId: string): Promise<number> {
+    const removed = await this.prisma.session.deleteMany({
+      where: { userId, id: { not: keepSessionId } },
+    });
+    return removed.count;
+  }
+
   async destroy(sessionId: string | undefined, response: Response): Promise<void> {
     if (sessionId) {
       await this.prisma.session.deleteMany({ where: { id: sessionId } });

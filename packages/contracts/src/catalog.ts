@@ -14,6 +14,43 @@ export const STOCK_LEVELS = ['in_stock', 'low_stock', 'out_of_stock'] as const;
 export const stockLevelSchema = z.enum(STOCK_LEVELS);
 export type StockLevel = z.infer<typeof stockLevelSchema>;
 
+/**
+ * Top-level category pages live at the site root (`/tea`), so their slugs must not collide with
+ * the storefront's own pages, the locale prefixes or system paths.
+ */
+export const RESERVED_CATEGORY_SLUGS = [
+  'about',
+  'account',
+  'admin',
+  'api',
+  'cart',
+  'catalog',
+  'checkout',
+  'collections',
+  'contact',
+  'delivery',
+  'en',
+  'faq',
+  'journal',
+  'newsletter',
+  'orders',
+  'payments',
+  'privacy',
+  'products',
+  'returns',
+  'ru',
+  'search',
+  'sitemap',
+  'terms',
+  'uploads',
+  'uz',
+  'wholesale',
+] as const;
+
+export function isReservedCategorySlug(slug: string): boolean {
+  return (RESERVED_CATEGORY_SLUGS as readonly string[]).includes(slug);
+}
+
 /** Largest quantity of a single variant a retail customer can put in the cart. */
 export const MAX_LINE_QUANTITY = 20;
 
@@ -47,9 +84,65 @@ const commaList = <T extends z.ZodType>(item: T) =>
       .filter(Boolean);
   }, z.array(item).max(10).optional());
 
-export const productListQuerySchema = z
+// ─── Product types and attributes ───────────────────────────────────────────
+
+export const ATTRIBUTE_KINDS = ['TEXT', 'NUMBER', 'BOOLEAN', 'SELECT', 'MULTI_SELECT'] as const;
+export const attributeKindSchema = z.enum(ATTRIBUTE_KINDS);
+export type AttributeKind = z.infer<typeof attributeKindSchema>;
+
+/** Kinds that can be offered as filters (free text cannot). */
+export const FILTERABLE_ATTRIBUTE_KINDS: readonly AttributeKind[] = [
+  'NUMBER',
+  'BOOLEAN',
+  'SELECT',
+  'MULTI_SELECT',
+];
+
+/** Identifier of an attribute or option, used in filter URLs: lower-case words and hyphens. */
+export const attributeKeySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { error: 'invalid_key' });
+
+/**
+ * Attribute filters travel as `attr.<key>=<value>` query parameters:
+ * - choice attributes: option keys, comma separated (`attr.roast-level=dark,medium`);
+ * - yes/no attributes: `true` or `false`;
+ * - numbers: a range `min~max`, either side optional (`attr.net-weight=100~250`).
+ */
+export const ATTRIBUTE_FILTER_PREFIX = 'attr.';
+const ATTRIBUTE_VALUE_PATTERN =
+  /^(?:[a-z0-9]+(?:-[a-z0-9]+)*|(?:\d{1,9}(?:\.\d{1,3})?)?~(?:\d{1,9}(?:\.\d{1,3})?)?)$/;
+const attributeFiltersSchema = z
+  .record(attributeKeySchema, z.array(z.string().regex(ATTRIBUTE_VALUE_PATTERN)).min(1).max(20))
+  .refine((filters) => Object.keys(filters).length <= 10, { error: 'too_many_filters' });
+
+/** Moves `attr.<key>` query parameters into one `attributes` object before validation. */
+function collectAttributeFilters(raw: unknown): unknown {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
+  const query: Record<string, unknown> = {};
+  const attributes: Record<string, string[]> = {};
+  for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!name.startsWith(ATTRIBUTE_FILTER_PREFIX)) {
+      query[name] = value;
+      continue;
+    }
+    const entries: unknown[] = Array.isArray(value) ? value : [value];
+    const values = entries
+      .flatMap((entry) => (typeof entry === 'string' ? entry.split(',') : []))
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    if (values.length > 0) attributes[name.slice(ATTRIBUTE_FILTER_PREFIX.length)] = values;
+  }
+  return Object.keys(attributes).length > 0 ? { ...query, attributes } : query;
+}
+
+const productListQueryObject = z
   .object({
     locale: localeSchema.default('uz'),
+    /** A category slug; a top-level category includes its subcategories. */
     category: slugSchema.optional(),
     collection: slugSchema.optional(),
     q: z.string().trim().min(1).max(100).optional(),
@@ -61,6 +154,7 @@ export const productListQuerySchema = z
     sort: productSortSchema.default('featured'),
     page: z.coerce.number().int().min(1).max(1000).default(1),
     pageSize: z.coerce.number().int().min(1).max(48).default(24),
+    attributes: attributeFiltersSchema.optional(),
   })
   .refine(
     (query) =>
@@ -72,7 +166,8 @@ export const productListQuerySchema = z
       path: ['minPrice'],
     },
   );
-export type ProductListQuery = z.infer<typeof productListQuerySchema>;
+export const productListQuerySchema = z.preprocess(collectAttributeFilters, productListQueryObject);
+export type ProductListQuery = z.output<typeof productListQueryObject>;
 
 export const localeQuerySchema = z.object({ locale: localeSchema.default('uz') });
 export type LocaleQuery = z.infer<typeof localeQuerySchema>;
@@ -94,7 +189,9 @@ export const imageSchema = z.object({
 });
 export type ImageDto = z.infer<typeof imageSchema>;
 
-export const categoryRefSchema = z.object({ slug: z.string(), name: z.string() });
+/** A category in links: `path` is its address below the locale, e.g. "tea/green-tea". */
+export const categoryRefSchema = z.object({ slug: z.string(), name: z.string(), path: z.string() });
+export type CategoryRefDto = z.infer<typeof categoryRefSchema>;
 
 export const variantSchema = z.object({
   id: z.uuid(),
@@ -139,7 +236,25 @@ export const brewingSchema = z.object({
   amountGrams: z.string().nullable(),
 });
 
+/** A product attribute ready for display; only attributes with a value are sent. */
+export const productAttributeSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  kind: attributeKindSchema,
+  unit: z.string().nullable(),
+  text: z.string().nullable(),
+  /** Decimal string for NUMBER attributes. */
+  number: z.string().nullable(),
+  boolean: z.boolean().nullable(),
+  options: z.array(z.object({ key: z.string(), label: z.string() })),
+});
+export type ProductAttributeDto = z.infer<typeof productAttributeSchema>;
+
 export const productDetailSchema = productSummarySchema.extend({
+  productType: z.object({ key: z.string(), name: z.string() }).nullable(),
+  attributes: z.array(productAttributeSchema),
+  /** Category chain from the top-level category to the product's own category. */
+  breadcrumbs: z.array(categoryRefSchema),
   description: z.string().nullable(),
   ingredients: z.string().nullable(),
   tastingNotes: z.string().nullable(),
@@ -154,24 +269,68 @@ export const productDetailSchema = productSummarySchema.extend({
 });
 export type ProductDetailDto = z.infer<typeof productDetailSchema>;
 
-export const categorySchema = z.object({
+export const collectionSchema = z.object({
   id: z.uuid(),
   slug: z.string(),
   name: z.string(),
   description: z.string().nullable(),
   illustrationKey: illustrationKeySchema.nullable(),
+  /** Visible products; for a top-level category, its subcategories' products included. */
   productCount: z.number().int(),
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
 });
+export type CollectionDto = z.infer<typeof collectionSchema>;
+
+export const categorySchema = collectionSchema.extend({
+  parentSlug: z.string().nullable(),
+  /** Address below the locale: "tea" or "tea/green-tea". */
+  path: z.string(),
+  /** Optional editorial text (plain text, paragraphs separated by blank lines). */
+  body: z.string().nullable(),
+  position: z.number().int(),
+});
 export type CategoryDto = z.infer<typeof categorySchema>;
 
-export const collectionSchema = categorySchema;
-export type CollectionDto = z.infer<typeof collectionSchema>;
+/** Everything a category page needs, or the new address when the path has moved. */
+export const categoryPageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('category'),
+    category: categorySchema,
+    parent: categorySchema.nullable(),
+    /** Active subcategories (for a top-level category) or siblings (for a subcategory). */
+    subcategories: z.array(categorySchema),
+    breadcrumbs: z.array(categoryRefSchema),
+  }),
+  z.object({ type: z.literal('redirect'), path: z.string() }),
+]);
+export type CategoryPageDto = z.infer<typeof categoryPageSchema>;
+
+export const categoryPathQuerySchema = z.object({
+  locale: localeSchema.default('uz'),
+  path: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)?$/, { error: 'invalid_path' }),
+});
+
+/** A filter built from an attribute of the products in the current listing. */
+export const attributeFacetSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  kind: attributeKindSchema,
+  unit: z.string().nullable(),
+  /** Choice and yes/no attributes: values with the number of matching products. */
+  options: z.array(z.object({ key: z.string(), label: z.string(), count: z.number().int() })),
+  /** Number attributes: the smallest and largest value in the listing. */
+  range: z.object({ min: z.string(), max: z.string() }).nullable(),
+});
+export type AttributeFacetDto = z.infer<typeof attributeFacetSchema>;
 
 export const facetsSchema = z.object({
   formats: z.array(z.object({ value: productFormatSchema, count: z.number().int() })),
   priceRange: z.object({ min: moneySchema, max: moneySchema }).nullable(),
+  attributes: z.array(attributeFacetSchema),
 });
 export type FacetsDto = z.infer<typeof facetsSchema>;
 
@@ -194,7 +353,7 @@ export type SearchSuggestionsDto = z.infer<typeof searchSuggestionsSchema>;
 /** Minimal data for sitemap generation. */
 export const sitemapEntriesSchema = z.object({
   products: z.array(z.object({ slug: z.string(), updatedAt: z.string() })),
-  categories: z.array(z.object({ slug: z.string(), updatedAt: z.string() })),
+  categories: z.array(z.object({ slug: z.string(), path: z.string(), updatedAt: z.string() })),
   collections: z.array(z.object({ slug: z.string(), updatedAt: z.string() })),
   articles: z.array(z.object({ slug: z.string(), updatedAt: z.string() })),
 });

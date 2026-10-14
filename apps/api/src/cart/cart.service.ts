@@ -6,6 +6,7 @@ import {
   type CartLineDto,
   type Locale,
   type ProductFormat,
+  type ReorderResultDto,
 } from '@teran/contracts';
 import type { Request, Response } from 'express';
 import { Prisma } from '../generated/prisma/client.js';
@@ -20,10 +21,9 @@ import { asIllustrationKey, toImageDto, variantStockLevel } from '../catalog/cat
 import { visibleProductWhere } from '../catalog/product-visibility.js';
 import { DeliveryService } from '../delivery/delivery.service.js';
 import { evaluateCartLine, isProductPublic } from './cart-line.js';
+import { MAX_CART_LINES } from './cart-merge.js';
 
 const DAY_MS = 86_400_000;
-/** Distinct lines allowed in one cart; protects the database from abuse. */
-const MAX_CART_LINES = 30;
 
 function cartItemsInclude(locale: Locale) {
   return {
@@ -71,14 +71,29 @@ export class CartService {
     this.cookie = cookieName('teran_cart', this.secure);
   }
 
-  /** The cart identified by the request's cart cookie, if it exists and has not expired. */
-  async findCart(request: Request): Promise<{ id: string } | null> {
+  /**
+   * The cart behind the request's cart cookie, whoever it belongs to (used when signing in, to
+   * decide what to do with it). Expired carts and malformed tokens count as no cart.
+   */
+  async findDeviceCart(request: Request): Promise<{ id: string; userId: string | null } | null> {
     const token: unknown = request.cookies?.[this.cookie];
     if (typeof token !== 'string' || token.length < 20 || token.length > 200) return null;
     return this.prisma.cart.findFirst({
       where: { tokenHash: sha256(token), expiresAt: { gt: new Date() } },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
+  }
+
+  /**
+   * The request's cart, if the visitor may use it. A guest cart belongs to whoever holds its
+   * cookie; a cart attached to an account is only visible to that account. So when a customer's
+   * session ends on a shared device, the next visitor does not see (or take over) their cart.
+   */
+  async findCart(request: Request): Promise<{ id: string } | null> {
+    const cart = await this.findDeviceCart(request);
+    if (!cart) return null;
+    if (cart.userId !== null && cart.userId !== (request.auth?.userId ?? null)) return null;
+    return { id: cart.id };
   }
 
   private async findOrCreateCart(request: Request, response: Response): Promise<{ id: string }> {
@@ -202,6 +217,73 @@ export class CartService {
     await this.prisma.cartItem.deleteMany({ where: { id: itemId, cartId: cart.id } });
     await this.touch(cart.id);
     return this.buildCart(cart.id, locale);
+  }
+
+  /**
+   * Puts the items of an earlier order back into the cart, validated against today's catalogue:
+   * prices are today's (the cart is always priced when read), quantities are capped by stock and
+   * the cart's limits, and lines that cannot be bought any more are reported instead of added.
+   * Nothing is ordered.
+   */
+  async addOrderItems(
+    request: Request,
+    response: Response,
+    items: readonly { variantId: string | null; sku: string; quantity: number }[],
+    locale: Locale,
+  ): Promise<ReorderResultDto> {
+    const variantIds = items.flatMap((item) => (item.variantId ? [item.variantId] : []));
+    const variants = await this.prisma.productVariant.findMany({
+      where: { id: { in: variantIds } },
+      select: {
+        id: true,
+        isActive: true,
+        stockQuantity: true,
+        product: { select: { status: true, publishedAt: true } },
+      },
+    });
+    const byId = new Map(variants.map((variant) => [variant.id, variant]));
+    const now = new Date();
+    const added: string[] = [];
+    const skipped: ReorderResultDto['skipped'] = [];
+
+    const cart = await this.findOrCreateCart(request, response);
+    const lines = await this.prisma.cartItem.findMany({
+      where: { cartId: cart.id },
+      select: { variantId: true, quantity: true },
+    });
+    const inCart = new Map(lines.map((line) => [line.variantId, line.quantity]));
+
+    for (const item of items) {
+      const variant = item.variantId ? byId.get(item.variantId) : undefined;
+      if (!variant || !variant.isActive || !isProductPublic(variant.product, now)) {
+        skipped.push({ sku: item.sku, reason: 'unavailable' });
+        continue;
+      }
+      const available = Math.min(variant.stockQuantity, MAX_LINE_QUANTITY);
+      if (available <= 0) {
+        skipped.push({ sku: item.sku, reason: 'out_of_stock' });
+        continue;
+      }
+      const current = inCart.get(variant.id);
+      if (current === undefined && inCart.size >= MAX_CART_LINES) {
+        skipped.push({ sku: item.sku, reason: 'limited' });
+        continue;
+      }
+      const wanted = (current ?? 0) + item.quantity;
+      const quantity = Math.min(wanted, available);
+      if (quantity > (current ?? 0)) {
+        await this.prisma.cartItem.upsert({
+          where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
+          create: { cartId: cart.id, variantId: variant.id, quantity },
+          update: { quantity },
+        });
+        inCart.set(variant.id, quantity);
+        added.push(item.sku);
+      }
+      if (quantity < wanted) skipped.push({ sku: item.sku, reason: 'limited' });
+    }
+    await this.touch(cart.id);
+    return { cart: await this.buildCart(cart.id, locale), added, skipped };
   }
 
   /** Orderable lines with current server-side prices; throws if the cart cannot be ordered as-is. */

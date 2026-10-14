@@ -54,4 +54,33 @@ describe('validateEnv', () => {
       validateEnv({ ...valid, WEB_REVALIDATE_URL: 'http://localhost:3000/api/revalidate' }),
     ).toThrow(/REVALIDATE_SECRET/);
   });
+
+  it('keeps simulated payments out of production unless explicitly allowed', () => {
+    const production = {
+      ...valid,
+      NODE_ENV: 'production',
+      COOKIE_SECURE: 'true',
+      WEB_ORIGIN: 'https://teran.example',
+      INTERNAL_API_KEY: 'k'.repeat(40),
+      PAYMENT_PROVIDER_MODE: 'demo',
+    };
+    expect(() => validateEnv(production)).toThrow(/PAYMENT_PROVIDER_MODE/);
+    expect(validateEnv({ ...production, ALLOW_DEMO_PAYMENTS: 'true' }).PAYMENT_PROVIDER_MODE).toBe(
+      'demo',
+    );
+    // Live is the default everywhere.
+    expect(validateEnv(valid).PAYMENT_PROVIDER_MODE).toBe('live');
+  });
+
+  it('refuses half-configured payment providers', () => {
+    expect(() => validateEnv({ ...valid, PAYME_MERCHANT_ID: 'abcdef0123456789abcdef01' })).toThrow(
+      /PAYME_KEY/,
+    );
+    expect(() =>
+      validateEnv({ ...valid, CLICK_SERVICE_ID: '123', CLICK_SECRET_KEY: 's'.repeat(20) }),
+    ).toThrow(/CLICK_SECRET_KEY/);
+    expect(() => validateEnv({ ...valid, PAYME_CHECKOUT_URL: 'https://evil.example.com' })).toThrow(
+      /PAYME_CHECKOUT_URL/,
+    );
+  });
 });

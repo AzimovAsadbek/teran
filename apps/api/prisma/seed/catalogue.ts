@@ -1,6 +1,8 @@
 /**
- * Loads the demonstration catalogue and content: categories, collections, products (with
- * code-drawn images), delivery methods, site settings and journal articles.
+ * Loads the demonstration catalogue and content: categories (Tea with the tea types as
+ * subcategories, and gift sets), collections, product types with their attributes, products (with
+ * code-drawn images and demonstration attribute values), delivery methods, site settings and
+ * journal articles.
  *
  * Insert-only: a record that already exists (matched by slug, code or key) is left untouched, so
  * re-running never overwrites changes made in the admin area.
@@ -15,9 +17,12 @@ import { productSearchText } from '../../src/catalog/product-search.js';
 import { productImagePrefix, storeImage } from '../../src/media/image-processing.js';
 import { renderLeafStudy, renderPackshot } from './demo-art.js';
 import {
+  DEMO_ATTRIBUTE_VALUES,
   DEMO_CATEGORIES,
   DEMO_COLLECTIONS,
+  DEMO_PRODUCT_TYPES,
   DEMO_PRODUCTS,
+  demoProductType,
   type DemoProduct,
 } from './demo-catalog.js';
 import {
@@ -44,6 +49,11 @@ export function readEmblem(): Promise<Buffer> {
 export interface CatalogueReport {
   products: number;
   articles: number;
+  /**
+   * Structural changes: categories and product types created, demo categories placed under their
+   * parent and demo products given their product type (databases seeded by earlier versions).
+   */
+  structure: number;
 }
 
 export interface CatalogueOptions {
@@ -58,14 +68,35 @@ function perLocale<T>(build: (locale: Locale) => T): (T & { locale: Locale })[] 
   return LOCALES.map((locale) => ({ locale, ...build(locale) }));
 }
 
-async function seedTaxonomies(prisma: PrismaClient): Promise<void> {
+async function seedTaxonomies(prisma: PrismaClient): Promise<number> {
+  let changes = 0;
+  // Parents are listed before their subcategories.
   for (const [position, category] of DEMO_CATEGORIES.entries()) {
-    await prisma.category.upsert({
+    const parent = category.parent
+      ? await prisma.category.findUniqueOrThrow({
+          where: { slug: category.parent },
+          select: { id: true },
+        })
+      : null;
+    const existing = await prisma.category.findUnique({
       where: { slug: category.slug },
-      update: {},
-      create: {
+      select: { id: true, parentId: true, _count: { select: { children: true } } },
+    });
+    if (existing) {
+      // Databases seeded before categories had parents: put the demo tea types under "Tea" once.
+      // No admin choice is overwritten, because a parent could not be set before.
+      if (parent && existing.parentId === null && existing._count.children === 0) {
+        await prisma.category.update({ where: { id: existing.id }, data: { parentId: parent.id } });
+        changes += 1;
+      }
+      continue;
+    }
+    changes += 1;
+    await prisma.category.create({
+      data: {
         slug: category.slug,
         position,
+        parentId: parent?.id ?? null,
         illustrationKey: category.illustrationKey,
         translations: {
           create: perLocale((locale) => ({
@@ -93,6 +124,88 @@ async function seedTaxonomies(prisma: PrismaClient): Promise<void> {
       },
     });
   }
+  return changes;
+}
+
+async function seedProductTypes(prisma: PrismaClient): Promise<number> {
+  let created = 0;
+  for (const [position, type] of DEMO_PRODUCT_TYPES.entries()) {
+    const existing = await prisma.productType.findUnique({ where: { key: type.key } });
+    if (existing) continue;
+    created += 1;
+    await prisma.productType.create({
+      data: {
+        key: type.key,
+        position,
+        translations: { create: perLocale((locale) => ({ name: type.name[locale] })) },
+        attributes: {
+          create: type.attributes.map((attribute, attributePosition) => ({
+            key: attribute.key,
+            kind: attribute.kind,
+            isFilterable: attribute.isFilterable,
+            isVisible: true,
+            position: attributePosition,
+            translations: {
+              create: perLocale((locale) => ({ label: attribute.label[locale] })),
+            },
+            options: {
+              create: (attribute.options ?? []).map((option, optionPosition) => ({
+                key: option.key,
+                position: optionPosition,
+                translations: {
+                  create: perLocale((locale) => ({ label: option.label[locale] })),
+                },
+              })),
+            },
+          })),
+        },
+      },
+    });
+  }
+  return created;
+}
+
+/**
+ * Gives a demo product its product type and demonstration attribute values. Only for products
+ * without a type yet (new products, or demo databases from before product types existed).
+ */
+async function assignDemoAttributes(
+  prisma: Prisma.TransactionClient,
+  productId: string,
+  demo: DemoProduct,
+): Promise<boolean> {
+  const type = await prisma.productType.findUnique({
+    where: { key: demoProductType(demo) },
+    include: { attributes: { include: { options: true } } },
+  });
+  if (!type) return false;
+  const updated = await prisma.product.updateMany({
+    where: { id: productId, productTypeId: null },
+    data: { productTypeId: type.id },
+  });
+  if (updated.count === 0) return false;
+  const values = DEMO_ATTRIBUTE_VALUES[demo.slug] ?? {};
+  for (const [key, value] of Object.entries(values)) {
+    const attribute = type.attributes.find((candidate) => candidate.key === key);
+    if (!attribute) continue;
+    if (attribute.kind === 'SELECT') {
+      const option = attribute.options.find((candidate) => candidate.key === value);
+      if (option) {
+        await prisma.productAttributeValue.create({
+          data: { productId, attributeId: attribute.id, optionId: option.id },
+        });
+      }
+    } else if (attribute.kind === 'BOOLEAN' && typeof value === 'boolean') {
+      await prisma.productAttributeValue.create({
+        data: { productId, attributeId: attribute.id, booleanValue: value },
+      });
+    } else if (attribute.kind === 'NUMBER' && typeof value === 'number') {
+      await prisma.productAttributeValue.create({
+        data: { productId, attributeId: attribute.id, numberValue: new Prisma.Decimal(value) },
+      });
+    }
+  }
+  return true;
 }
 
 async function seedContent(prisma: PrismaClient, now: Date): Promise<number> {
@@ -226,6 +339,7 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
       }
     }
     await refreshMinPrice(tx, product.id);
+    await assignDemoAttributes(tx, product.id, demo);
     return product.id;
   });
 }
@@ -261,21 +375,30 @@ export async function seedCatalogue(
   options: CatalogueOptions,
 ): Promise<CatalogueReport> {
   const now = options.now ?? new Date();
-  await seedTaxonomies(prisma);
+  let structure = await seedTaxonomies(prisma);
+  structure += await seedProductTypes(prisma);
   const articles = await seedContent(prisma, now);
 
   let products = 0;
   for (const demo of DEMO_PRODUCTS) {
     const existing = await prisma.product.findUnique({
       where: { slug: demo.slug },
-      select: { id: true },
+      select: { id: true, productTypeId: true },
     });
-    if (existing) continue;
+    if (existing) {
+      if (existing.productTypeId === null) {
+        const typed = await prisma.$transaction((tx) =>
+          assignDemoAttributes(tx, existing.id, demo),
+        );
+        if (typed) structure += 1;
+      }
+      continue;
+    }
     const productId = await createProduct(prisma, demo, now);
     if (options.emblem) {
       await attachDemoImages(prisma, productId, demo, options.emblem, options.uploadsDir);
     }
     products += 1;
   }
-  return { products, articles };
+  return { products, articles, structure };
 }

@@ -1,9 +1,13 @@
 import { z } from 'zod';
 import { emailSchema, moneySchema, optionalText, slugSchema, type Money } from './common.js';
 import {
+  attributeKeySchema,
+  attributeKindSchema,
   caffeineLevelSchema,
+  FILTERABLE_ATTRIBUTE_KINDS,
   illustrationKeySchema,
   productFormatSchema,
+  type AttributeKind,
   type CaffeineLevel,
   type IllustrationKey,
   type ImageDto,
@@ -14,6 +18,7 @@ import {
   orderStatusSchema,
   type OrderStatus,
   type PaymentMethod,
+  type PaymentProviderCode,
   type PaymentStatus,
 } from './orders.js';
 import { passwordSchema, type UserRole } from './auth.js';
@@ -90,6 +95,26 @@ export const variantInputSchema = z
   });
 export type VariantInput = z.infer<typeof variantInputSchema>;
 
+/** Localised plain text for TEXT attributes (Uzbek required when the attribute is set). */
+export const attributeTextInputSchema = z.object({
+  uz: z.string().trim().min(1).max(300),
+  ru: optionalText(300),
+  en: optionalText(300),
+});
+
+/**
+ * One attribute value as edited in the admin. Exactly the field matching the attribute's kind is
+ * used: optionIds (SELECT: one, MULTI_SELECT: several), number, boolean or text.
+ */
+export const productAttributeInputSchema = z.object({
+  attributeId: z.uuid(),
+  optionIds: z.array(z.uuid()).max(20).optional(),
+  number: z.number().min(-1_000_000_000).max(1_000_000_000).nullable().optional(),
+  boolean: z.boolean().nullable().optional(),
+  text: attributeTextInputSchema.nullable().optional(),
+});
+export type ProductAttributeInput = z.infer<typeof productAttributeInputSchema>;
+
 export const productUpsertSchema = z
   .object({
     slug: slugSchema,
@@ -104,6 +129,10 @@ export const productUpsertSchema = z
     brewAmountGrams: z.number().min(0.1).max(50).multipleOf(0.1).nullable(),
     illustrationKey: illustrationKeySchema.nullable(),
     collectionIds: z.array(z.uuid()).max(20),
+    /** Decides which attributes apply; null = common fields only. */
+    productTypeId: z.uuid().nullable().default(null),
+    /** Values for the product type's attributes; validated against the definitions by the API. */
+    attributes: z.array(productAttributeInputSchema).max(40).default([]),
     translations: localizedInput(productTranslationInputSchema),
     variants: z.array(variantInputSchema).min(1).max(20),
   })
@@ -140,6 +169,8 @@ export const imageReorderSchema = z.object({ imageIds: z.array(z.uuid()).min(1).
 export const taxonomyTranslationInputSchema = z.object({
   name: z.string().trim().min(2).max(100),
   description: optionalText(1000),
+  /** Categories only: editorial text for the category page (plain text). */
+  body: optionalText(4000),
   seoTitle: optionalText(70),
   seoDescription: optionalText(170),
 });
@@ -149,9 +180,73 @@ export const taxonomyUpsertSchema = z.object({
   position: z.number().int().min(0).max(10_000),
   isActive: z.boolean(),
   illustrationKey: illustrationKeySchema.nullable(),
+  /** Categories only: the top-level category this one belongs to (null = top level). */
+  parentId: z.uuid().nullable().default(null),
   translations: localizedInput(taxonomyTranslationInputSchema),
 });
 export type TaxonomyUpsertInput = z.input<typeof taxonomyUpsertSchema>;
+
+// ─── Product types and attributes ───────────────────────────────────────────
+
+const CHOICE_KINDS: readonly AttributeKind[] = ['SELECT', 'MULTI_SELECT'];
+
+export const attributeOptionInputSchema = z.object({
+  /** Present for existing options. */
+  id: z.uuid().optional(),
+  key: attributeKeySchema,
+  translations: localizedInput(z.object({ label: z.string().trim().min(1).max(60) })),
+});
+
+export const attributeDefinitionInputSchema = z
+  .object({
+    /** Present for existing attributes. */
+    id: z.uuid().optional(),
+    key: attributeKeySchema,
+    kind: attributeKindSchema,
+    unit: optionalText(12),
+    isRequired: z.boolean(),
+    isFilterable: z.boolean(),
+    isSearchable: z.boolean(),
+    isVisible: z.boolean(),
+    translations: localizedInput(
+      z.object({ label: z.string().trim().min(1).max(60), hint: optionalText(200) }),
+    ),
+    options: z.array(attributeOptionInputSchema).max(50).default([]),
+  })
+  .refine((attribute) => !CHOICE_KINDS.includes(attribute.kind) || attribute.options.length > 0, {
+    error: 'options_required',
+    path: ['options'],
+  })
+  .refine((attribute) => CHOICE_KINDS.includes(attribute.kind) || attribute.options.length === 0, {
+    error: 'options_not_allowed',
+    path: ['options'],
+  })
+  .refine(
+    (attribute) => !attribute.isFilterable || FILTERABLE_ATTRIBUTE_KINDS.includes(attribute.kind),
+    { error: 'not_filterable', path: ['isFilterable'] },
+  )
+  .refine(
+    (attribute) =>
+      new Set(attribute.options.map((option) => option.key)).size === attribute.options.length,
+    { error: 'duplicate_key', path: ['options'] },
+  );
+export type AttributeDefinitionInput = z.input<typeof attributeDefinitionInputSchema>;
+
+export const productTypeUpsertSchema = z
+  .object({
+    key: attributeKeySchema,
+    isActive: z.boolean(),
+    position: z.number().int().min(0).max(10_000),
+    translations: localizedInput(z.object({ name: z.string().trim().min(2).max(60) })),
+    /** The complete, ordered attribute list; attributes left out are removed (if unused). */
+    attributes: z.array(attributeDefinitionInputSchema).max(40),
+  })
+  .refine(
+    (type) =>
+      new Set(type.attributes.map((attribute) => attribute.key)).size === type.attributes.length,
+    { error: 'duplicate_key', path: ['attributes'] },
+  );
+export type ProductTypeUpsertInput = z.input<typeof productTypeUpsertSchema>;
 
 // ─── Inventory ──────────────────────────────────────────────────────────────
 
@@ -198,6 +293,12 @@ export const orderStatusUpdateSchema = z
 export type OrderStatusUpdateInput = z.input<typeof orderStatusUpdateSchema>;
 
 export const recordPaymentSchema = z.object({ note: optionalText(300) });
+
+/**
+ * Staff record that a paid order's money was returned (the refund itself is made in the provider's
+ * merchant cabinet, or in cash). Only for PAID payments; full amount only.
+ */
+export const recordRefundSchema = z.object({ note: z.string().trim().min(3).max(300) });
 
 // ─── Inquiries, newsletter, customers ───────────────────────────────────────
 
@@ -316,6 +417,8 @@ export interface AdminProductDetail {
   id: string;
   slug: string;
   status: ProductStatus;
+  productTypeId: string | null;
+  attributes: ProductAttributeInput[];
   categoryId: string;
   format: ProductFormat;
   isFeatured: boolean;
@@ -340,7 +443,44 @@ export interface AdminTaxonomy {
   isActive: boolean;
   illustrationKey: IllustrationKey | null;
   productCount: number;
+  /** Categories only. */
+  parentId: string | null;
+  childCount: number;
   translations: AdminTranslation<z.output<typeof taxonomyTranslationInputSchema>>;
+}
+
+export interface AdminAttributeOption {
+  id: string;
+  key: string;
+  translations: AdminTranslation<{ label: string }>;
+  /** Products using this option; such options cannot be removed. */
+  usageCount: number;
+}
+
+export interface AdminAttribute {
+  id: string;
+  key: string;
+  kind: AttributeKind;
+  unit: string | null;
+  isRequired: boolean;
+  isFilterable: boolean;
+  isSearchable: boolean;
+  isVisible: boolean;
+  position: number;
+  translations: AdminTranslation<{ label: string; hint?: string }>;
+  options: AdminAttributeOption[];
+  /** Products with a value for this attribute; such attributes cannot be removed. */
+  usageCount: number;
+}
+
+export interface AdminProductType {
+  id: string;
+  key: string;
+  isActive: boolean;
+  position: number;
+  productCount: number;
+  translations: AdminTranslation<{ name: string }>;
+  attributes: AdminAttribute[];
 }
 
 export interface AdminInventoryRow {
@@ -371,6 +511,7 @@ export interface AdminOrderListItem {
   number: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   customerName: string;
   customerPhone: string;
   itemCount: number;
@@ -426,8 +567,37 @@ export interface AdminOrderDetail {
   events: AdminOrderEvent[];
   allowedTransitions: OrderStatus[];
   canRecordPayment: boolean;
+  /** A paid online payment whose refund staff can record. */
+  canRecordRefund: boolean;
+  payments: AdminPayment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AdminPaymentEvent {
+  id: string;
+  fromStatus: PaymentStatus | null;
+  toStatus: PaymentStatus;
+  source: string;
+  detail: string | null;
+  actorName: string | null;
+  createdAt: string;
+}
+
+export interface AdminPayment {
+  id: string;
+  method: PaymentMethod;
+  provider: PaymentProviderCode;
+  status: PaymentStatus;
+  amount: Money;
+  currency: string;
+  /** Provider transaction id (never card data). */
+  providerReference: string | null;
+  failureCode: string | null;
+  expiresAt: string | null;
+  confirmedAt: string | null;
+  createdAt: string;
+  events: AdminPaymentEvent[];
 }
 
 export interface AdminContactInquiry {

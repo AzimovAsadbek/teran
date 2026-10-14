@@ -1,11 +1,13 @@
 import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
+  categoryPathQuerySchema,
   localeQuerySchema,
   productListQuerySchema,
   searchSuggestQuerySchema,
   slugSchema,
   type CategoryDto,
+  type CategoryPageDto,
   type CollectionDto,
   type LocaleQuery,
   type ProductDetailDto,
@@ -15,8 +17,10 @@ import {
   type SearchSuggestionsDto,
   type SitemapEntriesDto,
 } from '@teran/contracts';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { CatalogService } from './catalog.service.js';
+
+const redirectEntitySchema = z.enum(['products', 'collections']);
 
 /** Catalogue responses are identical for every visitor, so short shared caching is safe. */
 const PUBLIC_CACHE = 'public, max-age=30, stale-while-revalidate=120';
@@ -28,10 +32,39 @@ export class CatalogController {
 
   @Get('categories')
   @Header('Cache-Control', PUBLIC_CACHE)
-  @ApiOperation({ summary: 'Active tea categories with the number of visible products' })
+  @ApiOperation({
+    summary:
+      'Public categories (top-level ones followed by their subcategories) with product counts',
+  })
   @ApiOkResponse({ description: 'CategoryDto[]' })
   categories(@Query({ schema: localeQuerySchema }) query: LocaleQuery): Promise<CategoryDto[]> {
     return this.catalog.listCategories(query.locale);
+  }
+
+  @Get('category-page')
+  @Header('Cache-Control', PUBLIC_CACHE)
+  @ApiOperation({
+    summary: 'A category page by its path, or the current path when the address has changed',
+  })
+  @ApiOkResponse({ description: 'CategoryPageDto' })
+  categoryPage(
+    @Query({ schema: categoryPathQuerySchema }) query: z.output<typeof categoryPathQuerySchema>,
+  ): Promise<CategoryPageDto> {
+    return this.catalog.getCategoryPage(query.path, query.locale);
+  }
+
+  @Get('redirects/:entity/:slug')
+  @Header('Cache-Control', PUBLIC_CACHE)
+  @ApiOperation({
+    summary: 'Current slug of a renamed product or collection (for permanent redirects)',
+  })
+  @ApiOkResponse({ description: '{ slug: string }' })
+  redirect(
+    @Param('entity', { schema: redirectEntitySchema })
+    entity: z.output<typeof redirectEntitySchema>,
+    @Param('slug', { schema: slugSchema }) slug: string,
+  ): Promise<{ slug: string }> {
+    return this.catalog.resolveRedirect(entity === 'products' ? 'PRODUCT' : 'COLLECTION', slug);
   }
 
   @Get('collections')

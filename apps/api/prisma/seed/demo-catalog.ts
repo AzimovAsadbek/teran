@@ -24,6 +24,8 @@ export interface Localized<T> {
 
 export interface DemoCategory {
   slug: string;
+  /** Top-level category this one belongs to (categories have two levels). */
+  parent?: string;
   illustrationKey: string;
   name: Localized<string>;
   description: Localized<string>;
@@ -184,7 +186,18 @@ function identifierCopy(
 
 export const DEMO_CATEGORIES: DemoCategory[] = [
   {
+    slug: 'tea',
+    illustrationKey: 'green',
+    name: { uz: 'Choy', ru: 'Чай', en: 'Tea' },
+    description: {
+      uz: 'Qora, yashil, oq choy, ulun va pu-erh — barcha choylar bir joyda.',
+      ru: 'Чёрный, зелёный, белый чай, улун и пуэр — все чаи в одном месте.',
+      en: 'Black, green and white tea, oolong and pu-erh — every tea in one place.',
+    },
+  },
+  {
     slug: 'black-tea',
+    parent: 'tea',
     illustrationKey: 'black',
     name: { uz: 'Qora choy', ru: 'Чёрный чай', en: 'Black tea' },
     description: {
@@ -195,6 +208,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'green-tea',
+    parent: 'tea',
     illustrationKey: 'green',
     name: { uz: 'Yashil choy', ru: 'Зелёный чай', en: 'Green tea' },
     description: {
@@ -205,6 +219,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'white-tea',
+    parent: 'tea',
     illustrationKey: 'white',
     name: { uz: 'Oq choy', ru: 'Белый чай', en: 'White tea' },
     description: {
@@ -215,6 +230,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'oolong',
+    parent: 'tea',
     illustrationKey: 'oolong',
     name: { uz: 'Ulun', ru: 'Улун', en: 'Oolong' },
     description: {
@@ -225,6 +241,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'pu-erh',
+    parent: 'tea',
     // No dedicated pu-erh illustration exists yet; the black-tea artwork is the closest match.
     illustrationKey: 'black',
     name: { uz: 'Pu-erh', ru: 'Пуэр', en: 'Pu-erh' },
@@ -837,6 +854,98 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     ],
   },
 ];
+
+// ─── Product types and attributes ──────────────────────────────────────────
+
+export interface DemoAttribute {
+  key: string;
+  kind: 'SELECT' | 'BOOLEAN' | 'NUMBER';
+  isFilterable: boolean;
+  label: Localized<string>;
+  options?: { key: string; label: Localized<string> }[];
+}
+
+export interface DemoProductType {
+  key: string;
+  name: Localized<string>;
+  attributes: DemoAttribute[];
+}
+
+/**
+ * Product types used by the demonstration catalogue. Only the kinds of product the shop sells
+ * today exist: tea and gift sets. Further types (coffee, sweets, accessories) are created in the
+ * admin area when TERAN sells them; nothing hypothetical is seeded.
+ */
+export const DEMO_PRODUCT_TYPES: DemoProductType[] = [
+  {
+    key: 'tea',
+    name: { uz: 'Choy', ru: 'Чай', en: 'Tea' },
+    attributes: [
+      {
+        key: 'leaf-style',
+        kind: 'SELECT',
+        isFilterable: true,
+        label: { uz: 'Barg shakli', ru: 'Форма листа', en: 'Leaf style' },
+        options: [
+          { key: 'whole-leaf', label: { uz: 'Butun barg', ru: 'Цельный лист', en: 'Whole leaf' } },
+          {
+            key: 'rolled',
+            label: { uz: 'Oʻralgan barg', ru: 'Скрученный лист', en: 'Rolled leaf' },
+          },
+          { key: 'compressed', label: { uz: 'Presslangan', ru: 'Прессованный', en: 'Compressed' } },
+          { key: 'cut', label: { uz: 'Maydalangan barg', ru: 'Резаный лист', en: 'Cut leaf' } },
+        ],
+      },
+      {
+        key: 'flavoured',
+        kind: 'BOOLEAN',
+        isFilterable: true,
+        label: { uz: 'Xushboʻy qoʻshimchali', ru: 'Ароматизированный', en: 'Flavoured' },
+      },
+    ],
+  },
+  {
+    key: 'gift-set',
+    name: { uz: 'Sovgʻa toʻplami', ru: 'Подарочный набор', en: 'Gift set' },
+    attributes: [
+      {
+        key: 'teas-in-set',
+        kind: 'NUMBER',
+        isFilterable: false,
+        label: { uz: 'Toʻplamdagi choylar', ru: 'Чаёв в наборе', en: 'Teas in the set' },
+      },
+    ],
+  },
+];
+
+/** The product type of a demo product, from its category. */
+export function demoProductType(product: Pick<DemoProduct, 'category'>): string {
+  return product.category === 'gift-sets' ? 'gift-set' : 'tea';
+}
+
+/**
+ * DEMONSTRATION attribute values, typical of each demo product's style (a jasmine tea is scented,
+ * a mini pu-erh is pressed) or taken from the demo product itself (the number of teas in a set).
+ * The five TERAN identifier products get none: nothing is claimed about the real TERAN teas.
+ */
+export const DEMO_ATTRIBUTE_VALUES: Record<string, Record<string, string | boolean | number>> = {
+  'classic-black-tea': { 'leaf-style': 'whole-leaf', flavoured: false },
+  'black-tea-bags': { 'leaf-style': 'cut', flavoured: false },
+  'earl-grey': { 'leaf-style': 'whole-leaf', flavoured: true },
+  'classic-green-tea': { 'leaf-style': 'whole-leaf', flavoured: false },
+  'jasmine-green-tea': { 'leaf-style': 'whole-leaf', flavoured: true },
+  'green-tea-pyramids': { 'leaf-style': 'whole-leaf', flavoured: false },
+  'mint-green-tea': { 'leaf-style': 'whole-leaf', flavoured: true },
+  'spring-green-tea': { 'leaf-style': 'whole-leaf', flavoured: false },
+  'white-tea': { 'leaf-style': 'whole-leaf', flavoured: false },
+  'oolong-tea': { 'leaf-style': 'rolled', flavoured: false },
+  'roasted-oolong': { 'leaf-style': 'rolled', flavoured: false },
+  'pu-erh-tea': { 'leaf-style': 'whole-leaf', flavoured: false },
+  'mini-pu-erh': { 'leaf-style': 'compressed', flavoured: false },
+  'gift-set-trio': { 'teas-in-set': 3 },
+  'gift-set-duo': { 'teas-in-set': 2 },
+  'teran-premium-gift-box': { 'teas-in-set': 5 },
+};
 
 /**
  * Demo products, categories and collections from earlier versions of this file. The guarded demo

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import {
+  FILTERABLE_ATTRIBUTE_KINDS,
   normalizeSearchText,
+  type AttributeFacetDto,
   type CategoryDto,
+  type CategoryPageDto,
   type CollectionDto,
   type FacetsDto,
   type Locale,
@@ -18,7 +21,15 @@ import { localeChain, pickTranslation } from '../common/i18n.js';
 import { toMoney } from '../common/money.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  attributeFilterWhere,
+  buildAttributeFacets,
+  parseAttributeFilters,
+  type AttributeFilter,
+} from './attribute-filters.js';
+import {
   asIllustrationKey,
+  categoryBreadcrumbs,
+  categoryPath,
   detailInclude,
   summaryInclude,
   toProductDetail,
@@ -29,32 +40,122 @@ import { visibleProductWhere } from './product-visibility.js';
 const RELATED_LIMIT = 4;
 const SUGGESTION_LIMIT = 6;
 
+/** Active, and below an active parent if it has one: the categories visitors can reach. */
+const PUBLIC_CATEGORY_WHERE = {
+  isActive: true,
+  OR: [{ parentId: null }, { parent: { isActive: true } }],
+} satisfies Prisma.CategoryWhereInput;
+
+type CategoryRow = Prisma.CategoryGetPayload<{
+  include: { translations: true; parent: { select: { slug: true } } };
+}>;
+
 @Injectable()
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Every public category, top-level categories each followed by their subcategories. A top-level
+   * category counts the products of its subcategories too.
+   */
   async listCategories(locale: Locale): Promise<CategoryDto[]> {
-    const categories = await this.prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
-      include: {
-        translations: { where: { locale: { in: localeChain(locale) } } },
-        _count: { select: { products: { where: visibleProductWhere() } } },
-      },
+    const [categories, counts] = await Promise.all([
+      this.prisma.category.findMany({
+        where: PUBLIC_CATEGORY_WHERE,
+        orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          translations: { where: { locale: { in: localeChain(locale) } } },
+          parent: { select: { slug: true } },
+        },
+      }),
+      this.visibleProductCounts(),
+    ]);
+
+    const result: CategoryDto[] = [];
+    for (const top of categories.filter((category) => category.parentId === null)) {
+      const children = categories.filter((category) => category.parentId === top.id);
+      const total = children.reduce(
+        (sum, child) => sum + (counts.get(child.id) ?? 0),
+        counts.get(top.id) ?? 0,
+      );
+      result.push(this.toCategoryDto(top, total, locale));
+      for (const child of children) {
+        result.push(this.toCategoryDto(child, counts.get(child.id) ?? 0, locale));
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Resolves a category page address ("tea" or "tea/green-tea"). A category reached through an
+   * outdated address (renamed slug, moved to another parent, old flat URL) answers with its
+   * current path so the storefront can redirect permanently.
+   */
+  async getCategoryPage(path: string, locale: Locale): Promise<CategoryPageDto> {
+    const slug = path.split('/').at(-1) ?? path;
+    const category = await this.prisma.category.findFirst({
+      where: { slug, ...PUBLIC_CATEGORY_WHERE },
+      include: { parent: { select: { id: true, slug: true } } },
     });
-    return categories.map((category) => {
-      const translation = pickTranslation(category.translations, locale);
-      return {
-        id: category.id,
-        slug: category.slug,
-        name: translation?.name ?? category.slug,
-        description: translation?.description ?? null,
-        illustrationKey: asIllustrationKey(category.illustrationKey),
-        productCount: category._count.products,
-        seoTitle: translation?.seoTitle ?? null,
-        seoDescription: translation?.seoDescription ?? null,
-      };
-    });
+
+    if (!category) {
+      const redirect = await this.prisma.slugRedirect.findUnique({
+        where: { entity_fromSlug: { entity: 'CATEGORY', fromSlug: slug } },
+        select: { toId: true },
+      });
+      const target =
+        redirect &&
+        (await this.prisma.category.findFirst({
+          where: { id: redirect.toId, ...PUBLIC_CATEGORY_WHERE },
+          select: { slug: true, parent: { select: { slug: true } } },
+        }));
+      if (target) return { type: 'redirect', path: categoryPath(target) };
+      throw ApiException.notFound('Category not found');
+    }
+
+    const currentPath = categoryPath(category);
+    if (currentPath !== path) return { type: 'redirect', path: currentPath };
+
+    const topId = category.parent?.id ?? category.id;
+    const chain = localeChain(locale);
+    const [family, counts] = await Promise.all([
+      this.prisma.category.findMany({
+        where: { AND: [PUBLIC_CATEGORY_WHERE, { OR: [{ id: topId }, { parentId: topId }] }] },
+        orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          translations: { where: { locale: { in: chain } } },
+          parent: { select: { slug: true } },
+        },
+      }),
+      this.visibleProductCounts(),
+    ]);
+    const top = family.find((member) => member.id === topId);
+    const self = family.find((member) => member.id === category.id);
+    if (!top || !self) throw ApiException.notFound('Category not found');
+    const children = family.filter((member) => member.parentId === topId);
+    const topCount = children.reduce(
+      (sum, child) => sum + (counts.get(child.id) ?? 0),
+      counts.get(top.id) ?? 0,
+    );
+    const countOf = (member: CategoryRow) =>
+      member.id === topId ? topCount : (counts.get(member.id) ?? 0);
+
+    const selfDto = this.toCategoryDto(self, countOf(self), locale);
+    const topDto = self.id === topId ? null : this.toCategoryDto(top, topCount, locale);
+    return {
+      type: 'category',
+      category: selfDto,
+      parent: topDto,
+      subcategories: children.map((child) => this.toCategoryDto(child, countOf(child), locale)),
+      breadcrumbs: categoryBreadcrumbs(
+        {
+          slug: self.slug,
+          translations: self.translations,
+          parent: topDto ? { slug: top.slug, translations: top.translations } : null,
+        },
+        locale,
+      ),
+    };
   }
 
   async listCollections(locale: Locale): Promise<CollectionDto[]> {
@@ -82,12 +183,19 @@ export class CatalogService {
   }
 
   async listProducts(query: ProductListQuery): Promise<ProductListDto> {
-    const where = this.listWhere(query);
-    const facetWhere = this.listWhere({ ...query, format: undefined });
+    const filters = await this.resolveAttributeFilters(query.attributes);
+    const base = this.baseConditions(query);
+    const formatCondition: Prisma.ProductWhereInput[] = query.format?.length
+      ? [{ format: { in: query.format } }]
+      : [];
+    const attributeConditions = filters.map(attributeFilterWhere);
+    const where = { AND: [...base, ...formatCondition, ...attributeConditions] };
+    // Each filter's options are counted without that filter, so choosing one keeps the others.
+    const formatFacetWhere = { AND: [...base, ...attributeConditions] };
     const skip = (query.page - 1) * query.pageSize;
 
     // Independent reads: run them concurrently on pooled connections (no transaction needed).
-    const [total, products, formatGroups, priceRange] = await Promise.all([
+    const [total, products, formatGroups, priceRange, attributeFacets] = await Promise.all([
       this.prisma.product.count({ where }),
       this.prisma.product.findMany({
         where,
@@ -98,15 +206,16 @@ export class CatalogService {
       }),
       this.prisma.product.groupBy({
         by: ['format'],
-        where: facetWhere,
+        where: formatFacetWhere,
         _count: { _all: true },
         orderBy: { format: 'asc' },
       }),
       this.prisma.product.aggregate({
-        where: facetWhere,
+        where: formatFacetWhere,
         _min: { minPrice: true },
         _max: { minPrice: true },
       }),
+      this.attributeFacets([...base, ...formatCondition], filters, query.locale),
     ]);
 
     const now = new Date();
@@ -119,6 +228,7 @@ export class CatalogService {
         priceRange._min.minPrice && priceRange._max.minPrice
           ? { min: toMoney(priceRange._min.minPrice), max: toMoney(priceRange._max.minPrice) }
           : null,
+      attributes: attributeFacets,
     };
 
     return {
@@ -129,6 +239,30 @@ export class CatalogService {
       totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
       facets,
     };
+  }
+
+  /**
+   * The current slug of a product or collection that was renamed, so links to the old address can
+   * be redirected permanently. 404 when the slug never belonged to a visible entity.
+   */
+  async resolveRedirect(entity: 'PRODUCT' | 'COLLECTION', slug: string): Promise<{ slug: string }> {
+    const redirect = await this.prisma.slugRedirect.findUnique({
+      where: { entity_fromSlug: { entity, fromSlug: slug } },
+      select: { toId: true },
+    });
+    const target = redirect
+      ? entity === 'PRODUCT'
+        ? await this.prisma.product.findFirst({
+            where: { id: redirect.toId, ...visibleProductWhere() },
+            select: { slug: true },
+          })
+        : await this.prisma.collection.findFirst({
+            where: { id: redirect.toId, isActive: true },
+            select: { slug: true },
+          })
+      : null;
+    if (!target || target.slug === slug) throw ApiException.notFound('No redirect');
+    return { slug: target.slug };
   }
 
   async getProduct(slug: string, locale: Locale): Promise<ProductDetailDto> {
@@ -183,7 +317,7 @@ export class CatalogService {
       }),
       this.prisma.category.findMany({
         where: {
-          isActive: true,
+          ...PUBLIC_CATEGORY_WHERE,
           translations: {
             some: {
               locale: { in: localeChain(locale) },
@@ -191,7 +325,11 @@ export class CatalogService {
             },
           },
         },
-        include: { translations: { where: { locale: { in: localeChain(locale) } } } },
+        include: {
+          translations: { where: { locale: { in: localeChain(locale) } } },
+          parent: { select: { slug: true } },
+        },
+        orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
         take: 4,
       }),
     ]);
@@ -201,6 +339,7 @@ export class CatalogService {
       categories: categories.map((category) => ({
         slug: category.slug,
         name: pickTranslation(category.translations, locale)?.name ?? category.slug,
+        path: categoryPath(category),
       })),
     };
   }
@@ -213,8 +352,8 @@ export class CatalogService {
         orderBy: { slug: 'asc' },
       }),
       this.prisma.category.findMany({
-        where: { isActive: true },
-        select: { slug: true, updatedAt: true },
+        where: PUBLIC_CATEGORY_WHERE,
+        select: { slug: true, updatedAt: true, parent: { select: { slug: true } } },
       }),
       this.prisma.collection.findMany({
         where: { isActive: true },
@@ -231,30 +370,170 @@ export class CatalogService {
     });
     return {
       products: products.map(toEntry),
-      categories: categories.map(toEntry),
+      categories: categories.map((category) => ({
+        ...toEntry(category),
+        path: categoryPath(category),
+      })),
       collections: collections.map(toEntry),
       articles: articles.map(toEntry),
     };
   }
 
-  private listWhere(
-    query: Omit<ProductListQuery, 'format'> & { format?: ProductListQuery['format'] },
-  ) {
+  /** Every listing condition except the format and attribute filters (which have facets). */
+  private baseConditions(query: ProductListQuery): Prisma.ProductWhereInput[] {
     const conditions: Prisma.ProductWhereInput[] = [visibleProductWhere()];
-    if (query.category) conditions.push({ category: { slug: query.category, isActive: true } });
+    if (query.category) {
+      // A top-level category lists its own products and those of its subcategories.
+      conditions.push({
+        category: {
+          AND: [
+            PUBLIC_CATEGORY_WHERE,
+            { OR: [{ slug: query.category }, { parent: { slug: query.category } }] },
+          ],
+        },
+      });
+    }
     if (query.collection) {
       conditions.push({
         collections: { some: { collection: { slug: query.collection, isActive: true } } },
       });
     }
-    if (query.format?.length) conditions.push({ format: { in: query.format } });
     if (query.featured) conditions.push({ isFeatured: true });
     if (query.inStock)
       conditions.push({ variants: { some: { isActive: true, stockQuantity: { gt: 0 } } } });
     if (query.minPrice !== undefined) conditions.push({ minPrice: { gte: query.minPrice } });
     if (query.maxPrice !== undefined) conditions.push({ minPrice: { lte: query.maxPrice } });
     if (query.q) conditions.push(this.searchWhere(normalizeSearchText(query.q), query.locale));
-    return { AND: conditions } satisfies Prisma.ProductWhereInput;
+    return conditions;
+  }
+
+  private async resolveAttributeFilters(
+    requested: ProductListQuery['attributes'],
+  ): Promise<AttributeFilter[]> {
+    const keys = Object.keys(requested ?? {});
+    if (keys.length === 0) return [];
+    const definitions = await this.prisma.attributeDefinition.findMany({
+      where: {
+        key: { in: keys },
+        isFilterable: true,
+        kind: { in: [...FILTERABLE_ATTRIBUTE_KINDS] },
+      },
+      orderBy: [{ productType: { position: 'asc' } }, { position: 'asc' }, { id: 'asc' }],
+      select: { id: true, key: true, kind: true },
+    });
+    return parseAttributeFilters(requested, definitions);
+  }
+
+  /**
+   * Filter options for the attributes of the products in a listing, with product counts. An
+   * attribute that is being filtered on is counted without its own filter (one extra grouped
+   * query per active attribute filter, at most ten).
+   */
+  private async attributeFacets(
+    conditions: Prisma.ProductWhereInput[],
+    filters: AttributeFilter[],
+    locale: Locale,
+  ): Promise<AttributeFacetDto[]> {
+    const filteredIds = filters.flatMap((filter) => filter.attributeIds);
+    const filterable = { isFilterable: true, kind: { in: [...FILTERABLE_ATTRIBUTE_KINDS] } };
+    const countValues = (
+      productWhere: Prisma.ProductWhereInput,
+      attributeWhere: Prisma.AttributeDefinitionWhereInput,
+    ) =>
+      this.prisma.productAttributeValue.groupBy({
+        by: ['attributeId', 'optionId', 'booleanValue'],
+        where: { product: productWhere, attribute: { ...filterable, ...attributeWhere } },
+        _count: { _all: true },
+        _min: { numberValue: true },
+        _max: { numberValue: true },
+      });
+
+    const groups = await Promise.all([
+      countValues(
+        { AND: [...conditions, ...filters.map(attributeFilterWhere)] },
+        filteredIds.length > 0 ? { id: { notIn: filteredIds } } : {},
+      ),
+      ...filters.map((filter) =>
+        countValues(
+          {
+            AND: [
+              ...conditions,
+              ...filters.filter((other) => other !== filter).map(attributeFilterWhere),
+            ],
+          },
+          { id: { in: filter.attributeIds } },
+        ),
+      ),
+    ]);
+    const rows = groups.flat().map((group) => ({
+      attributeId: group.attributeId,
+      optionId: group.optionId,
+      booleanValue: group.booleanValue,
+      count: typeof group._count === 'object' ? (group._count._all ?? 0) : 0,
+      min: group._min?.numberValue ?? null,
+      max: group._max?.numberValue ?? null,
+    }));
+
+    const attributeIds = [...new Set([...rows.map((row) => row.attributeId), ...filteredIds])];
+    if (attributeIds.length === 0) return [];
+    const chain = localeChain(locale);
+    const definitions = await this.prisma.attributeDefinition.findMany({
+      where: { id: { in: attributeIds } },
+      include: {
+        translations: { where: { locale: { in: chain } } },
+        productType: { select: { position: true } },
+        options: { include: { translations: { where: { locale: { in: chain } } } } },
+      },
+    });
+    return buildAttributeFacets(
+      rows,
+      definitions.map((definition) => ({
+        id: definition.id,
+        key: definition.key,
+        kind: definition.kind,
+        unit: definition.unit,
+        position: definition.position,
+        typePosition: definition.productType.position,
+        translations: definition.translations,
+        options: definition.options,
+      })),
+      filters,
+      locale,
+    );
+  }
+
+  /** Visible products per category id. */
+  private async visibleProductCounts(): Promise<Map<string, number>> {
+    const groups = await this.prisma.product.groupBy({
+      by: ['categoryId'],
+      where: visibleProductWhere(),
+      _count: { _all: true },
+      orderBy: { categoryId: 'asc' },
+    });
+    return new Map(
+      groups.map((group) => [
+        group.categoryId,
+        typeof group._count === 'object' ? (group._count._all ?? 0) : 0,
+      ]),
+    );
+  }
+
+  private toCategoryDto(category: CategoryRow, productCount: number, locale: Locale): CategoryDto {
+    const translation = pickTranslation(category.translations, locale);
+    return {
+      id: category.id,
+      slug: category.slug,
+      name: translation?.name ?? category.slug,
+      description: translation?.description ?? null,
+      illustrationKey: asIllustrationKey(category.illustrationKey),
+      productCount,
+      seoTitle: translation?.seoTitle ?? null,
+      seoDescription: translation?.seoDescription ?? null,
+      parentSlug: category.parent?.slug ?? null,
+      path: categoryPath(category),
+      body: translation?.body ?? null,
+      position: category.position,
+    };
   }
 
   /** Substring match on normalised search text (served by the pg_trgm GIN index). */

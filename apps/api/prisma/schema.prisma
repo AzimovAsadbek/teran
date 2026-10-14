@@ -63,16 +63,50 @@ enum OrderStatus {
   CANCELLED
 }
 
+/// Payment lifecycle; transitions are enforced by the API (docs/architecture/payments.md).
 enum PaymentStatus {
   PENDING
+  REQUIRES_ACTION
+  PROCESSING
   PAID
   FAILED
   REFUNDED
   CANCELLED
+  EXPIRED
+  REFUND_PENDING
+  PARTIALLY_REFUNDED
 }
 
+/// What the customer chose at checkout.
 enum PaymentMethod {
   CASH_ON_DELIVERY
+  CLICK
+  PAYME
+  /// Visa and other cards through a card gateway (none integrated yet; demo only).
+  CARD
+}
+
+/// Who processes a payment. DEMO is the simulated adapter used for demonstrations: it never
+/// contacts a provider and never moves money.
+enum PaymentProvider {
+  CASH
+  DEMO
+  CLICK
+  PAYME
+}
+
+enum AttributeKind {
+  TEXT
+  NUMBER
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
+}
+
+enum RedirectEntity {
+  CATEGORY
+  PRODUCT
+  COLLECTION
 }
 
 enum InventoryReason {
@@ -138,8 +172,31 @@ model User {
   inventoryMovements  InventoryMovement[]
   confirmedPayments   Payment[]
   auditLogs           AuditLog[]
+  addresses           CustomerAddress[]
 
   @@index([role])
+}
+
+/// A customer's saved delivery address. At most one per user is the default (partial unique
+/// index in the migration); only the owner and staff can read it.
+model CustomerAddress {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  userId        String   @db.Uuid
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Optional name the customer gives it ("Home", "Office").
+  label         String?
+  recipientName String
+  /// E.164, e.g. +998901234567.
+  phone         String
+  regionCode    String
+  city          String
+  addressLine   String
+  landmark      String?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 model Session {
@@ -173,19 +230,24 @@ model PasswordResetToken {
 // ─── Catalogue ──────────────────────────────────────────────────────────────
 
 model Category {
-  id              String   @id @default(uuid(7)) @db.Uuid
-  slug            String   @unique
-  position        Int      @default(0)
-  isActive        Boolean  @default(true)
+  id              String     @id @default(uuid(7)) @db.Uuid
+  slug            String     @unique
+  /// Two levels: top-level categories (Tea, Gift sets) and their subcategories (Green tea).
+  parentId        String?    @db.Uuid
+  parent          Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children        Category[] @relation("CategoryTree")
+  position        Int        @default(0)
+  isActive        Boolean    @default(true)
   /// Built-in illustration used when no photo is uploaded (e.g. "black", "green", "herbal").
   illustrationKey String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   translations CategoryTranslation[]
   products     Product[]
 
   @@index([isActive, position])
+  @@index([parentId, isActive, position])
 }
 
 model CategoryTranslation {
@@ -194,6 +256,8 @@ model CategoryTranslation {
   locale         Locale
   name           String
   description    String?
+  /// Optional editorial text on the category page; plain text, paragraphs separated by blank lines.
+  body           String?
   seoTitle       String?
   seoDescription String?
 
@@ -244,6 +308,10 @@ model Product {
   status             ProductStatus  @default(DRAFT)
   categoryId         String         @db.Uuid
   category           Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// Decides which attributes the product has. Optional: products without a type use only the
+  /// common fields (every product created before product types existed starts that way).
+  productTypeId      String?        @db.Uuid
+  productType        ProductType?   @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
   format             ProductFormat  @default(LOOSE_LEAF)
   isFeatured         Boolean        @default(false)
   /// Only set when the value is known for the product; never guessed.
@@ -262,15 +330,143 @@ model Product {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
-  translations ProductTranslation[]
-  variants     ProductVariant[]
-  images       ProductImage[]
-  collections  ProductCollection[]
+  translations    ProductTranslation[]
+  variants        ProductVariant[]
+  images          ProductImage[]
+  collections     ProductCollection[]
+  attributeValues ProductAttributeValue[]
 
   @@index([status, categoryId])
   @@index([status, publishedAt])
   @@index([status, minPrice])
   @@index([categoryId])
+  @@index([productTypeId])
+}
+
+/// A kind of product (tea, coffee, gift set…) and the attributes products of that kind have.
+model ProductType {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  /// Stable identifier, e.g. "tea".
+  key       String   @unique
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  translations ProductTypeTranslation[]
+  attributes   AttributeDefinition[]
+  products     Product[]
+}
+
+model ProductTypeTranslation {
+  productTypeId String      @db.Uuid
+  productType   ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+  locale        Locale
+  name          String
+
+  @@id([productTypeId, locale])
+}
+
+/// A typed characteristic of a product type (e.g. roast level, flavour profile, net weight).
+model AttributeDefinition {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  productTypeId String        @db.Uuid
+  productType   ProductType   @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+  /// Stable identifier within the type, used in filter URLs, e.g. "roast-level".
+  key           String
+  kind          AttributeKind
+  /// Display unit for numbers, e.g. "g".
+  unit          String?
+  /// Required before a product of this type can be published.
+  isRequired    Boolean       @default(false)
+  /// Offered as a filter on category, collection and search pages.
+  isFilterable  Boolean       @default(false)
+  /// Included in the product's search text.
+  isSearchable  Boolean       @default(false)
+  /// Shown on the product page.
+  isVisible     Boolean       @default(true)
+  position      Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  translations AttributeDefinitionTranslation[]
+  options      AttributeOption[]
+  values       ProductAttributeValue[]
+
+  @@unique([productTypeId, key])
+  @@index([productTypeId, position])
+}
+
+model AttributeDefinitionTranslation {
+  attributeId String              @db.Uuid
+  attribute   AttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  locale      Locale
+  label       String
+  hint        String?
+
+  @@id([attributeId, locale])
+}
+
+/// A choice of a SELECT or MULTI_SELECT attribute.
+model AttributeOption {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  attributeId String              @db.Uuid
+  attribute   AttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  /// Stable identifier, used in filter URLs, e.g. "dark".
+  key         String
+  position    Int                 @default(0)
+
+  translations AttributeOptionTranslation[]
+  values       ProductAttributeValue[]
+
+  @@unique([attributeId, key])
+  @@index([attributeId, position])
+}
+
+model AttributeOptionTranslation {
+  optionId String          @db.Uuid
+  option   AttributeOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  locale   Locale
+  label    String
+
+  @@id([optionId, locale])
+}
+
+/// One value of one attribute for one product. SELECT and scalar kinds have one row per product and
+/// attribute; MULTI_SELECT has one row per chosen option. Exactly the column for the attribute's
+/// kind is set; the API validates values against the definition before writing.
+model ProductAttributeValue {
+  id           String              @id @default(uuid(7)) @db.Uuid
+  productId    String              @db.Uuid
+  product      Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Restrict: an attribute or option that products still use cannot be deleted by accident.
+  attributeId  String              @db.Uuid
+  attribute    AttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+  optionId     String?             @db.Uuid
+  option       AttributeOption?    @relation(fields: [optionId], references: [id], onDelete: Restrict)
+  numberValue  Decimal?            @db.Decimal(14, 3)
+  booleanValue Boolean?
+  /// TEXT attributes: localised plain text { "uz": "…", "ru": "…", "en": "…" }, validated by the API.
+  textValue    Json?
+
+  @@unique([productId, attributeId, optionId])
+  @@index([attributeId, optionId])
+  @@index([attributeId, numberValue])
+  @@index([attributeId, booleanValue])
+}
+
+/// Old slugs that must keep working after an entity is renamed: requests for them are redirected
+/// permanently to the entity's current address.
+model SlugRedirect {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  entity    RedirectEntity
+  fromSlug  String
+  /// Id of the category, product or collection the old slug belonged to.
+  toId      String         @db.Uuid
+  createdAt DateTime       @default(now())
+
+  @@unique([entity, fromSlug])
+  @@index([entity, toId])
 }
 
 model ProductTranslation {
@@ -493,25 +689,105 @@ model OrderStatusEvent {
   @@index([orderId, createdAt])
 }
 
+/// One attempt to pay an order. An order can have several (a failed card attempt, then cash);
+/// Order.paymentStatus mirrors the latest attempt. Card data never reaches this database.
 model Payment {
-  id                String        @id @default(uuid(7)) @db.Uuid
-  orderId           String        @db.Uuid
-  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id                String          @id @default(uuid(7)) @db.Uuid
+  orderId           String          @db.Uuid
+  order             Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   method            PaymentMethod
-  status            PaymentStatus @default(PENDING)
-  amount            Decimal       @db.Decimal(12, 2)
-  currency          String        @default("UZS") @db.Char(3)
+  provider          PaymentProvider @default(CASH)
+  status            PaymentStatus   @default(PENDING)
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String          @default("UZS") @db.Char(3)
   /// Transaction id from an online provider (unused for cash on delivery).
   providerReference String?
+  /// SHA-256 of the secret in this attempt's return and demo-page links (online payments only).
+  accessTokenHash   String?         @unique
+  /// An unpaid online payment stops being payable at this time; the order is then cancelled and
+  /// its stock released.
+  expiresAt         DateTime?
+  /// Short machine-readable reason for FAILED or CANCELLED, e.g. "DECLINED", "CUSTOMER_CANCELLED".
+  failureCode       String?
   confirmedAt       DateTime?
   /// Staff member who recorded a manual confirmation (e.g. cash collected on delivery).
-  confirmedById     String?       @db.Uuid
-  confirmedBy       User?         @relation(fields: [confirmedById], references: [id], onDelete: SetNull)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  confirmedById     String?         @db.Uuid
+  confirmedBy       User?           @relation(fields: [confirmedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  @@unique([method, providerReference])
-  @@index([orderId])
+  events            PaymentEvent[]
+  paymeTransactions PaymeTransaction[]
+  clickTransactions ClickTransaction[]
+
+  @@unique([provider, providerReference])
+  @@index([orderId, createdAt])
+  @@index([status, expiresAt])
+}
+
+/// Every change of a payment's status, with where it came from (customer, provider callback,
+/// staff, scheduled job, demo). Never contains card data or secrets.
+model PaymentEvent {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  paymentId   String         @db.Uuid
+  payment     Payment        @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  fromStatus  PaymentStatus?
+  toStatus    PaymentStatus
+  /// customer | provider | staff | system | demo
+  source      String
+  /// Provider method or reason, e.g. "PerformTransaction" or "EXPIRED".
+  detail      String?
+  actorUserId String?        @db.Uuid
+  createdAt   DateTime       @default(now())
+
+  @@index([paymentId, createdAt])
+}
+
+/// A transaction of the Payme Merchant API (JSON-RPC calls from Payme). Times are milliseconds since
+/// the epoch, exactly as returned to Payme; repeated calls are answered from this row.
+model PaymeTransaction {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  /// Payme's transaction id (24 characters).
+  paymeId     String   @unique
+  paymentId   String   @db.Uuid
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  /// Amount in tiyin, as sent by Payme.
+  amount      BigInt
+  /// Payme's own creation time (the `time` parameter).
+  paymeTime   BigInt
+  createTime  BigInt
+  performTime BigInt   @default(0)
+  cancelTime  BigInt   @default(0)
+  /// 1 created, 2 performed, -1 cancelled, -2 cancelled after it was performed (refund).
+  state       Int
+  /// Payme cancellation reason code (1–5, 10), when cancelled.
+  reason      Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([paymentId])
+  @@index([paymeTime])
+}
+
+/// A payment of the Click SHOP API (Prepare and Complete calls from Click).
+model ClickTransaction {
+  /// The merchant_prepare_id (and merchant_confirm_id) answered to Click, which must be an integer.
+  /// Only Click ever sees it.
+  prepareId     Int      @id @default(autoincrement())
+  clickTransId  BigInt   @unique
+  clickPaydocId BigInt
+  paymentId     String   @db.Uuid
+  payment       Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  /// Amount in sum, as sent by Click.
+  amount        Decimal  @db.Decimal(12, 2)
+  /// 0 prepared, 1 completed, -1 cancelled.
+  state         Int
+  /// Click's error code when Click reported the payment as failed.
+  clickError    Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([paymentId])
 }
 
 // ─── Inventory ledger ───────────────────────────────────────────────────────
@@ -574,13 +850,13 @@ model WholesaleInquiry {
 }
 
 model NewsletterSubscriber {
-  id                   String           @id @default(uuid(7)) @db.Uuid
-  email                String           @unique
-  locale               Locale
-  status               NewsletterStatus @default(SUBSCRIBED)
-  source               String?
-  subscribedAt         DateTime         @default(now())
-  unsubscribedAt       DateTime?
+  id             String           @id @default(uuid(7)) @db.Uuid
+  email          String           @unique
+  locale         Locale
+  status         NewsletterStatus @default(SUBSCRIBED)
+  source         String?
+  subscribedAt   DateTime         @default(now())
+  unsubscribedAt DateTime?
 
   @@index([status])
 }

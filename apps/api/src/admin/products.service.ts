@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   buildPaginated,
+  buildSearchText,
   normalizeSearchText,
   type adminProductListQuerySchema,
   type AdminProductDetail,
@@ -12,6 +13,14 @@ import {
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { asIllustrationKey, toImageDto } from '../catalog/catalog.mapper.js';
+import {
+  attributeDefinitionInclude,
+  attributeSearchTerms,
+  toAttributeInputs,
+  validateAttributeValues,
+  type AttributeDefinitionRow,
+  type AttributeValueRow,
+} from '../catalog/product-attributes.js';
 import { refreshMinPrice } from '../catalog/product-pricing.js';
 import { productSearchText } from '../catalog/product-search.js';
 import { ApiException } from '../common/errors/api-exception.js';
@@ -43,7 +52,14 @@ const detailInclude = {
   variants: { orderBy: [{ position: 'asc' }, { createdAt: 'asc' }] },
   images: { orderBy: { position: 'asc' } },
   collections: { select: { collectionId: true } },
+  attributeValues: { orderBy: [{ attributeId: 'asc' }, { id: 'asc' }] },
 } satisfies Prisma.ProductInclude;
+
+/** A product's validated attribute values and the definitions they were checked against. */
+interface AttributeData {
+  definitions: AttributeDefinitionRow[];
+  rows: AttributeValueRow[];
+}
 
 type DetailRow = Prisma.ProductGetPayload<{ include: typeof detailInclude }>;
 
@@ -126,17 +142,20 @@ export class AdminProductsService {
   async create(input: ProductUpsertPayload, actor: Actor): Promise<AdminProductDetail> {
     const id = await this.prisma.$transaction(async (tx) => {
       await this.assertReferences(tx, input);
+      await this.releaseSlug(tx, input.slug);
+      const attributes = await this.attributeData(tx, input, null);
       const product = await tx.product.create({
         data: {
           ...this.scalarFields(input),
           publishedAt: input.status === 'ACTIVE' ? new Date() : null,
-          translations: { create: this.translationData(input) },
+          translations: { create: this.translationData(input, attributes) },
           collections: {
             create: input.collectionIds.map((collectionId) => ({ collectionId })),
           },
         },
         select: { id: true },
       });
+      await this.writeAttributeValues(tx, product.id, attributes.rows);
       for (const [position, variant] of input.variants.entries()) {
         await this.createVariant(tx, product.id, variant, position, actor);
       }
@@ -167,10 +186,26 @@ export class AdminProductsService {
     await this.prisma.$transaction(async (tx) => {
       const existing = await tx.product.findUnique({
         where: { id },
-        select: { status: true, publishedAt: true, variants: { select: { id: true } } },
+        select: {
+          slug: true,
+          status: true,
+          publishedAt: true,
+          productTypeId: true,
+          variants: { select: { id: true } },
+        },
       });
       if (!existing) throw ApiException.notFound('Product not found');
       await this.assertReferences(tx, input);
+      const attributes = await this.attributeData(tx, input, existing.productTypeId);
+      if (existing.slug !== input.slug) {
+        await this.releaseSlug(tx, input.slug);
+        // Links to the old address keep working: they are redirected to the new one.
+        await tx.slugRedirect.upsert({
+          where: { entity_fromSlug: { entity: 'PRODUCT', fromSlug: existing.slug } },
+          create: { entity: 'PRODUCT', fromSlug: existing.slug, toId: id },
+          update: { toId: id },
+        });
+      }
 
       const ownVariantIds = new Set(existing.variants.map((variant) => variant.id));
       for (const variant of input.variants) {
@@ -188,7 +223,8 @@ export class AdminProductsService {
         },
       });
 
-      const rows = this.translationData(input);
+      await this.writeAttributeValues(tx, id, attributes.rows);
+      const rows = this.translationData(input, attributes);
       await tx.productTranslation.deleteMany({
         where: { productId: id, locale: { notIn: rows.map((row) => row.locale) } },
       });
@@ -238,6 +274,10 @@ export class AdminProductsService {
             slug: input.slug,
             status: input.status,
             ...(existing.status !== input.status ? { previousStatus: existing.status } : {}),
+            ...(existing.slug !== input.slug ? { previousSlug: existing.slug } : {}),
+            ...(existing.productTypeId !== input.productTypeId
+              ? { productTypeId: input.productTypeId }
+              : {}),
             ...(removed.length > 0 ? { deactivatedVariants: removed } : {}),
           },
           ipAddress: actor.ipAddress,
@@ -384,11 +424,70 @@ export class AdminProductsService {
     }
   }
 
+  /**
+   * Loads the product type's attribute definitions and validates the submitted values against them.
+   * A type can be newly assigned only while it is active; a visible product must have every
+   * required attribute.
+   */
+  private async attributeData(
+    tx: Prisma.TransactionClient,
+    input: ProductUpsertPayload,
+    currentTypeId: string | null,
+  ): Promise<AttributeData> {
+    if (input.productTypeId === null) {
+      if (input.attributes.length > 0) {
+        throw ApiException.badRequest('BAD_REQUEST', 'Choose a product type to set attributes');
+      }
+      return { definitions: [], rows: [] };
+    }
+    const type = await tx.productType.findUnique({
+      where: { id: input.productTypeId },
+      select: {
+        isActive: true,
+        attributes: { orderBy: { position: 'asc' }, include: attributeDefinitionInclude },
+      },
+    });
+    if (!type) throw ApiException.badRequest('BAD_REQUEST', 'Unknown product type');
+    if (!type.isActive && input.productTypeId !== currentTypeId) {
+      throw ApiException.badRequest('BAD_REQUEST', 'This product type is not active');
+    }
+    const rows = validateAttributeValues(type.attributes, input.attributes, {
+      requireComplete: input.status === 'ACTIVE',
+    });
+    return { definitions: type.attributes, rows };
+  }
+
+  /** Replaces every attribute value of the product (values of a previous type go with it). */
+  private async writeAttributeValues(
+    tx: Prisma.TransactionClient,
+    productId: string,
+    rows: AttributeValueRow[],
+  ): Promise<void> {
+    await tx.productAttributeValue.deleteMany({ where: { productId } });
+    if (rows.length === 0) return;
+    await tx.productAttributeValue.createMany({
+      data: rows.map((row) => ({
+        productId,
+        attributeId: row.attributeId,
+        optionId: row.optionId,
+        numberValue: row.numberValue,
+        booleanValue: row.booleanValue,
+        textValue: row.textValue ?? Prisma.DbNull,
+      })),
+    });
+  }
+
+  /** A slug that becomes current again no longer redirects elsewhere. */
+  private async releaseSlug(tx: Prisma.TransactionClient, slug: string): Promise<void> {
+    await tx.slugRedirect.deleteMany({ where: { entity: 'PRODUCT', fromSlug: slug } });
+  }
+
   private scalarFields(input: ProductUpsertPayload) {
     return {
       slug: input.slug,
       status: input.status,
       categoryId: input.categoryId,
+      productTypeId: input.productTypeId,
       format: input.format,
       isFeatured: input.isFeatured,
       caffeineLevel: input.caffeineLevel,
@@ -403,7 +502,7 @@ export class AdminProductsService {
     };
   }
 
-  private translationData(input: ProductUpsertPayload) {
+  private translationData(input: ProductUpsertPayload, attributes: AttributeData) {
     return translationRows(input.translations).map((row) => ({
       locale: row.locale,
       name: row.name,
@@ -414,7 +513,10 @@ export class AdminProductsService {
       origin: nullable(row.origin),
       seoTitle: nullable(row.seoTitle),
       seoDescription: nullable(row.seoDescription),
-      searchText: productSearchText(row),
+      searchText: buildSearchText([
+        productSearchText(row),
+        attributeSearchTerms(attributes.definitions, attributes.rows, row.locale),
+      ]),
     }));
   }
 
@@ -464,6 +566,8 @@ export class AdminProductsService {
       id: row.id,
       slug: row.slug,
       status: row.status,
+      productTypeId: row.productTypeId,
+      attributes: toAttributeInputs(row.attributeValues),
       categoryId: row.categoryId,
       format: row.format,
       isFeatured: row.isFeatured,

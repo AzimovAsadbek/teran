@@ -1,6 +1,5 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import {
-  MAX_LINE_QUANTITY,
   isStaffRole,
   type AuthFeaturesDto,
   type CurrentUserDto,
@@ -13,6 +12,8 @@ import { generateToken, sha256 } from '../common/crypto.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { isProductPublic } from '../cart/cart-line.js';
+import { mergeCartLines } from '../cart/cart-merge.js';
 import { CartService } from '../cart/cart.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { passwordResetEmail } from '../mail/templates.js';
@@ -272,15 +273,30 @@ export class AuthService {
 
   private async startSession(request: Request, response: Response, user: User): Promise<void> {
     await this.sessions.create(user.id, user.role, request, response);
-    await this.attachCart(request, response, user.id);
+    try {
+      await this.attachCart(request, response, user.id);
+    } catch (error) {
+      // The merge runs in one transaction, so a failure leaves both carts exactly as they were:
+      // the guest cart stays on this device and the merge is attempted again at the next sign-in.
+      this.logger.error({ err: error, userId: user.id }, 'Cart could not be attached at sign-in');
+    }
   }
 
   /**
-   * Keeps one cart per customer: the cart on this device is attached to the account and merged
-   * with any cart left from an earlier visit; without a device cart, the account's cart is restored.
+   * Keeps one cart per customer when they sign in or register (docs/architecture/cart-and-account.md):
+   *
+   * - A guest cart on this device (or this customer's own cart) is attached to the account, and
+   *   the cart saved on the account from an earlier visit is merged into it (mergeCartLines).
+   * - A cart that belongs to someone else (their session ended on a shared device) is never
+   *   attached: its cookie is dropped and the customer's own cart is restored instead.
+   * - The account cart is deleted inside the transaction before its lines are merged, and only if
+   *   that delete succeeds, so a repeated or concurrent sign-in can never merge it twice.
    */
   private async attachCart(request: Request, response: Response, userId: string): Promise<void> {
-    const deviceCart = await this.cart.findCart(request);
+    const found = await this.cart.findDeviceCart(request);
+    const deviceCart = found && (found.userId === null || found.userId === userId) ? found : null;
+    if (found && !deviceCart) this.cart.clearCookie(response);
+
     const accountCart = await this.prisma.cart.findFirst({
       where: {
         userId,
@@ -288,7 +304,7 @@ export class AuthService {
         ...(deviceCart ? { id: { not: deviceCart.id } } : {}),
       },
       orderBy: { updatedAt: 'desc' },
-      include: { items: true },
+      select: { id: true },
     });
 
     if (!deviceCart) {
@@ -299,18 +315,52 @@ export class AuthService {
     await this.prisma.$transaction(async (tx) => {
       await tx.cart.update({ where: { id: deviceCart.id }, data: { userId } });
       if (!accountCart) return;
-      for (const item of accountCart.items) {
-        const existing = await tx.cartItem.findUnique({
-          where: { cartId_variantId: { cartId: deviceCart.id, variantId: item.variantId } },
-        });
-        const quantity = Math.min((existing?.quantity ?? 0) + item.quantity, MAX_LINE_QUANTITY);
-        await tx.cartItem.upsert({
-          where: { cartId_variantId: { cartId: deviceCart.id, variantId: item.variantId } },
-          create: { cartId: deviceCart.id, variantId: item.variantId, quantity },
-          update: { quantity },
-        });
+
+      const accountLines = await tx.cartItem.findMany({
+        where: { cartId: accountCart.id },
+        orderBy: { createdAt: 'asc' },
+        select: { variantId: true, quantity: true },
+      });
+      const removed = await tx.cart.deleteMany({ where: { id: accountCart.id } });
+      if (removed.count !== 1) return; // already merged by a concurrent sign-in
+
+      const deviceLines = await tx.cartItem.findMany({
+        where: { cartId: deviceCart.id },
+        orderBy: { createdAt: 'asc' },
+        select: { variantId: true, quantity: true },
+      });
+      const variants = await tx.productVariant.findMany({
+        where: { id: { in: [...deviceLines, ...accountLines].map((line) => line.variantId) } },
+        select: {
+          id: true,
+          isActive: true,
+          stockQuantity: true,
+          product: { select: { status: true, publishedAt: true } },
+        },
+      });
+      const now = new Date();
+      const availability = new Map(
+        variants.map((variant) => [
+          variant.id,
+          {
+            orderable: variant.isActive && isProductPublic(variant.product, now),
+            stockQuantity: variant.stockQuantity,
+          },
+        ]),
+      );
+      // Device lines keep their identity and order; lines only on the account are appended.
+      const onDevice = new Map(deviceLines.map((line) => [line.variantId, line.quantity]));
+      for (const line of mergeCartLines(deviceLines, accountLines, availability)) {
+        const current = onDevice.get(line.variantId);
+        if (current === undefined) {
+          await tx.cartItem.create({ data: { cartId: deviceCart.id, ...line } });
+        } else if (current !== line.quantity) {
+          await tx.cartItem.update({
+            where: { cartId_variantId: { cartId: deviceCart.id, variantId: line.variantId } },
+            data: { quantity: line.quantity },
+          });
+        }
       }
-      await tx.cart.delete({ where: { id: accountCart.id } });
     });
   }
 }

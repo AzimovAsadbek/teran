@@ -15,6 +15,9 @@ import { AuditService } from '../audit/audit.service.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { toMoney } from '../common/money.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { releaseOrderStock } from '../orders/order-stock.js';
+import { transitionPayment } from '../payments/payment-state.js';
+import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
 import { pageArgs, tashkentDayBoundary, type Actor } from './admin-support.js';
@@ -26,6 +29,7 @@ const listSelect = {
   number: true,
   status: true,
   paymentStatus: true,
+  paymentMethod: true,
   customerName: true,
   customerPhone: true,
   total: true,
@@ -42,6 +46,7 @@ export function toOrderListItem(row: ListRow): AdminOrderListItem {
     number: row.number,
     status: row.status,
     paymentStatus: row.paymentStatus,
+    paymentMethod: row.paymentMethod,
     customerName: row.customerName,
     customerPhone: row.customerPhone,
     itemCount: row.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -72,6 +77,7 @@ export class AdminOrdersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationService,
+    private readonly payments: PaymentsService,
   ) {}
 
   async list(query: ListQuery): Promise<Paginated<AdminOrderListItem>> {
@@ -116,9 +122,27 @@ export class AdminOrdersService {
           orderBy: { createdAt: 'asc' },
           include: { actor: { select: { firstName: true, lastName: true } } },
         },
+        payments: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          include: { events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] } },
+        },
       },
     });
     if (!order) throw ApiException.notFound('Order not found');
+    const actorIds = [
+      ...new Set(
+        order.payments.flatMap((payment) =>
+          payment.events.flatMap((event) => (event.actorUserId ? [event.actorUserId] : [])),
+        ),
+      ),
+    ];
+    const actors = actorIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: actorIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const actorById = new Map(actors.map((actor) => [actor.id, actor]));
     return {
       id: order.id,
       number: order.number,
@@ -164,6 +188,31 @@ export class AdminOrdersService {
       })),
       allowedTransitions: [...ORDER_STATUS_TRANSITIONS[order.status]],
       canRecordPayment: this.canRecordPayment(order),
+      canRecordRefund: this.refundablePayment(order.payments) !== undefined,
+      payments: order.payments.map((payment) => ({
+        id: payment.id,
+        method: payment.method,
+        provider: payment.provider,
+        status: payment.status,
+        amount: toMoney(payment.amount),
+        currency: payment.currency,
+        providerReference: payment.providerReference,
+        failureCode: payment.failureCode,
+        expiresAt: payment.expiresAt?.toISOString() ?? null,
+        confirmedAt: payment.confirmedAt?.toISOString() ?? null,
+        createdAt: payment.createdAt.toISOString(),
+        events: payment.events.map((event) => ({
+          id: event.id,
+          fromStatus: event.fromStatus,
+          toStatus: event.toStatus,
+          source: event.source,
+          detail: event.detail,
+          actorName: actorName(
+            event.actorUserId ? (actorById.get(event.actorUserId) ?? null) : null,
+          ),
+          createdAt: event.createdAt.toISOString(),
+        })),
+      })),
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
     };
@@ -209,14 +258,7 @@ export class AdminOrdersService {
         data: {
           status: target,
           ...(timestamp ? { [timestamp]: new Date() } : {}),
-          ...(cancelling
-            ? {
-                cancelReason: input.note ?? null,
-                ...(order.paymentStatus === 'PENDING'
-                  ? { paymentStatus: 'CANCELLED' as const }
-                  : {}),
-              }
-            : {}),
+          ...(cancelling ? { cancelReason: input.note ?? null } : {}),
         },
       });
       if (updated.count === 0) {
@@ -226,32 +268,16 @@ export class AdminOrdersService {
         );
       }
 
+      let paymentStatus: typeof order.paymentStatus | null = null;
       if (cancelling) {
-        if (order.paymentStatus === 'PENDING') {
-          await tx.payment.updateMany({
-            where: { orderId: order.id, status: 'PENDING' },
-            data: { status: 'CANCELLED' },
-          });
-        }
-        for (const item of order.items) {
-          if (!item.variantId) continue;
-          const variant = await tx.productVariant.update({
-            where: { id: item.variantId },
-            data: { stockQuantity: { increment: item.quantity } },
-            select: { stockQuantity: true },
-          });
-          await tx.inventoryMovement.create({
-            data: {
-              variantId: item.variantId,
-              delta: item.quantity,
-              quantityAfter: variant.stockQuantity,
-              reason: 'ORDER_CANCELLED',
-              orderId: order.id,
-              actorUserId: actor.userId,
-            },
-          });
-          restocked = true;
-        }
+        // Unpaid attempts end with the order; a provider confirmation arriving later is refused.
+        await this.payments.closeOpenAttempts(tx, order.id, 'staff', actor.userId);
+        const after = await tx.order.findUniqueOrThrow({
+          where: { id: order.id },
+          select: { paymentStatus: true },
+        });
+        if (after.paymentStatus !== order.paymentStatus) paymentStatus = after.paymentStatus;
+        restocked = await releaseOrderStock(tx, order, actor.userId);
       }
 
       await tx.orderStatusEvent.create({
@@ -259,9 +285,7 @@ export class AdminOrdersService {
           orderId: order.id,
           fromStatus: order.status,
           toStatus: target,
-          ...(cancelling && order.paymentStatus === 'PENDING'
-            ? { paymentStatus: 'CANCELLED' as const }
-            : {}),
+          ...(paymentStatus ? { paymentStatus } : {}),
           note: input.note ?? null,
           actorUserId: actor.userId,
         },
@@ -307,37 +331,43 @@ export class AdminOrdersService {
       if (!this.canRecordPayment(order)) {
         throw ApiException.conflict('CONFLICT', 'A payment cannot be recorded for this order');
       }
-      const updated = await tx.order.updateMany({
-        where: { id: order.id, paymentStatus: 'PENDING' },
-        data: { paymentStatus: 'PAID' },
-      });
-      if (updated.count === 0) {
-        throw ApiException.conflict(
-          'CONFLICT',
-          'The order was changed by someone else. Reload and try again.',
-        );
-      }
-      const now = new Date();
       const pending = await tx.payment.findFirst({
         where: { orderId: order.id, status: 'PENDING', method: order.paymentMethod },
-        select: { id: true },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: { id: true, orderId: true, status: true },
       });
-      const confirmation = {
-        status: 'PAID' as const,
-        amount: order.total,
-        confirmedAt: now,
-        confirmedById: actor.userId,
-      };
+      const confirmation = { amount: order.total, confirmedById: actor.userId };
       if (pending) {
-        await tx.payment.update({ where: { id: pending.id }, data: confirmation });
+        const moved = await transitionPayment(tx, pending, 'PAID', {
+          source: 'staff',
+          detail: 'Cash received',
+          actorUserId: actor.userId,
+          data: confirmation,
+        });
+        if (!moved) {
+          throw ApiException.conflict(
+            'CONFLICT',
+            'The order was changed by someone else. Reload and try again.',
+          );
+        }
       } else {
-        await tx.payment.create({
-          data: {
-            orderId: order.id,
-            method: order.paymentMethod,
-            currency: order.currency,
-            ...confirmation,
-          },
+        // Orders from before payment attempts were recorded may lack the cash attempt.
+        const created = await this.payments.createAttempt(tx, {
+          orderId: order.id,
+          method: order.paymentMethod,
+          provider: 'CASH',
+          amount: order.total,
+          currency: order.currency,
+          status: 'PENDING',
+          expiresAt: null,
+          source: 'staff',
+          detail: 'Cash payment recorded',
+        });
+        await transitionPayment(tx, created, 'PAID', {
+          source: 'staff',
+          detail: 'Cash received',
+          actorUserId: actor.userId,
+          data: confirmation,
         });
       }
       await tx.orderStatusEvent.create({
@@ -363,6 +393,73 @@ export class AdminOrdersService {
       );
     });
     return this.get(number);
+  }
+
+  /**
+   * Records that a paid order's money was returned to the customer: cash handed back, a Click
+   * reversal made in the Click merchant cabinet, or a simulated demo payment. Payme refunds are
+   * made in the Payme cabinet and arrive by themselves (CancelTransaction), so they are not
+   * recorded by hand.
+   */
+  async recordRefund(number: string, note: string, actor: Actor): Promise<AdminOrderDetail> {
+    await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { number },
+        select: {
+          id: true,
+          status: true,
+          total: true,
+          payments: {
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+            select: { id: true, orderId: true, status: true, provider: true, amount: true },
+          },
+        },
+      });
+      if (!order) throw ApiException.notFound('Order not found');
+      const payment = this.refundablePayment(order.payments);
+      if (!payment) {
+        throw ApiException.conflict('CONFLICT', 'There is no paid payment to refund');
+      }
+      const moved = await transitionPayment(tx, payment, 'REFUNDED', {
+        source: 'staff',
+        detail: 'Refund recorded',
+        actorUserId: actor.userId,
+      });
+      if (!moved) {
+        throw ApiException.conflict(
+          'CONFLICT',
+          'The order was changed by someone else. Reload and try again.',
+        );
+      }
+      await tx.orderStatusEvent.create({
+        data: {
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: order.status,
+          paymentStatus: 'REFUNDED',
+          note,
+          actorUserId: actor.userId,
+        },
+      });
+      await this.audit.record(
+        {
+          actorUserId: actor.userId,
+          action: 'order.payment.refund',
+          entityType: 'Order',
+          entityId: order.id,
+          metadata: { number, amount: toMoney(payment.amount), provider: payment.provider },
+          ipAddress: actor.ipAddress,
+        },
+        tx,
+      );
+    });
+    return this.get(number);
+  }
+
+  private refundablePayment<
+    T extends { status: string; provider: 'CASH' | 'DEMO' | 'CLICK' | 'PAYME' },
+  >(payments: readonly T[]): T | undefined {
+    return payments.find((payment) => payment.status === 'PAID' && payment.provider !== 'PAYME');
   }
 
   private canRecordPayment(order: {

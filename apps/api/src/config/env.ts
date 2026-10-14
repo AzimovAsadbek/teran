@@ -64,10 +64,57 @@ const envObjectSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   MAIL_FROM: z.string().optional(),
 
-  /** Payment methods offered at checkout. Online providers are added once integrated. */
+  /**
+   * Payment methods the store presents at checkout. An online method is only selectable when it can
+   * actually be processed (see PAYMENT_PROVIDER_MODE); otherwise it is shown as unavailable.
+   */
   PAYMENT_METHODS_ENABLED: commaList
     .pipe(z.array(z.enum(PAYMENT_METHODS)).min(1))
     .default(['CASH_ON_DELIVERY']),
+
+  /**
+   * How online payments are processed (docs/architecture/payments.md):
+   * - live: by the real provider, and only for providers whose credentials are configured below.
+   *   Card payments stay unavailable until a card gateway is integrated.
+   * - demo: every enabled online method is simulated by the demo provider. No provider is
+   *   contacted, no money moves, and provider callbacks are refused. Refused in production unless
+   *   ALLOW_DEMO_PAYMENTS=true records that decision explicitly.
+   */
+  PAYMENT_PROVIDER_MODE: z.enum(['live', 'demo']).default('live'),
+  ALLOW_DEMO_PAYMENTS: flag.default(false),
+  /** Minutes an online payment may stay unpaid before the order is cancelled and stock returned. */
+  ONLINE_PAYMENT_WINDOW_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(10)
+    .max(24 * 60)
+    .default(30),
+
+  /** Payme Merchant API: cashbox ID and key from the Payme merchant cabinet (both or neither). */
+  PAYME_MERCHANT_ID: z
+    .string()
+    .regex(/^[A-Za-z0-9]{8,64}$/)
+    .optional(),
+  PAYME_KEY: z.string().min(16).max(200).optional(),
+  /** Basic-auth login Payme uses for its calls ("Paycom" in Payme's official server template). */
+  PAYME_LOGIN: z.string().min(1).max(64).default('Paycom'),
+  /** https://checkout.paycom.uz, or https://test.paycom.uz with the sandbox key. */
+  PAYME_CHECKOUT_URL: z
+    .enum(['https://checkout.paycom.uz', 'https://test.paycom.uz'])
+    .default('https://checkout.paycom.uz'),
+  /** Accept Payme calls only from the address range Payme documents (185.234.113.1–15). */
+  PAYME_CHECK_IP: flag.default(true),
+
+  /** Click SHOP API: service ID, merchant ID and secret key from the Click merchant cabinet. */
+  CLICK_SERVICE_ID: z
+    .string()
+    .regex(/^\d{1,12}$/)
+    .optional(),
+  CLICK_MERCHANT_ID: z
+    .string()
+    .regex(/^\d{1,12}$/)
+    .optional(),
+  CLICK_SECRET_KEY: z.string().min(8).max(200).optional(),
 
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
@@ -105,7 +152,21 @@ export const envSchema = z
           message: 'is required in production (shared with the web server)',
         });
       }
-      for (const key of ['APP_SECRET', 'REVALIDATE_SECRET', 'INTERNAL_API_KEY'] as const) {
+      if (env.PAYMENT_PROVIDER_MODE === 'demo' && !env.ALLOW_DEMO_PAYMENTS) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['PAYMENT_PROVIDER_MODE'],
+          message:
+            '"demo" simulates payments; in production it also needs ALLOW_DEMO_PAYMENTS=true',
+        });
+      }
+      for (const key of [
+        'APP_SECRET',
+        'REVALIDATE_SECRET',
+        'INTERNAL_API_KEY',
+        'PAYME_KEY',
+        'CLICK_SECRET_KEY',
+      ] as const) {
         if (env[key]?.includes('replace-with')) {
           ctx.addIssue({
             code: 'custom',
@@ -128,6 +189,21 @@ export const envSchema = z
           message: 'must use https in production',
         });
       }
+    }
+    if (Boolean(env.PAYME_MERCHANT_ID) !== Boolean(env.PAYME_KEY)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYME_KEY'],
+        message: 'PAYME_MERCHANT_ID and PAYME_KEY must be set together',
+      });
+    }
+    const click = [env.CLICK_SERVICE_ID, env.CLICK_MERCHANT_ID, env.CLICK_SECRET_KEY];
+    if (click.some(Boolean) && !click.every(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CLICK_SECRET_KEY'],
+        message: 'CLICK_SERVICE_ID, CLICK_MERCHANT_ID and CLICK_SECRET_KEY must be set together',
+      });
     }
     if (env.THROTTLE_DISABLED && env.NODE_ENV !== 'test') {
       ctx.addIssue({

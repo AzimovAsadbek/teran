@@ -108,8 +108,10 @@ checkout, payments and orders do not depend on the category.
 `20261014150000_accounts_payments_catalogue` and `20261014160000_payment_providers` are additive:
 new tables, nullable columns and indexes only. Existing categories stay top-level with unchanged
 slugs, existing products keep their fields with no product type, order snapshots are untouched.
-Both were applied to a copy of the development database (counts of products, orders, payments,
-users and order totals unchanged) and to fresh test databases.
+Both were applied to the local development database after a backup (products, orders, order
+items, payments, users, categories and the sum of order totals were counted before and after:
+unchanged) and to an empty database followed by the demonstration seed (fresh setup). CI also
+applies every migration to empty PostgreSQL service databases on each run.
 
 The demonstration seed was updated for the new model: a top-level **Tea** category with the tea
 types as subcategories, **Gift sets**, product types `tea` and `gift-set`, and demonstration

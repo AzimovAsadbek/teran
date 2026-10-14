@@ -8,7 +8,7 @@ checks catch the rest before any test runs.
 | -------------------- | --------------------------------------------------------- | ---------------------------------------------------------- | ----- | ------------------------------------------------------- |
 | Static checks        | TypeScript (strict), ESLint, Prettier, translation parity | Source                                                     | —     | `pnpm typecheck`, `pnpm lint`, `pnpm format:check`      |
 | Contracts unit       | Vitest                                                    | Shared schemas and rules                                   | 24    | `pnpm test`                                             |
-| API unit             | Vitest                                                    | Pure API logic and the demo seed's fixtures, no database   | 76    | `pnpm test`                                             |
+| API unit             | Vitest                                                    | Pure API logic and the demo seed's fixtures, no database   | 78    | `pnpm test`                                             |
 | Web unit             | Vitest, Testing Library, jsdom                            | Formatting, URL state, content, components                 | 31    | `pnpm test`                                             |
 | API integration      | Vitest, Supertest                                         | The real Nest application and PostgreSQL (`teran_test`)    | 99    | `pnpm test:integration`                                 |
 | End to end           | Playwright (Chromium), axe-core                           | Production builds of API and web, PostgreSQL (`teran_e2e`) | 25    | `pnpm --filter @teran/e2e build:stack && pnpm test:e2e` |

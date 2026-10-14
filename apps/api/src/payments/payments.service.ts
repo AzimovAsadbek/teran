@@ -33,8 +33,7 @@ import {
   transitionPayment,
   type PaymentEventSource,
 } from './payment-state.js';
-import { clickPaymentUrl } from './providers/click-protocol.js';
-import { paymeCheckoutUrl } from './providers/payme-protocol.js';
+import { paymentAdapters, type PaymentProviderAdapter } from './providers/payment-provider.js';
 
 /** Payment attempts allowed per order (retries and method changes included). */
 export const MAX_PAYMENT_ATTEMPTS = 10;
@@ -113,6 +112,9 @@ export function isAwaitingOnlinePayment(order: OrderPaymentState, now: Date): bo
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
   private readonly appSecret: string;
+  private readonly adapters: Partial<
+    Record<PaymentProviderAdapter['code'], PaymentProviderAdapter>
+  >;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -121,6 +123,7 @@ export class PaymentsService {
     env: ConfigService<Env, true>,
   ) {
     this.appSecret = env.get('APP_SECRET', { infer: true });
+    this.adapters = paymentAdapters(config);
   }
 
   // ─── Checkout ─────────────────────────────────────────────────────────────
@@ -187,31 +190,17 @@ export class PaymentsService {
   }
 
   private redirectUrl(order: PaymentOrder, payment: PaymentRow, locale: Locale): string | null {
+    if (payment.provider === 'CASH') return null;
+    const adapter = this.adapters[payment.provider];
+    if (!adapter) return null;
     const token = paymentAccessToken(this.appSecret, payment.id);
-    const returnUrl = this.config.webUrl(locale, `/payments/return/${token}`);
-    switch (payment.provider) {
-      case 'DEMO':
-        return this.config.sitePath(locale, `/payments/demo/${token}`);
-      case 'PAYME':
-        return this.config.payme
-          ? paymeCheckoutUrl(this.config.payme, {
-              orderNumber: order.number,
-              amountTiyin: BigInt(payment.amount.times(100).toFixed(0)),
-              locale,
-              returnUrl,
-            })
-          : null;
-      case 'CLICK':
-        return this.config.click
-          ? clickPaymentUrl(this.config.click, {
-              orderNumber: order.number,
-              amount: payment.amount.toFixed(2),
-              returnUrl,
-            })
-          : null;
-      default:
-        return null;
-    }
+    return adapter.checkoutUrl({
+      orderNumber: order.number,
+      amount: payment.amount,
+      locale,
+      token,
+      returnUrl: this.config.webUrl(locale, `/payments/return/${token}`),
+    });
   }
 
   // ─── Customer actions ─────────────────────────────────────────────────────

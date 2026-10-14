@@ -134,6 +134,12 @@ window.location → provider page (Click / Payme)  or  /payments/demo/<token> (d
 
 ## Adapter responsibilities
 
+Each online provider is a `PaymentProviderAdapter` (`apps/api/src/payments/providers/payment-provider.ts`):
+`paymentAdapters(config)` returns only the adapters usable with the current configuration — the
+demo adapter alone in demo mode, and in live mode only providers whose credentials are set — so a
+link to an unconfigured or real provider in demo mode can never be produced. Callback verification
+lives in each provider's endpoint, because the protocols have nothing in common.
+
 | Responsibility    | Demo                              | Payme                                                                                   | Click                                                            |
 | ----------------- | --------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | Create session    | attempt + demo page link          | attempt + checkout link (`paymeCheckoutUrl`)                                            | attempt + payment link (`clickPaymentUrl`)                       |

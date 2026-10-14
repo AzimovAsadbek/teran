@@ -5,12 +5,13 @@ prices, photographs and legal texts. Everything in the demonstration is ordinary
 database, created by the seed commands below and handled by the same code paths as real data:
 no page falls back to invented content, and nothing is faked in the browser.
 
-Two independent switches make up "demo mode":
+Three independent switches make up "demo mode":
 
-| Switch                                       | What it does                                                                                                                                                                            |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_DEMO_CONTENT` (web, build time) | Default on. Demo notices on listings, product pages, checkout and in the admin; product images labelled "demonstration image"; every page `noindex`; `robots.txt` disallows everything. |
-| Demonstration data (database)                | Loaded by `db:seed` (catalogue and content) and optionally `db:seed:demo` (customers, orders, enquiries). Removed or reloaded by the guarded `db:demo:reset`.                           |
+| Switch                                       | What it does                                                                                                                                                                                                                                                                      |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_DEMO_CONTENT` (web, build time) | Default on. Demo notices on listings, product pages, checkout and in the admin; product images labelled "demonstration image"; every page `noindex`; `robots.txt` disallows everything.                                                                                           |
+| Demonstration data (database)                | Loaded by `db:seed` (catalogue and content) and optionally `db:seed:demo` (customers, orders, enquiries). Removed or reloaded by the guarded `db:demo:reset`.                                                                                                                     |
+| `PAYMENT_PROVIDER_MODE=demo` (API)           | Off by default. Simulates every enabled online payment method (Click, Payme, card) with a labelled demonstration payment page; no provider is contacted and no money moves. Refused in production unless `ALLOW_DEMO_PAYMENTS=true`. See [payments](../architecture/payments.md). |
 
 ## What the demonstration contains
 
@@ -20,7 +21,8 @@ The same command production uses for an optional review environment (`prisma db 
 
 | Records                                                                  | Count                                                |
 | ------------------------------------------------------------------------ | ---------------------------------------------------- |
-| Categories (black, green, white, oolong, pu-erh, gift sets)              | 6                                                    |
+| Categories (Tea with black, green, white, oolong and pu-erh; Gift sets)  | 7                                                    |
+| Product types with demonstration characteristic values (tea, gift set)   | 2                                                    |
 | Collections (TERAN premium, everyday classics, evening calm, gift ideas) | 4                                                    |
 | Products                                                                 | 21 (20 published, 1 draft to demonstrate publishing) |
 | Pack sizes (variants) with stock and ledger entries                      | 32                                                   |
@@ -125,8 +127,12 @@ the owner may have changed), and the audit log (a `demo.reset` entry is added).
 ## A demonstration checkout
 
 Use fictional details, for example name "Test Mijoz", phone `90 000 09 99`, region Tashkent,
-address "Namuna koʻchasi, 1". Payment is cash on delivery only; there is no card form and no
-payment provider. The server validates the details, recalculates prices, delivery and stock,
+address "Namuna koʻchasi, 1". Cash on delivery is always offered. With
+`PAYMENT_PROVIDER_MODE=demo` the online methods are offered too, labelled "Demo · no money is
+charged": placing the order opens the demonstration payment page, which never asks for card
+details and lets you choose the outcome (success, declined, cancelled, left pending); the order,
+the account and the admin then show the simulated payment as "Demo". Without demo payments the
+online methods are shown as unavailable (or not at all) until a real provider is configured. The server validates the details, recalculates prices, delivery and stock,
 stores the order in one transaction (submitting twice does not create two orders) and shows its
 number. The order appears in Admin → Orders, where staff move it through the statuses and record
 the cash.
@@ -145,6 +151,9 @@ states → admin closed to visitors.
 - The browser bundle contains only public settings (`NEXT_PUBLIC_*`: site URL, enabled locales,
   demo flag). Secrets stay on the servers.
 - No reviews, ratings or testimonials exist, demo or otherwise.
+- Simulated payments are never mixed with real ones: demo mode simulates every online method and
+  refuses provider callbacks; a demo payment is stored with provider `DEMO` and labelled
+  everywhere it appears.
 - Legal and help texts are marked as drafts; contact channels stay empty until TERAN fills them in.
 - No phone number, e-mail address, registration number or social account is invented for TERAN.
 

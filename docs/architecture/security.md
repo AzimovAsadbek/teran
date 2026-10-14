@@ -40,6 +40,16 @@ for example whether a password was right or an account is locked.
   change, password reset and staff deactivation delete all of the user's sessions.
 - Expired sessions, expired carts and spent reset tokens are deleted hourly
   (`apps/api/src/maintenance/maintenance.service.ts`).
+- A session cookie that no longer matches a session (expired or revoked) is cleared by the API on
+  the next request (`session.middleware.ts`).
+- Customers see their signed-in devices (browser and system only: no ids, no IP addresses) and can
+  sign out of every other device; changing the sign-in e-mail requires the current password and
+  signs out the other devices (`apps/api/src/account`).
+- **Carts are private to their owner** (`CartService.findCart`): a guest cart belongs to whoever
+  holds its cookie, an account's cart only to that account's session. On a shared device a later
+  visitor neither sees nor takes over the previous customer's cart; signing in merges only a guest
+  cart (or the customer's own), in one transaction that cannot run twice
+  ([cart and account](cart-and-account.md)).
 
 ## Password reset
 
@@ -183,14 +193,40 @@ is disabled in the production Compose file and Caddy does not route it.
   do not execute them (`apps/api/src/admin/admin-support.ts`).
 - No analytics, tracking pixels or third-party embeds are loaded.
 
-## Orders and payments
+## Accounts, orders and payments
 
+- Every `/api/v1/account` route requires a session and acts only on the session's own user; no
+  route takes a user id. Another customer's order or address answers 404, like a missing one
+  (integration-tested with two customers). Guest orders are never attached to an account that
+  registers later with the same e-mail.
 - Order numbers are random (`TRN-` + 8 base-32 characters), not sequential.
 - Guest order pages require the order's secret token; an unknown number and a wrong token get the
-  same 404, and lookups are limited to 30 per minute per IP.
-- Only staff can record a payment, only for a pending cash-on-delivery payment on a non-cancelled
-  order, with the acting user stored and audited. No client request can mark an order paid. An
-  online provider must verify signed confirmations server-side before it is added.
+  same 404, and lookups are limited to 30 per minute per IP. Starting a payment for an order needs
+  the signed-in owner or that token.
+- Customer order views never include staff notes, internal ids or provider internals.
+- Only staff can record a cash payment or a refund, audited. No customer request can mark an order
+  paid: online payments become `PAID` only from an authenticated provider confirmation — Payme's
+  Basic auth with the cashbox key (constant-time) from Payme's documented addresses, Click's MD5
+  signature over the received values with the secret key (constant-time) — with the amount and
+  currency checked against the order, idempotent handling of repeated calls, and a conditional
+  state machine; returning from a payment page changes nothing
+  ([payments](payments.md)).
+- At most one open payment attempt per order (database index), so the same order cannot be charged
+  twice by TERAN; confirmations for closed attempts are refused, so the provider does not keep the
+  money. Unpaid online orders expire and return their stock.
+- No card data is collected, stored or logged: customers pay on the provider's hosted page.
+- Provider keys are API-only environment variables, validated at start-up, never sent to the
+  browser; the `Authorization` header is removed from request logs and provider request bodies are
+  not logged. Demo payments are refused in production unless explicitly allowed, and real and
+  simulated payments never run side by side.
+
+## Catalogue administration
+
+- Category, product type and product changes require a staff session (`@RequireStaff`);
+  integration and end-to-end tests check 401/403 for visitors and customers.
+- Admin text (category text, product descriptions, attribute values) is stored and rendered as
+  plain text, never as HTML; attribute values are validated against their typed definitions, and
+  attribute filter keys and values are validated before they reach a query.
 
 ## Infrastructure
 
@@ -211,15 +247,17 @@ HTTPS certificates are automatic.
 
 ## Known gaps and recommendations
 
-| Gap                                                                   | Recommendation                                                                     |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| No multi-factor authentication                                        | Add TOTP or passkeys for staff accounts first.                                     |
-| No CAPTCHA; forms rely on rate limits and a honeypot                  | Add a privacy-friendly challenge if spam appears.                                  |
-| Account lockout can be triggered by anyone who knows an e-mail        | Acceptable at current scale; consider per-IP-and-account limits if abused.         |
-| No e-mail verification at registration; newsletter is single opt-in   | Use double opt-in in the e-mail tool the exported list is imported into.           |
-| No breached-password check or security notification e-mails           | Add once SMTP is configured in production.                                         |
-| Sessions have no idle timeout and users cannot list or revoke devices | Staff sessions are short (12 h); add a session list if needed.                     |
-| Rate-limit counters are in memory per API process                     | Use a shared store (e.g. Redis) before running several API replicas.               |
-| Audit log shares the database role with the API                       | Grant the API `INSERT`/`SELECT` only on `AuditLog` with a separate migration role. |
-| CSP allows inline scripts (see above)                                 | Revisit with nonces if third-party scripts are ever added.                         |
-| HSTS without `includeSubDomains`/`preload`                            | Add both once every subdomain serves HTTPS.                                        |
+| Gap                                                                 | Recommendation                                                                     |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| No multi-factor authentication                                      | Add TOTP or passkeys for staff accounts first.                                     |
+| No CAPTCHA; forms rely on rate limits and a honeypot                | Add a privacy-friendly challenge if spam appears.                                  |
+| Account lockout can be triggered by anyone who knows an e-mail      | Acceptable at current scale; consider per-IP-and-account limits if abused.         |
+| No e-mail verification at registration; newsletter is single opt-in | Use double opt-in in the e-mail tool the exported list is imported into.           |
+| No breached-password check or security notification e-mails         | Add once SMTP is configured in production.                                         |
+| Sessions have no idle timeout                                       | Staff sessions are short (12 h); customers can sign out other devices.             |
+| No notification to the old address when the sign-in e-mail changes  | Add once SMTP is configured in production.                                         |
+| Payme and Click not yet run against the providers                   | Run Payme's sandbox and Click's test suite on staging before going live.           |
+| Rate-limit counters are in memory per API process                   | Use a shared store (e.g. Redis) before running several API replicas.               |
+| Audit log shares the database role with the API                     | Grant the API `INSERT`/`SELECT` only on `AuditLog` with a separate migration role. |
+| CSP allows inline scripts (see above)                               | Revisit with nonces if third-party scripts are ever added.                         |
+| HSTS without `includeSubDomains`/`preload`                          | Add both once every subdomain serves HTTPS.                                        |

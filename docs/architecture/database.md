@@ -33,16 +33,22 @@ Connection settings (`apps/api/src/prisma/prisma.service.ts`): pool size `DATABA
 | `Session`            | Signed-in sessions. Only the SHA-256 `tokenHash` of the cookie value is stored. `expiresAt` (fixed), `lastSeenAt`, IP and user agent.                                                                                                           |
 | `PasswordResetToken` | SHA-256 `tokenHash`, `expiresAt` (60 minutes), `usedAt` (single use).                                                                                                                                                                           |
 | `AuditLog`           | Append-only record of staff actions: `action` (e.g. `order.status`, `product.update`, `inventory.adjust`), `entityType`, `entityId`, JSON `metadata`, actor and IP.                                                                             |
+| `CustomerAddress`    | A customer's saved delivery addresses (at most 10, one default — partial unique index): label, recipient, E.164 phone, region code, city, address line, landmark. Deleted with the user.                                                        |
 
 ### Catalogue
 
-| Model                                  | Purpose and key fields                                                                                                                                                                                                                                                 |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Category` / `CategoryTranslation`     | One category per product (`Product.categoryId`, `ON DELETE RESTRICT`: a category in use cannot be deleted). `slug`, `position`, `isActive`, `illustrationKey`.                                                                                                         |
-| `Collection` / `CollectionTranslation` | Curated groups; many-to-many with products through `ProductCollection` (with `position`).                                                                                                                                                                              |
-| `Product` / `ProductTranslation`       | `slug`, `status` (`DRAFT`, `ACTIVE`, `ARCHIVED`), `format`, `isFeatured`, optional caffeine level and brewing guidance, `publishedAt`, denormalised `minPrice`. Translations hold name, descriptions, ingredients, tasting notes, origin, SEO fields and `searchText`. |
-| `ProductVariant`                       | A purchasable pack size: unique `sku` and optional unique `barcode`, `weightGrams` or `unitCount`, `price`, optional `compareAtPrice`, `currency`, `stockQuantity`, `lowStockThreshold` (default 5), `isActive`, `position`.                                           |
-| `ProductImage`                         | `storageKey` (files at `<UPLOADS_DIR>/<storageKey>/<width>.webp`), available `widths`, intrinsic `width`/`height`, `altText`, `position`.                                                                                                                              |
+| Model                                  | Purpose and key fields                                                                                                                                                                                                                                                             |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Category` / `CategoryTranslation`     | One category per product (`Product.categoryId`, `ON DELETE RESTRICT`: a category in use cannot be deleted). Two levels through `parentId` (`RESTRICT`; a category cannot be its own parent). `slug`, `position`, `isActive`, `illustrationKey`; translations add editorial `body`. |
+| `ProductType` / translations           | Kind of product (`key`, e.g. `tea`, `gift-set`) deciding which attributes a product has. `Product.productTypeId` is optional (`RESTRICT`).                                                                                                                                         |
+| `AttributeDefinition` / translations   | Typed attribute of a product type: `key` (unique per type), `kind` (`TEXT`, `NUMBER`, `BOOLEAN`, `SELECT`, `MULTI_SELECT`), `unit`, flags `isRequired`, `isFilterable`, `isSearchable`, `isVisible`, `position`.                                                                   |
+| `AttributeOption` / translations       | Choice of a `SELECT`/`MULTI_SELECT` attribute (`key` unique per attribute).                                                                                                                                                                                                        |
+| `ProductAttributeValue`                | One value of one attribute for one product: `optionId` (one row per chosen option), or `numberValue` (Decimal 14,3), `booleanValue`, `textValue` (localised JSON). Attribute and option `RESTRICT`: values in use protect their definitions.                                       |
+| `SlugRedirect`                         | Old slug of a category, product or collection (`entity`, `fromSlug` unique together) → entity id, so renamed addresses keep working.                                                                                                                                               |
+| `Collection` / `CollectionTranslation` | Curated groups; many-to-many with products through `ProductCollection` (with `position`).                                                                                                                                                                                          |
+| `Product` / `ProductTranslation`       | `slug`, `status` (`DRAFT`, `ACTIVE`, `ARCHIVED`), `format`, `isFeatured`, optional caffeine level and brewing guidance, `publishedAt`, denormalised `minPrice`. Translations hold name, descriptions, ingredients, tasting notes, origin, SEO fields and `searchText`.             |
+| `ProductVariant`                       | A purchasable pack size: unique `sku` and optional unique `barcode`, `weightGrams` or `unitCount`, `price`, optional `compareAtPrice`, `currency`, `stockQuantity`, `lowStockThreshold` (default 5), `isActive`, `position`.                                                       |
+| `ProductImage`                         | `storageKey` (files at `<UPLOADS_DIR>/<storageKey>/<width>.webp`), available `widths`, intrinsic `width`/`height`, `altText`, `position`.                                                                                                                                          |
 
 A product is **visible** in the storefront when it is `ACTIVE`, `publishedAt <= now()` and has at
 least one active variant (`apps/api/src/catalog/product-visibility.ts`). `publishedAt` is set the
@@ -52,15 +58,18 @@ filters.
 
 ### Carts, delivery and orders
 
-| Model                                          | Purpose and key fields                                                                                                                                                                                                                                                                                             |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Cart` / `CartItem`                            | One model for guest and customer carts. The cookie holds a random token; only its SHA-256 is stored. `expiresAt` slides on every change. Items are unique per `(cart, variant)`.                                                                                                                                   |
-| `DeliveryMethod` / `DeliveryMethodTranslation` | Unique `code`, `price`, optional `freeFromAmount` (free delivery threshold; null = never free), `regionCodes` (ISO 3166-2 codes of Uzbekistan; empty = every region), `requiresAddress`. Name, description and estimate are translated.                                                                            |
-| `Order`                                        | Unique `number` (`TRN-` + 8 characters), `status`, `paymentStatus`, `paymentMethod`, `locale`, optional `userId` (guests have none), customer contact and address snapshot, `subtotal`, `deliveryFee`, `discountTotal`, `total`, unique `idempotencyKey`, `accessTokenHash`, `cancelReason`, lifecycle timestamps. |
-| `OrderItem`                                    | Snapshot per line: product name (in the order's language), slug, format, SKU, weight or unit count, `unitPrice`, `quantity`, `lineTotal`; `variantId` is kept for reference (`SET NULL`).                                                                                                                          |
-| `OrderStatusEvent`                             | History: from/to status, payment status, note, acting staff member.                                                                                                                                                                                                                                                |
-| `Payment`                                      | One row per payment attempt: method, status (`PENDING`, `PAID`, `FAILED`, `REFUNDED`, `CANCELLED`), amount, currency, `providerReference` (unique per method, reserved for online providers), `confirmedAt`, `confirmedById`.                                                                                      |
-| `InventoryMovement`                            | Stock ledger: signed `delta`, `quantityAfter`, `reason`, optional `orderId`, actor and note.                                                                                                                                                                                                                       |
+| Model                                          | Purpose and key fields                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Cart` / `CartItem`                            | One model for guest and customer carts. The cookie holds a random token; only its SHA-256 is stored. `expiresAt` slides on every change. Items are unique per `(cart, variant)`.                                                                                                                                                                                                                      |
+| `DeliveryMethod` / `DeliveryMethodTranslation` | Unique `code`, `price`, optional `freeFromAmount` (free delivery threshold; null = never free), `regionCodes` (ISO 3166-2 codes of Uzbekistan; empty = every region), `requiresAddress`. Name, description and estimate are translated.                                                                                                                                                               |
+| `Order`                                        | Unique `number` (`TRN-` + 8 characters), `status`, `paymentStatus`, `paymentMethod`, `locale`, optional `userId` (guests have none), customer contact and address snapshot, `subtotal`, `deliveryFee`, `discountTotal`, `total`, unique `idempotencyKey`, `accessTokenHash`, `cancelReason`, lifecycle timestamps.                                                                                    |
+| `OrderItem`                                    | Snapshot per line: product name (in the order's language), slug, format, SKU, weight or unit count, `unitPrice`, `quantity`, `lineTotal`; `variantId` is kept for reference (`SET NULL`).                                                                                                                                                                                                             |
+| `OrderStatusEvent`                             | History: from/to status, payment status, note, acting staff member.                                                                                                                                                                                                                                                                                                                                   |
+| `Payment`                                      | One row per payment attempt: method (`CASH_ON_DELIVERY`, `CLICK`, `PAYME`, `CARD`), `provider` (`CASH`, `DEMO`, `CLICK`, `PAYME`), status (see [payments](payments.md)), amount, currency, `providerReference` (unique per provider), `accessTokenHash` (link secret, unique), `expiresAt`, `failureCode`, `confirmedAt`, `confirmedById`. At most one open attempt per order (partial unique index). |
+| `PaymentEvent`                                 | Every status change of an attempt: from/to, `source` (customer, provider, staff, system, demo), `detail`, acting staff member.                                                                                                                                                                                                                                                                        |
+| `PaymeTransaction`                             | A Payme Merchant API transaction: Payme's id (unique), attempt, amount in tiyin, Payme and TERAN times in milliseconds, state (1, 2, −1, −2), reason. Payments `RESTRICT`.                                                                                                                                                                                                                            |
+| `ClickTransaction`                             | A Click SHOP API payment: integer `prepareId` (answered to Click), `clickTransId` (unique), paydoc id, attempt, amount, state (0, 1, −1), Click's error code.                                                                                                                                                                                                                                         |
+| `InventoryMovement`                            | Stock ledger: signed `delta`, `quantityAfter`, `reason`, optional `orderId`, actor and note.                                                                                                                                                                                                                                                                                                          |
 
 ### Content, enquiries and settings
 
@@ -87,6 +96,15 @@ All `CHECK` constraints are created in the first migration
 | `Payment`                      | `amount >= 0`                                                                                                                                                                                    |
 | `InventoryMovement`            | `delta <> 0`; `quantityAfter >= 0`                                                                                                                                                               |
 | `User`, `NewsletterSubscriber` | `email = lower(btrim(email))`                                                                                                                                                                    |
+
+Added by `20261014150000_accounts_payments_catalogue` and `20261014160000_payment_providers`:
+
+| Table                   | Constraint                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Category`              | `parentId IS NULL OR parentId <> id`                                                                                                            |
+| `CustomerAddress`       | at most one `isDefault` row per user (partial unique index)                                                                                     |
+| `ProductAttributeValue` | exactly one of `optionId`, `numberValue`, `booleanValue`, `textValue` is set; one scalar value per product and attribute (partial unique index) |
+| `Payment`               | at most one attempt in `PENDING`, `REQUIRES_ACTION` or `PROCESSING` per order (partial unique index)                                            |
 
 The `pg_trgm` extension backs a GIN trigram index on `ProductTranslation.searchText`.
 
@@ -170,19 +188,24 @@ in constant time and return the same 404 for an unknown order and a wrong token.
 
 ## Payments
 
-Cash on delivery is the only method. An order starts with one `PENDING` payment. Staff record the
-cash once collected (admin order page): allowed only while the payment is pending and the order is
-not cancelled; the update is conditional, stores `confirmedAt` and `confirmedById`, and writes a
-status event and an audit entry. Delivering an order does not mark it paid. No code path sets
-`PAID` from a client request; `FAILED`, `REFUNDED` and `providerReference` are reserved for a
-future online provider whose confirmations must be verified server-side.
+An order has one or more payment attempts; `Order.paymentStatus` mirrors the latest. Cash on
+delivery starts `PENDING` and only staff can record the cash (conditional update, `confirmedAt`,
+`confirmedById`, a payment event, an order status event and an audit entry); delivering an order
+does not mark it paid. Online attempts (Click, Payme, or the demo provider) are paid only by an
+authenticated provider confirmation and expire with the order's payment window, after which the
+order is cancelled and its stock returned. No code path sets `PAID` from a customer's request. The
+lifecycle, providers and safeguards are described in [payments](payments.md).
 
 ## Carts and sessions
 
 - **Cart cookie** `teran_cart` (`__Host-teran_cart` when `COOKIE_SECURE=true`): HttpOnly,
   `SameSite=Lax`, 32 random bytes. TTL `CART_TTL_DAYS` (default 30), extended on every change.
-- **On sign-in or registration** the device cart is attached to the account and merged with the
-  account's most recent other cart (quantities summed, capped at 20 per line).
+- **Ownership:** a guest cart is usable by whoever holds its cookie; a cart attached to an account
+  only by that account's session.
+- **On sign-in or registration** a guest (or the customer's own) cart on the device is attached to
+  the account and merged with the account's most recent other cart in one transaction (quantities
+  summed, capped at stock and 20 per line, at most 30 lines, device lines first); a cart belonging
+  to another account is never attached. Rules: [cart and account](cart-and-account.md).
 - **Session cookie** `teran_session` (`__Host-teran_session` in production): 256-bit token,
   SHA-256 stored, fixed lifetime of `SESSION_TTL_DAYS` (customers, default 30) or
   `STAFF_SESSION_TTL_HOURS` (staff, default 12). Role and `isActive` are read on every request.
@@ -207,12 +230,14 @@ no relevance ranking; results use the chosen sort order.
 
 ## Migrations
 
-| Migration                                             | Change                                                                      |
-| ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| `20261013175434_init`                                 | `pg_trgm`, all tables, enums, indexes, foreign keys and `CHECK` constraints |
-| `20261013181656_product_min_price`                    | `Product.minPrice` and its index                                            |
-| `20261013184641_order_item_format`                    | `OrderItem.format` snapshot                                                 |
-| `20261013201614_newsletter_derived_unsubscribe_token` | Drops the stored unsubscribe token hash (tokens are now derived with HMAC)  |
+| Migration                                             | Change                                                                                                                                                                     |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `20261013175434_init`                                 | `pg_trgm`, all tables, enums, indexes, foreign keys and `CHECK` constraints                                                                                                |
+| `20261013181656_product_min_price`                    | `Product.minPrice` and its index                                                                                                                                           |
+| `20261013184641_order_item_format`                    | `OrderItem.format` snapshot                                                                                                                                                |
+| `20261013201614_newsletter_derived_unsubscribe_token` | Drops the stored unsubscribe token hash (tokens are now derived with HMAC)                                                                                                 |
+| `20261014150000_accounts_payments_catalogue`          | Addresses; category tree and editorial text; product types, attributes, values; slug redirects; payment statuses, methods, providers, attempt fields and events (additive) |
+| `20261014160000_payment_providers`                    | Payme and Click transactions; unique payment link secret; one open attempt per order (additive)                                                                            |
 
 Rules: create migrations with `pnpm db:migrate` during development; deploy with
 `prisma migrate deploy` (the `migrate` job in production, the global setup in integration tests);
@@ -221,8 +246,9 @@ database.
 
 ## Demonstration seed
 
-`pnpm db:seed` (`apps/api/prisma/seed/index.ts`, catalogue in `catalogue.ts`) loads 6 categories,
-4 collections, 21 products (one a draft) with 32 variants, 2 delivery methods, the `announcement`
+`pnpm db:seed` (`apps/api/prisma/seed/index.ts`, catalogue in `catalogue.ts`) loads 7 categories
+(Tea with five tea types, and Gift sets), 2 product types (tea, gift set) with demonstration
+attribute values, 4 collections, 21 products (one a draft) with 32 variants, 2 delivery methods, the `announcement`
 and empty `contact` settings and 6 journal articles (one a draft). `pnpm db:seed:demo` adds the
 activity in `activity.ts`: 8 customers who cannot sign in, 24 `TRN-DEMO` orders with items,
 status events, payments and ledger entries, 11 enquiries and 10 newsletter subscribers.
@@ -237,7 +263,10 @@ removes exactly the demonstration records and reloads them; it never runs in pro
 
 ## Known limitations
 
-- No discounts, refunds or online payment providers.
+- No discounts. Refunds are recorded (Payme automatically, cash and Click by staff); partial
+  refunds are modelled but not offered in the admin.
+- Click and Payme are implemented to their documentation but not yet run against the providers;
+  fiscal receipts are not implemented ([payments](payments.md)).
 - An idempotent replay returns the original order without comparing the new request body.
 - Foreign keys `Order.deliveryMethodId`, `OrderStatusEvent.actorUserId`, `Payment.confirmedById`
   and `InventoryMovement.actorUserId` are not indexed; they are only used for joins from the

@@ -5,6 +5,10 @@ PostgreSQL on Neon (Vercel Marketplace) and product images in Vercel Blob. This 
 demonstration site is hosted. The Docker deployment ([production.md](./production.md)) remains the
 reference for a self-hosted shop.
 
+Live demonstration (2026-10-15): storefront **https://teran-demo.vercel.app**, API
+https://teran-api.vercel.app, database `teran-db-eu` (Neon, Frankfurt), images `teran-media`
+(Vercel Blob, Frankfurt), in the owner's Vercel team.
+
 ## Projects
 
 | Project     | Root directory | What runs                                                                                  |
@@ -14,6 +18,8 @@ reference for a self-hosted shop.
 
 Both use region `fra1` (Frankfurt) next to the Neon database, and build from the repository root
 because they share the `@teran/contracts` workspace package (see each `vercel.json`).
+Create the database in the same region (`vercel integration add neon -m region=fra1`): Neon's
+default is the US east coast, which adds a transatlantic round trip to every query.
 
 - **API build** (`pnpm run vercel-build`): `prisma generate`, `prisma migrate deploy` against the
   direct database address, `nest build`, then `scripts/bundle-serverless.ts` bundles

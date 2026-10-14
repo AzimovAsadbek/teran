@@ -43,6 +43,12 @@ import {
 
 export const DAY_MS = 86_400_000;
 
+/**
+ * Seeds may run against a remote database (Neon from a developer machine, for example), where a
+ * transaction of a few dozen statements outlasts Prisma's 5-second default.
+ */
+export const SEED_TRANSACTION = { maxWait: 30_000, timeout: 120_000 } as const;
+
 const seedDir = dirname(fileURLToPath(import.meta.url));
 
 /** Where uploaded images live (UPLOADS_DIR, as for the API). */
@@ -380,7 +386,7 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
     await refreshMinPrice(tx, product.id);
     await assignDemoAttributes(tx, product.id, demo);
     return product.id;
-  });
+  }, SEED_TRANSACTION);
 }
 
 /** The pack's front and back when the product has packaging, otherwise code-drawn art. */
@@ -486,7 +492,7 @@ async function upgradeToPackaging(
     });
     await tx.productImage.deleteMany({ where: { productId } });
     return images;
-  });
+  }, SEED_TRANSACTION);
   for (const image of replacedImages) {
     await deleteStoredImage(seedImageStore(options.uploadsDir), image.storageKey);
   }
@@ -513,8 +519,9 @@ export async function seedCatalogue(
     });
     if (existing) {
       if (existing.productTypeId === null) {
-        const typed = await prisma.$transaction((tx) =>
-          assignDemoAttributes(tx, existing.id, demo),
+        const typed = await prisma.$transaction(
+          (tx) => assignDemoAttributes(tx, existing.id, demo),
+          SEED_TRANSACTION,
         );
         if (typed) structure += 1;
       }

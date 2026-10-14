@@ -21,7 +21,7 @@ import {
   DEMO_WHOLESALE_INQUIRIES,
   type DemoOrder,
 } from './demo-activity.js';
-import { DAY_MS } from './catalogue.js';
+import { DAY_MS, SEED_TRANSACTION } from './catalogue.js';
 
 const HOUR_MS = 3_600_000;
 
@@ -277,7 +277,7 @@ async function createOrder(prisma: PrismaClient, order: DemoOrder, now: Date): P
         });
       }
     }
-  });
+  }, SEED_TRANSACTION);
 }
 
 async function seedOrders(

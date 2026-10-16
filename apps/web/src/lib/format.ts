@@ -128,6 +128,11 @@ export function formatDateTime(iso: string, locale: Locale): string {
   }).format(new Date(iso));
 }
 
+/** Whether a product's format is worth naming ("Loose leaf"); OTHER means none of them applies. */
+export function namesFormat(format: ProductFormat): boolean {
+  return format !== 'OTHER';
+}
+
 type UnitsMessage = (key: 'TEA_BAGS' | 'PYRAMIDS' | 'default', values: { count: number }) => string;
 
 /** "100 g", "20 tea bags · 40 g" — built from structured data so it is correct in every locale. */

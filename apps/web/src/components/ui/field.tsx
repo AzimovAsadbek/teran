@@ -279,22 +279,25 @@ export function Checkbox({
 
 export function CheckboxField({
   label,
+  hint,
   error,
   className,
   ...input
-}: { label: ReactNode; error?: string; className?: string } & Omit<
+}: { label: ReactNode; hint?: ReactNode; error?: string; className?: string } & Omit<
   InputHTMLAttributes<HTMLInputElement>,
   'className' | 'id' | 'type'
 >) {
   const id = useId();
+  const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
   return (
     <div className={className}>
       <div className="flex items-start gap-3">
         <Checkbox
           id={id}
           invalid={Boolean(error)}
-          aria-describedby={errorId}
+          aria-describedby={describedBy}
           className="mt-0.5"
           {...input}
         />
@@ -302,9 +305,9 @@ export function CheckboxField({
           {label}
         </label>
       </div>
-      {error ? (
+      {hint || error ? (
         <div className="pl-8">
-          <FieldError id={errorId}>{error}</FieldError>
+          <HintAndError hint={hint} hintId={hintId} error={error} errorId={errorId} />
         </div>
       ) : null}
     </div>

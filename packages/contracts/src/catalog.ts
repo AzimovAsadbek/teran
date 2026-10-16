@@ -32,6 +32,7 @@ export const RESERVED_CATEGORY_SLUGS = [
   'en',
   'faq',
   'journal',
+  'media',
   'newsletter',
   'orders',
   'payments',
@@ -145,6 +146,8 @@ const productListQueryObject = z
     /** A category slug; a top-level category includes its subcategories. */
     category: slugSchema.optional(),
     collection: slugSchema.optional(),
+    /** A product type's key (e.g. "coffee"): only products of that type. */
+    type: attributeKeySchema.optional(),
     q: z.string().trim().min(1).max(100).optional(),
     format: commaList(productFormatSchema),
     minPrice: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
@@ -186,6 +189,8 @@ export const imageSchema = z.object({
   width: z.number().int(),
   height: z.number().int(),
   alt: z.string(),
+  /** A cut-out on a transparent background, rather than a photograph with its own background. */
+  transparent: z.boolean().default(false),
 });
 export type ImageDto = z.infer<typeof imageSchema>;
 
@@ -225,6 +230,11 @@ export const productSummarySchema = z.object({
   /** Variant used for one-click "add to bag" from listings (first purchasable one). */
   defaultVariant: variantSchema.nullable(),
   image: imageSchema.nullable(),
+  /**
+   * The product's first cut-out image, for presentations that place the product in a scene (the
+   * home page stage). Null when it has none; only product lists fill it in.
+   */
+  stageImage: imageSchema.nullable().default(null),
   illustrationKey: illustrationKeySchema.nullable(),
 });
 export type ProductSummaryDto = z.infer<typeof productSummarySchema>;
@@ -275,6 +285,12 @@ export const collectionSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   illustrationKey: illustrationKeySchema.nullable(),
+  /**
+   * The cover picture chosen in the admin area (cards, menus, the listing header); its small
+   * renditions serve as the thumbnail. Null when none is set: the storefront then shows a neutral
+   * TERAN visual, never another item's picture.
+   */
+  image: imageSchema.nullable().default(null),
   /** Visible products; for a top-level category, its subcategories' products included. */
   productCount: z.number().int(),
   seoTitle: z.string().nullable(),

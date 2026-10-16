@@ -2,18 +2,17 @@ import type { ArticleDetailDto, Locale } from '@teran/contracts';
 import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { TeaTypeArt } from '@/components/brand/illustrations';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
-import { ArticleBody } from '@/components/content/article-body';
 import { ArticleCard } from '@/components/content/article-card';
+import { ArticleContent } from '@/components/content/article-content';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from '@/i18n/navigation';
-import { getArticle, getArticles } from '@/lib/data/content';
-import { formatDate } from '@/lib/format';
-import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
+import { getPathname, Link } from '@/i18n/navigation';
+import { getArticle, getArticleRedirect, getArticles } from '@/lib/data/content';
+import { imageSources } from '@/lib/navigation';
+import { coverShareImage, jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { siteUrl } from '@/lib/site';
 
 export async function generateMetadata({
@@ -33,13 +32,20 @@ export async function generateMetadata({
     description: article.seoDescription ?? article.excerpt ?? undefined,
     href: `/journal/${article.slug}`,
     locale,
+    type: 'article',
+    image: coverShareImage(article.cover),
   });
 }
 
 async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'>, 'params'>) {
   const [{ slug }, locale, t] = await Promise.all([params, getLocale(), getTranslations('Pages')]);
   const article = await getArticle(locale, slug);
-  if (!article) notFound();
+  if (!article) {
+    // A renamed article's old address keeps working.
+    const current = await getArticleRedirect(slug).catch(() => null);
+    if (current) permanentRedirect(getPathname({ href: `/journal/${current}`, locale }));
+    notFound();
+  }
 
   const url = localizedUrl(`/journal/${article.slug}`, locale);
   // Authored by the brand: no individual author is invented.
@@ -52,6 +58,7 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
     dateModified: article.updatedAt,
     inLanguage: locale,
     mainEntityOfPage: url,
+    ...(article.cover ? { image: `${siteUrl}${imageSources(article.cover, 1280).src}` } : {}),
     author: { '@type': 'Organization', name: 'TERAN', url: siteUrl },
     publisher: {
       '@type': 'Organization',
@@ -67,26 +74,7 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
         items={[{ label: t('journalTitle'), href: '/journal' }, { label: article.title }]}
       />
       <article className="mx-auto mt-8 max-w-[44rem]">
-        <header>
-          <time dateTime={article.publishedAt} className="text-eyebrow text-accent-fg">
-            {t('published', { date: formatDate(article.publishedAt, locale) })}
-          </time>
-          <h1 className="mt-3 text-display-lg text-forest-900">{article.title}</h1>
-          {article.excerpt ? (
-            <p className="mt-4 text-lead text-fg-muted">{article.excerpt}</p>
-          ) : null}
-          <div
-            aria-hidden
-            className="mt-8 flex justify-center rounded-panel border border-line-subtle bg-surface-muted py-10 sm:py-14"
-          >
-            <span className="h-32 w-32 sm:h-40 sm:w-40">
-              <TeaTypeArt kind={article.illustrationKey} />
-            </span>
-          </div>
-        </header>
-        <div className="mt-10">
-          <ArticleBody body={article.body} />
-        </div>
+        <ArticleContent article={article} locale={locale} />
         <Link
           href="/journal"
           className="mt-12 inline-flex items-center gap-2 text-button text-brand underline-offset-4 hover:underline"

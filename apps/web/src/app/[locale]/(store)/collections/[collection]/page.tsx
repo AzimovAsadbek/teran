@@ -10,7 +10,7 @@ import { ListingHeader, ListingHeaderSkeleton } from '@/components/catalog/listi
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
 import { getCollections, getSlugRedirect } from '@/lib/data/catalog';
 import { getPathname } from '@/i18n/navigation';
-import { pageMetadata } from '@/lib/seo';
+import { coverShareImage, pageMetadata } from '@/lib/seo';
 
 async function findCollection(locale: Locale, slug: string) {
   const collections = await getCollections(locale);
@@ -34,6 +34,7 @@ export async function generateMetadata({
     query: filters.page > 1 ? `page=${filters.page}` : '',
     locale,
     noIndex: hasRefinements(filters),
+    image: coverShareImage(collection.image),
   });
 }
 
@@ -65,6 +66,7 @@ async function CollectionListing({
         title={collection.name}
         description={collection.description}
         illustrationKey={collection.illustrationKey}
+        image={collection.image}
       />
       <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults

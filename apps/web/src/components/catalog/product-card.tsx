@@ -41,7 +41,6 @@ export function ProductCard({
       <div className="relative aspect-square overflow-hidden rounded-card bg-surface-muted">
         <ProductImage
           image={product.image}
-          illustrationKey={product.illustrationKey}
           name={product.name}
           sizes={sizes}
           priority={priority}

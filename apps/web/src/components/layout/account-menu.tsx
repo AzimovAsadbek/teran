@@ -3,14 +3,18 @@
 import { ChevronDown, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense, use, useEffect, useRef } from 'react';
-import { useLogout } from '@/components/account/account-forms';
+import { useLogout } from '@/components/account/logout';
 import { iconButtonClasses } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import type { HeaderAccount } from '@/lib/session';
 
-/* Same footprint in every state, so the header does not shift when the account state arrives. */
-const SLOT = 'flex items-center justify-end lg:min-w-[10.5rem]';
+/*
+ * Same footprint in every state, so the header does not shift when the account state arrives.
+ * Below 360 px the row has no room for it beside the menu, wordmark, search and bag (it would push
+ * the wordmark over the menu button); the drawer offers the same links there.
+ */
+const SLOT = 'flex items-center justify-end max-[22.5rem]:hidden lg:min-w-[10.5rem]';
 const TEXT_LINK =
   'inline-flex h-10 items-center rounded-control px-2.5 text-body-sm font-semibold whitespace-nowrap text-fg transition-colors duration-150 hover:text-brand';
 

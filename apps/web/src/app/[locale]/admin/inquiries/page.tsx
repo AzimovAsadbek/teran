@@ -7,23 +7,25 @@ import {
   type Locale,
   type Paginated,
 } from '@teran/contracts';
+import { Mail, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Pagination } from '@/components/catalog/pagination';
 import { InquiryEditor } from '@/components/admin/inquiry-editor';
+import { FilterFormShell } from '@/components/admin/filter-form';
 import {
   AccessDenied,
   AdminPageHeader,
   EmptyState,
   FilterSelect,
   InquiryStatusPill,
+  StatusTabs,
+  table,
 } from '@/components/admin/ui';
-import { Link, getPathname } from '@/i18n/navigation';
-import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
-import { cn } from '@/lib/cn';
+import { getPathname } from '@/i18n/navigation';
+import { adminGet, apiQuery, getAdminBadges, pageHref, param } from '@/lib/admin/server';
 import { formatDateTime } from '@/lib/format';
-import { buttonClasses } from '@/components/ui/button';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -42,36 +44,30 @@ export default async function AdminInquiriesPage({
   ]);
   const kind = param(params, 'type') === 'wholesale' ? 'wholesale' : 'contact';
   const query = apiQuery(params, ['status', 'page'], { pageSize: '20' });
-  const data =
+  const [data, badges] = await Promise.all([
     kind === 'contact'
-      ? await adminGet<Paginated<AdminContactInquiry>>(`/inquiries/contact${query}`)
-      : await adminGet<Paginated<AdminWholesaleInquiry>>(`/inquiries/wholesale${query}`);
+      ? adminGet<Paginated<AdminContactInquiry>>(`/inquiries/contact${query}`)
+      : adminGet<Paginated<AdminWholesaleInquiry>>(`/inquiries/wholesale${query}`),
+    getAdminBadges(),
+  ]);
   if (!data) return <AccessDenied />;
-  const tab = (target: 'contact' | 'wholesale') => (
-    <Link
-      href={target === 'contact' ? '/admin/inquiries' : '/admin/inquiries?type=wholesale'}
-      aria-current={kind === target ? 'page' : undefined}
-      className={cn(
-        'rounded-full px-4 py-2 text-body-sm font-semibold',
-        kind === target ? 'bg-brand text-fg-inverse' : 'text-forest-900 hover:bg-surface-muted',
-      )}
-    >
-      {t(`inquiries.${target}`)}
-    </Link>
-  );
 
   return (
     <>
-      <AdminPageHeader title={t('inquiries.title')} />
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <nav aria-label={t('inquiries.title')} className="flex gap-1 rounded-full bg-surface p-1">
-          {tab('contact')}
-          {tab('wholesale')}
-        </nav>
-        <form
+      <AdminPageHeader title={t('inquiries.title')} description={t('inquiries.intro')} />
+      <div className="mb-1 flex flex-wrap items-start justify-between gap-x-4">
+        <StatusTabs
+          label={t('inquiries.title')}
+          tabs={(['contact', 'wholesale'] as const).map((target) => ({
+            href: target === 'contact' ? '/admin/inquiries' : '/admin/inquiries?type=wholesale',
+            label: t(`inquiries.${target}`),
+            count: badges?.newInquiries[target],
+            current: kind === target,
+          }))}
+        />
+        <FilterFormShell
           action={getPathname({ href: '/admin/inquiries', locale })}
-          method="get"
-          className="flex items-end gap-2"
+          className="mb-4 flex items-end gap-2"
         >
           {kind === 'wholesale' ? <input type="hidden" name="type" value="wholesale" /> : null}
           <FilterSelect
@@ -86,10 +82,7 @@ export default async function AdminInquiriesPage({
               })),
             ]}
           />
-          <button type="submit" className={buttonClasses('primary')}>
-            {t('common.search')}
-          </button>
-        </form>
+        </FilterFormShell>
       </div>
 
       {data.items.length === 0 ? (
@@ -105,10 +98,25 @@ export default async function AdminInquiriesPage({
                       ? `${item.companyName} · ${item.contactName}`
                       : item.name}
                   </p>
-                  <p className="text-body-sm text-fg-muted">
-                    {[item.phone ? formatUzPhone(item.phone) : null, item.email]
-                      .filter(Boolean)
-                      .join(' · ')}
+                  <p className="flex flex-wrap gap-x-4 gap-y-1 text-body-sm">
+                    {item.phone ? (
+                      <a
+                        href={`tel:${item.phone}`}
+                        className={`${table.link} inline-flex min-h-8 items-center gap-1.5`}
+                      >
+                        <Phone aria-hidden className="h-3.5 w-3.5" />
+                        {formatUzPhone(item.phone)}
+                      </a>
+                    ) : null}
+                    {item.email ? (
+                      <a
+                        href={`mailto:${item.email}`}
+                        className={`${table.link} inline-flex min-h-8 items-center gap-1.5 break-all`}
+                      >
+                        <Mail aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                        {item.email}
+                      </a>
+                    ) : null}
                   </p>
                   {'businessType' in item ? (
                     <p className="text-body-sm text-fg-subtle">

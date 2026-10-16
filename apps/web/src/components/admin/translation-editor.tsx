@@ -19,18 +19,27 @@ export type LocalizedValue<T> = { uz: T; ru: T | null; en: T | null };
 
 /**
  * Per-language fieldsets. Uzbek is always present (it is the fallback); Russian and English can be
- * added or removed. Errors are looked up as `translations.<locale>.<field>`.
+ * added or removed. Errors are looked up as `translations.<locale>.<field>`. `locales` limits the
+ * languages shown (an editor may show the Uzbek fields elsewhere); `note` replaces the default
+ * explanation and `skip` leaves out fields shown elsewhere.
  */
 export function TranslationEditor<K extends string>({
   value,
   fields,
   onChange,
   error,
+  locales = LOCALES,
+  note,
+  skip,
 }: {
   value: LocalizedValue<Record<K, string>>;
   fields: readonly TranslationField<K>[];
   onChange: (next: LocalizedValue<Record<K, string>>) => void;
   error: (path: string, current: string) => string | undefined;
+  locales?: readonly Locale[];
+  note?: string;
+  /** Fields of a language that the form shows elsewhere (e.g. the Uzbek name at the top). */
+  skip?: Partial<Record<Locale, readonly K[]>>;
 }) {
   const t = useTranslations('Admin');
   const hasError = (locale: Locale) =>
@@ -48,8 +57,8 @@ export function TranslationEditor<K extends string>({
 
   return (
     <div className="space-y-3">
-      <p className="text-body-sm text-fg-subtle">{t('common.uzRequired')}</p>
-      {LOCALES.map((locale) => {
+      <p className="text-body-sm text-fg-subtle">{note ?? t('common.uzRequired')}</p>
+      {locales.map((locale) => {
         const current = value[locale];
         return (
           <details
@@ -62,7 +71,9 @@ export function TranslationEditor<K extends string>({
               <span>
                 {t(`common.locales.${locale}`)}
                 {locale !== 'uz' && current === null ? (
-                  <span className="ml-2 text-body-sm font-normal text-fg-subtle">— uz</span>
+                  <span className="ml-2 text-body-sm font-normal text-fg-subtle">
+                    ({t('common.notTranslated')})
+                  </span>
                 ) : null}
               </span>
               <ChevronDown
@@ -83,6 +94,7 @@ export function TranslationEditor<K extends string>({
               ) : (
                 <>
                   {fields.map((field) => {
+                    if (skip?.[locale]?.includes(field.key)) return null;
                     const path = `translations.${locale}.${field.key}`;
                     const text = current[field.key];
                     const common = {

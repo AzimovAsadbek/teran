@@ -2,6 +2,7 @@ import type { Locale } from '@teran/contracts';
 import { ArrowRight, Building2, Coffee, ExternalLink, Hotel, Store } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
+import { BotanicalLayer } from '@/components/brand/botanical';
 import { Emblem } from '@/components/brand/logo';
 import { ButtonLink } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
@@ -27,6 +28,7 @@ export async function BusinessCta() {
   return (
     <section aria-labelledby="business-title" className="container-page py-section">
       <Reveal className="on-dark relative isolate grid gap-10 overflow-hidden rounded-panel bg-surface-inverse px-6 py-12 text-fg-inverse sm:px-12 lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-16 lg:py-16">
+        <BotanicalLayer scene="business" className="-z-10" />
         <span
           aria-hidden
           className="absolute -right-20 -bottom-24 -z-10 w-80 opacity-[0.08] lg:w-[28rem]"

@@ -1,8 +1,9 @@
 'use client';
 
 import type { VariantDto } from '@teran/contracts';
-import { Loader2, Plus } from 'lucide-react';
+import { Check, Loader2, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { cn } from '@/lib/cn';
 
@@ -20,6 +21,8 @@ export function QuickAdd({
   const t = useTranslations('Product');
   const locale = useLocale();
   const { pendingKey } = useCart();
+  // A tick for a moment after the pack was added (the bag also opens with it).
+  const [added, setAdded] = useState(false);
 
   if (!variant || variant.stockLevel === 'out_of_stock') return null;
   const pending = pendingKey === `add:${variant.id}`;
@@ -29,9 +32,13 @@ export function QuickAdd({
       type="button"
       aria-disabled={pending || undefined}
       aria-busy={pending || undefined}
-      onClick={() => {
+      onClick={async () => {
         // Not `disabled` while pending, so keyboard focus stays on the button.
-        if (!pending) void cartActions.add(variant.id, 1, locale);
+        if (pending) return;
+        if (await cartActions.add(variant.id, 1, locale)) {
+          setAdded(true);
+          window.setTimeout(() => setAdded(false), 1200);
+        }
       }}
       aria-label={t('quickAdd', { name: productName })}
       className={cn(
@@ -40,11 +47,13 @@ export function QuickAdd({
         'transition-[opacity,translate,background-color,color] duration-200 ease-[var(--ease-standard)]',
         'hover:bg-brand hover:text-fg-inverse aria-busy:cursor-progress',
         'pointer-fine:translate-y-1 pointer-fine:opacity-0 pointer-fine:group-focus-within:translate-y-0 pointer-fine:group-focus-within:opacity-100 pointer-fine:group-hover:translate-y-0 pointer-fine:group-hover:opacity-100',
-        pending && 'pointer-fine:translate-y-0 pointer-fine:opacity-100',
+        (pending || added) && 'pointer-fine:translate-y-0 pointer-fine:opacity-100',
       )}
     >
       {pending ? (
         <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+      ) : added ? (
+        <Check aria-hidden className="h-4 w-4 motion-safe:animate-pop-in" />
       ) : (
         <Plus aria-hidden className="h-4 w-4" />
       )}

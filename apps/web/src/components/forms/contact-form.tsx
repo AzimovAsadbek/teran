@@ -46,7 +46,7 @@ export function ContactForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
       <FormErrorSummary message={form.summary} />
       <TextField
         label={t('name')}

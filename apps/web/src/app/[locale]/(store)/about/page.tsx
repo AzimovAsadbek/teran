@@ -2,6 +2,7 @@ import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
+import { BotanicalLayer } from '@/components/brand/botanical';
 import { Emblem } from '@/components/brand/logo';
 import { BrandValues } from '@/components/brand/ornaments';
 import { BrandPrinciples } from '@/components/content/brand-principles';
@@ -39,14 +40,17 @@ export default async function AboutPage() {
         title={page.title}
         intro={copy.description}
         illustration="green"
+        atmosphere="editorial"
       />
 
       <section aria-labelledby="story-title" className="container-page py-section-sm">
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-16">
           <div
             aria-hidden
-            className="relative mx-auto flex aspect-square w-full max-w-[16rem] items-center justify-center lg:col-span-4 lg:max-w-[20rem]"
+            className="relative isolate mx-auto flex aspect-square w-full max-w-[16rem] items-center justify-center lg:col-span-4 lg:max-w-[20rem]"
           >
+            {/* Warm light, ground mist and leaves around the emblem, as around the moon gate. */}
+            <BotanicalLayer scene="story" className="-z-10" />
             <span className="absolute inset-0 rounded-full border border-gold-500/35" />
             <span className="absolute inset-[8%] rounded-full bg-surface shadow-soft" />
             <Emblem className="relative w-[48%]" sizes="(min-width: 1024px) 160px, 40vw" />

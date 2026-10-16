@@ -31,12 +31,7 @@ export function OrderSummary({
         {cart.lines.map((line) => (
           <li key={line.id} className="flex gap-3 py-3">
             <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-control bg-surface-muted">
-              <ProductImage
-                image={line.image}
-                illustrationKey={line.illustrationKey}
-                name={line.productName}
-                sizes="64px"
-              />
+              <ProductImage image={line.image} name={line.productName} sizes="64px" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-title-sm text-fg">{line.productName}</span>

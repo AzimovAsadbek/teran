@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import {
   buildPaginated,
+  ORDER_STATUSES,
   type adminOrderListQuerySchema,
   type AdminAuditEntry,
+  type AdminBadges,
   type AdminDashboard,
+  type OrderStatus,
   type Paginated,
   type SalesDay,
 } from '@teran/contracts';
@@ -132,6 +135,26 @@ export class AdminDashboardService {
         revenue: toMoney(row.revenue),
       })),
     };
+  }
+
+  /** Counts of the work waiting for staff (cheap enough to load with every admin page). */
+  async badges(): Promise<AdminBadges> {
+    const [byStatus, contact, wholesale, lowStock] = await Promise.all([
+      this.prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.contactInquiry.count({ where: { status: 'NEW' } }),
+      this.prisma.wholesaleInquiry.count({ where: { status: 'NEW' } }),
+      this.prisma.productVariant.count({
+        where: {
+          isActive: true,
+          stockQuantity: { lte: this.prisma.productVariant.fields.lowStockThreshold },
+        },
+      }),
+    ]);
+    const ordersByStatus = Object.fromEntries(
+      ORDER_STATUSES.map((status) => [status, 0]),
+    ) as Record<OrderStatus, number>;
+    for (const row of byStatus) ordersByStatus[row.status] = row._count._all;
+    return { ordersByStatus, newInquiries: { contact, wholesale }, lowStock };
   }
 
   /** Orders as CSV for accounting (contains personal data, hence administrators only). */

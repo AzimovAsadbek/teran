@@ -1,9 +1,4 @@
-import type {
-  AdminNewsletterSubscriber,
-  CurrentUserDto,
-  Locale,
-  Paginated,
-} from '@teran/contracts';
+import type { AdminNewsletterSubscriber, Locale, Paginated } from '@teran/contracts';
 import { Download } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -12,13 +7,14 @@ import { Pagination } from '@/components/catalog/pagination';
 import {
   AccessDenied,
   AdminPageHeader,
+  Cell,
   EmptyState,
   FilterForm,
   Pill,
   table,
 } from '@/components/admin/ui';
 import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
-import { apiGetAsVisitor } from '@/lib/api/server';
+import { currentUser } from '@/lib/account';
 import { formatDate } from '@/lib/format';
 import { buttonClasses } from '@/components/ui/button';
 
@@ -41,15 +37,26 @@ export default async function AdminNewsletterPage({
     adminGet<Paginated<AdminNewsletterSubscriber>>(
       `/newsletter${apiQuery(params, ['q', 'page'], { pageSize: '50' })}`,
     ),
-    apiGetAsVisitor<CurrentUserDto>('/auth/me'),
+    currentUser(),
   ]);
   if (!subscribers) return <AccessDenied />;
+  const source = (value: string | null) =>
+    value === 'footer' || value === 'demo' ? t(`newsletter.sources.${value}`) : (value ?? '—');
 
   return (
     <>
       <AdminPageHeader
         title={t('newsletter.title')}
-        description={user?.role === 'ADMIN' ? t('newsletter.exportHint') : undefined}
+        description={
+          <>
+            {t('newsletter.intro')}
+            {user?.role === 'ADMIN' ? (
+              <span className="mt-1 block text-body-sm text-fg-subtle">
+                {t('newsletter.exportHint')}
+              </span>
+            ) : null}
+          </>
+        }
         actions={
           user?.role === 'ADMIN' ? (
             <a href="/api/v1/admin/newsletter/export.csv" className={buttonClasses('secondary')}>
@@ -59,7 +66,11 @@ export default async function AdminNewsletterPage({
           ) : null
         }
       />
-      <FilterForm action="/admin/newsletter" q={param(params, 'q')} />
+      <FilterForm
+        action="/admin/newsletter"
+        q={param(params, 'q')}
+        active={Boolean(param(params, 'q'))}
+      />
       {subscribers.items.length === 0 ? (
         <EmptyState />
       ) : (
@@ -87,19 +98,21 @@ export default async function AdminNewsletterPage({
             <tbody>
               {subscribers.items.map((subscriber) => (
                 <tr key={subscriber.id}>
-                  <td className={`${table.td} break-all`}>{subscriber.email}</td>
-                  <td className={table.td}>{tl(`names.${subscriber.locale}`)}</td>
-                  <td className={table.td}>{subscriber.source ?? '—'}</td>
-                  <td className={`${table.td} whitespace-nowrap`}>
+                  <Cell primary className="break-all">
+                    {subscriber.email}
+                  </Cell>
+                  <Cell label={t('newsletter.language')}>{tl(`names.${subscriber.locale}`)}</Cell>
+                  <Cell label={t('newsletter.source')}>{source(subscriber.source)}</Cell>
+                  <Cell label={t('newsletter.subscribedAt')} className="whitespace-nowrap">
                     {formatDate(subscriber.subscribedAt, locale as Locale)}
-                  </td>
-                  <td className={table.td}>
+                  </Cell>
+                  <Cell label={t('common.status')}>
                     <Pill tone={subscriber.status === 'SUBSCRIBED' ? 'leaf' : 'muted'}>
                       {subscriber.status === 'SUBSCRIBED'
                         ? t('newsletter.subscribed')
                         : t('newsletter.unsubscribed')}
                     </Pill>
-                  </td>
+                  </Cell>
                 </tr>
               ))}
             </tbody>

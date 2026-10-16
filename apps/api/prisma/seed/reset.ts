@@ -15,6 +15,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedActivity } from './activity.js';
 import { readEmblem, seedCatalogue, uploadsDirectory } from './catalogue.js';
+import { seedMedia } from './media.js';
 import { assertResetAllowed, describeTarget } from './guard.js';
 import { removeDemoData } from './remove.js';
 import { refreshStorefrontCache } from './storefront.js';
@@ -50,6 +51,7 @@ async function main(): Promise<void> {
     console.log(
       `Removed: ${removed.products} product(s), ${removed.orders} order(s), ` +
         `${removed.customers} customer(s), ${removed.articles} article(s), ` +
+        `${removed.media} media item(s), ` +
         `${removed.contactInquiries + removed.wholesaleInquiries} enquiry(ies), ` +
         `${removed.subscribers} subscriber(s).`,
     );
@@ -59,6 +61,7 @@ async function main(): Promise<void> {
       uploadsDir: uploadsDirectory(),
       emblem: await readEmblem(),
     });
+    const media = await seedMedia(prisma, { uploadsDir: uploadsDirectory() });
     const activity = await seedActivity(prisma);
     for (const skipped of activity.skipped) console.warn(`  skipped ${skipped}`);
     await prisma.auditLog.create({
@@ -67,7 +70,7 @@ async function main(): Promise<void> {
         entityType: 'System',
         metadata: {
           removed: { ...removed },
-          catalogue: { ...catalogue },
+          catalogue: { ...catalogue, media },
           activity: { ...activity },
         },
       },

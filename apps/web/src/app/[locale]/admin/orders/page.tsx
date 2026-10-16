@@ -1,9 +1,10 @@
 import {
   formatUzPhone,
   ORDER_STATUSES,
+  PAYMENT_STATUSES,
   type AdminOrderListItem,
-  type CurrentUserDto,
   type Locale,
+  type OrderStatus,
   type Paginated,
 } from '@teran/contracts';
 import { Download } from 'lucide-react';
@@ -14,21 +15,25 @@ import { Pagination } from '@/components/catalog/pagination';
 import {
   AccessDenied,
   AdminPageHeader,
+  Cell,
   EmptyState,
   FilterForm,
   FilterSelect,
   OrderStatusPill,
   PaymentStatusPill,
+  StatusTabs,
   table,
 } from '@/components/admin/ui';
-import { Link } from '@/i18n/navigation';
-import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
-import { apiGetAsVisitor } from '@/lib/api/server';
-import { formatDateTime, formatMoney } from '@/lib/format';
-import { inputClasses } from '@/components/ui/controls';
 import { buttonClasses } from '@/components/ui/button';
+import { inputClasses } from '@/components/ui/controls';
+import { Link } from '@/i18n/navigation';
+import { currentUser } from '@/lib/account';
+import { adminGet, apiQuery, getAdminBadges, pageHref, param } from '@/lib/admin/server';
+import { formatDateTime, formatMoney } from '@/lib/format';
 
-const FILTERS = ['q', 'status', 'from', 'to'] as const;
+const FILTERS = ['q', 'status', 'paymentStatus', 'from', 'to'] as const;
+/** Statuses that are work in progress: their tabs show how many orders wait in them. */
+const QUEUE: readonly OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED'];
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -46,15 +51,29 @@ export default async function AdminOrdersPage({
     getTranslations('Checkout'),
     getTranslations('Common'),
   ]);
-  const [orders, user] = await Promise.all([
+  const [orders, user, badges] = await Promise.all([
     adminGet<Paginated<AdminOrderListItem>>(
       `/orders${apiQuery(params, [...FILTERS, 'page'], { pageSize: '25' })}`,
     ),
-    apiGetAsVisitor<CurrentUserDto>('/auth/me'),
+    currentUser(),
+    getAdminBadges(),
   ]);
   if (!orders) return <AccessDenied />;
   const isAdmin = user?.role === 'ADMIN';
   const exportQuery = apiQuery(params, ['status', 'from', 'to']);
+  const status = param(params, 'status');
+  /** The list URL with one filter changed (the page always starts again from 1). */
+  const withStatus = (value: OrderStatus | undefined) => {
+    const query = new URLSearchParams();
+    for (const key of ['q', 'paymentStatus', 'from', 'to'] as const) {
+      const current = param(params, key);
+      if (current) query.set(key, current);
+    }
+    if (value) query.set('status', value);
+    const text = query.toString();
+    return text ? `/admin/orders?${text}` : '/admin/orders';
+  };
+  const filtered = FILTERS.some((key) => param(params, key));
 
   return (
     <>
@@ -73,20 +92,34 @@ export default async function AdminOrdersPage({
           ) : null
         }
       />
+      <StatusTabs
+        label={t('orders.status')}
+        tabs={[
+          { href: withStatus(undefined), label: t('orders.allStatuses'), current: !status },
+          ...ORDER_STATUSES.map((value) => ({
+            href: withStatus(value),
+            label: t(`orderStatus.${value}`),
+            count: QUEUE.includes(value) ? badges?.ordersByStatus[value] : undefined,
+            current: status === value,
+          })),
+        ]}
+      />
       <FilterForm
         action="/admin/orders"
         q={param(params, 'q')}
         placeholder={t('orders.searchPlaceholder')}
+        active={filtered}
       >
+        {status ? <input type="hidden" name="status" value={status} /> : null}
         <FilterSelect
-          name="status"
-          label={t('orders.status')}
-          value={param(params, 'status')}
+          name="paymentStatus"
+          label={t('orders.payment')}
+          value={param(params, 'paymentStatus')}
           options={[
             { value: '', label: t('common.all') },
-            ...ORDER_STATUSES.map((status) => ({
-              value: status,
-              label: tco(`statuses.${status}`),
+            ...PAYMENT_STATUSES.map((value) => ({
+              value,
+              label: tco(`paymentStatuses.${value}`),
             })),
           ]}
         />
@@ -142,33 +175,36 @@ export default async function AdminOrdersPage({
             </thead>
             <tbody>
               {orders.items.map((order) => (
-                <tr key={order.id}>
-                  <td className={table.td}>
-                    <Link href={`/admin/orders/${order.number}`} className={table.link}>
+                <tr key={order.id} className={table.row}>
+                  <Cell primary className="whitespace-nowrap">
+                    <Link href={`/admin/orders/${order.number}`} className={table.rowLink}>
                       {order.number}
                     </Link>
-                  </td>
-                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
+                  </Cell>
+                  <Cell label={t('orders.date')} className="whitespace-nowrap text-fg-muted">
                     {formatDateTime(order.createdAt, locale)}
-                  </td>
-                  <td className={table.td}>
+                  </Cell>
+                  <Cell label={t('orders.customer')}>
                     {order.customerName}
-                    <span className="block text-xs text-fg-subtle">
+                    <span className="block text-xs whitespace-nowrap text-fg-subtle">
                       {formatUzPhone(order.customerPhone)}
                     </span>
-                  </td>
-                  <td className={`${table.td} text-right tabular-nums`}>{order.itemCount}</td>
-                  <td
-                    className={`${table.td} text-right font-semibold whitespace-nowrap tabular-nums`}
+                  </Cell>
+                  <Cell label={t('orders.items')} className="text-right tabular-nums">
+                    {order.itemCount}
+                  </Cell>
+                  <Cell
+                    label={t('orders.total')}
+                    className="text-right font-semibold whitespace-nowrap tabular-nums"
                   >
                     {formatMoney(order.total, locale, tc('currency.UZS'))}
-                  </td>
-                  <td className={table.td}>
+                  </Cell>
+                  <Cell label={t('orders.status')}>
                     <OrderStatusPill status={order.status} />
-                  </td>
-                  <td className={table.td}>
+                  </Cell>
+                  <Cell label={t('orders.payment')}>
                     <PaymentStatusPill status={order.paymentStatus} />
-                  </td>
+                  </Cell>
                 </tr>
               ))}
             </tbody>

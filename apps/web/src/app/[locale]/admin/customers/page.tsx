@@ -7,6 +7,7 @@ import { Pagination } from '@/components/catalog/pagination';
 import {
   AccessDenied,
   AdminPageHeader,
+  Cell,
   EmptyState,
   FilterForm,
   table,
@@ -35,17 +36,29 @@ export default async function AdminCustomersPage({
     `/customers${apiQuery(params, ['q', 'page'], { pageSize: '25' })}`,
   );
   if (!customers) return <AccessDenied />;
+  const q = param(params, 'q');
 
   return (
     <>
-      <AdminPageHeader title={t('customers.title')} />
+      <AdminPageHeader title={t('customers.title')} description={t('customers.guestsNote')} />
       <FilterForm
         action="/admin/customers"
-        q={param(params, 'q')}
+        q={q}
         placeholder={t('customers.searchPlaceholder')}
+        active={Boolean(q)}
       />
       {customers.items.length === 0 ? (
-        <EmptyState>{t('common.noResults')}</EmptyState>
+        <EmptyState>
+          {t('common.noResults')}
+          {q ? (
+            <Link
+              href={`/admin/orders?q=${encodeURIComponent(q)}`}
+              className={`${table.link} mt-3 block`}
+            >
+              {t('customers.tryOrders', { q })}
+            </Link>
+          ) : null}
+        </EmptyState>
       ) : (
         <div className={table.wrapper}>
           <table className={table.table}>
@@ -70,23 +83,30 @@ export default async function AdminCustomersPage({
             </thead>
             <tbody>
               {customers.items.map((customer) => (
-                <tr key={customer.id}>
-                  <td className={table.td}>
-                    <Link href={`/admin/customers/${customer.id}`} className={table.link}>
+                <tr key={customer.id} className={table.row}>
+                  <Cell primary>
+                    <Link href={`/admin/customers/${customer.id}`} className={table.rowLink}>
                       {[customer.firstName, customer.lastName].filter(Boolean).join(' ')}
                     </Link>
                     {!customer.isActive ? (
                       <span className="ml-2 text-xs text-fg-subtle">({t('common.inactive')})</span>
                     ) : null}
-                  </td>
-                  <td className={`${table.td} break-all`}>{customer.email}</td>
-                  <td className={table.td}>
+                  </Cell>
+                  <Cell label={t('customers.email')} className="break-all">
+                    {customer.email}
+                  </Cell>
+                  <Cell label={t('customers.phone')} className="whitespace-nowrap">
                     {customer.phone ? formatUzPhone(customer.phone) : '—'}
-                  </td>
-                  <td className={`${table.td} text-right tabular-nums`}>{customer.orderCount}</td>
-                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
+                  </Cell>
+                  <Cell label={t('customers.orders')} className="text-right tabular-nums">
+                    {customer.orderCount}
+                  </Cell>
+                  <Cell
+                    label={t('customers.registered')}
+                    className="whitespace-nowrap text-fg-muted"
+                  >
                     {formatDate(customer.createdAt, locale as Locale)}
-                  </td>
+                  </Cell>
                 </tr>
               ))}
             </tbody>

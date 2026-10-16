@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PaymentsModule } from '../payments/payments.module.js';
+import { TelegramModule } from '../telegram/telegram.module.js';
 import { JobsController } from './jobs.controller.js';
 import { MaintenanceService } from './maintenance.service.js';
 
@@ -8,7 +9,7 @@ import { MaintenanceService } from './maintenance.service.js';
  * the API cannot keep its own timers (serverless hosting).
  */
 @Module({
-  imports: [PaymentsModule],
+  imports: [PaymentsModule, TelegramModule],
   controllers: [JobsController],
   providers: [MaintenanceService],
 })

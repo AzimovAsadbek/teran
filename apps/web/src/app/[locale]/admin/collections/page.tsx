@@ -18,7 +18,10 @@ export default async function AdminCollectionsPage() {
   if (!items) return <AccessDenied />;
   return (
     <>
-      <AdminPageHeader title={t('taxonomy.collections')} />
+      <AdminPageHeader
+        title={t('taxonomy.collections')}
+        description={t('taxonomy.collectionsIntro')}
+      />
       <TaxonomyManager kind="collections" items={items} />
     </>
   );

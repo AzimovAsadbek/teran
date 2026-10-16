@@ -83,4 +83,44 @@ describe('validateEnv', () => {
       /PAYME_CHECKOUT_URL/,
     );
   });
+
+  it('keeps Telegram off by default and needs the bot and channel to post for real', () => {
+    const env = validateEnv(valid);
+    expect(env.TELEGRAM_MODE).toBe('disabled');
+    expect(validateEnv({ ...valid, TELEGRAM_MODE: 'dry-run' }).TELEGRAM_MODE).toBe('dry-run');
+    expect(() => validateEnv({ ...valid, TELEGRAM_MODE: 'live' })).toThrow(/TELEGRAM_MODE/);
+    expect(() =>
+      validateEnv({ ...valid, TELEGRAM_MODE: 'live', TELEGRAM_BOT_TOKEN: 'not-a-token' }),
+    ).toThrow(/TELEGRAM_BOT_TOKEN/);
+    expect(() =>
+      validateEnv({
+        ...valid,
+        TELEGRAM_MODE: 'live',
+        TELEGRAM_BOT_TOKEN: `123456789:${'A'.repeat(35)}`,
+        TELEGRAM_CHANNEL_ID: 'teran channel',
+      }),
+    ).toThrow(/TELEGRAM_CHANNEL_ID/);
+    const live = validateEnv({
+      ...valid,
+      TELEGRAM_MODE: 'live',
+      TELEGRAM_BOT_TOKEN: `123456789:${'A'.repeat(35)}`,
+      TELEGRAM_CHANNEL_ID: '@teran_uz',
+    });
+    expect(live.TELEGRAM_CHANNEL_ID).toBe('@teran_uz');
+  });
+
+  it('runs the advisor without a provider unless a key is set, and refuses placeholders', () => {
+    expect(validateEnv({ ...valid, ANTHROPIC_API_KEY: '' }).ANTHROPIC_API_KEY).toBeUndefined();
+    expect(validateEnv(valid).ASSISTANT_MODEL).toBe('claude-opus-5-5');
+    expect(() =>
+      validateEnv({
+        ...valid,
+        NODE_ENV: 'production',
+        COOKIE_SECURE: 'true',
+        WEB_ORIGIN: 'https://teran.example',
+        INTERNAL_API_KEY: 'k'.repeat(40),
+        ANTHROPIC_API_KEY: 'replace-with-your-provider-key',
+      }),
+    ).toThrow(/ANTHROPIC_API_KEY/);
+  });
 });

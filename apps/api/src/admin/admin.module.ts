@@ -4,6 +4,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import type { Env } from '../config/env.js';
 import { ContentModule } from '../content/content.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
+import { TelegramModule } from '../telegram/telegram.module.js';
 import { AdminContentController } from './content.controller.js';
 import { AdminContentService } from './content.service.js';
 import { AdminDashboardController } from './dashboard.controller.js';
@@ -11,6 +12,8 @@ import { AdminDashboardService } from './dashboard.service.js';
 import { AdminInquiriesController } from './inquiries.controller.js';
 import { AdminInquiriesService } from './inquiries.service.js';
 import { AdminInventoryController } from './inventory.controller.js';
+import { AdminMediaController } from './media.controller.js';
+import { AdminMediaService } from './media.service.js';
 import { AdminInventoryService } from './inventory.service.js';
 import { AdminOrdersController } from './orders.controller.js';
 import { AdminOrdersService } from './orders.service.js';
@@ -21,6 +24,7 @@ import { AdminProductTypesService } from './product-types.service.js';
 import { AdminProductsController } from './products.controller.js';
 import { AdminProductsService } from './products.service.js';
 import { AdminCategoriesController, AdminCollectionsController } from './taxonomy.controller.js';
+import { AdminTelegramController } from './telegram.controller.js';
 import { AdminTaxonomyService } from './taxonomy.service.js';
 
 /**
@@ -31,6 +35,7 @@ import { AdminTaxonomyService } from './taxonomy.service.js';
   imports: [
     ContentModule,
     PaymentsModule,
+    TelegramModule,
     // Uploads stay in memory (sharp re-encodes them) and are capped by UPLOAD_MAX_BYTES.
     MulterModule.registerAsync({
       inject: [ConfigService],
@@ -50,10 +55,13 @@ import { AdminTaxonomyService } from './taxonomy.service.js';
     AdminPeopleController,
     AdminInquiriesController,
     AdminContentController,
+    AdminMediaController,
+    AdminTelegramController,
   ],
   providers: [
     AdminDashboardService,
     AdminProductsService,
+    AdminMediaService,
     AdminProductTypesService,
     AdminTaxonomyService,
     AdminInventoryService,

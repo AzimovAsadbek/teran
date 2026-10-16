@@ -76,7 +76,7 @@ export function NewsletterForm({
   const dark = tone === 'dark';
 
   return (
-    <form onSubmit={onSubmit} noValidate>
+    <form method="post" onSubmit={onSubmit} noValidate>
       <label
         htmlFor={`${id}-email`}
         className={cn('block text-label', dark ? 'text-ivory-50' : 'text-fg')}

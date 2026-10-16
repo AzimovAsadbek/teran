@@ -9,11 +9,15 @@ import {
   Param,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { idSchema, taxonomyUpsertSchema, type AdminTaxonomy } from '@teran/contracts';
 import type { z } from 'zod';
 import { RequireStaff } from '../auth/auth.guard.js';
+import { ApiException } from '../common/errors/api-exception.js';
 import { CurrentActor, type Actor } from './admin-support.js';
 import { AdminTaxonomyService } from './taxonomy.service.js';
 
@@ -59,6 +63,30 @@ export class AdminCategoriesController {
   ): Promise<void> {
     return this.taxonomy.remove('category', id, actor);
   }
+
+  @Post(':id/image')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Set the cover picture (JPEG, PNG, WebP or AVIF)' })
+  @ApiOkResponse({ description: 'AdminTaxonomy' })
+  setImage(
+    @Param('id', { schema: idSchema }) id: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminTaxonomy> {
+    if (!file) throw ApiException.badRequest('BAD_REQUEST', 'Attach an image in the "file" field');
+    return this.taxonomy.setImage('category', id, file.buffer, actor);
+  }
+
+  @Delete(':id/image')
+  @ApiOperation({ summary: 'Remove the cover picture (a neutral visual is shown instead)' })
+  @ApiOkResponse({ description: 'AdminTaxonomy' })
+  removeImage(
+    @Param('id', { schema: idSchema }) id: string,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminTaxonomy> {
+    return this.taxonomy.removeImage('category', id, actor);
+  }
 }
 
 @ApiTags('admin')
@@ -100,5 +128,29 @@ export class AdminCollectionsController {
     @CurrentActor() actor: Actor,
   ): Promise<void> {
     return this.taxonomy.remove('collection', id, actor);
+  }
+
+  @Post(':id/image')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Set the cover picture (JPEG, PNG, WebP or AVIF)' })
+  @ApiOkResponse({ description: 'AdminTaxonomy' })
+  setImage(
+    @Param('id', { schema: idSchema }) id: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminTaxonomy> {
+    if (!file) throw ApiException.badRequest('BAD_REQUEST', 'Attach an image in the "file" field');
+    return this.taxonomy.setImage('collection', id, file.buffer, actor);
+  }
+
+  @Delete(':id/image')
+  @ApiOperation({ summary: 'Remove the cover picture (a neutral visual is shown instead)' })
+  @ApiOkResponse({ description: 'AdminTaxonomy' })
+  removeImage(
+    @Param('id', { schema: idSchema }) id: string,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminTaxonomy> {
+    return this.taxonomy.removeImage('collection', id, actor);
   }
 }

@@ -65,7 +65,11 @@ export function summaryInclude(locale: Locale) {
       where: { isActive: true },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
     },
-    images: { orderBy: { position: 'asc' }, take: 1 },
+    images: {
+      orderBy: { position: 'asc' },
+      take: 1,
+      include: { translations: { where: { locale } } },
+    },
   } satisfies Prisma.ProductInclude;
 }
 
@@ -74,7 +78,7 @@ export function detailInclude(locale: Locale) {
   const labels = { where: { locale: { in: chain } } };
   return {
     ...summaryInclude(locale),
-    images: { orderBy: { position: 'asc' } },
+    images: { orderBy: { position: 'asc' }, include: { translations: { where: { locale } } } },
     productType: { include: { translations: labels } },
     attributeValues: {
       where: { attribute: { isVisible: true } },
@@ -92,6 +96,11 @@ export type SummaryProduct = Prisma.ProductGetPayload<{
 export type DetailProduct = Prisma.ProductGetPayload<{ include: ReturnType<typeof detailInclude> }>;
 type VariantRow = SummaryProduct['variants'][number];
 type ImageRow = SummaryProduct['images'][number];
+/** A stored image as the mappers need it (alternative texts optional: some queries skip them). */
+export type StoredImageRow = Pick<
+  ImageRow,
+  'storageKey' | 'widths' | 'width' | 'height' | 'altText' | 'transparent'
+> & { translations?: readonly { locale: string; altText: string }[] };
 type AttributeValueRow = DetailProduct['attributeValues'][number];
 
 /** Localised plain text stored as { "uz": "…", "ru": "…", "en": "…" } (validated on write). */
@@ -192,13 +201,49 @@ export function toVariantDto(variant: VariantRow): VariantDto {
   };
 }
 
-export function toImageDto(image: ImageRow, alt: string): ImageDto {
+/** Columns of a cover picture chosen in the admin area (categories, collections). */
+export interface CoverColumns {
+  imageKey: string | null;
+  imageWidths: number[];
+  imageWidth: number | null;
+  imageHeight: number | null;
+  imageTransparent: boolean;
+}
+
+/** A category's or collection's cover picture, or null (the storefront shows a neutral visual). */
+export function coverImageDto(row: CoverColumns, alt: string): ImageDto | null {
+  if (!row.imageKey || !row.imageWidth || !row.imageHeight) return null;
+  return {
+    src: `${PUBLIC_UPLOADS_PATH}/${row.imageKey}`,
+    widths: row.imageWidths,
+    width: row.imageWidth,
+    height: row.imageHeight,
+    alt,
+    transparent: row.imageTransparent,
+  };
+}
+
+/**
+ * A product image's alternative text in the visitor's language, as entered in the admin area;
+ * otherwise the product's name (never another language's text, which a screen reader would
+ * mispronounce).
+ */
+export function productImageAlt(
+  image: { translations?: readonly { locale: string; altText: string }[] },
+  locale: Locale,
+  name: string,
+): string {
+  return image.translations?.find((translation) => translation.locale === locale)?.altText ?? name;
+}
+
+export function toImageDto(image: StoredImageRow, alt: string): ImageDto {
   return {
     src: `${PUBLIC_UPLOADS_PATH}/${image.storageKey}`,
     widths: image.widths,
     width: image.width,
     height: image.height,
     alt: image.altText ?? alt,
+    transparent: image.transparent,
   };
 }
 
@@ -207,10 +252,15 @@ function isNew(publishedAt: Date | null, now: Date): boolean {
   return now.getTime() - publishedAt.getTime() <= NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000;
 }
 
+/**
+ * @param stageImage The product's first cut-out image, when the caller looked it up (product
+ *   lists do, for the home page stage); otherwise the first image is used if it is a cut-out.
+ */
 export function toProductSummary(
   product: SummaryProduct,
   locale: Locale,
   now: Date = new Date(),
+  stageImage?: StoredImageRow | null,
 ): ProductSummaryDto {
   const translation = pickTranslation(product.translations, locale);
   const name = translation?.name ?? product.slug;
@@ -238,7 +288,12 @@ export function toProductSummary(
     currency: cheapest?.currency ?? 'UZS',
     variantCount: variants.length,
     defaultVariant: purchasable ?? variants[0] ?? null,
-    image: firstImage ? toImageDto(firstImage, name) : null,
+    image: firstImage ? toImageDto(firstImage, productImageAlt(firstImage, locale, name)) : null,
+    stageImage: stageImage
+      ? toImageDto(stageImage, productImageAlt(stageImage, locale, name))
+      : firstImage?.transparent
+        ? toImageDto(firstImage, productImageAlt(firstImage, locale, name))
+        : null,
     illustrationKey: asIllustrationKey(product.illustrationKey),
   };
 }
@@ -280,7 +335,9 @@ export function toProductDetail(
           amountGrams: product.brewAmountGrams?.toString() ?? null,
         }
       : null,
-    images: product.images.map((image) => toImageDto(image, summary.name)),
+    images: product.images.map((image) =>
+      toImageDto(image, productImageAlt(image, locale, summary.name)),
+    ),
     variants: product.variants.map(toVariantDto),
     seoTitle: translation?.seoTitle ?? null,
     seoDescription: translation?.seoDescription ?? null,

@@ -1,11 +1,11 @@
-import type { AdminDeliveryMethod, CurrentUserDto, Locale } from '@teran/contracts';
+import type { AdminDeliveryMethod, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { DeliveryManager } from '@/components/admin/delivery-manager';
 import { AccessDenied, AdminPageHeader } from '@/components/admin/ui';
 import { adminGet } from '@/lib/admin/server';
-import { apiGetAsVisitor } from '@/lib/api/server';
+import { currentUser } from '@/lib/account';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -17,7 +17,7 @@ export default async function AdminDeliveryPage() {
   const t = await getTranslations('Admin');
   const [methods, user] = await Promise.all([
     adminGet<AdminDeliveryMethod[]>('/delivery-methods'),
-    apiGetAsVisitor<CurrentUserDto>('/auth/me'),
+    currentUser(),
   ]);
   if (!methods) return <AccessDenied />;
   return (

@@ -45,6 +45,8 @@ enum ProductFormat {
   PYRAMIDS
   GIFT_SET
   ACCESSORY
+  /// None of the tea formats applies (honey, sweets, ceramics…): the storefront shows no format.
+  OTHER
 }
 
 enum CaffeineLevel {
@@ -107,6 +109,7 @@ enum RedirectEntity {
   CATEGORY
   PRODUCT
   COLLECTION
+  ARTICLE
 }
 
 enum InventoryReason {
@@ -142,6 +145,29 @@ enum NewsletterStatus {
 enum ArticleStatus {
   DRAFT
   PUBLISHED
+  /// Taken off the site and out of the default admin lists, kept for the record.
+  ARCHIVED
+}
+
+enum MediaKind {
+  PHOTO
+  VIDEO
+}
+
+/// What a Telegram channel post announces.
+enum TelegramEntity {
+  PRODUCT
+  ARTICLE
+}
+
+/// Delivery state of a Telegram post (docs/architecture/telegram.md). SENDING marks a post whose
+/// request is in flight; if the process stops before the answer is recorded, the post becomes
+/// FAILED with an "unknown result" note instead of being sent again automatically.
+enum TelegramPostStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
 }
 
 // ─── Identity & access ──────────────────────────────────────────────────────
@@ -230,24 +256,37 @@ model PasswordResetToken {
 // ─── Catalogue ──────────────────────────────────────────────────────────────
 
 model Category {
-  id              String     @id @default(uuid(7)) @db.Uuid
-  slug            String     @unique
+  id               String       @id @default(uuid(7)) @db.Uuid
+  slug             String       @unique
   /// Two levels: top-level categories (Tea, Gift sets) and their subcategories (Green tea).
-  parentId        String?    @db.Uuid
-  parent          Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children        Category[] @relation("CategoryTree")
-  position        Int        @default(0)
-  isActive        Boolean    @default(true)
+  parentId         String?      @db.Uuid
+  parent           Category?    @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children         Category[]   @relation("CategoryTree")
+  position         Int          @default(0)
+  isActive         Boolean      @default(true)
   /// Built-in illustration used when no photo is uploaded (e.g. "black", "green", "herbal").
-  illustrationKey String?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  illustrationKey  String?
+  /// Cover picture chosen in the admin area (cards, menus, the category page): WebP renditions at
+  /// <imageKey>/<width>.webp; small renditions serve as the thumbnail. None: a neutral TERAN visual.
+  imageKey         String?      @unique
+  imageWidths      Int[]
+  imageWidth       Int?
+  imageHeight      Int?
+  /// The cover is a cut-out (transparent background), shown standing free instead of cropped.
+  imageTransparent Boolean      @default(false)
+  /// The product type new products in this category start with (a subcategory without one uses
+  /// its parent's). Only a default for the admin product form; each product keeps its own type.
+  productTypeId    String?      @db.Uuid
+  productType      ProductType? @relation(fields: [productTypeId], references: [id], onDelete: SetNull)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   translations CategoryTranslation[]
   products     Product[]
 
   @@index([isActive, position])
   @@index([parentId, isActive, position])
+  @@index([productTypeId])
 }
 
 model CategoryTranslation {
@@ -260,18 +299,26 @@ model CategoryTranslation {
   body           String?
   seoTitle       String?
   seoDescription String?
+  /// Alternative text of the cover picture (the name is read when it is empty).
+  imageAlt       String?
 
   @@id([categoryId, locale])
 }
 
 model Collection {
-  id              String   @id @default(uuid(7)) @db.Uuid
-  slug            String   @unique
-  position        Int      @default(0)
-  isActive        Boolean  @default(true)
-  illustrationKey String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(uuid(7)) @db.Uuid
+  slug             String   @unique
+  position         Int      @default(0)
+  isActive         Boolean  @default(true)
+  illustrationKey  String?
+  /// Cover picture chosen in the admin area, as for categories.
+  imageKey         String?  @unique
+  imageWidths      Int[]
+  imageWidth       Int?
+  imageHeight      Int?
+  imageTransparent Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   translations CollectionTranslation[]
   products     ProductCollection[]
@@ -287,6 +334,8 @@ model CollectionTranslation {
   description    String?
   seoTitle       String?
   seoDescription String?
+  /// Alternative text of the cover picture (the name is read when it is empty).
+  imageAlt       String?
 
   @@id([collectionId, locale])
 }
@@ -323,6 +372,8 @@ model Product {
   brewAmountGrams    Decimal?       @db.Decimal(4, 1)
   /// Built-in artwork used for demo imagery when no photo is uploaded.
   illustrationKey    String?
+  /// Announce the product on the Telegram channel once it is published (one post, ever).
+  announceOnTelegram Boolean        @default(false)
   /// Lowest active variant price, denormalised for sorting and price filtering.
   /// Maintained by ProductPricing.refreshMinPrice whenever variants change.
   minPrice           Decimal?       @db.Decimal(12, 2)
@@ -345,17 +396,21 @@ model Product {
 
 /// A kind of product (tea, coffee, gift set…) and the attributes products of that kind have.
 model ProductType {
-  id        String   @id @default(uuid(7)) @db.Uuid
+  id           String   @id @default(uuid(7)) @db.Uuid
   /// Stable identifier, e.g. "tea".
-  key       String   @unique
-  position  Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  key          String   @unique
+  position     Int      @default(0)
+  isActive     Boolean  @default(true)
+  /// Products of this type have brewing guidance (amount, temperature, time) and a caffeine level;
+  /// the admin product form offers those fields only then (or when a product already has them).
+  brewingGuide Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   translations ProductTypeTranslation[]
   attributes   AttributeDefinition[]
   products     Product[]
+  categories   Category[]
 }
 
 model ProductTypeTranslation {
@@ -520,20 +575,38 @@ model ProductVariant {
 }
 
 model ProductImage {
-  id         String   @id @default(uuid(7)) @db.Uuid
-  productId  String   @db.Uuid
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid(7)) @db.Uuid
+  productId   String   @db.Uuid
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   /// Storage prefix; files live at <storageKey>/<width>.webp.
-  storageKey String   @unique
-  widths     Int[]
-  width      Int
-  height     Int
-  /// Optional alt text override; otherwise the localised product name is used.
-  altText    String?
-  position   Int      @default(0)
-  createdAt  DateTime @default(now())
+  storageKey  String   @unique
+  widths      Int[]
+  width       Int
+  height      Int
+  /// Unused (never written); per-language alt text lives in ProductImageTranslation.
+  altText     String?
+  /// A cut-out: the background is transparent (detected on upload), so the product can stand
+  /// free on the home page stage. Other images are photographs on their own background.
+  transparent Boolean  @default(false)
+  position    Int      @default(0)
+  /// SHA-256 of the uploaded file: the same file is not stored twice for one product.
+  contentHash String?
+  createdAt   DateTime @default(now())
 
+  translations ProductImageTranslation[]
+
+  @@unique([productId, contentHash])
   @@index([productId, position])
+}
+
+/// Alternative text of a product image per language; without it the product's name is read.
+model ProductImageTranslation {
+  imageId String       @db.Uuid
+  image   ProductImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  locale  Locale
+  altText String
+
+  @@id([imageId, locale])
 }
 
 // ─── Shopping cart ──────────────────────────────────────────────────────────
@@ -872,17 +945,43 @@ model SiteSetting {
 }
 
 model Article {
-  id              String        @id @default(uuid(7)) @db.Uuid
-  slug            String        @unique
-  status          ArticleStatus @default(DRAFT)
-  illustrationKey String?
-  publishedAt     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                 String        @id @default(uuid(7)) @db.Uuid
+  slug               String        @unique
+  status             ArticleStatus @default(DRAFT)
+  illustrationKey    String?
+  /// Cover picture (list cards, the article page, social sharing): WebP renditions at
+  /// <coverKey>/<width>.webp. Required before an article is published.
+  coverKey           String?       @unique
+  coverWidths        Int[]
+  coverWidth         Int?
+  coverHeight        Int?
+  /// Shown first in the home page's journal section.
+  isFeatured         Boolean       @default(false)
+  /// Announce the article on the Telegram channel once it is published (one post, ever).
+  announceOnTelegram Boolean       @default(false)
+  publishedAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   translations ArticleTranslation[]
+  /// Photographs and films from the gallery shown with the article (reused, not uploaded again).
+  media        ArticleMedia[]
 
   @@index([status, publishedAt])
+  @@index([status, isFeatured, publishedAt])
+}
+
+/// A gallery item shown with an article, in the editor's order. Only published items appear on
+/// the article page; deleting either side removes the link.
+model ArticleMedia {
+  articleId   String    @db.Uuid
+  article     Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  mediaItemId String    @db.Uuid
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  position    Int       @default(0)
+
+  @@id([articleId, mediaItemId])
+  @@index([mediaItemId])
 }
 
 model ArticleTranslation {
@@ -895,8 +994,86 @@ model ArticleTranslation {
   body           String
   seoTitle       String?
   seoDescription String?
+  /// Alternative text of the cover picture (the title is read when it is empty).
+  coverAlt       String?
 
   @@id([articleId, locale])
+}
+
+/// "Lavhalar": photographs and short films about TERAN, shown on the media page and (featured
+/// ones) on the home page. Uses the article publication states.
+model MediaItem {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  kind                 MediaKind
+  status               ArticleStatus @default(DRAFT)
+  isFeatured           Boolean       @default(false)
+  position             Int           @default(0)
+  /// The photograph, or the video's poster: WebP renditions at <imageKey>/<width>.webp.
+  imageKey             String?       @unique
+  imageWidths          Int[]
+  imageWidth           Int?
+  imageHeight          Int?
+  /// Videos only: the file at <videoKey>/video.<mp4|webm>, as uploaded.
+  videoKey             String?       @unique
+  videoType            String?
+  videoBytes           Int?
+  videoDurationSeconds Int?
+  /// Videos only: optional subtitles (WebVTT) at <captionsKey>/captions.vtt.
+  captionsKey          String?       @unique
+  publishedAt          DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  translations MediaItemTranslation[]
+  articles     ArticleMedia[]
+
+  @@index([status, position])
+}
+
+model MediaItemTranslation {
+  mediaItemId String    @db.Uuid
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  locale      Locale
+  title       String
+  caption     String?
+  altText     String?
+
+  @@id([mediaItemId, locale])
+}
+
+// ─── Telegram channel ───────────────────────────────────────────────────────
+
+/// One announcement on the Telegram channel for a published product or article: created after the
+/// publishing transaction commits, sent by the outbox processor, retried on request. Unique per
+/// entity, so an item is never announced twice.
+model TelegramPost {
+  id            String             @id @default(uuid(7)) @db.Uuid
+  entityType    TelegramEntity
+  entityId      String             @db.Uuid
+  status        TelegramPostStatus @default(PENDING)
+  /// Sent while the channel ran in dry-run mode: composed and recorded, never delivered.
+  dryRun        Boolean            @default(false)
+  attempts      Int                @default(0)
+  /// Short reason of the last failure, without secrets.
+  lastError     String?
+  /// Message ids returned by Telegram (a photo post, plus a text message when needed).
+  messageIds    String[]
+  /// The text as it was sent (or would have been, in dry-run mode).
+  text          String?
+  /// Storage key of the picture that was attached, if any.
+  imageKey      String?
+  /// Not retried automatically before this time (rate limits, back-off).
+  nextAttemptAt DateTime?
+  /// A sender holds the post until this time; an expired claim means the outcome is unknown.
+  lockedUntil   DateTime?
+  requestedById String?            @db.Uuid
+  sentAt        DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@unique([entityType, entityId])
+  @@index([status, nextAttemptAt])
+  @@index([createdAt])
 }
 
 // ─── Audit trail ────────────────────────────────────────────────────────────

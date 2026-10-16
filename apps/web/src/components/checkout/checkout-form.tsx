@@ -399,6 +399,7 @@ export function CheckoutForm({
       </details>
 
       <form
+        method="post"
         ref={formRef}
         onSubmit={onSubmit}
         noValidate

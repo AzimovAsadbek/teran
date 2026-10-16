@@ -30,6 +30,7 @@ import {
   RETIRED_DEMO,
 } from './demo-catalog.js';
 import { DEMO_ARTICLES } from './demo-content.js';
+import { removeDemoMedia } from './media.js';
 
 export interface RemovalReport {
   orders: number;
@@ -37,6 +38,7 @@ export interface RemovalReport {
   categories: number;
   collections: number;
   articles: number;
+  media: number;
   customers: number;
   contactInquiries: number;
   wholesaleInquiries: number;
@@ -128,6 +130,7 @@ export async function removeDemoData(
   const articles = await prisma.article.deleteMany({
     where: { slug: { in: DEMO_ARTICLES.map((article) => article.slug) } },
   });
+  const media = await removeDemoMedia(prisma, uploadsDir);
 
   const customers = await prisma.user.deleteMany({
     where: {
@@ -160,6 +163,7 @@ export async function removeDemoData(
     categories,
     collections,
     articles: articles.count,
+    media,
     customers: customers.count,
     contactInquiries,
     wholesaleInquiries: wholesaleInquiries.count,

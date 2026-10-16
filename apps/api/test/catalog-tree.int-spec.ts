@@ -20,6 +20,7 @@ import {
   createUser,
   resetDatabase,
 } from './helpers/fixtures.js';
+import { createProductViaAdmin } from './helpers/publishing.js';
 
 const API = '/api/v1';
 
@@ -190,11 +191,7 @@ describe('multi-category catalogue', () => {
       coffeeProduct('light-filter', 'light', false, 250),
       product('sencha', green.id),
     ]) {
-      ids[payload.slug] = (
-        (await admin.post(`${API}/admin/products`).send(payload).expect(201)).body as {
-          id: string;
-        }
-      ).id;
+      ids[payload.slug] = await createProductViaAdmin(admin, payload);
     }
     return { admin, tea, green, coffee, coffeeType, ids };
   }
@@ -331,13 +328,16 @@ describe('multi-category catalogue', () => {
     const roast = coffeeType.attributes.find((entry) => entry.key === 'roast-level')!;
     const decaf = coffeeType.attributes.find((entry) => entry.key === 'decaf')!;
 
+    // Publishing is refused with everything that is missing: the image and the roast level.
     const missing = await admin
       .post(`${API}/admin/products`)
       .send(product('no-roast', coffee.id, { productTypeId: coffeeType.id, attributes: [] }))
-      .expect(400);
-    expect(missing.body.issues).toEqual([
-      expect.objectContaining({ code: 'required_attribute_missing', message: 'roast-level' }),
-    ]);
+      .expect(422);
+    expect(missing.body).toMatchObject({
+      code: 'PUBLICATION_BLOCKED',
+      details: { missing: ['mainImage', 'requiredAttributes'] },
+    });
+    expect(missing.body.details.attributes).toHaveLength(1);
     // A draft may be incomplete.
     await admin
       .post(`${API}/admin/products`)
@@ -423,6 +423,111 @@ describe('multi-category catalogue', () => {
       })
       .expect(400);
     expect(conflicting.body.issues[0].code).toBe('kind_conflict');
+  });
+
+  it('keeps a default product type per category and brewing fields to the types that have them', async () => {
+    const { admin, coffee, coffeeType, ids } = await setUpShop();
+    const honeyInput: ProductTypeUpsertInput = {
+      key: 'honey',
+      isActive: true,
+      position: 2,
+      translations: { uz: { name: 'Asal' }, ru: null, en: { name: 'Honey' } },
+      attributes: [],
+    };
+    // A type has no brewing guidance unless asked, and a save that leaves the setting out keeps it.
+    const honey = (await admin.post(`${API}/admin/product-types`).send(honeyInput).expect(201))
+      .body as AdminProductType;
+    expect([coffeeType.brewingGuide, honey.brewingGuide]).toEqual([false, false]);
+    const brewed = await admin
+      .put(`${API}/admin/product-types/${honey.id}`)
+      .send({ ...honeyInput, brewingGuide: true })
+      .expect(200);
+    expect(brewed.body.brewingGuide).toBe(true);
+    const kept = await admin
+      .put(`${API}/admin/product-types/${honey.id}`)
+      .send(honeyInput)
+      .expect(200);
+    expect(kept.body.brewingGuide).toBe(true);
+
+    // The category's default type: set, kept when a save leaves it out, cleared with null.
+    const set = await admin
+      .put(`${API}/admin/categories/${coffee.id}`)
+      .send(taxonomy('coffee', { position: 1, productTypeId: coffeeType.id }))
+      .expect(200);
+    expect(set.body.productTypeId).toBe(coffeeType.id);
+    const unchanged = await admin
+      .put(`${API}/admin/categories/${coffee.id}`)
+      .send(taxonomy('coffee', { position: 1 }))
+      .expect(200);
+    expect(unchanged.body.productTypeId).toBe(coffeeType.id);
+    const unknown = await admin
+      .post(`${API}/admin/categories`)
+      .send(taxonomy('sweets', { productTypeId: randomUUID() }))
+      .expect(400);
+    expect(unknown.body.issues).toEqual([
+      expect.objectContaining({ path: 'productTypeId', code: 'type_not_found' }),
+    ]);
+    const sweets = (
+      await admin
+        .post(`${API}/admin/categories`)
+        .send(taxonomy('sweets', { productTypeId: honey.id }))
+        .expect(201)
+    ).body as { id: string; productTypeId: string | null };
+    expect(sweets.productTypeId).toBe(honey.id);
+    // Removing an unused type leaves the categories that defaulted to it without a default.
+    await admin.delete(`${API}/admin/product-types/${honey.id}`).expect(204);
+    const listed = (await admin.get(`${API}/admin/categories`).expect(200)).body as {
+      id: string;
+      productTypeId: string | null;
+    }[];
+    expect(listed.find((entry) => entry.id === sweets.id)?.productTypeId).toBeNull();
+    const cleared = await admin
+      .put(`${API}/admin/categories/${coffee.id}`)
+      .send(taxonomy('coffee', { position: 1, productTypeId: null }))
+      .expect(200);
+    expect(cleared.body.productTypeId).toBeNull();
+
+    // A product none of the tea formats fits is listed, but "Other" is no format filter.
+    const saved = (await admin.get(`${API}/admin/products/${ids['light-filter']}`).expect(200))
+      .body as { variants: { id: string }[] };
+    const roast = coffeeType.attributes.find((entry) => entry.key === 'roast-level')!;
+    await admin
+      .put(`${API}/admin/products/${ids['light-filter']}`)
+      .send(
+        product('light-filter', coffee.id, {
+          format: 'OTHER',
+          productTypeId: coffeeType.id,
+          attributes: [
+            {
+              attributeId: roast.id,
+              optionIds: [roast.options.find((entry) => entry.key === 'light')!.id],
+            },
+          ],
+          variants: [
+            {
+              id: saved.variants[0]!.id,
+              sku: 'LIGHT-FILTER',
+              weightGrams: 250,
+              unitCount: null,
+              price: '50000',
+              compareAtPrice: null,
+              lowStockThreshold: 2,
+              barcode: null,
+              isActive: true,
+            },
+          ],
+        }),
+      )
+      .expect(200);
+    const listing = productListSchema.parse(
+      (await anonymous().get(`${API}/catalog/products?category=coffee&locale=uz`).expect(200)).body,
+    );
+    expect(listing.total).toBe(3);
+    expect(listing.facets.formats).toEqual([{ value: 'ACCESSORY', count: 2 }]);
+    const detail = productDetailSchema.parse(
+      (await anonymous().get(`${API}/catalog/products/light-filter?locale=uz`).expect(200)).body,
+    );
+    expect(detail.format).toBe('OTHER');
   });
 
   it('refuses catalogue changes from anyone but staff', async () => {
@@ -545,15 +650,13 @@ describe('multi-category catalogue', () => {
         .send(taxonomy('gift-sets', { position: 2 }))
         .expect(201)
     ).body as { id: string };
-    await admin
-      .post(`${API}/admin/products`)
-      .send(
-        product('green-gift', gifts.id, {
-          format: 'GIFT_SET',
-          variants: [{ ...product('x', gifts.id).variants[0]!, sku: 'GIFT-1', initialStock: 3 }],
-        }),
-      )
-      .expect(201);
+    await createProductViaAdmin(
+      admin,
+      product('green-gift', gifts.id, {
+        format: 'GIFT_SET',
+        variants: [{ ...product('x', gifts.id).variants[0]!, sku: 'GIFT-1', initialStock: 3 }],
+      }),
+    );
     const gift = await ctx.prisma.productVariant.findUniqueOrThrow({ where: { sku: 'GIFT-1' } });
     const sencha = await ctx.prisma.productVariant.findUniqueOrThrow({ where: { sku: 'SENCHA' } });
     const shopper = request.agent(server());

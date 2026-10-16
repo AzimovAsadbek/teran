@@ -4,6 +4,7 @@ import type { ProductFormat, VariantDto } from '@teran/contracts';
 import { Check, ShoppingBag } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { QuantityStepper } from '@/components/cart/quantity-stepper';
 import { Button } from '@/components/ui/button';
 import { radioDotClasses } from '@/components/ui/field';
@@ -173,7 +174,7 @@ export function PurchasePanel({
       </div>
       <p aria-live="polite" className="mt-2 min-h-5 text-body-sm">
         {justAdded ? (
-          <span className="inline-flex items-center gap-1.5 font-semibold text-success">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-success motion-safe:animate-pop-in">
             <Check aria-hidden className="h-4 w-4" />
             {t('added')}
           </span>
@@ -181,26 +182,33 @@ export function PurchasePanel({
         {errorMessage && !justAdded ? <span className="text-danger">{errorMessage}</span> : null}
       </p>
 
-      {/* Sticky purchase bar on phones and tablets once the main button has scrolled away. */}
-      {!soldOut && scrolledPast ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 shadow-overlay backdrop-blur-md motion-safe:animate-fade-in lg:hidden">
-          <div className="container-page flex items-center gap-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-title-sm text-fg">{productName}</p>
-              <p className="flex items-baseline gap-1.5 text-body-sm">
-                <Price amount={variant.price} compareAt={variant.compareAtPrice} />
-                <span className="truncate text-fg-subtle">
-                  · {packLabel(variant, format, locale, units)}
-                </span>
-              </p>
-            </div>
-            <Button onClick={() => void add()} loading={pending}>
-              {pending ? null : <ShoppingBag aria-hidden className="h-4 w-4" />}
-              {t('addToCart')}
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {/*
+       * Sticky purchase bar on phones and tablets once the main button has scrolled away. It is
+       * rendered into <body> (only ever on the client, after scrolling), so the product grid's own
+       * stacking context (isolate, for its botanical layer) cannot put later content over it.
+       */}
+      {!soldOut && scrolledPast
+        ? createPortal(
+            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 shadow-overlay backdrop-blur-md motion-safe:animate-slide-up lg:hidden">
+              <div className="container-page flex items-center gap-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-title-sm text-fg">{productName}</p>
+                  <p className="flex items-baseline gap-1.5 text-body-sm">
+                    <Price amount={variant.price} compareAt={variant.compareAtPrice} />
+                    <span className="truncate text-fg-subtle">
+                      · {packLabel(variant, format, locale, units)}
+                    </span>
+                  </p>
+                </div>
+                <Button onClick={() => void add()} loading={pending}>
+                  {pending ? null : <ShoppingBag aria-hidden className="h-4 w-4" />}
+                  {t('addToCart')}
+                </Button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   isReservedCategorySlug,
   type AdminTaxonomy,
@@ -8,11 +9,21 @@ import {
 import type { z } from 'zod';
 import type { Prisma } from '../generated/prisma/client.js';
 import { AuditService } from '../audit/audit.service.js';
-import { asIllustrationKey } from '../catalog/catalog.mapper.js';
+import { asIllustrationKey, coverImageDto, type CoverColumns } from '../catalog/catalog.mapper.js';
 import { ApiException } from '../common/errors/api-exception.js';
+import type { Env } from '../config/env.js';
+import {
+  deleteStoredImage,
+  imageStore,
+  type ImageStore,
+  storeImage,
+  taxonomyImagePrefix,
+} from '../media/image-processing.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
 import { nullable, toAdminTranslation, translationRows, type Actor } from './admin-support.js';
+import { taxonomyReadiness } from './readiness.js';
+import { uploadError } from './uploads.js';
 
 export type TaxonomyKind = 'category' | 'collection';
 type TaxonomyPayload = z.output<typeof taxonomyUpsertSchema>;
@@ -24,15 +35,17 @@ interface TranslationRow {
   body?: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  imageAlt: string | null;
 }
 
-interface TaxonomyRow {
+interface TaxonomyRow extends CoverColumns {
   id: string;
   slug: string;
   position: number;
   isActive: boolean;
   illustrationKey: string | null;
   parentId?: string | null;
+  productTypeId?: string | null;
   translations: TranslationRow[];
   _count: { products: number; children?: number };
 }
@@ -48,11 +61,105 @@ const ENTITY = { category: 'Category', collection: 'Collection' } as const;
  */
 @Injectable()
 export class AdminTaxonomyService {
+  private readonly images: ImageStore;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationService,
-  ) {}
+    config: ConfigService<Env, true>,
+  ) {
+    this.images = imageStore({
+      uploadsDir: config.get('UPLOADS_DIR', { infer: true }),
+      blobToken: config.get('BLOB_READ_WRITE_TOKEN', { infer: true }),
+    });
+  }
+
+  /**
+   * Sets the cover picture (cards, menus, the listing header; small renditions serve as the
+   * thumbnail). The previous picture's files are removed once the change is committed.
+   */
+  async setImage(
+    kind: TaxonomyKind,
+    id: string,
+    file: Buffer,
+    actor: Actor,
+  ): Promise<AdminTaxonomy> {
+    const previous = await this.coverKey(kind, id);
+    let stored;
+    try {
+      stored = await storeImage(file, this.images, taxonomyImagePrefix(kind, id));
+    } catch (error) {
+      uploadError(error);
+    }
+    const data = {
+      imageKey: stored.storageKey,
+      imageWidths: stored.widths,
+      imageWidth: stored.width,
+      imageHeight: stored.height,
+      imageTransparent: stored.transparent,
+    };
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        if (kind === 'category') await tx.category.update({ where: { id }, data });
+        else await tx.collection.update({ where: { id }, data });
+        await this.audit.record(
+          {
+            actorUserId: actor.userId,
+            action: `${kind}.image`,
+            entityType: ENTITY[kind],
+            entityId: id,
+            ipAddress: actor.ipAddress,
+          },
+          tx,
+        );
+      });
+    } catch (error) {
+      await deleteStoredImage(this.images, stored.storageKey);
+      throw error;
+    }
+    if (previous) await deleteStoredImage(this.images, previous);
+    this.revalidation.notify('catalog');
+    return this.get(kind, id);
+  }
+
+  /** Removes the cover picture: the storefront then shows the neutral TERAN visual. */
+  async removeImage(kind: TaxonomyKind, id: string, actor: Actor): Promise<AdminTaxonomy> {
+    const previous = await this.coverKey(kind, id);
+    const data = {
+      imageKey: null,
+      imageWidths: [],
+      imageWidth: null,
+      imageHeight: null,
+      imageTransparent: false,
+    };
+    await this.prisma.$transaction(async (tx) => {
+      if (kind === 'category') await tx.category.update({ where: { id }, data });
+      else await tx.collection.update({ where: { id }, data });
+      await this.audit.record(
+        {
+          actorUserId: actor.userId,
+          action: `${kind}.image.remove`,
+          entityType: ENTITY[kind],
+          entityId: id,
+          ipAddress: actor.ipAddress,
+        },
+        tx,
+      );
+    });
+    if (previous) await deleteStoredImage(this.images, previous);
+    this.revalidation.notify('catalog');
+    return this.get(kind, id);
+  }
+
+  private async coverKey(kind: TaxonomyKind, id: string): Promise<string | null> {
+    const row =
+      kind === 'category'
+        ? await this.prisma.category.findUnique({ where: { id }, select: { imageKey: true } })
+        : await this.prisma.collection.findUnique({ where: { id }, select: { imageKey: true } });
+    if (!row) throw ApiException.notFound();
+    return row.imageKey;
+  }
 
   async list(kind: TaxonomyKind): Promise<AdminTaxonomy[]> {
     const orderBy = [{ position: 'asc' as const }, { slug: 'asc' as const }];
@@ -80,7 +187,12 @@ export class AdminTaxonomyService {
       const created =
         kind === 'category'
           ? await tx.category.create({
-              data: { ...this.fields(input), parentId: input.parentId, translations },
+              data: {
+                ...this.fields(input),
+                parentId: input.parentId,
+                productTypeId: input.productTypeId ?? null,
+                translations,
+              },
               select: { id: true },
             })
           : await tx.collection.create({
@@ -133,7 +245,12 @@ export class AdminTaxonomyService {
       if (kind === 'category') {
         await tx.category.update({
           where: { id },
-          data: { ...this.fields(input), parentId: input.parentId },
+          data: {
+            ...this.fields(input),
+            parentId: input.parentId,
+            // Left out by the request: the current default type stays.
+            ...(input.productTypeId === undefined ? {} : { productTypeId: input.productTypeId }),
+          },
         });
         await tx.categoryTranslation.deleteMany({
           where: { categoryId: id, locale: { notIn: locales } },
@@ -183,6 +300,7 @@ export class AdminTaxonomyService {
    * Redirects to the removed entity are removed with it.
    */
   async remove(kind: TaxonomyKind, id: string, actor: Actor): Promise<void> {
+    const cover = await this.coverKey(kind, id);
     await this.prisma.$transaction(async (tx) => {
       if (kind === 'category') {
         const products = await tx.product.count({ where: { categoryId: id } });
@@ -219,6 +337,7 @@ export class AdminTaxonomyService {
         tx,
       );
     });
+    if (cover) await deleteStoredImage(this.images, cover);
     this.revalidation.notify('catalog');
   }
 
@@ -260,11 +379,17 @@ export class AdminTaxonomyService {
         },
       );
     }
-    if (input.parentId === null) return;
-    const invalid = (code: string, message: string) =>
+    const invalid = (code: string, message: string, path = 'parentId') =>
       new ApiException(HttpStatus.BAD_REQUEST, 'VALIDATION_FAILED', message, {
-        issues: [{ path: 'parentId', code, message: code }],
+        issues: [{ path, code, message: code }],
       });
+    if (
+      input.productTypeId &&
+      (await tx.productType.count({ where: { id: input.productTypeId } })) === 0
+    ) {
+      throw invalid('type_not_found', 'The product type does not exist', 'productTypeId');
+    }
+    if (input.parentId === null) return;
     if (input.parentId === id) throw invalid('parent_self', 'A category cannot contain itself');
     const parent = await tx.category.findUnique({
       where: { id: input.parentId },
@@ -306,10 +431,13 @@ export class AdminTaxonomyService {
       ...(kind === 'category' ? { body: nullable(row.body) } : {}),
       seoTitle: nullable(row.seoTitle),
       seoDescription: nullable(row.seoDescription),
+      imageAlt: nullable(row.imageAlt),
     }));
   }
 
   private toDto(row: TaxonomyRow): AdminTaxonomy {
+    const uz = row.translations.find((translation) => translation.locale === 'uz');
+    const kind = row.parentId !== undefined ? 'category' : 'collection';
     return {
       id: row.id,
       slug: row.slug,
@@ -319,13 +447,24 @@ export class AdminTaxonomyService {
       productCount: row._count.products,
       parentId: row.parentId ?? null,
       childCount: row._count.children ?? 0,
+      productTypeId: row.productTypeId ?? null,
+      image: coverImageDto(row, uz?.imageAlt ?? uz?.name ?? row.slug),
       translations: toAdminTranslation(row.translations, (translation) => ({
         name: translation.name,
         description: translation.description ?? undefined,
         body: translation.body ?? undefined,
         seoTitle: translation.seoTitle ?? undefined,
         seoDescription: translation.seoDescription ?? undefined,
+        imageAlt: translation.imageAlt ?? undefined,
       })),
+      readiness: taxonomyReadiness({
+        kind,
+        slug: row.slug,
+        // The tree rules are enforced on every save (checkCategory), so a stored parent is valid.
+        parentValid: true,
+        hasImage: row.imageKey !== null,
+        translations: row.translations,
+      }),
     };
   }
 }

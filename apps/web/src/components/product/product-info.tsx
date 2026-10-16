@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, namesFormat } from '@/lib/format';
 
 function Disclosure({
   title,
@@ -16,7 +16,7 @@ function Disclosure({
   open?: boolean;
 }) {
   return (
-    <details open={open} className="group border-b border-line">
+    <details open={open} data-disclose className="group border-b border-line">
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 text-title text-fg transition-colors hover:text-brand [&::-webkit-details-marker]:hidden">
         {title}
         <ChevronDown
@@ -110,8 +110,12 @@ export async function ProductInfo({ product }: { product: ProductDetailDto }) {
 
       <Disclosure title={t('details')}>
         <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2.5 text-body-sm">
-          <dt className="text-fg-subtle">{t('format')}</dt>
-          <dd>{tc(`formats.${product.format}`)}</dd>
+          {namesFormat(product.format) ? (
+            <>
+              <dt className="text-fg-subtle">{t('format')}</dt>
+              <dd>{tc(`formats.${product.format}`)}</dd>
+            </>
+          ) : null}
           {product.origin ? (
             <>
               <dt className="text-fg-subtle">{t('origin')}</dt>

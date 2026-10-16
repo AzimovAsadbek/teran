@@ -13,9 +13,12 @@ import {
   type ImageDto,
 } from './catalog.js';
 import type { Locale, ProductFormat } from './constants.js';
+import { MEDIA_VIDEO_TYPES, mediaKindSchema, type MediaKind } from './content.js';
+import type { AdminTelegramStatus, Readiness, ReadinessCode } from './publishing.js';
 import { inquiryStatusSchema, type BusinessType, type InquiryStatus } from './inquiries.js';
 import {
   orderStatusSchema,
+  paymentStatusSchema,
   type OrderStatus,
   type PaymentMethod,
   type PaymentProviderCode,
@@ -28,7 +31,8 @@ export const PRODUCT_STATUSES = ['DRAFT', 'ACTIVE', 'ARCHIVED'] as const;
 export const productStatusSchema = z.enum(PRODUCT_STATUSES);
 export type ProductStatus = z.infer<typeof productStatusSchema>;
 
-export const ARTICLE_STATUSES = ['DRAFT', 'PUBLISHED'] as const;
+/** Articles and gallery items. ARCHIVED takes an item off the site and out of the default lists. */
+export const ARTICLE_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const;
 export const articleStatusSchema = z.enum(ARTICLE_STATUSES);
 export type ArticleStatus = z.infer<typeof articleStatusSchema>;
 
@@ -133,6 +137,8 @@ export const productUpsertSchema = z
     productTypeId: z.uuid().nullable().default(null),
     /** Values for the product type's attributes; validated against the definitions by the API. */
     attributes: z.array(productAttributeInputSchema).max(40).default([]),
+    /** Announce the product on the Telegram channel when it is published (once). */
+    announceOnTelegram: z.boolean().default(false),
     translations: localizedInput(productTranslationInputSchema),
     variants: z.array(variantInputSchema).min(1).max(20),
   })
@@ -164,6 +170,17 @@ export const adminProductListQuerySchema = z.object({
 
 export const imageReorderSchema = z.object({ imageIds: z.array(z.uuid()).min(1).max(30) });
 
+/** Most images a product can have. */
+export const MAX_PRODUCT_IMAGES = 12;
+
+/** Alternative text of one image per language (empty: the product's name is read instead). */
+export const imageAltInputSchema = z.object({
+  uz: optionalText(200),
+  ru: optionalText(200),
+  en: optionalText(200),
+});
+export type ImageAltInput = z.input<typeof imageAltInputSchema>;
+
 // ─── Categories & collections ───────────────────────────────────────────────
 
 export const taxonomyTranslationInputSchema = z.object({
@@ -173,6 +190,8 @@ export const taxonomyTranslationInputSchema = z.object({
   body: optionalText(4000),
   seoTitle: optionalText(70),
   seoDescription: optionalText(170),
+  /** Alternative text of the cover picture (empty: the name is read instead). */
+  imageAlt: optionalText(200),
 });
 
 export const taxonomyUpsertSchema = z.object({
@@ -182,6 +201,11 @@ export const taxonomyUpsertSchema = z.object({
   illustrationKey: illustrationKeySchema.nullable(),
   /** Categories only: the top-level category this one belongs to (null = top level). */
   parentId: z.uuid().nullable().default(null),
+  /**
+   * Categories only: the product type new products in the category start with (null = none).
+   * Left out, the current one is kept.
+   */
+  productTypeId: z.uuid().nullable().optional(),
   translations: localizedInput(taxonomyTranslationInputSchema),
 });
 export type TaxonomyUpsertInput = z.input<typeof taxonomyUpsertSchema>;
@@ -237,6 +261,11 @@ export const productTypeUpsertSchema = z
     key: attributeKeySchema,
     isActive: z.boolean(),
     position: z.number().int().min(0).max(10_000),
+    /**
+     * Products of the type have brewing guidance and a caffeine level (the product form offers
+     * those fields). Left out, a new type has none and an existing one keeps its setting.
+     */
+    brewingGuide: z.boolean().optional(),
     translations: localizedInput(z.object({ name: z.string().trim().min(2).max(60) })),
     /** The complete, ordered attribute list; attributes left out are removed (if unused). */
     attributes: z.array(attributeDefinitionInputSchema).max(40),
@@ -275,6 +304,7 @@ export const inventoryListQuerySchema = z.object({
 export const adminOrderListQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   status: orderStatusSchema.optional(),
+  paymentStatus: paymentStatusSchema.optional(),
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
   page: z.coerce.number().int().min(1).max(10_000).default(1),
@@ -352,15 +382,94 @@ export const articleTranslationInputSchema = z.object({
   body: z.string().trim().min(20).max(20_000),
   seoTitle: optionalText(70),
   seoDescription: optionalText(170),
+  /** Alternative text of the cover picture (empty: the title is read instead). */
+  coverAlt: optionalText(200),
 });
+
+/** Gallery items an article may show. */
+export const MAX_ARTICLE_MEDIA = 12;
 
 export const articleUpsertSchema = z.object({
   slug: slugSchema,
   status: articleStatusSchema,
   illustrationKey: illustrationKeySchema.nullable(),
+  /** Shown first in the home page's journal section. */
+  isFeatured: z.boolean().default(false),
+  /** Announce the article on the Telegram channel when it is published (once). */
+  announceOnTelegram: z.boolean().default(false),
+  /**
+   * Publication date. Left out: set automatically on first publication. A future date schedules
+   * the article (it stays off the site until then).
+   */
+  publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  /**
+   * Gallery items (photographs, films) shown with the article, in order. Left out: unchanged.
+   * Items are reused from the gallery; only published ones appear on the article page.
+   */
+  mediaIds: z
+    .array(z.uuid())
+    .max(MAX_ARTICLE_MEDIA)
+    .refine((ids) => new Set(ids).size === ids.length, { error: 'duplicate' })
+    .optional(),
   translations: localizedInput(articleTranslationInputSchema),
 });
 export type ArticleUpsertInput = z.input<typeof articleUpsertSchema>;
+
+// ─── Media ("Lavhalar") ─────────────────────────────────────────────────────
+
+export const mediaTranslationInputSchema = z.object({
+  title: z.string().trim().min(2).max(120),
+  caption: optionalText(400),
+  /** Describes the photograph or poster for screen readers; the title is used when empty. */
+  altText: optionalText(200),
+});
+
+export const mediaUpsertSchema = z.object({
+  kind: mediaKindSchema,
+  status: articleStatusSchema,
+  /** Shown in the home page's media section. */
+  isFeatured: z.boolean(),
+  /** Seconds, shown on video tiles; optional. */
+  videoDurationSeconds: z.number().int().min(1).max(3600).nullable(),
+  translations: localizedInput(mediaTranslationInputSchema),
+});
+export type MediaUpsertInput = z.input<typeof mediaUpsertSchema>;
+
+/** The new order of one kind's items (photographs and films are ordered separately). */
+export const mediaReorderSchema = z.object({
+  kind: mediaKindSchema,
+  ids: z.array(z.uuid()).min(1).max(500),
+});
+
+export const adminMediaListQuerySchema = z.object({ kind: mediaKindSchema.optional() });
+
+/**
+ * A film uploaded straight from the browser to the file store (object storage only), so a large
+ * file never passes through the API: the API grants a short-lived permission for one file, then
+ * checks what arrived.
+ */
+export const mediaDirectUploadSchema = z.object({
+  type: z.enum(MEDIA_VIDEO_TYPES),
+  bytes: z.number().int().positive(),
+});
+export const mediaDirectUploadCompleteSchema = z.object({
+  pathname: z.string().min(1).max(200),
+});
+
+/** How large a film the admin area may upload, and how. */
+export interface AdminMediaUploadLimits {
+  /** Through the API in one request (a serverless deployment caps request bodies at 4.5 MB). */
+  multipartVideoBytes: number;
+  /** Straight to the file store; null when no object storage is configured. */
+  directVideoBytes: number | null;
+}
+
+export interface AdminDirectUpload {
+  /** Where the file goes in the store: `<key>/video.mp4` or `<key>/video.webm`. */
+  pathname: string;
+  /** Allows exactly this upload (type, size, place) for a short time. */
+  clientToken: string;
+}
 
 // ─── Staff accounts ─────────────────────────────────────────────────────────
 
@@ -392,6 +501,8 @@ export interface AdminProductListItem {
   image: ImageDto | null;
   illustrationKey: IllustrationKey | null;
   updatedAt: string;
+  /** Required readiness items that are not met (empty: complete). */
+  missing: ReadinessCode[];
 }
 
 export interface AdminVariant {
@@ -431,9 +542,20 @@ export interface AdminProductDetail {
   collectionIds: string[];
   translations: AdminTranslation<z.output<typeof productTranslationInputSchema>>;
   variants: AdminVariant[];
-  images: (ImageDto & { id: string })[];
+  /** In display order: the first is the main image. */
+  images: AdminProductImage[];
+  announceOnTelegram: boolean;
+  /** The Telegram announcement, once one exists. */
+  telegram: AdminTelegramStatus | null;
+  readiness: Readiness;
   publishedAt: string | null;
   updatedAt: string;
+}
+
+export interface AdminProductImage extends ImageDto {
+  id: string;
+  /** Alternative text per language as entered (null: the product's name is read). */
+  altTexts: { uz: string | null; ru: string | null; en: string | null };
 }
 
 export interface AdminTaxonomy {
@@ -446,7 +568,12 @@ export interface AdminTaxonomy {
   /** Categories only. */
   parentId: string | null;
   childCount: number;
+  /** Categories only: the product type new products start with. */
+  productTypeId: string | null;
+  /** The cover picture; null shows the neutral TERAN visual on the storefront. */
+  image: ImageDto | null;
   translations: AdminTranslation<z.output<typeof taxonomyTranslationInputSchema>>;
+  readiness: Readiness;
 }
 
 export interface AdminAttributeOption {
@@ -478,6 +605,8 @@ export interface AdminProductType {
   key: string;
   isActive: boolean;
   position: number;
+  /** Products of this type have brewing guidance and a caffeine level. */
+  brewingGuide: boolean;
   productCount: number;
   translations: AdminTranslation<{ name: string }>;
   attributes: AdminAttribute[];
@@ -672,20 +801,63 @@ export interface AdminDeliveryMethod {
   translations: AdminTranslation<z.output<typeof deliveryMethodTranslationInputSchema>>;
 }
 
+/** A gallery item chosen for an article, as the editor lists it. */
+export interface AdminArticleMedia {
+  id: string;
+  kind: MediaKind;
+  status: ArticleStatus;
+  title: string;
+  image: ImageDto | null;
+}
+
 export interface AdminArticle {
   id: string;
   slug: string;
   status: ArticleStatus;
   illustrationKey: IllustrationKey | null;
+  cover: ImageDto | null;
+  /** Gallery items shown with the article, in order. */
+  media: AdminArticleMedia[];
+  isFeatured: boolean;
+  announceOnTelegram: boolean;
+  telegram: AdminTelegramStatus | null;
   publishedAt: string | null;
   updatedAt: string;
   translations: AdminTranslation<z.output<typeof articleTranslationInputSchema>>;
+  readiness: Readiness;
+}
+
+export interface AdminMediaItem {
+  id: string;
+  kind: MediaKind;
+  status: ArticleStatus;
+  isFeatured: boolean;
+  position: number;
+  /** The photograph or the poster; null until one is uploaded. */
+  image: ImageDto | null;
+  /** The uploaded video file (videos only). */
+  video: { src: string; type: string; bytes: number } | null;
+  videoDurationSeconds: number | null;
+  /** Subtitles (WebVTT) for a video, when uploaded. */
+  captions: { src: string } | null;
+  publishedAt: string | null;
+  updatedAt: string;
+  translations: AdminTranslation<z.output<typeof mediaTranslationInputSchema>>;
+  readiness: Readiness;
 }
 
 export interface SalesDay {
   date: string;
   orders: number;
   revenue: Money;
+}
+
+/** Work waiting for staff: shown as navigation badges and as the dashboard's to-do list. */
+export interface AdminBadges {
+  ordersByStatus: Record<OrderStatus, number>;
+  newInquiries: { contact: number; wholesale: number };
+  /** Active pack sizes at or below their low-stock level. */
+  lowStock: number;
 }
 
 export interface AdminDashboard {

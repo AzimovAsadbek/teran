@@ -1,5 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import { E2E_ADMIN } from '../scripts/e2e-env.ts';
+
+/** A real TERAN picture (the packaging art) to upload as a photograph. */
+const PHOTO = fileURLToPath(
+  new URL('../../apps/web/public/brand/art/terraces.webp', import.meta.url),
+);
 
 function visible(locator: Locator): Locator {
   return locator.filter({ visible: true }).first();
@@ -74,14 +80,49 @@ test.describe('administration', () => {
     const slug = `e2e-tea-${Date.now()}`;
     const sku = `E2E-${Date.now()}`;
     await field(page, 'Name').first().fill('E2E Admin Tea');
-    await field(page, 'Status').selectOption('ACTIVE');
+    // A new product starts without a category: staff choose one.
+    await field(page, 'Category').selectOption({ index: 1 });
     await field(page, 'URL slug').fill(slug);
     await field(page, 'SKU').fill(sku);
     await field(page, 'Price').fill('61000');
     await field(page, /^Weight/).fill('100');
     await field(page, 'Initial stock').fill('5');
+
+    // It cannot go on sale without a picture, and the editor says what is missing.
+    await field(page, 'Status').selectOption('ACTIVE');
+    await page.getByRole('button', { name: 'Create' }).click();
+    await expect(
+      visible(page.getByText(/Can’t publish yet — missing: .*Main image/)),
+    ).toBeVisible();
+    await field(page, 'Status').selectOption('DRAFT');
     await page.getByRole('button', { name: 'Create' }).click();
     await expect(visible(page.getByText('Product created.'))).toBeVisible();
+    await expect(page).toHaveURL(/\/en\/admin\/products\/[0-9a-f-]{36}\?created=1$/);
+
+    // The picture is previewed before it is sent, then becomes the main image.
+    await page.locator('input[type="file"][multiple]').setInputFiles(PHOTO);
+    await expect(visible(page.getByText('Ready', { exact: true }))).toBeVisible();
+    await page.getByRole('button', { name: 'Upload 1 image' }).click();
+    await expect(visible(page.locator('main ol img[src*="/uploads/"]'))).toBeVisible();
+    await expect(visible(page.getByText('Main image', { exact: true }))).toBeVisible();
+
+    // Published, and announced on Telegram — in this stack a dry run that sends nothing.
+    await field(page, 'Status').selectOption('ACTIVE');
+    await page
+      .getByRole('checkbox', { name: 'Announce on the Telegram channel when it goes on sale' })
+      .check();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(visible(page.getByText('Saved', { exact: true }))).toBeVisible();
+    await expect(async () => {
+      await page.reload();
+      await expect(visible(page.getByText('Test: not sent'))).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+    await page.getByRole('button', { name: 'Preview the post' }).click();
+    const post = page.getByRole('dialog', { name: 'Telegram post' });
+    await expect(post.getByText(/61 000/)).toBeVisible();
+    await expect(post.getByRole('link')).toHaveAttribute('href', new RegExp(`/products/${slug}$`));
+    await expect(post.getByText('This item has already been announced.')).toBeVisible();
+    await post.getByRole('button', { name: 'Close' }).click();
 
     const store = await page.context().newPage();
     await store.goto(`/en/products/${slug}`);
@@ -93,27 +134,76 @@ test.describe('administration', () => {
 
     // Restock through the ledger.
     await page.goto(`/en/admin/inventory?q=${sku}`);
-    await visible(page.getByRole('button', { name: 'Adjust' })).click();
+    await visible(page.getByRole('button', { name: 'Adjust stock' })).click();
     const adjust = page.getByRole('dialog');
-    await adjust.getByLabel('Change').fill('7');
-    await adjust.getByRole('button', { name: 'Save' }).click();
+    await expect(adjust.getByRole('radio', { name: 'Stock in (+)' })).toBeChecked();
+    await adjust.getByLabel('Quantity').fill('7');
+    await adjust.getByRole('button', { name: 'Save stock in' }).click();
     await expect(visible(page.getByRole('cell', { name: '12', exact: true }))).toBeVisible();
 
     // A customer orders it; staff confirm, deliver and record the cash.
     const number = await placeGuestOrder(browser, slug);
     await page.goto(`/en/admin/orders?q=${number}`);
     await page.getByRole('link', { name: number }).click();
-    await page.getByRole('button', { name: 'Mark as “Confirmed”' }).click();
-    await expect(
-      visible(page.getByRole('button', { name: 'Mark as “Being prepared”' })),
-    ).toBeVisible();
-    for (const status of ['Being prepared', 'On its way', 'Delivered']) {
-      await page.getByRole('button', { name: `Mark as “${status}”` }).click();
-      await expect(page.getByRole('button', { name: `Mark as “${status}”` })).toHaveCount(0);
+    // Every step is confirmed in a dialog that names the same action.
+    for (const step of ['Confirm order', 'Start packing', 'Mark as sent', 'Mark as delivered']) {
+      await visible(page.getByRole('main').getByRole('button', { name: step })).click();
+      await page.getByRole('dialog').getByRole('button', { name: step }).click();
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByRole('main').getByRole('button', { name: step })).toHaveCount(0);
     }
     await page.getByRole('button', { name: 'Record cash payment' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Record cash payment' }).click();
     await expect(visible(page.getByText('Paid'))).toBeVisible();
     await expect(visible(page.getByText('This order is closed.'))).toBeVisible();
+  });
+  test('publishes a photograph to the gallery, then removes it', async ({ page }) => {
+    await signInAsAdmin(page);
+    await page.getByRole('link', { name: 'Gallery' }).click();
+    // Photos and videos are separate lists, each with its own "new" button.
+    await expect(
+      visible(page.getByRole('navigation', { name: 'Type' }).getByRole('link', { name: /Photos/ })),
+    ).toHaveAttribute('aria-current', 'page');
+    await page.getByRole('link', { name: 'New photo' }).click();
+    const title = `E2E photograph ${Date.now()}`;
+    await field(page, 'Title').fill(title);
+    await page.getByRole('button', { name: 'Create' }).click();
+    await expect(page).toHaveURL(/\/en\/admin\/media\/[0-9a-f-]{36}$/);
+
+    // Publishing waits for the photograph, which is previewed before it is uploaded.
+    const status = field(page, 'Status');
+    await expect(status.locator('option[value="PUBLISHED"]')).toBeDisabled();
+    await page.locator('input[type="file"][accept^="image/"]').setInputFiles(PHOTO);
+    await expect(visible(page.getByText('Not uploaded yet'))).toBeVisible();
+    await visible(page.getByRole('button', { name: 'Upload', exact: true })).click();
+    // (Pages visited before stay in the document, hidden: only the visible preview counts.)
+    await expect(visible(page.locator('main img[src*="/uploads/media/"]'))).toBeVisible();
+    await expect(status.locator('option[value="PUBLISHED"]')).toBeEnabled();
+    await status.selectOption('PUBLISHED');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+    const store = await page.context().newPage();
+    const tile = () => store.getByRole('button', { name: `${title} — enlarge` });
+    /** The photos page streams in after it loads: wait for it before looking at the tiles. */
+    const openGallery = async () => {
+      await store.goto('/en/media/photos');
+      await expect(store.getByRole('navigation', { name: 'Kind of media' })).toBeVisible();
+    };
+    await expect(async () => {
+      await openGallery();
+      await expect(tile()).toHaveCount(1, { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+    await tile().click();
+    await expect(store.getByRole('dialog', { name: title })).toBeVisible();
+    await store.keyboard.press('Escape');
+
+    await page.getByRole('button', { name: 'Delete item' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete item' }).click();
+    await expect(page).toHaveURL(/\/en\/admin\/media$/);
+    await expect(async () => {
+      await openGallery();
+      await expect(tile()).toHaveCount(0, { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+    await store.close();
   });
 });

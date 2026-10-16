@@ -4,6 +4,7 @@ import {
   adminOrderListQuerySchema,
   paginationQuerySchema,
   type AdminAuditEntry,
+  type AdminBadges,
   type AdminDashboard,
   type Paginated,
   type PaginationQuery,
@@ -27,6 +28,14 @@ export class AdminDashboardController {
   @ApiOkResponse({ description: 'AdminDashboard' })
   overview(): Promise<AdminDashboard> {
     return this.dashboard.dashboard();
+  }
+
+  @Get('badges')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'Counts of orders by status, new inquiries and low-stock pack sizes' })
+  @ApiOkResponse({ description: 'AdminBadges' })
+  badges(): Promise<AdminBadges> {
+    return this.dashboard.badges();
   }
 
   @Get('reports/orders.csv')

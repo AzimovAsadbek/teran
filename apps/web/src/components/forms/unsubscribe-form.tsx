@@ -19,6 +19,7 @@ export function UnsubscribeForm({ id, token }: { id: string; token: string }) {
 
   return (
     <form
+      method="post"
       ref={formRef}
       onSubmit={(event) => {
         event.preventDefault();

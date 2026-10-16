@@ -30,6 +30,8 @@ export interface DemoCategory {
   slug: string;
   /** Top-level category this one belongs to (categories have two levels). */
   parent?: string;
+  /** Product type new products start with (top-level categories; subcategories use the parent's). */
+  productType?: string;
   illustrationKey: string;
   name: Localized<string>;
   description: Localized<string>;
@@ -59,9 +61,10 @@ export interface DemoProduct {
   art: { style: ArtStyle; shape: PackShape; accent?: ArtAccent };
   /**
    * Images rendered from the real pack (assets/packaging, made by
-   * apps/web/scripts/packaging); used instead of the code-drawn art.
+   * apps/web/scripts/packaging); used instead of the code-drawn art. `cutout` is the front on a
+   * transparent background, for the home page stage.
    */
-  packaging?: { front: string; back: string };
+  packaging?: { front: string; back: string; cutout?: string };
   name: Localized<string>;
   shortDescription: Localized<string>;
   description: Localized<string>;
@@ -246,6 +249,7 @@ export const EARLIER_DEMO_COPY: {
 export const DEMO_CATEGORIES: DemoCategory[] = [
   {
     slug: 'tea',
+    productType: 'tea',
     illustrationKey: 'green',
     name: { uz: 'Choy', ru: 'Чай', en: 'Tea' },
     description: {
@@ -312,6 +316,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'gift-sets',
+    productType: 'gift-set',
     illustrationKey: 'gift',
     name: { uz: 'Sovgʻa toʻplamlari', ru: 'Подарочные наборы', en: 'Gift sets' },
     description: {
@@ -381,7 +386,11 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 30,
     brewing: PACK_BREW,
     art: { style: 'green', shape: 'box' },
-    packaging: { front: 'xc2025-front.webp', back: 'xc2025-back.webp' },
+    packaging: {
+      front: 'xc2025-front.webp',
+      back: 'xc2025-back.webp',
+      cutout: 'xc2025-cutout.webp',
+    },
     ...packagedCopy('XC2025'),
     variants: [{ sku: 'TRN-XC2025-400', weightGrams: 400, price: '189000', stock: 24 }],
   },
@@ -395,7 +404,11 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 36,
     brewing: PACK_BREW,
     art: { style: 'green', shape: 'box' },
-    packaging: { front: 'g8810-front.webp', back: 'g8810-back.webp' },
+    packaging: {
+      front: 'g8810-front.webp',
+      back: 'g8810-back.webp',
+      cutout: 'g8810-cutout.webp',
+    },
     ...packagedCopy('G8810'),
     variants: [{ sku: 'TRN-G8810-400', weightGrams: 400, price: '179000', stock: 30 }],
   },
@@ -425,7 +438,11 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 28,
     brewing: PACK_BREW,
     art: { style: 'green', shape: 'box' },
-    packaging: { front: '8830-front.webp', back: '8830-back.webp' },
+    packaging: {
+      front: '8830-front.webp',
+      back: '8830-back.webp',
+      cutout: '8830-cutout.webp',
+    },
     ...packagedCopy('8830'),
     variants: [{ sku: 'TRN-8830-400', weightGrams: 400, price: '199000', stock: 12 }],
   },
@@ -440,7 +457,11 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 26,
     brewing: PACK_BREW,
     art: { style: 'green', shape: 'box' },
-    packaging: { front: '8009-front.webp', back: '8009-back.webp' },
+    packaging: {
+      front: '8009-front.webp',
+      back: '8009-back.webp',
+      cutout: '8009-cutout.webp',
+    },
     ...packagedCopy('8009'),
     variants: [
       {
@@ -923,6 +944,8 @@ export interface DemoAttribute {
 export interface DemoProductType {
   key: string;
   name: Localized<string>;
+  /** Products of the type have brewing guidance and a caffeine level. */
+  brewingGuide: boolean;
   attributes: DemoAttribute[];
 }
 
@@ -935,6 +958,7 @@ export const DEMO_PRODUCT_TYPES: DemoProductType[] = [
   {
     key: 'tea',
     name: { uz: 'Choy', ru: 'Чай', en: 'Tea' },
+    brewingGuide: true,
     attributes: [
       {
         key: 'leaf-style',
@@ -962,6 +986,7 @@ export const DEMO_PRODUCT_TYPES: DemoProductType[] = [
   {
     key: 'gift-set',
     name: { uz: 'Sovgʻa toʻplami', ru: 'Подарочный набор', en: 'Gift set' },
+    brewingGuide: false,
     attributes: [
       {
         key: 'teas-in-set',

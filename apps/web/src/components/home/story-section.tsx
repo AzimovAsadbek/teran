@@ -1,6 +1,7 @@
 import type { Locale } from '@teran/contracts';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
+import { BotanicalLayer } from '@/components/brand/botanical';
 import { MoonGate } from '@/components/brand/ornaments';
 import { ButtonLink } from '@/components/ui/button';
 import { Reveal } from '@/components/ui/reveal';
@@ -17,12 +18,18 @@ export async function StorySection() {
   const { philosophy } = brandCopy[locale];
 
   return (
-    <section aria-labelledby="philosophy-title" className="border-y border-line-subtle bg-surface">
+    <section
+      aria-labelledby="philosophy-title"
+      className="relative isolate overflow-x-clip border-y border-line-subtle bg-surface"
+    >
+      {/* Two faint leaves in the far corners, beyond the gate and the text (wide screens). */}
+      <BotanicalLayer scene="storyEdges" className="-z-10" />
       <Reveal className="container-page grid grid-cols-1 items-center gap-12 py-section lg:grid-cols-12 lg:gap-16">
-        <MoonGate
-          sizes="(min-width: 1024px) 26rem, 20rem"
-          className="mx-auto w-full max-w-[20rem] lg:col-span-5 lg:max-w-[26rem]"
-        />
+        {/* Warm light behind the gate, ground mist and a sprig resting against its rim. */}
+        <div className="relative isolate mx-auto w-full max-w-[20rem] lg:col-span-5 lg:max-w-[26rem]">
+          <BotanicalLayer scene="story" className="-z-10" />
+          <MoonGate sizes="(min-width: 1024px) 26rem, 20rem" className="w-full" />
+        </div>
         <div className="lg:col-span-7">
           <p className="text-eyebrow text-accent-fg">{t('storyEyebrow')}</p>
           <h2 id="philosophy-title" className="mt-4 max-w-[20ch] text-display-lg text-forest-900">

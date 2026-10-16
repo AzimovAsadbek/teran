@@ -127,6 +127,37 @@ const envObjectSchema = z.object({
 
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
+
+  /**
+   * Telegram channel announcements (docs/architecture/telegram.md). disabled: nothing is composed
+   * or sent. dry-run: posts are composed and recorded as sent, but Telegram is never contacted
+   * (safe for testing). live: posts go to TELEGRAM_CHANNEL_ID through the bot TELEGRAM_BOT_TOKEN.
+   */
+  TELEGRAM_MODE: z.enum(['disabled', 'dry-run', 'live']).default('disabled'),
+  /** From @BotFather; server-side only, never logged or sent to browsers. */
+  TELEGRAM_BOT_TOKEN: z
+    .string()
+    .regex(/^\d{5,15}:[A-Za-z0-9_-]{30,}$/, { error: 'not a bot token (123456:ABC…)' })
+    .optional(),
+  /** The channel: its public @username or numeric id (-100…). The bot must be an administrator. */
+  TELEGRAM_CHANNEL_ID: z
+    .string()
+    .regex(/^(?:@[A-Za-z0-9_]{5,32}|-?\d{5,20})$/, { error: 'use @username or the numeric id' })
+    .optional(),
+  /** Bot API address; integration tests point it at a local mock server. */
+  TELEGRAM_API_BASE: z.url({ protocol: /^https?$/ }).default('https://api.telegram.org'),
+  /** Language of the channel's posts. */
+  TELEGRAM_POST_LOCALE: z.enum(['uz', 'ru', 'en']).default('uz'),
+
+  /**
+   * Product advisor (docs/architecture/product-advisor.md). With a key, an AI model reads the
+   * visitor's request and searches the catalogue through the advisor's tools; without one, the
+   * advisor answers with rule-based matching ("basic" mode). Server-side only.
+   */
+  ANTHROPIC_API_KEY: z.string().min(20).optional(),
+  ASSISTANT_MODEL: z.string().trim().min(3).max(100).default('claude-opus-5-5'),
+  /** Messages API address; integration tests point it at a local mock server. */
+  ASSISTANT_API_BASE: z.url({ protocol: /^https?$/ }).default('https://api.anthropic.com'),
 });
 
 export const envSchema = z
@@ -184,6 +215,8 @@ export const envSchema = z
         'CRON_SECRET',
         'PAYME_KEY',
         'CLICK_SECRET_KEY',
+        'TELEGRAM_BOT_TOKEN',
+        'ANTHROPIC_API_KEY',
       ] as const) {
         if (env[key]?.includes('replace-with')) {
           ctx.addIssue({
@@ -235,6 +268,13 @@ export const envSchema = z
         code: 'custom',
         path: ['SMTP_HOST'],
         message: 'SMTP_HOST and MAIL_FROM are required for smtp',
+      });
+    }
+    if (env.TELEGRAM_MODE === 'live' && (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHANNEL_ID)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TELEGRAM_MODE'],
+        message: '"live" needs TELEGRAM_BOT_TOKEN and TELEGRAM_CHANNEL_ID',
       });
     }
     if (env.WEB_REVALIDATE_URL && !env.REVALIDATE_SECRET) {

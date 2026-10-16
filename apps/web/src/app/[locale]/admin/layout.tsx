@@ -1,4 +1,4 @@
-import { isStaffRole, type CurrentUserDto, type Locale } from '@teran/contracts';
+import { isStaffRole, type Locale } from '@teran/contracts';
 import { ShieldAlert } from 'lucide-react';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
@@ -10,7 +10,8 @@ import { AdminShell } from '@/components/admin/admin-shell';
 import { ButtonLink } from '@/components/ui/button';
 import { pickMessages, type Messages } from '@/i18n/messages';
 import { getPathname } from '@/i18n/navigation';
-import { apiGetAsVisitor } from '@/lib/api/server';
+import { currentUser } from '@/lib/account';
+import { getAdminBadges } from '@/lib/admin/server';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -57,10 +58,14 @@ async function Forbidden() {
  */
 async function AdminGate({ children }: { children: ReactNode }) {
   const locale = (await rootParams.locale()) as Locale;
-  const user = await apiGetAsVisitor<CurrentUserDto>('/auth/me').catch(() => null);
+  const user = await currentUser();
   if (!user) redirect(getPathname({ href: '/account/login?next=/admin', locale }));
   if (!isStaffRole(user.role)) return <Forbidden />;
-  return <AdminShell user={user}>{children}</AdminShell>;
+  return (
+    <AdminShell user={user} badges={getAdminBadges()}>
+      {children}
+    </AdminShell>
+  );
 }
 
 function AdminSkeleton() {

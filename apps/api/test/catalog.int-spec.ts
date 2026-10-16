@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { productDetailSchema, productListSchema } from '@teran/contracts';
+import { categorySchema, productDetailSchema, productListSchema } from '@teran/contracts';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { createCategory, createProduct, resetDatabase } from './helpers/fixtures.js';
 
@@ -122,6 +122,46 @@ describe('catalogue', () => {
     expect((response.body.issues as { path: string }[]).map((issue) => issue.path)).toEqual(
       expect.arrayContaining(['pageSize', 'sort']),
     );
+  });
+
+  it('shows a category picture only once one is chosen for it, never a product picture', async () => {
+    const tea = await createCategory(ctx.prisma, 'tea');
+    await ctx.prisma.category.update({ where: { id: categoryId }, data: { parentId: tea.id } });
+    const photographed = await createProduct(ctx.prisma, { categoryId, slug: 'photographed' });
+    await ctx.prisma.productImage.create({
+      data: {
+        productId: photographed.id,
+        storageKey: 'test/photo',
+        widths: [640],
+        width: 800,
+        height: 1000,
+        transparent: true,
+      },
+    });
+    const list = async () =>
+      new Map(
+        categorySchema
+          .array()
+          .parse((await get('/catalog/categories?locale=en').expect(200)).body)
+          .map((category) => [category.slug, category]),
+      );
+    // Products with pictures do not lend them to their category: a neutral visual is shown.
+    expect((await list()).get('green-tea')?.image).toBeNull();
+    await ctx.prisma.category.update({
+      where: { id: categoryId },
+      data: {
+        imageKey: 'categories/test/cover',
+        imageWidths: [320, 640],
+        imageWidth: 900,
+        imageHeight: 900,
+      },
+    });
+    expect((await list()).get('green-tea')?.image).toMatchObject({
+      src: '/uploads/categories/test/cover',
+      widths: [320, 640],
+      transparent: false,
+    });
+    expect((await list()).get('tea')?.image).toBeNull();
   });
 
   it('marks catalogue responses as publicly cacheable', async () => {

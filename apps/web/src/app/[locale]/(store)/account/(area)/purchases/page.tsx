@@ -55,12 +55,7 @@ async function Purchases() {
               className="flex gap-4 rounded-card border border-line bg-surface p-4"
             >
               <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted">
-                <ProductImage
-                  image={product.image}
-                  illustrationKey={product.illustrationKey}
-                  name={product.productName}
-                  sizes="80px"
-                />
+                <ProductImage image={product.image} name={product.productName} sizes="80px" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-title-sm text-fg">{product.productName}</span>

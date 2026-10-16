@@ -17,6 +17,7 @@ import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedActivity } from './activity.js';
 import { readEmblem, seedCatalogue, uploadsDirectory } from './catalogue.js';
 import { assertSeedAllowed, describeTarget } from './guard.js';
+import { seedMedia } from './media.js';
 import { refreshStorefrontCache } from './storefront.js';
 
 async function main(): Promise<void> {
@@ -36,6 +37,8 @@ async function main(): Promise<void> {
       `Catalogue: ${catalogue.products} new product(s), ${catalogue.articles} new article(s), ` +
         `${catalogue.structure} category/product-type change(s).`,
     );
+    const media = await seedMedia(prisma, { uploadsDir: uploadsDirectory() });
+    console.log(`Media: ${media} item(s) added or updated.`);
 
     const activity = withActivity ? await seedActivity(prisma) : null;
     if (activity) {
@@ -48,7 +51,7 @@ async function main(): Promise<void> {
     }
 
     const changed =
-      catalogue.products + catalogue.articles + catalogue.structure > 0 ||
+      catalogue.products + catalogue.articles + catalogue.structure + media > 0 ||
       (activity !== null &&
         activity.customers +
           activity.orders +
@@ -62,7 +65,7 @@ async function main(): Promise<void> {
           action: 'demo.seed',
           entityType: 'System',
           metadata: {
-            catalogue: { ...catalogue },
+            catalogue: { ...catalogue, media },
             ...(activity ? { activity: { ...activity } } : {}),
           },
         },

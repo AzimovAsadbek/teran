@@ -7,6 +7,7 @@ import { Pagination } from '@/components/catalog/pagination';
 import {
   AccessDenied,
   AdminPageHeader,
+  Cell,
   ArticleStatusPill,
   EmptyState,
   FilterForm,
@@ -47,7 +48,11 @@ export default async function AdminJournalPage({
           </ButtonLink>
         }
       />
-      <FilterForm action="/admin/journal" q={param(params, 'q')} />
+      <FilterForm
+        action="/admin/journal"
+        q={param(params, 'q')}
+        active={Boolean(param(params, 'q'))}
+      />
       {articles.items.length === 0 ? (
         <EmptyState />
       ) : (
@@ -71,22 +76,21 @@ export default async function AdminJournalPage({
             </thead>
             <tbody>
               {articles.items.map((article) => (
-                <tr key={article.id}>
-                  <td className={table.td}>
-                    <Link href={`/admin/journal/${article.id}`} className={table.link}>
+                <tr key={article.id} className={table.row}>
+                  <Cell primary>
+                    <Link href={`/admin/journal/${article.id}`} className={table.rowLink}>
                       {article.translations.uz.title}
                     </Link>
-                    <span className="block font-mono text-xs text-fg-subtle">{article.slug}</span>
-                  </td>
-                  <td className={table.td}>
+                  </Cell>
+                  <Cell label={t('common.status')}>
                     <ArticleStatusPill status={article.status} />
-                  </td>
-                  <td className={`${table.td} whitespace-nowrap`}>
+                  </Cell>
+                  <Cell label={t('journal.published')} className="whitespace-nowrap">
                     {article.publishedAt ? formatDate(article.publishedAt, locale as Locale) : '—'}
-                  </td>
-                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
+                  </Cell>
+                  <Cell label={t('common.updated')} className="whitespace-nowrap text-fg-muted">
                     {formatDate(article.updatedAt, locale as Locale)}
-                  </td>
+                  </Cell>
                 </tr>
               ))}
             </tbody>

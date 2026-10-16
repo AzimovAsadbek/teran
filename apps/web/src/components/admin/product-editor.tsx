@@ -11,17 +11,30 @@ import {
   type AdminTaxonomy,
   type Locale,
   type ProductAttributeInput,
+  type TelegramMode,
 } from '@teran/contracts';
-import { ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { Eye, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ApiAlert, SubmitButton } from '@/components/account/auth-forms';
-import { CheckboxField, FormErrorSummary, SelectField, TextField } from '@/components/ui/field';
+import { buttonClasses } from '@/components/ui/button';
+import {
+  CheckboxField,
+  FormErrorSummary,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from '@/components/ui/field';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
+import { formatMoney } from '@/lib/format';
+import { slugify, suggestSku } from '@/lib/slugify';
 import { useValidationMessage } from '@/lib/use-validation-message';
-import { buttonClasses } from '@/components/ui/button';
+import { useAdminErrorMessage } from './admin-errors';
+import { ReadinessChecklist } from './readiness-checklist';
+import { TelegramPanel } from './telegram-panel';
+import { notify } from './toast';
 import {
   fromTranslation,
   toTranslationPayload,
@@ -44,6 +57,8 @@ type TextKey = (typeof TEXT_KEYS)[number];
 interface VariantDraft {
   id?: string;
   sku: string;
+  /** A new pack's code follows the product name and size until staff type their own. */
+  skuAuto: boolean;
   weightGrams: string;
   unitCount: string;
   price: string;
@@ -72,25 +87,34 @@ const EMPTY_ATTRIBUTE: AttributeDraft = {
 
 interface Draft {
   slug: string;
+  /** A new product's address follows its name until staff edit the address themselves. */
+  slugAuto: boolean;
   status: string;
   categoryId: string;
   productTypeId: string;
+  /** A new product's type follows its category's default until staff choose a type themselves. */
+  typeAuto: boolean;
   attributes: Record<string, AttributeDraft>;
   format: string;
+  /** A new product's format follows its type until staff choose a format themselves. */
+  formatAuto: boolean;
   isFeatured: boolean;
   caffeineLevel: string;
   brewTempCelsius: string;
-  brewTimeMinSeconds: string;
-  brewTimeMaxSeconds: string;
+  /** Steeping times are typed in minutes (as printed on the packs) and stored in seconds. */
+  brewTimeMinMinutes: string;
+  brewTimeMaxMinutes: string;
   brewAmountGrams: string;
   illustrationKey: string;
   collectionIds: string[];
+  announceOnTelegram: boolean;
   translations: LocalizedValue<Record<TextKey, string>>;
   variants: VariantDraft[];
 }
 
 const EMPTY_VARIANT: VariantDraft = {
   sku: '',
+  skuAuto: true,
   weightGrams: '',
   unitCount: '',
   price: '',
@@ -124,27 +148,36 @@ function toAttributeDrafts(values: ProductAttributeInput[]): Record<string, Attr
   );
 }
 
-function toDraft(product: AdminProductDetail | null, categories: AdminTaxonomy[]): Draft {
+const toMinutes = (seconds: number | null | undefined) =>
+  seconds === null || seconds === undefined ? '' : String(Math.round((seconds / 60) * 100) / 100);
+
+function toDraft(product: AdminProductDetail | null): Draft {
   return {
     slug: product?.slug ?? '',
+    slugAuto: product === null,
     status: product?.status ?? 'DRAFT',
-    categoryId: product?.categoryId ?? categories[0]?.id ?? '',
+    // A new product starts without a category: staff choose it (nothing is silently pre-set).
+    categoryId: product?.categoryId ?? '',
     productTypeId: product?.productTypeId ?? '',
+    typeAuto: product === null,
     attributes: toAttributeDrafts(product?.attributes ?? []),
     format: product?.format ?? 'LOOSE_LEAF',
+    formatAuto: product === null,
     isFeatured: product?.isFeatured ?? false,
     caffeineLevel: product?.caffeineLevel ?? '',
     brewTempCelsius: product?.brewTempCelsius?.toString() ?? '',
-    brewTimeMinSeconds: product?.brewTimeMinSeconds?.toString() ?? '',
-    brewTimeMaxSeconds: product?.brewTimeMaxSeconds?.toString() ?? '',
+    brewTimeMinMinutes: toMinutes(product?.brewTimeMinSeconds),
+    brewTimeMaxMinutes: toMinutes(product?.brewTimeMaxSeconds),
     brewAmountGrams: product?.brewAmountGrams?.toString() ?? '',
     illustrationKey: product?.illustrationKey ?? '',
     collectionIds: product?.collectionIds ?? [],
+    announceOnTelegram: product?.announceOnTelegram ?? false,
     translations: fromTranslation(product?.translations ?? null, TEXT_KEYS),
     variants: product
       ? product.variants.map((variant) => ({
           id: variant.id,
           sku: variant.sku,
+          skuAuto: false,
           weightGrams: variant.weightGrams?.toString() ?? '',
           unitCount: variant.unitCount?.toString() ?? '',
           price: variant.price.replace(/\.00$/, ''),
@@ -159,9 +192,32 @@ function toDraft(product: AdminProductDetail | null, categories: AdminTaxonomy[]
   };
 }
 
+/** Fills the values that follow the name: the address of a new product and new pack codes. */
+function withAuto(draft: Draft): Draft {
+  const name = draft.translations.uz.name;
+  const taken = new Set(
+    draft.variants
+      .filter((variant) => !variant.skuAuto)
+      .map((variant) => variant.sku.trim().toUpperCase()),
+  );
+  const variants = draft.variants.map((variant) => {
+    if (!variant.skuAuto) return variant;
+    const sku = name.trim()
+      ? suggestSku(name, variant.weightGrams || variant.unitCount, taken)
+      : '';
+    taken.add(sku);
+    return sku === variant.sku ? variant : { ...variant, sku };
+  });
+  return { ...draft, slug: draft.slugAuto ? slugify(name) : draft.slug, variants };
+}
+
 const numberOrNull = (value: string) =>
   value.trim() === '' ? null : Number(value.replace(',', '.'));
-const money = (value: string) => value.replace(/[\s ]/g, '').replace(',', '.');
+const money = (value: string) => value.replace(/[\s ]/g, '').replace(',', '.');
+const toSeconds = (minutes: string) => {
+  const value = numberOrNull(minutes);
+  return value === null ? null : Math.round(value * 60);
+};
 
 /** Values for the chosen type's attributes; attributes left empty are not sent. */
 function attributePayload(
@@ -214,11 +270,12 @@ function toPayload(draft: Draft, types: AdminProductType[]) {
     isFeatured: draft.isFeatured,
     caffeineLevel: draft.caffeineLevel || null,
     brewTempCelsius: numberOrNull(draft.brewTempCelsius),
-    brewTimeMinSeconds: numberOrNull(draft.brewTimeMinSeconds),
-    brewTimeMaxSeconds: numberOrNull(draft.brewTimeMaxSeconds),
+    brewTimeMinSeconds: toSeconds(draft.brewTimeMinMinutes),
+    brewTimeMaxSeconds: toSeconds(draft.brewTimeMaxMinutes),
     brewAmountGrams: numberOrNull(draft.brewAmountGrams),
     illustrationKey: draft.illustrationKey || null,
     collectionIds: draft.collectionIds,
+    announceOnTelegram: draft.announceOnTelegram,
     translations: toTranslationPayload(draft.translations),
     variants: draft.variants.map((variant) => ({
       ...(variant.id
@@ -236,9 +293,22 @@ function toPayload(draft: Draft, types: AdminProductType[]) {
   };
 }
 
-function Section({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
+function Section({
+  id,
+  title,
+  hint,
+  children,
+}: {
+  id?: string;
+  title: string;
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <section className="space-y-4 rounded-card border border-line bg-surface p-5 sm:p-6">
+    <section
+      id={id}
+      className="scroll-mt-24 space-y-4 rounded-card border border-line bg-surface p-5 sm:p-6"
+    >
       <div>
         <h2 className="text-body-lg font-semibold text-forest-900">{title}</h2>
         {hint ? <p className="mt-1 text-body-sm text-fg-subtle">{hint}</p> : null}
@@ -248,26 +318,56 @@ function Section({ title, children, hint }: { title: string; children: ReactNode
   );
 }
 
+/**
+ * Product form in the order staff fill it: name, category and status first, then photos, pack
+ * sizes and prices, descriptions, brewing, and the optional details. The save bar stays at the
+ * bottom of the screen and says when something is not saved yet; errors disappear as soon as the
+ * field is corrected.
+ */
 export function ProductEditor({
   product,
   categories,
   collections,
   productTypes,
+  images,
+  telegram,
 }: {
   product: AdminProductDetail | null;
   categories: AdminTaxonomy[];
   collections: AdminTaxonomy[];
   productTypes: AdminProductType[];
+  /** The photo manager (existing products only: photos are added after the first save). */
+  images?: ReactNode;
+  /** How the channel is configured (announcements are switched per product). */
+  telegram: { mode: TelegramMode; channel: string | null };
 }) {
   const t = useTranslations('Admin');
+  const tc = useTranslations('Common');
   const tcat = useTranslations('Catalog');
   const tp = useTranslations('Product');
   const locale = useLocale() as Locale;
   const router = useRouter();
   const message = useValidationMessage();
+  const explain = useAdminErrorMessage();
   const formRef = useRef<HTMLFormElement>(null);
   const form = useFormSubmission(formRef);
-  const [draft, setDraft] = useState<Draft>(() => toDraft(product, categories));
+  const [draft, setDraft] = useState<Draft>(() => withAuto(toDraft(product)));
+  const [initialPayload] = useState(() =>
+    JSON.stringify(toPayload(withAuto(toDraft(product)), productTypes)),
+  );
+  const payload = toPayload(draft, productTypes);
+  const dirty = JSON.stringify(payload) !== initialPayload;
+  const visible = form.errorsFor(payload);
+  const error = (path: string, value?: string) => message(visible[path], value);
+
+  // Leaving the page (reload, closing the tab) with unsaved changes asks first.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
   const name = (row: AdminTaxonomy) => row.translations[locale]?.name ?? row.translations.uz.name;
   // Subcategories are shown with their parent: "Tea › Green tea".
   const categoryLabel = (category: AdminTaxonomy) => {
@@ -278,6 +378,50 @@ export function ProductEditor({
     (type) => type.isActive || type.id === product?.productTypeId,
   );
   const currentType = productTypes.find((type) => type.id === draft.productTypeId);
+  // Brewing and caffeine belong to some kinds of product only (the type says which); a product
+  // without a type, or one that already has such values, keeps the fields.
+  const hasBrewing = [
+    draft.brewTempCelsius,
+    draft.brewAmountGrams,
+    draft.brewTimeMinMinutes,
+    draft.brewTimeMaxMinutes,
+    draft.caffeineLevel,
+  ].some((value) => value.trim() !== '');
+  const showBrewing = !currentType || currentType.brewingGuide || hasBrewing;
+
+  /** The type a new product starts with: its category's default, else the parent category's. */
+  const defaultTypeFor = (categoryId: string): string => {
+    const category = categories.find((candidate) => candidate.id === categoryId);
+    const parent = categories.find((candidate) => candidate.id === category?.parentId);
+    const typeId = category?.productTypeId ?? parent?.productTypeId ?? '';
+    return selectableTypes.some((type) => type.id === typeId) ? typeId : '';
+  };
+  /**
+   * Sets the type and, while staff have not chosen a format, a matching one: a kind of product
+   * without brewing guidance starts with no tea format ("Other": nothing is shown), never as
+   * loose-leaf tea.
+   */
+  const withType = (current: Draft, productTypeId: string, typeAuto: boolean): Draft => {
+    const type = productTypes.find((candidate) => candidate.id === productTypeId);
+    return {
+      ...current,
+      productTypeId,
+      typeAuto,
+      format: current.formatAuto
+        ? type && !type.brewingGuide
+          ? 'OTHER'
+          : 'LOOSE_LEAF'
+        : current.format,
+    };
+  };
+  const chooseCategory = (categoryId: string) =>
+    setDraft((current) =>
+      withAuto(
+        current.typeAuto
+          ? withType({ ...current, categoryId }, defaultTypeFor(categoryId), true)
+          : { ...current, categoryId },
+      ),
+    );
   const label = (
     translations: { uz: { label: string } } & Partial<Record<Locale, { label: string } | null>>,
   ) => translations[locale]?.label ?? translations.uz.label;
@@ -289,186 +433,477 @@ export function ProductEditor({
         [attributeId]: { ...(current.attributes[attributeId] ?? EMPTY_ATTRIBUTE), ...patch },
       },
     }));
-  const attributeErrors = Object.entries(form.errors)
+  const attributeErrors = Object.entries(visible)
     .filter(([path]) => path === 'attributes' || path.startsWith('attributes.'))
     .map(([, issue]) => issue);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => withAuto({ ...current, [key]: value }));
+  const setUz = (key: TextKey, text: string) =>
+    setDraft((current) =>
+      withAuto({
+        ...current,
+        translations: {
+          ...current.translations,
+          uz: { ...current.translations.uz, [key]: text },
+        },
+      }),
+    );
   const setVariant = (index: number, patch: Partial<VariantDraft>) =>
-    setDraft((current) => ({
-      ...current,
-      variants: current.variants.map((variant, position) =>
-        position === index ? { ...variant, ...patch } : variant,
-      ),
-    }));
-  const error = (path: string, value?: string) => message(form.errors[path], value);
+    setDraft((current) =>
+      withAuto({
+        ...current,
+        variants: current.variants.map((variant, position) =>
+          position === index ? { ...variant, ...patch } : variant,
+        ),
+      }),
+    );
+  const brewTimeError = (path: string, value: string) => {
+    const issue = visible[path];
+    if (!issue) return undefined;
+    return issue.code === 'too_small' || issue.code === 'too_big'
+      ? t('products.brewTimeRange')
+      : message(issue, value);
+  };
+  const pricePreview = (value: string) => {
+    const amount = Number(money(value));
+    return value.trim() && Number.isFinite(amount) && amount > 0
+      ? t('products.pricePreview', {
+          price: formatMoney(String(amount), locale, tc('currency.UZS')),
+        })
+      : undefined;
+  };
+  const uz = draft.translations.uz;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const payload = toPayload(draft, productTypes);
     if (product) {
       const saved = await form.submit(productUpsertSchema, payload, (data) =>
         apiRequest(`/admin/products/${product.id}`, { method: 'PUT', body: data }),
       );
-      // The page reloads the product (new pack sizes get their ids) and shows the confirmation.
+      // The page reloads the product (new pack sizes get their ids); the editor starts afresh.
       if (saved) {
-        router.replace(`/admin/products/${product.id}?saved=1`, { scroll: false });
+        notify(t('common.saved'));
         router.refresh();
       }
     } else {
       const created: { id?: string } = {};
       const saved = await form.submit(productUpsertSchema, payload, async (data) => {
-        const product = await apiRequest<AdminProductDetail>('/admin/products', {
+        const result = await apiRequest<AdminProductDetail>('/admin/products', {
           method: 'POST',
           body: data,
         });
-        created.id = product.id;
+        created.id = result.id;
       });
-      if (saved && created.id) router.replace(`/admin/products/${created.id}?created=1`);
+      if (saved && created.id) {
+        notify(t('products.created'));
+        router.replace(`/admin/products/${created.id}?created=1`);
+      }
     }
   }
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={onSubmit}
-      noValidate
-      className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start"
-    >
-      <div className="space-y-6">
-        <FormErrorSummary message={form.summary} />
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-6">
+      <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
 
-        <Section title={t('products.variants')} hint={t('products.variantsHint')}>
-          {error('variants') ? (
-            <p className="text-body-sm font-medium text-danger">{error('variants')}</p>
-          ) : null}
-          <ol className="space-y-4">
-            {draft.variants.map((variant, index) => (
-              <li
-                key={variant.id ?? `new-${index}`}
-                className="rounded-card border border-line p-4"
-              >
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <TextField
-                    label={t('products.sku')}
-                    name={`sku-${index}`}
-                    required
-                    value={variant.sku}
-                    onChange={(event) => setVariant(index, { sku: event.target.value })}
-                    error={error(`variants.${index}.sku`, variant.sku)}
-                  />
-                  <TextField
-                    label={t('products.price')}
-                    name={`price-${index}`}
-                    required
-                    inputMode="decimal"
-                    value={variant.price}
-                    onChange={(event) => setVariant(index, { price: event.target.value })}
-                    error={error(`variants.${index}.price`, variant.price)}
-                  />
-                  <TextField
-                    label={t('products.compareAt')}
-                    name={`compare-${index}`}
-                    inputMode="decimal"
-                    value={variant.compareAtPrice}
-                    onChange={(event) => setVariant(index, { compareAtPrice: event.target.value })}
-                    error={error(`variants.${index}.compareAtPrice`, variant.compareAtPrice)}
-                  />
-                  <TextField
-                    label={t('products.weight')}
-                    name={`weight-${index}`}
-                    inputMode="numeric"
-                    value={variant.weightGrams}
-                    onChange={(event) => setVariant(index, { weightGrams: event.target.value })}
-                    error={error(`variants.${index}.weightGrams`, variant.weightGrams)}
-                  />
-                  <TextField
-                    label={t('products.units')}
-                    name={`units-${index}`}
-                    inputMode="numeric"
-                    value={variant.unitCount}
-                    onChange={(event) => setVariant(index, { unitCount: event.target.value })}
-                    error={error(`variants.${index}.unitCount`, variant.unitCount)}
-                  />
-                  <TextField
-                    label={t('products.lowStockThreshold')}
-                    name={`threshold-${index}`}
-                    required
-                    inputMode="numeric"
-                    value={variant.lowStockThreshold}
-                    onChange={(event) =>
-                      setVariant(index, { lowStockThreshold: event.target.value })
-                    }
-                    error={error(`variants.${index}.lowStockThreshold`, variant.lowStockThreshold)}
-                  />
-                  <TextField
-                    label={t('products.barcode')}
-                    name={`barcode-${index}`}
-                    inputMode="numeric"
-                    value={variant.barcode}
-                    onChange={(event) => setVariant(index, { barcode: event.target.value })}
-                    error={error(`variants.${index}.barcode`, variant.barcode)}
-                  />
-                  {variant.id ? (
-                    <div>
-                      <p className="mb-1.5 text-body-sm font-semibold text-forest-900">
-                        {t('products.stock')}
-                      </p>
-                      <p className="flex h-12 items-center text-body-lg font-semibold tabular-nums">
-                        {variant.stockQuantity}
-                      </p>
-                    </div>
-                  ) : (
-                    <TextField
-                      label={t('products.initialStock')}
-                      name={`initial-${index}`}
-                      inputMode="numeric"
-                      value={variant.initialStock}
-                      onChange={(event) => setVariant(index, { initialStock: event.target.value })}
-                      error={error(`variants.${index}.initialStock`, variant.initialStock)}
-                    />
-                  )}
-                </div>
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                  <CheckboxField
-                    label={t('products.variantActive')}
-                    name={`active-${index}`}
-                    checked={variant.isActive}
-                    onChange={(event) => setVariant(index, { isActive: event.target.checked })}
-                  />
-                  {draft.variants.length > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        set(
-                          'variants',
-                          draft.variants.filter((_, position) => position !== index),
-                        )
-                      }
-                      className="inline-flex items-center gap-2 text-body-sm font-semibold text-danger hover:underline"
-                    >
-                      <Trash2 aria-hidden className="h-4 w-4" />
-                      {t('products.removeVariant')}
-                    </button>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ol>
-          <button
-            type="button"
-            onClick={() => set('variants', [...draft.variants, { ...EMPTY_VARIANT }])}
-            className={buttonClasses('secondary', 'sm')}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
+        <div className="space-y-6">
+          <Section id="section-basics" title={t('products.basics')}>
+            <TextField
+              label={t('products.name')}
+              name="uz-name"
+              lang="uz-Latn"
+              required
+              maxLength={150}
+              hint={t('products.nameHint')}
+              value={uz.name}
+              onChange={(event) => setUz('name', event.target.value)}
+              error={error('translations.uz.name', uz.name)}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                label={t('products.category')}
+                name="categoryId"
+                required
+                placeholder={t('products.chooseCategory')}
+                options={categories.map((category) => ({
+                  value: category.id,
+                  label: categoryLabel(category),
+                }))}
+                value={draft.categoryId}
+                onChange={(event) => chooseCategory(event.target.value)}
+                error={visible.categoryId ? t('products.chooseCategory') : undefined}
+              />
+              <SelectField
+                label={t('common.status')}
+                name="status"
+                required
+                options={PRODUCT_STATUSES.map((status) => ({
+                  value: status,
+                  label: t(`productStatus.${status}`),
+                }))}
+                value={draft.status}
+                onChange={(event) => set('status', event.target.value)}
+              />
+            </div>
+            <p className="-mt-2 text-helper text-fg-subtle">{t('products.statusHint')}</p>
+            <TextField
+              label={t('common.slug')}
+              name="slug"
+              required
+              size="sm"
+              hint={t('common.slugHint')}
+              value={draft.slug}
+              onChange={(event) =>
+                setDraft((current) => ({ ...current, slug: event.target.value, slugAuto: false }))
+              }
+              error={error('slug', draft.slug)}
+            />
+          </Section>
+
+          <Section id="section-images" title={t('products.images')}>
+            {images ?? (
+              <p className="text-body-sm text-fg-muted">{t('products.imagesAfterSave')}</p>
+            )}
+          </Section>
+
+          <Section
+            id="section-variants"
+            title={t('products.variants')}
+            hint={t('products.variantsHint')}
           >
-            <Plus aria-hidden className="h-4 w-4" />
-            {t('products.addVariant')}
-          </button>
-        </Section>
+            {error('variants') ? (
+              <p className="text-body-sm font-medium text-danger">{error('variants')}</p>
+            ) : null}
+            <ol className="space-y-4">
+              {draft.variants.map((variant, index) => (
+                <li
+                  key={variant.id ?? `new-${index}`}
+                  className="rounded-card border border-line p-4"
+                >
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <TextField
+                      label={t('products.weight')}
+                      name={`weight-${index}`}
+                      inputMode="numeric"
+                      value={variant.weightGrams}
+                      onChange={(event) => setVariant(index, { weightGrams: event.target.value })}
+                      error={error(`variants.${index}.weightGrams`, variant.weightGrams)}
+                    />
+                    <TextField
+                      label={t('products.price')}
+                      name={`price-${index}`}
+                      required
+                      inputMode="decimal"
+                      placeholder="85 000"
+                      hint={pricePreview(variant.price)}
+                      value={variant.price}
+                      onChange={(event) => setVariant(index, { price: event.target.value })}
+                      error={error(`variants.${index}.price`, variant.price)}
+                    />
+                    <TextField
+                      label={t('products.compareAt')}
+                      name={`compare-${index}`}
+                      inputMode="decimal"
+                      hint={t('products.compareAtHint')}
+                      value={variant.compareAtPrice}
+                      onChange={(event) =>
+                        setVariant(index, { compareAtPrice: event.target.value })
+                      }
+                      error={error(`variants.${index}.compareAtPrice`, variant.compareAtPrice)}
+                    />
+                    <TextField
+                      label={t('products.sku')}
+                      name={`sku-${index}`}
+                      required
+                      hint={variant.id ? undefined : t('products.skuHint')}
+                      className="sm:col-span-2"
+                      value={variant.sku}
+                      onChange={(event) =>
+                        setVariant(index, { sku: event.target.value, skuAuto: false })
+                      }
+                      error={error(`variants.${index}.sku`, variant.sku)}
+                    />
+                    {variant.id ? (
+                      <div>
+                        <p className="mb-2 text-label text-fg">{t('products.stock')}</p>
+                        <p className="flex h-12 items-center text-body-lg font-semibold tabular-nums">
+                          {variant.stockQuantity}
+                        </p>
+                      </div>
+                    ) : (
+                      <TextField
+                        label={t('products.initialStock')}
+                        name={`initial-${index}`}
+                        inputMode="numeric"
+                        value={variant.initialStock}
+                        onChange={(event) =>
+                          setVariant(index, { initialStock: event.target.value })
+                        }
+                        error={error(`variants.${index}.initialStock`, variant.initialStock)}
+                      />
+                    )}
+                    <TextField
+                      label={t('products.lowStockThreshold')}
+                      name={`threshold-${index}`}
+                      required
+                      inputMode="numeric"
+                      hint={t('products.lowStockThresholdHint')}
+                      value={variant.lowStockThreshold}
+                      onChange={(event) =>
+                        setVariant(index, { lowStockThreshold: event.target.value })
+                      }
+                      error={error(
+                        `variants.${index}.lowStockThreshold`,
+                        variant.lowStockThreshold,
+                      )}
+                    />
+                    <TextField
+                      label={t('products.units')}
+                      name={`units-${index}`}
+                      inputMode="numeric"
+                      value={variant.unitCount}
+                      onChange={(event) => setVariant(index, { unitCount: event.target.value })}
+                      error={error(`variants.${index}.unitCount`, variant.unitCount)}
+                    />
+                    <TextField
+                      label={t('products.barcode')}
+                      name={`barcode-${index}`}
+                      inputMode="numeric"
+                      value={variant.barcode}
+                      onChange={(event) => setVariant(index, { barcode: event.target.value })}
+                      error={error(`variants.${index}.barcode`, variant.barcode)}
+                    />
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <CheckboxField
+                      label={t('products.variantActive')}
+                      name={`active-${index}`}
+                      checked={variant.isActive}
+                      onChange={(event) => setVariant(index, { isActive: event.target.checked })}
+                    />
+                    {draft.variants.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          set(
+                            'variants',
+                            draft.variants.filter((_, position) => position !== index),
+                          )
+                        }
+                        className="inline-flex min-h-10 items-center gap-2 text-body-sm font-semibold text-danger hover:underline"
+                      >
+                        <Trash2 aria-hidden className="h-4 w-4" />
+                        {t('products.removeVariant')}
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <button
+              type="button"
+              onClick={() => set('variants', [...draft.variants, { ...EMPTY_VARIANT }])}
+              className={buttonClasses('secondary', 'sm')}
+            >
+              <Plus aria-hidden className="h-4 w-4" />
+              {t('products.addVariant')}
+            </button>
+          </Section>
 
-        {currentType ? (
-          <Section title={t('products.attributes')}>
-            {attributeErrors.length > 0 ? (
+          <Section id="section-texts" title={t('products.texts')} hint={t('products.factsHint')}>
+            <TextAreaField
+              label={t('products.shortDescription')}
+              name="uz-shortDescription"
+              lang="uz-Latn"
+              rows={2}
+              maxLength={300}
+              value={uz.shortDescription}
+              onChange={(event) => setUz('shortDescription', event.target.value)}
+              error={error('translations.uz.shortDescription', uz.shortDescription)}
+            />
+            <TextAreaField
+              label={t('products.description')}
+              name="uz-description"
+              lang="uz-Latn"
+              rows={6}
+              maxLength={5000}
+              value={uz.description}
+              onChange={(event) => setUz('description', event.target.value)}
+              error={error('translations.uz.description', uz.description)}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextAreaField
+                label={t('products.ingredients')}
+                name="uz-ingredients"
+                lang="uz-Latn"
+                rows={2}
+                maxLength={1000}
+                value={uz.ingredients}
+                onChange={(event) => setUz('ingredients', event.target.value)}
+                error={error('translations.uz.ingredients', uz.ingredients)}
+              />
+              <TextAreaField
+                label={t('products.tastingNotes')}
+                name="uz-tastingNotes"
+                lang="uz-Latn"
+                rows={2}
+                maxLength={500}
+                value={uz.tastingNotes}
+                onChange={(event) => setUz('tastingNotes', event.target.value)}
+                error={error('translations.uz.tastingNotes', uz.tastingNotes)}
+              />
+            </div>
+            <TextField
+              label={t('products.origin')}
+              name="uz-origin"
+              lang="uz-Latn"
+              maxLength={150}
+              value={uz.origin}
+              onChange={(event) => setUz('origin', event.target.value)}
+              error={error('translations.uz.origin', uz.origin)}
+            />
+            <div className="border-t border-line pt-4">
+              <h3 className="mb-3 text-body font-semibold text-forest-900">
+                {t('products.otherLanguages')}
+              </h3>
+              <TranslationEditor
+                locales={['ru', 'en']}
+                note={t('products.otherLanguagesHint')}
+                value={draft.translations}
+                onChange={(translations) => set('translations', translations)}
+                error={error}
+                fields={[
+                  { key: 'name', label: t('products.name'), required: true, maxLength: 150 },
+                  {
+                    key: 'shortDescription',
+                    label: t('products.shortDescription'),
+                    multiline: true,
+                    rows: 2,
+                    maxLength: 300,
+                  },
+                  {
+                    key: 'description',
+                    label: t('products.description'),
+                    multiline: true,
+                    rows: 6,
+                    maxLength: 5000,
+                  },
+                  {
+                    key: 'ingredients',
+                    label: t('products.ingredients'),
+                    multiline: true,
+                    rows: 2,
+                    maxLength: 1000,
+                  },
+                  {
+                    key: 'tastingNotes',
+                    label: t('products.tastingNotes'),
+                    multiline: true,
+                    rows: 2,
+                    maxLength: 500,
+                  },
+                  { key: 'origin', label: t('products.origin'), maxLength: 150 },
+                  { key: 'seoTitle', label: t('products.seoTitle'), maxLength: 70 },
+                  {
+                    key: 'seoDescription',
+                    label: t('products.seoDescription'),
+                    multiline: true,
+                    rows: 2,
+                    maxLength: 170,
+                  },
+                ]}
+              />
+            </div>
+          </Section>
+        </div>
+
+        <div className="space-y-6">
+          {product ? (
+            <ReadinessChecklist
+              readiness={product.readiness}
+              sections={{
+                name: 'section-basics',
+                category: 'section-basics',
+                slug: 'section-basics',
+                images: 'section-images',
+                variants: 'section-variants',
+                attributes: 'section-attributes',
+                shortDescription: 'section-texts',
+                translations: 'section-texts',
+                seo: 'section-extra',
+              }}
+            />
+          ) : null}
+          <TelegramPanel
+            entity="product"
+            entityId={product?.id ?? null}
+            enabled={draft.announceOnTelegram}
+            onEnabledChange={(value) => set('announceOnTelegram', value)}
+            status={product?.telegram ?? null}
+            mode={telegram.mode}
+            channel={telegram.channel}
+          />
+          {showBrewing ? (
+            <Section title={t('products.brewing')}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label={t('products.brewTemp')}
+                  name="brewTemp"
+                  inputMode="numeric"
+                  value={draft.brewTempCelsius}
+                  onChange={(event) => set('brewTempCelsius', event.target.value)}
+                  error={error('brewTempCelsius', draft.brewTempCelsius)}
+                />
+                <TextField
+                  label={t('products.brewAmount')}
+                  name="brewAmount"
+                  inputMode="decimal"
+                  value={draft.brewAmountGrams}
+                  onChange={(event) => set('brewAmountGrams', event.target.value)}
+                  error={error('brewAmountGrams', draft.brewAmountGrams)}
+                />
+                <TextField
+                  label={t('products.brewTimeMin')}
+                  name="brewTimeMin"
+                  inputMode="decimal"
+                  value={draft.brewTimeMinMinutes}
+                  onChange={(event) => set('brewTimeMinMinutes', event.target.value)}
+                  error={brewTimeError('brewTimeMinSeconds', draft.brewTimeMinMinutes)}
+                />
+                <TextField
+                  label={t('products.brewTimeMax')}
+                  name="brewTimeMax"
+                  inputMode="decimal"
+                  value={draft.brewTimeMaxMinutes}
+                  onChange={(event) => set('brewTimeMaxMinutes', event.target.value)}
+                  error={brewTimeError('brewTimeMaxSeconds', draft.brewTimeMaxMinutes)}
+                />
+              </div>
+              <p className="text-helper text-fg-subtle">{t('products.brewTimeHint')}</p>
+            </Section>
+          ) : null}
+
+          <Section id="section-attributes" title={t('products.attributes')}>
+            <SelectField
+              label={t('products.productType')}
+              name="productTypeId"
+              hint={t('products.productTypeHint')}
+              options={[
+                { value: '', label: t('productTypes.none') },
+                ...selectableTypes.map((type) => ({
+                  value: type.id,
+                  label: type.translations[locale]?.name ?? type.translations.uz.name,
+                })),
+              ]}
+              value={draft.productTypeId}
+              onChange={(event) => {
+                const productTypeId = event.target.value;
+                setDraft((current) => withAuto(withType(current, productTypeId, false)));
+              }}
+              error={error('productTypeId')}
+            />
+            {attributeErrors.length > 0 && currentType ? (
               <p className="text-body-sm font-medium text-danger" role="alert">
                 {attributeErrors
                   .map((issue) => {
@@ -483,10 +918,11 @@ export function ProductEditor({
                   .join(' · ')}
               </p>
             ) : null}
-            {currentType.attributes.length === 0 ? (
+            {currentType && currentType.attributes.length === 0 ? (
               <p className="text-body-sm text-fg-subtle">{t('products.noAttributes')}</p>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
+            ) : null}
+            {currentType && currentType.attributes.length > 0 ? (
+              <div className="grid gap-4">
                 {currentType.attributes.map((attribute) => {
                   const value = draft.attributes[attribute.id] ?? EMPTY_ATTRIBUTE;
                   const title = `${label(attribute.translations)}${attribute.unit ? `, ${attribute.unit}` : ''}${attribute.isRequired ? ' *' : ''}`;
@@ -516,11 +952,11 @@ export function ProductEditor({
                       );
                     case 'MULTI_SELECT':
                       return (
-                        <fieldset key={attribute.id} className="sm:col-span-2">
+                        <fieldset key={attribute.id}>
                           <legend className="mb-1.5 text-body-sm font-semibold text-forest-900">
                             {title}
                           </legend>
-                          <div className="flex flex-wrap gap-x-5">
+                          <div className="flex flex-wrap gap-x-5 gap-y-1">
                             {attribute.options.map((option) => (
                               <CheckboxField
                                 key={option.id}
@@ -575,255 +1011,171 @@ export function ProductEditor({
                       );
                     case 'TEXT':
                       return (
-                        <fieldset key={attribute.id} className="space-y-2 sm:col-span-2">
+                        <fieldset key={attribute.id} className="space-y-2">
                           <legend className="text-body-sm font-semibold text-forest-900">
                             {title}
                           </legend>
-                          <div className="grid gap-3 sm:grid-cols-3">
-                            {(['uz', 'ru', 'en'] as const).map((textLocale) => (
-                              <TextField
-                                key={textLocale}
-                                label={t(
-                                  `products.text${textLocale === 'uz' ? 'Uz' : textLocale === 'ru' ? 'Ru' : 'En'}`,
-                                )}
-                                name={`attribute-${attribute.key}-${textLocale}`}
-                                size="sm"
-                                maxLength={300}
-                                value={value.text[textLocale]}
-                                onChange={(event) =>
-                                  setAttribute(attribute.id, {
-                                    text: { ...value.text, [textLocale]: event.target.value },
-                                  })
-                                }
-                              />
-                            ))}
-                          </div>
+                          {(['uz', 'ru', 'en'] as const).map((textLocale) => (
+                            <TextField
+                              key={textLocale}
+                              label={t(
+                                `products.text${textLocale === 'uz' ? 'Uz' : textLocale === 'ru' ? 'Ru' : 'En'}`,
+                              )}
+                              name={`attribute-${attribute.key}-${textLocale}`}
+                              size="sm"
+                              maxLength={300}
+                              value={value.text[textLocale]}
+                              onChange={(event) =>
+                                setAttribute(attribute.id, {
+                                  text: { ...value.text, [textLocale]: event.target.value },
+                                })
+                              }
+                            />
+                          ))}
                         </fieldset>
                       );
                   }
                 })}
               </div>
-            )}
+            ) : null}
           </Section>
-        ) : null}
 
-        <Section title={t('products.texts')} hint={t('products.factsHint')}>
-          <TranslationEditor
-            value={draft.translations}
-            onChange={(translations) => set('translations', translations)}
-            error={error}
-            fields={[
-              { key: 'name', label: t('products.name'), required: true, maxLength: 150 },
-              {
-                key: 'shortDescription',
-                label: t('products.shortDescription'),
-                multiline: true,
-                rows: 2,
-                maxLength: 300,
-              },
-              {
-                key: 'description',
-                label: t('products.description'),
-                multiline: true,
-                rows: 6,
-                maxLength: 5000,
-              },
-              {
-                key: 'ingredients',
-                label: t('products.ingredients'),
-                multiline: true,
-                rows: 2,
-                maxLength: 1000,
-              },
-              {
-                key: 'tastingNotes',
-                label: t('products.tastingNotes'),
-                multiline: true,
-                rows: 2,
-                maxLength: 500,
-              },
-              { key: 'origin', label: t('products.origin'), maxLength: 150 },
-              { key: 'seoTitle', label: t('products.seoTitle'), maxLength: 70 },
-              {
-                key: 'seoDescription',
-                label: t('products.seoDescription'),
-                multiline: true,
-                rows: 2,
-                maxLength: 170,
-              },
-            ]}
-          />
-        </Section>
+          <Section id="section-extra" title={t('products.extra')} hint={t('products.extraHint')}>
+            <CheckboxField
+              label={t('products.featured')}
+              name="isFeatured"
+              checked={draft.isFeatured}
+              onChange={(event) => set('isFeatured', event.target.checked)}
+            />
+            {collections.length > 0 ? (
+              <fieldset>
+                <legend className="mb-2 text-label text-fg">{t('products.collections')}</legend>
+                <div className="space-y-2">
+                  {collections.map((collection) => (
+                    <CheckboxField
+                      key={collection.id}
+                      label={name(collection)}
+                      name={`collection-${collection.id}`}
+                      checked={draft.collectionIds.includes(collection.id)}
+                      onChange={(event) =>
+                        set(
+                          'collectionIds',
+                          event.target.checked
+                            ? [...draft.collectionIds, collection.id]
+                            : draft.collectionIds.filter((id) => id !== collection.id),
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
+            <SelectField
+              label={t('products.format')}
+              name="format"
+              required
+              options={PRODUCT_FORMATS.map((format) => ({
+                value: format,
+                label: format === 'OTHER' ? t('products.formatOther') : tcat(`formats.${format}`),
+              }))}
+              value={draft.format}
+              onChange={(event) => {
+                const format = event.target.value;
+                setDraft((current) => withAuto({ ...current, format, formatAuto: false }));
+              }}
+            />
+            {showBrewing ? (
+              <SelectField
+                label={t('products.caffeine')}
+                name="caffeineLevel"
+                options={[
+                  { value: '', label: t('products.caffeineUnknown') },
+                  ...CAFFEINE_LEVELS.map((level) => ({
+                    value: level,
+                    label: tp(`caffeineLevels.${level}`),
+                  })),
+                ]}
+                value={draft.caffeineLevel}
+                onChange={(event) => set('caffeineLevel', event.target.value)}
+              />
+            ) : null}
+            <SelectField
+              label={t('common.illustration')}
+              name="illustrationKey"
+              hint={t('common.illustrationHint')}
+              options={[
+                { value: '', label: t('common.noIllustration') },
+                ...ILLUSTRATION_KEYS.map((key) => ({
+                  value: key,
+                  label: t(`illustrations.${key}`),
+                })),
+              ]}
+              value={draft.illustrationKey}
+              onChange={(event) => set('illustrationKey', event.target.value)}
+            />
+            <TextField
+              label={t('products.seoTitle')}
+              name="uz-seoTitle"
+              lang="uz-Latn"
+              maxLength={70}
+              value={uz.seoTitle}
+              onChange={(event) => setUz('seoTitle', event.target.value)}
+              error={error('translations.uz.seoTitle', uz.seoTitle)}
+            />
+            <TextAreaField
+              label={t('products.seoDescription')}
+              name="uz-seoDescription"
+              lang="uz-Latn"
+              rows={2}
+              maxLength={170}
+              hint={t('products.seoHint')}
+              value={uz.seoDescription}
+              onChange={(event) => setUz('seoDescription', event.target.value)}
+              error={error('translations.uz.seoDescription', uz.seoDescription)}
+            />
+          </Section>
+        </div>
       </div>
 
-      <div className="space-y-6 xl:sticky xl:top-6">
-        <Section title={t('products.basics')}>
-          <SelectField
-            label={t('common.status')}
-            name="status"
-            required
-            options={PRODUCT_STATUSES.map((status) => ({
-              value: status,
-              label: t(`productStatus.${status}`),
-            }))}
-            value={draft.status}
-            onChange={(event) => set('status', event.target.value)}
-          />
-          <TextField
-            label={t('common.slug')}
-            name="slug"
-            required
-            hint={t('common.slugHint')}
-            value={draft.slug}
-            onChange={(event) => set('slug', event.target.value)}
-            error={error('slug', draft.slug)}
-          />
-          <SelectField
-            label={t('products.category')}
-            name="categoryId"
-            required
-            options={categories.map((category) => ({
-              value: category.id,
-              label: categoryLabel(category),
-            }))}
-            value={draft.categoryId}
-            onChange={(event) => set('categoryId', event.target.value)}
-            error={error('categoryId')}
-          />
-          <SelectField
-            label={t('products.productType')}
-            name="productTypeId"
-            hint={t('products.productTypeHint')}
-            options={[
-              { value: '', label: t('productTypes.none') },
-              ...selectableTypes.map((type) => ({
-                value: type.id,
-                label: type.translations[locale]?.name ?? type.translations.uz.name,
-              })),
-            ]}
-            value={draft.productTypeId}
-            onChange={(event) => set('productTypeId', event.target.value)}
-            error={error('productTypeId')}
-          />
-          <SelectField
-            label={t('products.format')}
-            name="format"
-            required
-            options={PRODUCT_FORMATS.map((format) => ({
-              value: format,
-              label: tcat(`formats.${format}`),
-            }))}
-            value={draft.format}
-            onChange={(event) => set('format', event.target.value)}
-          />
-          <SelectField
-            label={t('products.caffeine')}
-            name="caffeineLevel"
-            options={[
-              { value: '', label: t('products.caffeineUnknown') },
-              ...CAFFEINE_LEVELS.map((level) => ({
-                value: level,
-                label: tp(`caffeineLevels.${level}`),
-              })),
-            ]}
-            value={draft.caffeineLevel}
-            onChange={(event) => set('caffeineLevel', event.target.value)}
-          />
-          <SelectField
-            label={t('common.illustration')}
-            name="illustrationKey"
-            options={[
-              { value: '', label: t('common.noIllustration') },
-              ...ILLUSTRATION_KEYS.map((key) => ({ value: key, label: key })),
-            ]}
-            value={draft.illustrationKey}
-            onChange={(event) => set('illustrationKey', event.target.value)}
-          />
-          <CheckboxField
-            label={t('products.featured')}
-            name="isFeatured"
-            checked={draft.isFeatured}
-            onChange={(event) => set('isFeatured', event.target.checked)}
-          />
-        </Section>
-
-        <Section title={t('products.brewing')}>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-            <TextField
-              label={t('products.brewTemp')}
-              name="brewTemp"
-              inputMode="numeric"
-              value={draft.brewTempCelsius}
-              onChange={(event) => set('brewTempCelsius', event.target.value)}
-              error={error('brewTempCelsius', draft.brewTempCelsius)}
-            />
-            <TextField
-              label={t('products.brewAmount')}
-              name="brewAmount"
-              inputMode="decimal"
-              value={draft.brewAmountGrams}
-              onChange={(event) => set('brewAmountGrams', event.target.value)}
-              error={error('brewAmountGrams', draft.brewAmountGrams)}
-            />
-            <TextField
-              label={t('products.brewTimeMin')}
-              name="brewTimeMin"
-              inputMode="numeric"
-              value={draft.brewTimeMinSeconds}
-              onChange={(event) => set('brewTimeMinSeconds', event.target.value)}
-              error={error('brewTimeMinSeconds', draft.brewTimeMinSeconds)}
-            />
-            <TextField
-              label={t('products.brewTimeMax')}
-              name="brewTimeMax"
-              inputMode="numeric"
-              value={draft.brewTimeMaxSeconds}
-              onChange={(event) => set('brewTimeMaxSeconds', event.target.value)}
-              error={error('brewTimeMaxSeconds', draft.brewTimeMaxSeconds)}
-            />
-          </div>
-        </Section>
-
-        {collections.length > 0 ? (
-          <Section title={t('products.collections')}>
-            <div className="space-y-2">
-              {collections.map((collection) => (
-                <CheckboxField
-                  key={collection.id}
-                  label={name(collection)}
-                  name={`collection-${collection.id}`}
-                  checked={draft.collectionIds.includes(collection.id)}
-                  onChange={(event) =>
-                    set(
-                      'collectionIds',
-                      event.target.checked
-                        ? [...draft.collectionIds, collection.id]
-                        : draft.collectionIds.filter((id) => id !== collection.id),
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
-        <div className="space-y-3 rounded-card border border-line bg-surface p-5">
-          <ApiAlert message={form.apiErrorMessage} />
-          <SubmitButton
-            sending={form.status === 'sending'}
-            label={product ? t('common.save') : t('common.create')}
-            sendingLabel={t('common.saving')}
-          />
+      <div className="sticky bottom-0 z-20 -mx-4 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-12px_24px_-20px_rgb(0_0_0/0.35)] backdrop-blur-sm sm:-mx-8 sm:px-8">
+        <ApiAlert message={explain(form.apiError) ?? form.apiErrorMessage} />
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 pt-0.5">
+          <p className="mr-auto flex items-center gap-2 text-body-sm text-fg-muted">
+            {dirty ? (
+              <>
+                <span aria-hidden className="h-2 w-2 rounded-full bg-warning" />
+                {t('common.unsaved')}
+              </>
+            ) : draft.status === 'DRAFT' ? (
+              t('products.saveDraftHint')
+            ) : null}
+          </p>
+          {product ? (
+            <Link
+              href={`/admin/products/${product.id}/preview`}
+              target="_blank"
+              className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
+            >
+              <Eye aria-hidden className="h-3.5 w-3.5" />
+              {t('preview.open')}
+            </Link>
+          ) : null}
           {product && product.status === 'ACTIVE' ? (
             <Link
               href={`/products/${product.slug}`}
               target="_blank"
-              className="flex items-center justify-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
+              className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
             >
               {t('products.openInStore')}
               <ExternalLink aria-hidden className="h-3.5 w-3.5" />
             </Link>
           ) : null}
+          <SubmitButton
+            sending={form.status === 'sending'}
+            label={product ? t('common.save') : t('common.create')}
+            sendingLabel={t('common.saving')}
+            className="min-w-40"
+          />
         </div>
       </div>
     </form>

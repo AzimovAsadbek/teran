@@ -265,3 +265,65 @@ spaces.
 desktop Chrome, and no hydration errors (home page on simulated mobile: performance 71 → 98).
 New formatting must go through this module; ICU message arguments formatted by next-intl still use
 `Intl` and are fine for the small counts used today.
+
+## ADR-021: Publication readiness decided by the API
+
+(ADR-020 is used by the scoped client messages work on its own branch.)
+
+**Context.** Products, articles, gallery items and categories could be published half-finished:
+a product without a picture fell back to a tea illustration, an article without a cover went out
+with a placeholder, a film without its file showed an empty tile.
+
+**Decision.** Each content type has a readiness list in `apps/api/src/admin/readiness.ts`: required
+items (a product's main image, an active priced pack, required characteristics; an article's
+title, body and cover; a photo's file; a film's file and poster) and recommended ones (alternative
+text, SEO description, translations). Drafts may be incomplete; saving as published with a required
+item missing is refused with `422 PUBLICATION_BLOCKED` and the missing codes, which the admin area
+explains and links to the field. The same list is returned with every item for the editor's
+checklist and the lists' "n missing" badges. Removing the last picture of a product on sale, or the
+cover of a published article, is refused too. Existing published items are not unpublished.
+
+**Consequences.** One rule set for the API, the editors and the tests; the storefront can rely on
+published items having their pictures. A new required field is added in one place.
+
+## ADR-022: Telegram announcements through an outbox
+
+**Context.** Publishing should optionally post to the brand's Telegram channel without ever
+blocking or duplicating, and Telegram can be slow, rate limited or refuse a post.
+
+**Decision.** After an item's transaction commits, one `TelegramPost` row is created per item
+(unique on the item). Delivery claims the row, sends, and records the outcome; failures keep their
+reason for the admin area, transient ones retry automatically, an unknown outcome is never retried
+by itself, and a sent post is never sent again. `TELEGRAM_MODE=dry-run` composes and records
+without contacting Telegram. Details: [telegram](./telegram.md).
+
+**Consequences.** Publishing works when Telegram is down, retries cannot duplicate posts, and the
+history is auditable. One post per item: later edits are not re-announced.
+
+## ADR-023: Product advisor grounded in catalogue tools
+
+**Context.** A shopping assistant must not invent products, prices, links or qualities, and model
+output must never become a database query.
+
+**Decision.** The advisor finds products only through a validated search over the catalogue
+(category, type, formats, price range, attribute options, a text word, stock). With an AI provider,
+the model can only call that search and name products it returned; anything else is dropped.
+Without a provider, or when it fails, a rule-based reader of the request does the same. Details:
+[product-advisor](./product-advisor.md).
+
+**Consequences.** Every recommendation is a real, purchasable product with real facts, in every
+mode. Qualities the catalogue does not record are named as such instead of being guessed.
+
+## ADR-024: Films uploaded straight to object storage
+
+**Context.** On Vercel a function accepts request bodies of at most 4.5 MB, far below a short film;
+routing films through the API there would simply fail.
+
+**Decision.** When the API uses object storage (Vercel Blob), it grants the admin area a
+short-lived token for exactly one file (type, maximum size, place under the item); the browser
+uploads it to Blob itself, and the API then checks what arrived with ranged reads (type from the
+first bytes, running time from the movie header) before recording it. Without object storage, films
+go through the API as before (64 MB). Only admin pages may connect to Blob's upload address.
+
+**Consequences.** Films up to 512 MB on Vercel without a larger function body; the API still
+validates every file. The path depends on Vercel Blob and has to be checked once on the real store.

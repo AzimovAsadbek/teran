@@ -1,18 +1,30 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   buildPaginated,
   buildSearchText,
+  LOCALES,
+  MAX_PRODUCT_IMAGES,
+  missingRequired,
   normalizeSearchText,
   type adminProductListQuerySchema,
   type AdminProductDetail,
   type AdminProductListItem,
+  type ImageAltInput,
+  type Locale,
   type Paginated,
+  type ProductDetailDto,
   type ProductUpsertPayload,
+  type Readiness,
 } from '@teran/contracts';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
-import { asIllustrationKey, toImageDto } from '../catalog/catalog.mapper.js';
+import {
+  asIllustrationKey,
+  detailInclude as storefrontInclude,
+  toImageDto,
+  toProductDetail,
+} from '../catalog/catalog.mapper.js';
 import {
   attributeDefinitionInclude,
   attributeSearchTerms,
@@ -28,8 +40,8 @@ import { toMoney, toMoneyOrNull } from '../common/money.js';
 import type { Env } from '../config/env.js';
 import { Prisma } from '../generated/prisma/client.js';
 import {
+  contentHash,
   deleteStoredImage,
-  ImageRejectedError,
   imageStore,
   type ImageStore,
   productImagePrefix,
@@ -37,6 +49,9 @@ import {
 } from '../media/image-processing.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
+import { TelegramService } from '../telegram/telegram.service.js';
+import { assertPublishable, productReadiness } from './readiness.js';
+import { duplicateImage, uploadError } from './uploads.js';
 import {
   nullable,
   pageArgs,
@@ -47,15 +62,39 @@ import {
 
 type ListQuery = z.output<typeof adminProductListQuerySchema>;
 
-const MAX_IMAGES_PER_PRODUCT = 12;
+/** Required attributes of the product's type, to report which ones still lack a value. */
+const requiredAttributesSelect = {
+  attributes: {
+    where: { isRequired: true },
+    orderBy: { position: 'asc' },
+    select: {
+      id: true,
+      key: true,
+      translations: { where: { locale: 'uz' }, select: { label: true } },
+    },
+  },
+} satisfies Prisma.ProductTypeSelect;
 
 const detailInclude = {
   translations: true,
   variants: { orderBy: [{ position: 'asc' }, { createdAt: 'asc' }] },
-  images: { orderBy: { position: 'asc' } },
+  images: { orderBy: { position: 'asc' }, include: { translations: true } },
   collections: { select: { collectionId: true } },
   attributeValues: { orderBy: [{ attributeId: 'asc' }, { id: 'asc' }] },
+  productType: { select: requiredAttributesSelect },
 } satisfies Prisma.ProductInclude;
+
+/** Labels of the required attributes without a value. */
+function missingAttributeLabels(
+  type: { attributes: { id: string; key: string; translations: { label: string }[] }[] } | null,
+  valuedAttributeIds: Iterable<string>,
+): string[] {
+  if (!type) return [];
+  const valued = new Set(valuedAttributeIds);
+  return type.attributes
+    .filter((attribute) => !valued.has(attribute.id))
+    .map((attribute) => attribute.translations[0]?.label ?? attribute.key);
+}
 
 /** A product's validated attribute values and the definitions they were checked against. */
 interface AttributeData {
@@ -73,6 +112,7 @@ export class AdminProductsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationService,
+    private readonly telegram: TelegramService,
     config: ConfigService<Env, true>,
   ) {
     this.images = imageStore({
@@ -107,8 +147,10 @@ export class AdminProductsService {
           category: {
             select: { translations: { where: { locale: 'uz' }, select: { name: true } } },
           },
-          variants: { select: { price: true, stockQuantity: true } },
-          images: { orderBy: { position: 'asc' }, take: 1 },
+          variants: { select: { price: true, stockQuantity: true, isActive: true } },
+          images: { orderBy: { position: 'asc' }, take: 1, include: { translations: true } },
+          attributeValues: { select: { attributeId: true } },
+          productType: { select: requiredAttributesSelect },
         },
       }),
     ]);
@@ -133,15 +175,50 @@ export class AdminProductsService {
         image: image ? toImageDto(image, name) : null,
         illustrationKey: asIllustrationKey(row.illustrationKey),
         updatedAt: row.updatedAt.toISOString(),
+        missing: missingRequired(
+          productReadiness({
+            slug: row.slug,
+            hasCategory: true,
+            translations: [
+              {
+                locale: 'uz',
+                name,
+                shortDescription: null,
+                seoDescription: null,
+              },
+            ],
+            variants: row.variants,
+            images: row.images.map((entry) => ({
+              altLocales: entry.translations.map((translation) => translation.locale),
+            })),
+            missingAttributes: missingAttributeLabels(
+              row.productType,
+              row.attributeValues.map((value) => value.attributeId),
+            ),
+          }),
+        ),
       };
     });
     return buildPaginated(items, total, query.page, query.pageSize);
   }
 
+  /**
+   * The product exactly as its storefront page would show it, whatever its status (drafts
+   * included): the admin area previews the real page before anything is published.
+   */
+  async preview(id: string, locale: Locale): Promise<ProductDetailDto> {
+    const row = await this.prisma.product.findUnique({
+      where: { id },
+      include: storefrontInclude(locale),
+    });
+    if (!row) throw ApiException.notFound('Product not found');
+    return toProductDetail(row, locale);
+  }
+
   async get(id: string): Promise<AdminProductDetail> {
     const row = await this.prisma.product.findUnique({ where: { id }, include: detailInclude });
     if (!row) throw ApiException.notFound('Product not found');
-    return this.toDetail(row);
+    return this.toDetail(row, await this.telegram.statusFor('PRODUCT', id));
   }
 
   async create(input: ProductUpsertPayload, actor: Actor): Promise<AdminProductDetail> {
@@ -149,6 +226,10 @@ export class AdminProductsService {
       await this.assertReferences(tx, input);
       await this.releaseSlug(tx, input.slug);
       const attributes = await this.attributeData(tx, input, null);
+      // A new product has no images yet: it is created as a draft, then published.
+      if (input.status === 'ACTIVE') {
+        assertPublishable(this.inputReadiness(input, attributes, []), 'product');
+      }
       const product = await tx.product.create({
         data: {
           ...this.scalarFields(input),
@@ -179,6 +260,7 @@ export class AdminProductsService {
       return product.id;
     });
     this.revalidation.notify('catalog');
+    await this.announce(id, input, actor);
     return this.get(id);
   }
 
@@ -202,6 +284,14 @@ export class AdminProductsService {
       if (!existing) throw ApiException.notFound('Product not found');
       await this.assertReferences(tx, input);
       const attributes = await this.attributeData(tx, input, existing.productTypeId);
+      if (input.status === 'ACTIVE') {
+        const images = await tx.productImage.findMany({
+          where: { productId: id },
+          orderBy: { position: 'asc' },
+          select: { translations: { select: { locale: true } } },
+        });
+        assertPublishable(this.inputReadiness(input, attributes, images), 'product');
+      }
       if (existing.slug !== input.slug) {
         await this.releaseSlug(tx, input.slug);
         // Links to the old address keep working: they are redirected to the new one.
@@ -291,52 +381,81 @@ export class AdminProductsService {
       );
     });
     this.revalidation.notify('catalog');
+    await this.announce(id, input, actor);
     return this.get(id);
   }
 
-  async addImage(productId: string, file: Buffer, actor: Actor): Promise<AdminProductDetail> {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { _count: { select: { images: true } } },
-    });
-    if (!product) throw ApiException.notFound('Product not found');
-    if (product._count.images >= MAX_IMAGES_PER_PRODUCT) {
-      throw ApiException.badRequest(
-        'BAD_REQUEST',
-        'This product already has the maximum number of images',
-        {
-          max: MAX_IMAGES_PER_PRODUCT,
-        },
-      );
+  /** After a committed save: an active product with its announcement on gets its Telegram post. */
+  private async announce(id: string, input: ProductUpsertPayload, actor: Actor): Promise<void> {
+    if (input.status === 'ACTIVE' && input.announceOnTelegram) {
+      await this.telegram.requestAnnouncement('PRODUCT', id, actor.userId);
     }
+  }
 
+  /** Readiness of the product as it is about to be saved. */
+  private inputReadiness(
+    input: ProductUpsertPayload,
+    attributes: AttributeData,
+    images: readonly { translations: readonly { locale: string }[] }[],
+  ): Readiness {
+    const valued = new Set(attributes.rows.map((row) => row.attributeId));
+    return productReadiness({
+      slug: input.slug,
+      hasCategory: true,
+      translations: translationRows(input.translations).map((row) => ({
+        locale: row.locale,
+        name: row.name,
+        shortDescription: row.shortDescription ?? null,
+        seoDescription: row.seoDescription ?? null,
+      })),
+      variants: input.variants.map((variant) => ({
+        isActive: variant.isActive,
+        price: variant.price,
+      })),
+      images: images.map((image) => ({
+        altLocales: image.translations.map((translation) => translation.locale),
+      })),
+      missingAttributes: attributes.definitions
+        .filter((definition) => definition.isRequired && !valued.has(definition.id))
+        .map(
+          (definition) =>
+            definition.translations.find((translation) => translation.locale === 'uz')?.label ??
+            definition.key,
+        ),
+    });
+  }
+
+  /**
+   * Adds an image after the existing ones. The file is validated by decoding it (the declared type
+   * and name are ignored) and stored as WebP renditions; the same file is not stored twice for one
+   * product. Additions to one product are serialised, so the image limit holds under concurrency.
+   */
+  async addImage(productId: string, file: Buffer, actor: Actor): Promise<AdminProductDetail> {
+    const hash = contentHash(file);
+    await this.assertImageSlot(productId, hash);
     let stored;
     try {
       stored = await storeImage(file, this.images, productImagePrefix(productId));
     } catch (error) {
-      if (error instanceof ImageRejectedError) {
-        throw error.reason === 'too_small'
-          ? ApiException.badRequest('BAD_REQUEST', 'The image is too small', {
-              reason: error.reason,
-            })
-          : new ApiException(
-              HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-              'UNSUPPORTED_MEDIA_TYPE',
-              'Upload a JPEG, PNG, WebP or AVIF image',
-              { details: { reason: error.reason } },
-            );
-      }
-      throw error;
+      uploadError(error);
     }
 
     try {
       await this.prisma.$transaction(async (tx) => {
-        const { _max } = await tx.productImage.aggregate({
+        await this.lockProduct(tx, productId);
+        const images = await tx.productImage.findMany({
           where: { productId },
-          _max: { position: true },
+          select: { position: true, contentHash: true },
         });
+        if (images.length >= MAX_PRODUCT_IMAGES) throw this.tooManyImages();
+        if (images.some((image) => image.contentHash === hash)) throw duplicateImage();
         const image = await tx.productImage.create({
-          data: { productId, ...stored, position: (_max.position ?? -1) + 1 },
+          data: {
+            productId,
+            ...stored,
+            contentHash: hash,
+            position: Math.max(-1, ...images.map((entry) => entry.position)) + 1,
+          },
           select: { id: true },
         });
         await this.audit.record(
@@ -357,6 +476,130 @@ export class AdminProductsService {
     }
     this.revalidation.notify('catalog');
     return this.get(productId);
+  }
+
+  /**
+   * Replaces an image's file, keeping its place in the order and its alternative text. The old
+   * renditions are removed only after the change is committed.
+   */
+  async replaceImage(
+    productId: string,
+    imageId: string,
+    file: Buffer,
+    actor: Actor,
+  ): Promise<AdminProductDetail> {
+    const hash = contentHash(file);
+    const current = await this.prisma.productImage.findFirst({
+      where: { id: imageId, productId },
+      select: { storageKey: true },
+    });
+    if (!current) throw ApiException.notFound('Image not found');
+    const twin = await this.prisma.productImage.findFirst({
+      where: { productId, contentHash: hash, id: { not: imageId } },
+      select: { id: true },
+    });
+    if (twin) throw duplicateImage();
+    let stored;
+    try {
+      stored = await storeImage(file, this.images, productImagePrefix(productId));
+    } catch (error) {
+      uploadError(error);
+    }
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.productImage.update({
+          where: { id: imageId },
+          data: { ...stored, contentHash: hash },
+        });
+        await this.audit.record(
+          {
+            actorUserId: actor.userId,
+            action: 'product.image.replace',
+            entityType: 'Product',
+            entityId: productId,
+            metadata: { imageId },
+            ipAddress: actor.ipAddress,
+          },
+          tx,
+        );
+      });
+    } catch (error) {
+      await deleteStoredImage(this.images, stored.storageKey);
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw duplicateImage();
+      }
+      throw error;
+    }
+    await deleteStoredImage(this.images, current.storageKey);
+    this.revalidation.notify('catalog');
+    return this.get(productId);
+  }
+
+  /** Sets an image's alternative text per language (empty: the product's name is read). */
+  async updateImageAlt(
+    productId: string,
+    imageId: string,
+    input: ImageAltInput,
+    actor: Actor,
+  ): Promise<AdminProductDetail> {
+    await this.prisma.$transaction(async (tx) => {
+      const image = await tx.productImage.findFirst({
+        where: { id: imageId, productId },
+        select: { id: true },
+      });
+      if (!image) throw ApiException.notFound('Image not found');
+      for (const locale of LOCALES) {
+        const altText = input[locale]?.trim();
+        if (altText) {
+          await tx.productImageTranslation.upsert({
+            where: { imageId_locale: { imageId, locale } },
+            create: { imageId, locale, altText },
+            update: { altText },
+          });
+        } else {
+          await tx.productImageTranslation.deleteMany({ where: { imageId, locale } });
+        }
+      }
+      await this.audit.record(
+        {
+          actorUserId: actor.userId,
+          action: 'product.image.alt',
+          entityType: 'Product',
+          entityId: productId,
+          metadata: { imageId },
+          ipAddress: actor.ipAddress,
+        },
+        tx,
+      );
+    });
+    this.revalidation.notify('catalog');
+    return this.get(productId);
+  }
+
+  /** Checks the limit and duplicates before any file is processed (cheap early refusal). */
+  private async assertImageSlot(productId: string, hash: string): Promise<void> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { images: { select: { contentHash: true } } },
+    });
+    if (!product) throw ApiException.notFound('Product not found');
+    if (product.images.length >= MAX_PRODUCT_IMAGES) throw this.tooManyImages();
+    if (product.images.some((image) => image.contentHash === hash)) throw duplicateImage();
+  }
+
+  private tooManyImages(): ApiException {
+    return ApiException.badRequest(
+      'BAD_REQUEST',
+      'This product already has the maximum number of images',
+      { reason: 'too_many_images', max: MAX_PRODUCT_IMAGES },
+    );
+  }
+
+  /** Serialises image changes of one product (row lock until the transaction ends). */
+  private async lockProduct(tx: Prisma.TransactionClient, productId: string): Promise<void> {
+    const rows = await tx.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "Product" WHERE id = ${productId}::uuid FOR UPDATE`;
+    if (rows.length === 0) throw ApiException.notFound('Product not found');
   }
 
   async reorderImages(
@@ -391,11 +634,36 @@ export class AdminProductsService {
     return this.get(productId);
   }
 
+  /**
+   * Removes an image. The last image of an active product cannot be removed: the product would be
+   * public without a picture (upload another one first, or take the product back to draft).
+   */
   async deleteImage(productId: string, imageId: string, actor: Actor): Promise<AdminProductDetail> {
     const image = await this.prisma.$transaction(async (tx) => {
+      await this.lockProduct(tx, productId);
       const found = await tx.productImage.findFirst({ where: { id: imageId, productId } });
       if (!found) throw ApiException.notFound('Image not found');
+      const [product, count] = await Promise.all([
+        tx.product.findUniqueOrThrow({ where: { id: productId }, select: { status: true } }),
+        tx.productImage.count({ where: { productId } }),
+      ]);
+      if (product.status === 'ACTIVE' && count <= 1) {
+        throw ApiException.conflict(
+          'PUBLICATION_BLOCKED',
+          'An active product must keep at least one image',
+          { reason: 'last_image_of_active_product', missing: ['mainImage'] },
+        );
+      }
       await tx.productImage.delete({ where: { id: imageId } });
+      // Positions stay contiguous, so "first" always means the main image.
+      const rest = await tx.productImage.findMany({
+        where: { productId },
+        orderBy: { position: 'asc' },
+        select: { id: true },
+      });
+      for (const [position, entry] of rest.entries()) {
+        await tx.productImage.update({ where: { id: entry.id }, data: { position } });
+      }
       await this.audit.record(
         {
           actorUserId: actor.userId,
@@ -456,8 +724,10 @@ export class AdminProductsService {
     if (!type.isActive && input.productTypeId !== currentTypeId) {
       throw ApiException.badRequest('BAD_REQUEST', 'This product type is not active');
     }
+    // Missing required attributes are reported by the readiness check (PUBLICATION_BLOCKED), with
+    // everything else a product needs before it can be published.
     const rows = validateAttributeValues(type.attributes, input.attributes, {
-      requireComplete: input.status === 'ACTIVE',
+      requireComplete: false,
     });
     return { definitions: type.attributes, rows };
   }
@@ -504,6 +774,7 @@ export class AdminProductsService {
           ? null
           : new Prisma.Decimal(input.brewAmountGrams.toFixed(1)),
       illustrationKey: input.illustrationKey,
+      announceOnTelegram: input.announceOnTelegram,
     };
   }
 
@@ -564,7 +835,7 @@ export class AdminProductsService {
     }
   }
 
-  private toDetail(row: DetailRow): AdminProductDetail {
+  private toDetail(row: DetailRow, telegram: AdminProductDetail['telegram']): AdminProductDetail {
     const name =
       row.translations.find((translation) => translation.locale === 'uz')?.name ?? row.slug;
     return {
@@ -605,7 +876,30 @@ export class AdminProductsService {
         barcode: variant.barcode,
         isActive: variant.isActive,
       })),
-      images: row.images.map((image) => ({ id: image.id, ...toImageDto(image, name) })),
+      images: row.images.map((image) => {
+        const alt = (locale: string) =>
+          image.translations.find((translation) => translation.locale === locale)?.altText ?? null;
+        return {
+          id: image.id,
+          ...toImageDto(image, alt('uz') ?? name),
+          altTexts: { uz: alt('uz'), ru: alt('ru'), en: alt('en') },
+        };
+      }),
+      announceOnTelegram: row.announceOnTelegram,
+      telegram,
+      readiness: productReadiness({
+        slug: row.slug,
+        hasCategory: true,
+        translations: row.translations,
+        variants: row.variants,
+        images: row.images.map((image) => ({
+          altLocales: image.translations.map((translation) => translation.locale),
+        })),
+        missingAttributes: missingAttributeLabels(
+          row.productType,
+          row.attributeValues.map((value) => value.attributeId),
+        ),
+      }),
       publishedAt: row.publishedAt?.toISOString() ?? null,
       updatedAt: row.updatedAt.toISOString(),
     };

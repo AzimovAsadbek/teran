@@ -25,6 +25,8 @@ const contentSecurityPolicy = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
+  // Films play from /uploads; blob: lets the admin area play a chosen file before uploading it.
+  "media-src 'self' blob:",
   "font-src 'self'",
   `connect-src 'self'${isDev ? ' ws:' : ''}`,
   "object-src 'none'",
@@ -33,6 +35,15 @@ const contentSecurityPolicy = [
   "frame-ancestors 'none'",
   ...(isDev ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
+
+/**
+ * On Vercel the admin area uploads films straight to Vercel Blob (its upload API is on
+ * vercel.com), so large files never pass through a function; only admin pages may connect there.
+ */
+const adminContentSecurityPolicy = contentSecurityPolicy.replace(
+  "connect-src 'self'",
+  "connect-src 'self' https://vercel.com https://*.blob.vercel-storage.com",
+);
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: contentSecurityPolicy },
@@ -72,7 +83,17 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    const adminHeaders = [{ key: 'Content-Security-Policy', value: adminContentSecurityPolicy }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Later rules override earlier ones for the same header.
+      ...(process.env.VERCEL
+        ? [
+            { source: '/admin/:path*', headers: adminHeaders },
+            { source: '/:locale(ru|en)/admin/:path*', headers: adminHeaders },
+          ]
+        : []),
+    ];
   },
   async rewrites() {
     // Browser requests stay same-origin (first-party cookies, no CORS). In production a reverse

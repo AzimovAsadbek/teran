@@ -3,9 +3,8 @@ import type { Locale } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
-import { Suspense } from 'react';
+import { Suspense, type CSSProperties } from 'react';
 import Image from 'next/image';
-import { TeaTypeArt } from '@/components/brand/illustrations';
 import { GoldRule, WavePattern } from '@/components/brand/ornaments';
 import { ProductCard } from '@/components/catalog/product-card';
 import { ArticleCard } from '@/components/content/article-card';
@@ -14,9 +13,7 @@ import { Reveal } from '@/components/ui/reveal';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { ProductCardSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { brandCopy, COLLECTION_CODES, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
-import { Link } from '@/i18n/navigation';
-import { cn } from '@/lib/cn';
-import { getCategories, getCollections, getProductList, leafCategories } from '@/lib/data/catalog';
+import { getCollections, getProductList } from '@/lib/data/catalog';
 import { getArticles } from '@/lib/data/content';
 import terraces from '../../../public/brand/art/terraces.webp';
 import { ProductShowcase } from './product-showcase';
@@ -25,63 +22,6 @@ import { ProductShowcase } from './product-showcase';
  * Data-driven homepage sections. Each renders at request time (connection()) inside its own
  * Suspense boundary, reads through the cached loaders, and degrades to nothing if the API fails.
  */
-
-const RAIL_FRAME = 'container-page';
-const RAIL_ROW =
-  '-mx-gutter flex snap-x snap-mandatory scroll-px-gutter gap-3 overflow-x-auto px-gutter py-3 [scrollbar-width:thin] lg:gap-4';
-const RAIL_ITEM = 'h-40 min-w-[8.5rem] flex-1 snap-start lg:min-w-[7.25rem]';
-
-/** Tea types as a row of cards, straight after the brand values. */
-export async function CategoryRailSection() {
-  await connection();
-  const locale = await getLocale();
-  const t = await getTranslations('Home');
-  const tc = await getTranslations('Catalog');
-  const categories = leafCategories(await getCategories(locale).catch(() => []));
-  if (categories.length === 0) return null;
-
-  return (
-    <section aria-labelledby="categories-title" className={RAIL_FRAME}>
-      <SectionHeading id="categories-title" title={t('categoriesTitle')} />
-      <ul className={cn(RAIL_ROW, 'mt-6')}>
-        {categories.map((category) => (
-          <li key={category.slug} className={RAIL_ITEM}>
-            <Link
-              href={`/${category.path}`}
-              className="group flex h-full flex-col items-center rounded-card border border-line bg-surface px-3 pt-4 pb-3.5 text-center shadow-soft transition-[translate,box-shadow,border-color] duration-200 ease-[var(--ease-standard)] hover:-translate-y-0.5 hover:border-gold-400 hover:shadow-lift"
-            >
-              <span className="h-14 w-14 shrink-0 transition-transform duration-300 ease-[var(--ease-soft)] group-hover:rotate-6">
-                <TeaTypeArt kind={category.illustrationKey} />
-              </span>
-              <span className="mt-2.5 line-clamp-2 text-title-sm text-balance text-fg">
-                {category.name}
-              </span>
-              <span className="mt-auto pt-1 text-caption text-fg-subtle">
-                {tc('results', { count: category.productCount })}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-/** Same footprint as the rail while it streams in, so nothing below it moves. */
-export function CategoryRailFallback() {
-  return (
-    <div aria-hidden className={RAIL_FRAME}>
-      <Skeleton className="h-10 w-64" />
-      <div className={cn(RAIL_ROW, 'mt-6')}>
-        {Array.from({ length: 7 }, (_, index) => (
-          <div key={index} className={RAIL_ITEM}>
-            <div className="h-full rounded-card border border-line bg-surface shadow-soft" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export async function ShowcaseSection() {
   await connection();
@@ -219,9 +159,9 @@ async function CollectionProducts() {
   const items = products?.items ?? [];
   if (items.length === 0) return null;
   return (
-    <ul className={COLLECTION_GRID}>
-      {items.map((product) => (
-        <li key={product.id} className={COLLECTION_ITEM}>
+    <ul data-stagger className={COLLECTION_GRID}>
+      {items.map((product, index) => (
+        <li key={product.id} className={COLLECTION_ITEM} style={{ '--i': index } as CSSProperties}>
           <ProductCard
             product={product}
             sizes="(min-width: 1024px) 18vw, (min-width: 640px) 30vw, 62vw"
@@ -236,7 +176,8 @@ export async function JournalSection() {
   await connection();
   const locale = await getLocale();
   const t = await getTranslations('Home');
-  const articles = await getArticles(locale, 1, 3).catch(() => null);
+  // Articles chosen in the admin area come first, then the newest.
+  const articles = await getArticles(locale, 1, 3, true).catch(() => null);
   if (!articles || articles.items.length === 0) return null;
 
   return (
@@ -247,9 +188,16 @@ export async function JournalSection() {
           title={t('journalTitle')}
           action={{ href: '/journal', label: t('journalCta') }}
         />
-        <ul className="-mx-gutter mt-8 flex snap-x snap-mandatory scroll-px-gutter gap-4 overflow-x-auto px-gutter py-2 md:mx-0 md:mt-10 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:py-0">
-          {articles.items.map((article) => (
-            <li key={article.slug} className="w-[78%] shrink-0 snap-start sm:w-[46%] md:w-auto">
+        <ul
+          data-stagger
+          className="-mx-gutter mt-8 flex snap-x snap-mandatory scroll-px-gutter gap-4 overflow-x-auto px-gutter py-2 md:mx-0 md:mt-10 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:px-0 md:py-0"
+        >
+          {articles.items.map((article, index) => (
+            <li
+              key={article.slug}
+              className="w-[78%] shrink-0 snap-start sm:w-[46%] md:w-auto"
+              style={{ '--i': index } as CSSProperties}
+            >
               <ArticleCard article={article} />
             </li>
           ))}

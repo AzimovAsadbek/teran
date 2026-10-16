@@ -15,6 +15,8 @@ export interface FormSubmission {
   errors: FieldErrors;
   summary: string | null;
   apiErrorMessage: string | null;
+  /** The failed request's error, for callers that explain some codes themselves. */
+  apiError: ApiError | null;
   status: 'idle' | 'sending' | 'sent';
   /**
    * Validates `input` with the shared contract (plus `extraErrors`, e.g. a password confirmation),
@@ -28,6 +30,24 @@ export interface FormSubmission {
     extraErrors?: FieldErrors,
   ) => Promise<boolean>;
   reset: () => void;
+  /**
+   * The errors still worth showing for the form's current `input` (same shape as submitted): an
+   * error disappears as soon as its field changes, instead of re-describing the new value.
+   */
+  errorsFor: (input: unknown) => FieldErrors;
+}
+
+/** The value at a field path ("variants.0.sku") of a submitted input. */
+function valueAt(source: unknown, path: string): unknown {
+  return path
+    .split('.')
+    .reduce<unknown>(
+      (node, key) =>
+        node !== null && typeof node === 'object'
+          ? (node as Record<string, unknown>)[key]
+          : undefined,
+      source,
+    );
 }
 
 /**
@@ -41,6 +61,7 @@ export function useFormSubmission(formRef: RefObject<HTMLElement | null>): FormS
   const [summary, setSummary] = useState<string | null>(null);
   const [apiError, setApiError] = useState<ApiError | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [submitted, setSubmitted] = useState<unknown>(undefined);
   const apiErrorMessage = useApiErrorMessage(apiError);
 
   function showErrors(next: FieldErrors) {
@@ -57,6 +78,7 @@ export function useFormSubmission(formRef: RefObject<HTMLElement | null>): FormS
   ): Promise<boolean> {
     if (status === 'sending') return false;
     setApiError(null);
+    setSubmitted(input);
     const parsed = schema.safeParse(input);
     const fieldErrors = {
       ...extraErrors,
@@ -95,5 +117,14 @@ export function useFormSubmission(formRef: RefObject<HTMLElement | null>): FormS
     setStatus('idle');
   }
 
-  return { errors, summary, apiErrorMessage, status, submit, reset };
+  function errorsFor(input: unknown): FieldErrors {
+    return Object.fromEntries(
+      Object.entries(errors).filter(
+        ([path]) =>
+          JSON.stringify(valueAt(submitted, path)) === JSON.stringify(valueAt(input, path)),
+      ),
+    );
+  }
+
+  return { errors, summary, apiErrorMessage, apiError, status, submit, reset, errorsFor };
 }

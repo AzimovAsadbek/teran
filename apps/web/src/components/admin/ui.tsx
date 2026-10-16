@@ -5,14 +5,18 @@ import type {
   PaymentStatus,
   ProductStatus,
 } from '@teran/contracts';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { getPathname } from '@/i18n/navigation';
 import type { ReactNode } from 'react';
 import { buttonClasses } from '@/components/ui/button';
 import { inputClasses, SelectChevron, selectClasses } from '@/components/ui/controls';
 import { Notice } from '@/components/ui/notice';
+import { getPathname, Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { FilterFormShell } from './filter-form';
+import { Pill, type Tone } from './pill';
+
+export { Cell, table } from './table';
 
 export function AdminPageHeader({
   title,
@@ -27,7 +31,9 @@ export function AdminPageHeader({
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4 sm:mb-8">
       <div className="min-w-0">
         <h1 className="text-display-md text-forest-900">{title}</h1>
-        {description ? <div className="mt-1.5 text-body text-fg-muted">{description}</div> : null}
+        {description ? (
+          <div className="mt-1.5 max-w-3xl text-body text-fg-muted">{description}</div>
+        ) : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </div>
@@ -58,41 +64,7 @@ export function Panel({
   );
 }
 
-/** Table styling shared by every admin list (tables scroll horizontally on small screens). */
-export const table = {
-  wrapper: 'overflow-x-auto rounded-card border border-line bg-surface',
-  table:
-    'w-full min-w-[40rem] text-left text-body-sm text-fg [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-surface-muted/50',
-  th: 'border-b border-line bg-surface-muted/60 px-4 py-3 text-caption font-semibold tracking-[0.06em] whitespace-nowrap text-fg-subtle uppercase',
-  td: 'border-b border-line-subtle px-4 py-3 align-middle',
-  link: 'font-semibold text-brand underline-offset-4 hover:underline',
-};
-
-type Tone = 'gold' | 'leaf' | 'dark' | 'muted' | 'danger' | 'blue';
-
-const TONES: Record<Tone, string> = {
-  gold: 'bg-warning-soft text-warning',
-  leaf: 'bg-success-soft text-success',
-  dark: 'bg-surface-inverse text-fg-inverse',
-  muted: 'bg-surface-sunken text-fg-muted',
-  danger: 'bg-danger-soft text-danger',
-  blue: 'bg-info-soft text-info',
-};
-
-/** Status label: a dot and text (the colour supports the word, never replaces it). */
-export function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-semibold whitespace-nowrap',
-        TONES[tone],
-      )}
-    >
-      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
-      {children}
-    </span>
-  );
-}
+export { Pill } from './pill';
 
 const ORDER_TONES: Record<OrderStatus, Tone> = {
   PENDING: 'gold',
@@ -125,11 +97,16 @@ const INQUIRY_TONES: Record<InquiryStatus, Tone> = {
   RESOLVED: 'leaf',
   SPAM: 'muted',
 };
-const ARTICLE_TONES: Record<ArticleStatus, Tone> = { DRAFT: 'gold', PUBLISHED: 'leaf' };
+const ARTICLE_TONES: Record<ArticleStatus, Tone> = {
+  DRAFT: 'gold',
+  PUBLISHED: 'leaf',
+  ARCHIVED: 'muted',
+};
 
+/** Order status in the words staff use ("New", "Being packed"), not the customer's wording. */
 export async function OrderStatusPill({ status }: { status: OrderStatus }) {
-  const t = await getTranslations('Checkout');
-  return <Pill tone={ORDER_TONES[status]}>{t(`statuses.${status}`)}</Pill>;
+  const t = await getTranslations('Admin');
+  return <Pill tone={ORDER_TONES[status]}>{t(`orderStatus.${status}`)}</Pill>;
 }
 
 export async function PaymentStatusPill({ status }: { status: PaymentStatus }) {
@@ -155,9 +132,9 @@ export async function ArticleStatusPill({ status }: { status: ArticleStatus }) {
 export async function EmptyState({ children }: { children?: ReactNode }) {
   const t = await getTranslations('Admin');
   return (
-    <p className="rounded-card border border-dashed border-line-strong/50 bg-surface px-6 py-12 text-center text-body text-fg-subtle">
+    <div className="rounded-card border border-dashed border-line-strong/50 bg-surface px-6 py-12 text-center text-body text-fg-subtle">
       {children ?? t('common.empty')}
-    </p>
+    </div>
   );
 }
 
@@ -171,29 +148,29 @@ export async function AccessDenied({ adminOnly = false }: { adminOnly?: boolean 
 }
 
 /**
- * Filters as a plain GET form: every filter is part of the URL, so lists can be bookmarked and
- * shared, and the browser's back button works.
+ * A list's search box and filters (see FilterFormShell: options apply at once). `active` shows a
+ * link that clears every filter.
  */
 export async function FilterForm({
   action,
   q,
   placeholder,
+  active = false,
   children,
 }: {
   action: string;
   q?: string;
   placeholder?: string;
+  active?: boolean;
   children?: ReactNode;
 }) {
   const [t, locale] = await Promise.all([getTranslations('Admin'), getLocale()]);
   return (
-    <form
+    <FilterFormShell
       action={getPathname({ href: action, locale })}
-      method="get"
       className="mb-5 flex flex-wrap items-end gap-3"
-      role="search"
     >
-      <label className="relative min-w-[16rem] flex-1">
+      <label className="relative min-w-[min(16rem,100%)] flex-1">
         <span className="sr-only">{t('common.search')}</span>
         <Search
           aria-hidden
@@ -211,7 +188,13 @@ export async function FilterForm({
       <button type="submit" className={buttonClasses('primary', 'md')}>
         {t('common.search')}
       </button>
-    </form>
+      {active ? (
+        <Link href={action} className={buttonClasses('ghost', 'md')}>
+          <X aria-hidden className="h-4 w-4" />
+          {t('common.clearFilters')}
+        </Link>
+      ) : null}
+    </FilterFormShell>
   );
 }
 
@@ -248,5 +231,48 @@ export function FilterSelect({
         <SelectChevron />
       </span>
     </label>
+  );
+}
+
+/**
+ * Status tabs above a list: one link per status with the number of items waiting in it, so the
+ * work queue is visible at a glance (and a status is one tap away).
+ */
+export function StatusTabs({
+  label,
+  tabs,
+}: {
+  label: string;
+  tabs: readonly { href: string; label: string; count?: number; current: boolean }[];
+}) {
+  return (
+    <nav aria-label={label} className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <ul className="flex w-max gap-1 rounded-full border border-line bg-surface p-1">
+        {tabs.map((tab) => (
+          <li key={tab.href}>
+            <Link
+              href={tab.href}
+              aria-current={tab.current ? 'page' : undefined}
+              className={cn(
+                'inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 text-body-sm font-semibold whitespace-nowrap transition-colors',
+                tab.current ? 'bg-brand text-fg-inverse' : 'text-forest-900 hover:bg-surface-muted',
+              )}
+            >
+              {tab.label}
+              {tab.count ? (
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 text-caption tabular-nums',
+                    tab.current ? 'bg-fg-inverse/20' : 'bg-gold-100 text-gold-800',
+                  )}
+                >
+                  {tab.count}
+                </span>
+              ) : null}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }

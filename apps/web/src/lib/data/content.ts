@@ -1,10 +1,13 @@
 import 'server-only';
 import type {
   ArticleDetailDto,
+  AssistantMode,
   AuthFeaturesDto,
   ArticleSummaryDto,
   CheckoutOptionsDto,
   Locale,
+  MediaItemDto,
+  MediaKind,
   Paginated,
   PublicSettingsDto,
 } from '@teran/contracts';
@@ -22,13 +25,41 @@ export async function getArticles(
   locale: Locale,
   page = 1,
   pageSize = 9,
+  featuredFirst = false,
 ): Promise<Paginated<ArticleSummaryDto>> {
   'use cache';
   cacheLife('hours');
   cacheTag('content');
   return apiGet<Paginated<ArticleSummaryDto>>(
-    `/content/articles?locale=${locale}&page=${page}&pageSize=${pageSize}`,
+    `/content/articles?locale=${locale}&page=${page}&pageSize=${pageSize}${featuredFirst ? '&featuredFirst=true' : ''}`,
   );
+}
+
+/** Published photographs and films ("Lavhalar") in display order; `featured` for the home page. */
+export async function getMedia(
+  locale: Locale,
+  options: { kind?: MediaKind; featured?: boolean; page?: number; pageSize?: number } = {},
+): Promise<Paginated<MediaItemDto>> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('content');
+  const query = new URLSearchParams({ locale });
+  if (options.featured) query.set('featured', 'true');
+  if (options.kind) query.set('kind', options.kind);
+  query.set('page', String(options.page ?? 1));
+  query.set('pageSize', String(options.pageSize ?? 24));
+  return apiGet<Paginated<MediaItemDto>>(`/content/media?${query}`);
+}
+
+/** Current address of a renamed article (for a permanent redirect), or null. */
+export async function getArticleRedirect(slug: string): Promise<string | null> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('content');
+  const found = await apiGetOrNull<{ slug: string }>(
+    `/content/articles/redirects/${encodeURIComponent(slug)}`,
+  );
+  return found?.slug ?? null;
 }
 
 /** Null when no published article has this slug. */
@@ -46,6 +77,13 @@ export async function getCheckoutOptions(locale: Locale): Promise<CheckoutOption
   cacheLife('minutes');
   cacheTag('settings');
   return apiGet<CheckoutOptionsDto>(`/checkout/options?locale=${locale}`);
+}
+
+/** Whether the product advisor answers with an AI model or with rule-based matching. */
+export async function getAssistantStatus(): Promise<{ mode: AssistantMode }> {
+  'use cache';
+  cacheLife('minutes');
+  return apiGet<{ mode: AssistantMode }>('/assistant/status');
 }
 
 /** Which account features the API can offer (password reset needs outgoing e-mail). */

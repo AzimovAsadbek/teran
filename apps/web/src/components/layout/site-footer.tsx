@@ -155,6 +155,11 @@ export async function SiteFooter() {
                 {tn('shopAll')}
               </Link>
             </li>
+            <li>
+              <Link href="/assistant" className={linkClass}>
+                {tn('assistant')}
+              </Link>
+            </li>
             <Suspense fallback={null}>
               <ShopLinks />
             </Suspense>
@@ -168,6 +173,16 @@ export async function SiteFooter() {
             <li>
               <Link href="/journal" className={linkClass}>
                 {tn('journal')}
+              </Link>
+            </li>
+            <li>
+              <Link href="/media/photos" className={linkClass}>
+                {tn('photos')}
+              </Link>
+            </li>
+            <li>
+              <Link href="/media/videos" className={linkClass}>
+                {tn('videos')}
               </Link>
             </li>
             <li>

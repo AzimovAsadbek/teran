@@ -1,14 +1,13 @@
-import type { AdminArticle, Locale } from '@teran/contracts';
+import type { AdminArticle, AdminMediaItem, Locale } from '@teran/contracts';
 import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
-import { SuccessMessage } from '@/components/account/auth-forms';
 import { ArticleEditor } from '@/components/admin/article-editor';
 import { AdminPageHeader, ArticleStatusPill } from '@/components/admin/ui';
 import { Link } from '@/i18n/navigation';
-import { adminGet } from '@/lib/admin/server';
+import { adminGet, getTelegramSettings } from '@/lib/admin/server';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -20,11 +19,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EditArticlePage({
   params,
-  searchParams,
 }: PageProps<'/[locale]/admin/journal/[id]'>) {
-  const [{ id }, query, t] = await Promise.all([params, searchParams, getTranslations('Admin')]);
+  const [{ id }, t] = await Promise.all([params, getTranslations('Admin')]);
   if (!UUID.test(id)) notFound();
-  const article = await adminGet<AdminArticle>(`/articles/${id}`).catch(() => null);
+  const [article, telegram, gallery] = await Promise.all([
+    adminGet<AdminArticle>(`/articles/${id}`).catch(() => null),
+    getTelegramSettings(),
+    adminGet<AdminMediaItem[]>('/media').catch(() => null),
+  ]);
   if (!article) notFound();
   return (
     <>
@@ -39,12 +41,13 @@ export default async function EditArticlePage({
         title={article.translations.uz.title}
         description={<ArticleStatusPill status={article.status} />}
       />
-      {query.saved === '1' ? (
-        <div className="mb-6">
-          <SuccessMessage>{t('common.saved')}</SuccessMessage>
-        </div>
-      ) : null}
-      <ArticleEditor key={article.updatedAt} article={article} />
+      {/* Keyed by article, not by version: uploading the cover refreshes the page without wiping edits. */}
+      <ArticleEditor
+        key={article.id}
+        article={article}
+        telegram={telegram}
+        gallery={gallery ?? []}
+      />
     </>
   );
 }

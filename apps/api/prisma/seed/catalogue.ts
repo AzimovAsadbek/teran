@@ -71,8 +71,8 @@ export interface CatalogueReport {
   articles: number;
   /**
    * Structural changes: categories and product types created, demo categories placed under their
-   * parent, demo products given their product type, and identifier products updated to what their
-   * packs say (databases seeded by earlier versions).
+   * parent, demo products given their product type, identifier products updated to what their
+   * packs say, and pack products given their cut-out image (databases seeded by earlier versions).
    */
   structure: number;
 }
@@ -113,11 +113,18 @@ async function seedTaxonomies(prisma: PrismaClient): Promise<number> {
       continue;
     }
     changes += 1;
+    const productType = category.productType
+      ? await prisma.productType.findUnique({
+          where: { key: category.productType },
+          select: { id: true },
+        })
+      : null;
     await prisma.category.create({
       data: {
         slug: category.slug,
         position,
         parentId: parent?.id ?? null,
+        productTypeId: productType?.id ?? null,
         illustrationKey: category.illustrationKey,
         translations: {
           create: perLocale((locale) => ({
@@ -169,6 +176,7 @@ async function seedProductTypes(prisma: PrismaClient): Promise<number> {
       data: {
         key: type.key,
         position,
+        brewingGuide: type.brewingGuide,
         translations: { create: perLocale((locale) => ({ name: type.name[locale] })) },
         attributes: {
           create: type.attributes.map((attribute, attributePosition) => ({
@@ -389,11 +397,15 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
   }, SEED_TRANSACTION);
 }
 
-/** The pack's front and back when the product has packaging, otherwise code-drawn art. */
+/**
+ * The pack's front and back (and its cut-out, for the home page stage) when the product has
+ * packaging, otherwise code-drawn art.
+ */
 async function demoImages(demo: DemoProduct, emblem: Buffer): Promise<Buffer[]> {
   if (demo.packaging) {
+    const { front, back, cutout } = demo.packaging;
     return Promise.all(
-      [demo.packaging.front, demo.packaging.back].map((file) =>
+      [front, back, ...(cutout ? [cutout] : [])].map((file) =>
         readFile(resolve(seedDir, 'assets/packaging', file)),
       ),
     );
@@ -426,6 +438,7 @@ async function attachDemoImages(
         widths: stored.widths,
         width: stored.width,
         height: stored.height,
+        transparent: stored.transparent,
       },
     });
   }
@@ -502,13 +515,52 @@ async function upgradeToPackaging(
   return true;
 }
 
+/**
+ * Pack products seeded before cut-out images existed get theirs once (the home hero stands
+ * products free in front of its moon gate): demo products with packaging only, while none of their
+ * images is a cut-out, appended after their images, so nothing staff arranged is moved or replaced.
+ */
+async function attachDemoCutout(
+  prisma: PrismaClient,
+  productId: string,
+  demo: DemoProduct,
+  options: CatalogueOptions,
+): Promise<boolean> {
+  const cutout = demo.packaging?.cutout;
+  // Like every image step, skipped when images are not rendered (tests).
+  if (!cutout || !options.emblem) return false;
+  const images = await prisma.productImage.findMany({
+    where: { productId },
+    select: { position: true, transparent: true },
+  });
+  if (images.length === 0 || images.some((image) => image.transparent)) return false;
+  const stored = await storeImage(
+    await readFile(resolve(seedDir, 'assets/packaging', cutout)),
+    seedImageStore(options.uploadsDir),
+    productImagePrefix(productId),
+  );
+  await prisma.productImage.create({
+    data: {
+      productId,
+      position: Math.max(...images.map((image) => image.position)) + 1,
+      storageKey: stored.storageKey,
+      widths: stored.widths,
+      width: stored.width,
+      height: stored.height,
+      transparent: stored.transparent,
+    },
+  });
+  return true;
+}
+
 export async function seedCatalogue(
   prisma: PrismaClient,
   options: CatalogueOptions,
 ): Promise<CatalogueReport> {
   const now = options.now ?? new Date();
-  let structure = await seedTaxonomies(prisma);
-  structure += await seedProductTypes(prisma);
+  // Types first: a new demo category starts with its default product type.
+  let structure = await seedProductTypes(prisma);
+  structure += await seedTaxonomies(prisma);
   const articles = await seedContent(prisma, now);
 
   let products = 0;
@@ -526,6 +578,7 @@ export async function seedCatalogue(
         if (typed) structure += 1;
       }
       if (await upgradeToPackaging(prisma, existing.id, demo, options, now)) structure += 1;
+      if (await attachDemoCutout(prisma, existing.id, demo, options)) structure += 1;
       continue;
     }
     const productId = await createProduct(prisma, demo, now);

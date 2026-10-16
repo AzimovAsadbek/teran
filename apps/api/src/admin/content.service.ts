@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   buildPaginated,
   type adminSimpleListQuerySchema,
@@ -13,13 +14,25 @@ import {
 } from '@teran/contracts';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
-import { asIllustrationKey } from '../catalog/catalog.mapper.js';
+import { asIllustrationKey, PUBLIC_UPLOADS_PATH } from '../catalog/catalog.mapper.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { toMoney, toMoneyOrNull } from '../common/money.js';
+import { mediaImage } from '../content/media.service.js';
 import { SettingsService, type SettingValues } from '../content/settings.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import type { Env } from '../config/env.js';
+import {
+  articleImagePrefix,
+  deleteStoredImage,
+  imageStore,
+  type ImageStore,
+  storeImage,
+} from '../media/image-processing.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
+import { TelegramService } from '../telegram/telegram.service.js';
+import { articleReadiness, assertPublishable } from './readiness.js';
+import { uploadError } from './uploads.js';
 import {
   nullable,
   pageArgs,
@@ -34,17 +47,32 @@ type SimpleQuery = z.output<typeof adminSimpleListQuerySchema>;
 
 const deliveryInclude = { translations: true } satisfies Prisma.DeliveryMethodInclude;
 type DeliveryRow = Prisma.DeliveryMethodGetPayload<{ include: typeof deliveryInclude }>;
-const articleInclude = { translations: true } satisfies Prisma.ArticleInclude;
+const articleInclude = {
+  translations: true,
+  media: {
+    orderBy: { position: 'asc' },
+    include: { mediaItem: { include: { translations: { where: { locale: 'uz' } } } } },
+  },
+} satisfies Prisma.ArticleInclude;
 type ArticleRow = Prisma.ArticleGetPayload<{ include: typeof articleInclude }>;
 
 @Injectable()
 export class AdminContentService {
+  private readonly images: ImageStore;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationService,
     private readonly settings: SettingsService,
-  ) {}
+    private readonly telegram: TelegramService,
+    config: ConfigService<Env, true>,
+  ) {
+    this.images = imageStore({
+      uploadsDir: config.get('UPLOADS_DIR', { infer: true }),
+      blobToken: config.get('BLOB_READ_WRITE_TOKEN', { infer: true }),
+    });
+  }
 
   // ─── Site settings ─────────────────────────────────────────────────────────
 
@@ -165,8 +193,29 @@ export class AdminContentService {
         ...pageArgs(query.page, query.pageSize),
       }),
     ]);
+    const posts = await this.prisma.telegramPost.findMany({
+      where: { entityType: 'ARTICLE', entityId: { in: rows.map((row) => row.id) } },
+    });
     return buildPaginated(
-      rows.map((row) => this.toArticle(row)),
+      rows.map((row) => {
+        const post = posts.find((entry) => entry.entityId === row.id);
+        return this.toArticle(
+          row,
+          post
+            ? {
+                id: post.id,
+                status: post.status,
+                dryRun: post.dryRun,
+                attempts: post.attempts,
+                lastError: post.lastError,
+                sentAt: post.sentAt?.toISOString() ?? null,
+                createdAt: post.createdAt.toISOString(),
+                updatedAt: post.updatedAt.toISOString(),
+                canRetry: post.status === 'FAILED',
+              }
+            : null,
+        );
+      }),
       total,
       query.page,
       query.pageSize,
@@ -176,7 +225,86 @@ export class AdminContentService {
   async article(id: string): Promise<AdminArticle> {
     const row = await this.prisma.article.findUnique({ where: { id }, include: articleInclude });
     if (!row) throw ApiException.notFound('Article not found');
-    return this.toArticle(row);
+    return this.toArticle(row, await this.telegram.statusFor('ARTICLE', id));
+  }
+
+  /** Sets the cover picture; the previous one's files go once the change is committed. */
+  async setArticleCover(id: string, file: Buffer, actor: Actor): Promise<AdminArticle> {
+    const existing = await this.prisma.article.findUnique({
+      where: { id },
+      select: { coverKey: true },
+    });
+    if (!existing) throw ApiException.notFound('Article not found');
+    let stored;
+    try {
+      stored = await storeImage(file, this.images, articleImagePrefix(id));
+    } catch (error) {
+      uploadError(error);
+    }
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.article.update({
+          where: { id },
+          data: {
+            coverKey: stored.storageKey,
+            coverWidths: stored.widths,
+            coverWidth: stored.width,
+            coverHeight: stored.height,
+          },
+        });
+        await this.audit.record(
+          {
+            actorUserId: actor.userId,
+            action: 'article.cover',
+            entityType: 'Article',
+            entityId: id,
+            ipAddress: actor.ipAddress,
+          },
+          tx,
+        );
+      });
+    } catch (error) {
+      await deleteStoredImage(this.images, stored.storageKey);
+      throw error;
+    }
+    if (existing.coverKey) await deleteStoredImage(this.images, existing.coverKey);
+    this.revalidation.notify('content');
+    return this.article(id);
+  }
+
+  /** Removes the cover picture. A published article keeps its cover (it is required). */
+  async removeArticleCover(id: string, actor: Actor): Promise<AdminArticle> {
+    const existing = await this.prisma.article.findUnique({
+      where: { id },
+      select: { coverKey: true, status: true },
+    });
+    if (!existing) throw ApiException.notFound('Article not found');
+    if (existing.status === 'PUBLISHED') {
+      throw ApiException.conflict(
+        'PUBLICATION_BLOCKED',
+        'A published article must keep its cover picture',
+        { reason: 'cover_of_published_article', missing: ['cover'] },
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.article.update({
+        where: { id },
+        data: { coverKey: null, coverWidths: [], coverWidth: null, coverHeight: null },
+      });
+      await this.audit.record(
+        {
+          actorUserId: actor.userId,
+          action: 'article.cover.remove',
+          entityType: 'Article',
+          entityId: id,
+          ipAddress: actor.ipAddress,
+        },
+        tx,
+      );
+    });
+    if (existing.coverKey) await deleteStoredImage(this.images, existing.coverKey);
+    this.revalidation.notify('content');
+    return this.article(id);
   }
 
   async saveArticle(id: string | null, input: ArticlePayload, actor: Actor): Promise<AdminArticle> {
@@ -188,25 +316,64 @@ export class AdminContentService {
         body: row.body,
         seoTitle: nullable(row.seoTitle),
         seoDescription: nullable(row.seoDescription),
+        coverAlt: nullable(row.coverAlt),
       }));
+      const existing = id
+        ? await tx.article.findUnique({
+            where: { id },
+            select: { slug: true, publishedAt: true, coverKey: true },
+          })
+        : null;
+      if (id && !existing) throw ApiException.notFound('Article not found');
+      if (input.status === 'PUBLISHED') {
+        assertPublishable(
+          articleReadiness({
+            slug: input.slug,
+            hasCover: Boolean(existing?.coverKey),
+            translations: rows,
+          }),
+          'article',
+        );
+      }
+      // A date chosen in the editor wins (a future one schedules the article); otherwise the
+      // first publication date is kept when an article is unpublished and republished.
+      const chosenDate =
+        input.publishedAt === undefined || input.publishedAt === null
+          ? undefined
+          : new Date(input.publishedAt);
+      const publishedAt =
+        chosenDate ??
+        (input.status === 'PUBLISHED' && !existing?.publishedAt
+          ? new Date()
+          : (existing?.publishedAt ?? null));
+      if (input.mediaIds && input.mediaIds.length > 0) {
+        const found = await tx.mediaItem.count({ where: { id: { in: input.mediaIds } } });
+        if (found !== input.mediaIds.length) {
+          throw ApiException.badRequest('BAD_REQUEST', 'Unknown gallery item', {
+            reason: 'unknown_media',
+          });
+        }
+      }
+      await tx.slugRedirect.deleteMany({ where: { entity: 'ARTICLE', fromSlug: input.slug } });
       let articleId: string;
-      if (id) {
-        const existing = await tx.article.findUnique({
-          where: { id },
-          select: { publishedAt: true },
-        });
-        if (!existing) throw ApiException.notFound('Article not found');
+      if (id && existing) {
+        if (existing.slug !== input.slug) {
+          // Links to the old address keep working: they are redirected to the new one.
+          await tx.slugRedirect.upsert({
+            where: { entity_fromSlug: { entity: 'ARTICLE', fromSlug: existing.slug } },
+            create: { entity: 'ARTICLE', fromSlug: existing.slug, toId: id },
+            update: { toId: id },
+          });
+        }
         await tx.article.update({
           where: { id },
           data: {
             slug: input.slug,
             status: input.status,
             illustrationKey: input.illustrationKey,
-            // The first publication date is kept when an article is unpublished and republished.
-            publishedAt:
-              input.status === 'PUBLISHED' && !existing.publishedAt
-                ? new Date()
-                : existing.publishedAt,
+            isFeatured: input.isFeatured,
+            announceOnTelegram: input.announceOnTelegram,
+            publishedAt,
           },
         });
         await tx.articleTranslation.deleteMany({
@@ -226,12 +393,25 @@ export class AdminContentService {
             slug: input.slug,
             status: input.status,
             illustrationKey: input.illustrationKey,
-            publishedAt: input.status === 'PUBLISHED' ? new Date() : null,
+            isFeatured: input.isFeatured,
+            announceOnTelegram: input.announceOnTelegram,
+            publishedAt,
             translations: { create: rows },
           },
           select: { id: true },
         });
         articleId = created.id;
+      }
+      if (input.mediaIds !== undefined) {
+        // The chosen gallery items, in the editor's order (reused, not copied).
+        await tx.articleMedia.deleteMany({ where: { articleId } });
+        await tx.articleMedia.createMany({
+          data: input.mediaIds.map((mediaItemId, position) => ({
+            articleId,
+            mediaItemId,
+            position,
+          })),
+        });
       }
       await this.audit.record(
         {
@@ -247,6 +427,9 @@ export class AdminContentService {
       return articleId;
     });
     this.revalidation.notify('content');
+    if (input.status === 'PUBLISHED' && input.announceOnTelegram) {
+      await this.telegram.requestAnnouncement('ARTICLE', savedId, actor.userId);
+    }
     return this.article(savedId);
   }
 
@@ -268,12 +451,37 @@ export class AdminContentService {
     };
   }
 
-  private toArticle(row: ArticleRow): AdminArticle {
+  private toArticle(row: ArticleRow, telegram: AdminArticle['telegram']): AdminArticle {
+    const uz = row.translations.find((translation) => translation.locale === 'uz');
     return {
       id: row.id,
       slug: row.slug,
       status: row.status,
       illustrationKey: asIllustrationKey(row.illustrationKey),
+      cover:
+        row.coverKey && row.coverWidth && row.coverHeight
+          ? {
+              src: `${PUBLIC_UPLOADS_PATH}/${row.coverKey}`,
+              widths: row.coverWidths,
+              width: row.coverWidth,
+              height: row.coverHeight,
+              alt: uz?.coverAlt ?? uz?.title ?? row.slug,
+              transparent: false,
+            }
+          : null,
+      media: row.media.map(({ mediaItem }) => {
+        const title = mediaItem.translations[0]?.title ?? '';
+        return {
+          id: mediaItem.id,
+          kind: mediaItem.kind,
+          status: mediaItem.status,
+          title,
+          image: mediaImage(mediaItem, title),
+        };
+      }),
+      isFeatured: row.isFeatured,
+      announceOnTelegram: row.announceOnTelegram,
+      telegram,
       publishedAt: row.publishedAt?.toISOString() ?? null,
       updatedAt: row.updatedAt.toISOString(),
       translations: toAdminTranslation(row.translations, (translation) => ({
@@ -282,7 +490,13 @@ export class AdminContentService {
         body: translation.body,
         seoTitle: translation.seoTitle ?? undefined,
         seoDescription: translation.seoDescription ?? undefined,
+        coverAlt: translation.coverAlt ?? undefined,
       })),
+      readiness: articleReadiness({
+        slug: row.slug,
+        hasCover: row.coverKey !== null,
+        translations: row.translations,
+      }),
     };
   }
 }

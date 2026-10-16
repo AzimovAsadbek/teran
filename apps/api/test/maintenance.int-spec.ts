@@ -89,6 +89,7 @@ describe('maintenance', () => {
     expect(ran.body).toEqual({
       payments: { expired: 0, cancelledOrders: 0 },
       purged: { sessions: 1, carts: 0, resetTokens: 0 },
+      telegram: { sent: 0, failed: 0 },
     });
     expect(await ctx.prisma.session.count()).toBe(0);
   });

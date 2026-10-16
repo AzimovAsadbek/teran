@@ -1,5 +1,5 @@
 import { formatUzPhone, regionName, type AdminOrderDetail, type Locale } from '@teran/contracts';
-import { ArrowLeft, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -18,6 +18,22 @@ import { adminGet } from '@/lib/admin/server';
 import { formatDateTime, formatMoney } from '@/lib/format';
 
 const ORDER_NUMBER = /^TRN-[0-9A-Z]{8}$/;
+
+/** Payment failure codes with a staff-facing explanation. */
+const FAILURES = ['CUSTOMER_CANCELLED', 'DEMO_DECLINED', 'EXPIRED', 'ORDER_CANCELLED'] as const;
+type Failure = (typeof FAILURES)[number];
+const isFailure = (code: string): code is Failure => (FAILURES as readonly string[]).includes(code);
+
+/** Payment event notes written by the API in English, and their message keys. */
+const EVENT_DETAILS = {
+  'Order placed': 'orderPlaced',
+  'Payment started': 'started',
+  'Payment restarted': 'restarted',
+  'Payment window ended': 'windowEnded',
+  'Cash payment recorded': 'cashRecorded',
+  'Refund recorded': 'refundRecorded',
+} as const;
+const DEMO_OUTCOMES = ['success', 'failure', 'cancel', 'pending'] as const;
 
 export async function generateMetadata({
   params,
@@ -48,6 +64,17 @@ export default async function AdminOrderPage({
     ]
       .filter(Boolean)
       .join(' ');
+  const failure = (code: string) => (isFailure(code) ? t(`payments.failures.${code}`) : code);
+  const eventDetail = (detail: string) => {
+    if (detail in EVENT_DETAILS) {
+      return t(`payments.details.${EVENT_DETAILS[detail as keyof typeof EVENT_DETAILS]}`);
+    }
+    const outcome = DEMO_OUTCOMES.find((value) => detail === `Simulated ${value}`);
+    if (outcome) {
+      return t('payments.details.simulated', { outcome: t(`payments.outcomes.${outcome}`) });
+    }
+    return failure(detail);
+  };
 
   return (
     <>
@@ -61,180 +88,23 @@ export default async function AdminOrderPage({
       <AdminPageHeader
         title={order.number}
         description={
-          <span className="flex flex-wrap items-center gap-2">
-            {formatDateTime(order.createdAt, locale)}
-            <OrderStatusPill status={order.status} />
-            <PaymentStatusPill status={order.paymentStatus} />
+          <span className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span>{formatDateTime(order.createdAt, locale)}</span>
+            <span className="inline-flex items-center gap-1.5 text-body-sm">
+              {t('orders.orderLabel')}:
+              <OrderStatusPill status={order.status} />
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-body-sm">
+              {t('orders.paymentLabel')}:
+              <PaymentStatusPill status={order.paymentStatus} />
+            </span>
           </span>
         }
       />
 
+      {/* What staff act on (actions, the customer) comes first on phones; on wide screens it is the right-hand column. */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-        <div className="space-y-6">
-          <Panel title={t('orders.itemsSection')}>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[32rem] text-body-sm">
-                <thead>
-                  <tr className="text-left text-xs text-fg-subtle uppercase">
-                    <th scope="col" className="pb-2 font-semibold">
-                      {t('products.name')}
-                    </th>
-                    <th scope="col" className="pb-2 font-semibold">
-                      {t('orders.sku')}
-                    </th>
-                    <th scope="col" className="pb-2 text-right font-semibold">
-                      {t('orders.unitPrice')}
-                    </th>
-                    <th scope="col" className="pb-2 text-right font-semibold">
-                      {t('orders.quantity')}
-                    </th>
-                    <th scope="col" className="pb-2 text-right font-semibold">
-                      {t('orders.lineTotal')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items.map((item) => (
-                    <tr key={item.sku} className="border-t border-line-subtle">
-                      <td className="py-2.5">
-                        {item.productName}
-                        <span className="block text-xs text-fg-subtle">{pack(item)}</span>
-                      </td>
-                      <td className="py-2.5 font-mono text-xs">{item.sku}</td>
-                      <td className="py-2.5 text-right tabular-nums">{money(item.unitPrice)}</td>
-                      <td className="py-2.5 text-right tabular-nums">{item.quantity}</td>
-                      <td className="py-2.5 text-right font-semibold tabular-nums">
-                        {money(item.lineTotal)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <dl className="mt-4 ml-auto max-w-xs space-y-1.5 border-t border-line pt-4 text-body-sm">
-              <div className="flex justify-between">
-                <dt className="text-fg-muted">{t('orders.subtotal')}</dt>
-                <dd className="tabular-nums">{money(order.subtotal)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-fg-muted">{t('orders.delivery')}</dt>
-                <dd className="tabular-nums">{money(order.deliveryFee)}</dd>
-              </div>
-              {Number(order.discountTotal) > 0 ? (
-                <div className="flex justify-between">
-                  <dt className="text-fg-muted">{t('orders.discount')}</dt>
-                  <dd className="tabular-nums">−{money(order.discountTotal)}</dd>
-                </div>
-              ) : null}
-              <div className="flex justify-between border-t border-line pt-2 text-body font-semibold text-forest-900">
-                <dt>{t('common.total')}</dt>
-                <dd className="tabular-nums">{money(order.total)}</dd>
-              </div>
-            </dl>
-          </Panel>
-
-          <Panel title={t('payments.title')}>
-            {order.payments.length === 0 ? (
-              <p className="text-body-sm text-fg-muted">{t('payments.none')}</p>
-            ) : (
-              <ol className="space-y-4">
-                {order.payments.map((payment) => (
-                  <li key={payment.id} className="rounded-control border border-line-subtle p-4">
-                    <div className="flex flex-wrap items-center gap-2 text-body-sm">
-                      <span className="font-semibold text-forest-900">
-                        {tco(`paymentMethods.${payment.method}`)}
-                      </span>
-                      <span className="text-fg-subtle">
-                        · {t(`payments.providers.${payment.provider}`)}
-                      </span>
-                      <PaymentStatusPill status={payment.status} />
-                      <span className="ml-auto font-semibold tabular-nums">
-                        {money(payment.amount)}
-                      </span>
-                    </div>
-                    {payment.provider === 'DEMO' ? (
-                      <p className="mt-1 text-xs font-semibold text-warning">
-                        {t('payments.demoNote')}
-                      </p>
-                    ) : null}
-                    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
-                      {payment.providerReference ? (
-                        <>
-                          <dt className="text-fg-subtle">{t('payments.reference')}</dt>
-                          <dd className="font-mono break-all">{payment.providerReference}</dd>
-                        </>
-                      ) : null}
-                      {payment.expiresAt ? (
-                        <>
-                          <dt className="text-fg-subtle">{t('payments.expires')}</dt>
-                          <dd>{formatDateTime(payment.expiresAt, locale)}</dd>
-                        </>
-                      ) : null}
-                      {payment.failureCode ? (
-                        <>
-                          <dt className="text-fg-subtle">{t('payments.failure')}</dt>
-                          <dd className="font-mono">{payment.failureCode}</dd>
-                        </>
-                      ) : null}
-                    </dl>
-                    {payment.events.length > 0 ? (
-                      <details className="mt-2 text-xs">
-                        <summary className="cursor-pointer font-semibold text-fg-muted">
-                          {t('payments.history')}
-                        </summary>
-                        <ol className="mt-2 space-y-1.5 border-l-2 border-line pl-3">
-                          {payment.events.map((event) => (
-                            <li key={event.id}>
-                              <span className="font-semibold">
-                                {tco(`paymentStatuses.${event.toStatus}`)}
-                              </span>{' '}
-                              · {t(`payments.sources.${event.source as 'customer'}`)}
-                              {event.detail ? ` · ${event.detail}` : ''}
-                              {event.actorName ? ` · ${event.actorName}` : ''}
-                              <span className="block text-fg-subtle">
-                                {formatDateTime(event.createdAt, locale)}
-                              </span>
-                            </li>
-                          ))}
-                        </ol>
-                      </details>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            )}
-            <RecordRefund order={order} />
-          </Panel>
-
-          <Panel title={t('orders.historySection')}>
-            <ol className="space-y-3 border-l-2 border-line pl-5 text-body-sm">
-              <li>
-                <p className="font-semibold text-forest-900">{t('orders.historyCreated')}</p>
-                <p className="text-xs text-fg-subtle">{formatDateTime(order.createdAt, locale)}</p>
-              </li>
-              {order.events
-                .filter((event) => event.fromStatus !== null || event.paymentStatus !== null)
-                .map((event) => (
-                  <li key={event.id}>
-                    <p className="font-semibold text-forest-900">
-                      {event.fromStatus !== event.toStatus
-                        ? tco(`statuses.${event.toStatus}`)
-                        : t('orders.historyPayment', {
-                            status: tco(`paymentStatuses.${event.paymentStatus ?? 'PENDING'}`),
-                          })}
-                    </p>
-                    {event.note ? <p className="text-fg-muted">{event.note}</p> : null}
-                    <p className="text-xs text-fg-subtle">
-                      {formatDateTime(event.createdAt, locale)} ·{' '}
-                      {event.actorName ?? t('orders.system')}
-                    </p>
-                  </li>
-                ))}
-            </ol>
-          </Panel>
-        </div>
-
-        <div className="space-y-6">
+        <div className="space-y-6 xl:col-start-2 xl:row-start-1">
           <OrderActions order={order} />
 
           <Panel title={t('orders.customerSection')}>
@@ -248,7 +118,7 @@ export default async function AdminOrderPage({
                 <dd>
                   <a
                     href={`tel:${order.customerPhone}`}
-                    className={`${table.link} inline-flex items-center gap-1.5`}
+                    className={`${table.link} inline-flex min-h-8 items-center gap-1.5`}
                   >
                     <Phone aria-hidden className="h-3.5 w-3.5" />
                     {formatUzPhone(order.customerPhone)}
@@ -257,8 +127,16 @@ export default async function AdminOrderPage({
               </div>
               {order.customerEmail ? (
                 <div>
-                  <dt className="text-xs text-fg-subtle">Email</dt>
-                  <dd className="break-all">{order.customerEmail}</dd>
+                  <dt className="text-xs text-fg-subtle">{t('orders.email')}</dt>
+                  <dd className="break-all">
+                    <a
+                      href={`mailto:${order.customerEmail}`}
+                      className={`${table.link} inline-flex items-center gap-1.5`}
+                    >
+                      <Mail aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                      {order.customerEmail}
+                    </a>
+                  </dd>
                 </div>
               ) : null}
               {order.customerAccountEmail ? (
@@ -311,6 +189,150 @@ export default async function AdminOrderPage({
                 <dd>{tco(`paymentMethods.${order.paymentMethod}`)}</dd>
               </div>
             </dl>
+          </Panel>
+        </div>
+
+        <div className="space-y-6 xl:col-start-1 xl:row-start-1">
+          <Panel title={t('orders.itemsSection')}>
+            <ul className="divide-y divide-line-subtle text-body-sm">
+              {order.items.map((item) => (
+                <li
+                  key={item.sku}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 py-3 first:pt-0"
+                >
+                  <span className="font-semibold text-fg">{item.productName}</span>
+                  <span className="text-right font-semibold whitespace-nowrap tabular-nums">
+                    {money(item.lineTotal)}
+                  </span>
+                  <span className="text-xs text-fg-subtle">
+                    {[pack(item), item.sku].filter(Boolean).join(' · ')}
+                  </span>
+                  <span className="text-right text-xs whitespace-nowrap text-fg-muted tabular-nums">
+                    {item.quantity} × {money(item.unitPrice)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <dl className="mt-4 space-y-1.5 border-t border-line pt-4 text-body-sm sm:ml-auto sm:max-w-xs">
+              <div className="flex justify-between gap-4">
+                <dt className="text-fg-muted">{t('orders.subtotal')}</dt>
+                <dd className="tabular-nums">{money(order.subtotal)}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-fg-muted">{t('orders.delivery')}</dt>
+                <dd className="tabular-nums">{money(order.deliveryFee)}</dd>
+              </div>
+              {Number(order.discountTotal) > 0 ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-fg-muted">{t('orders.discount')}</dt>
+                  <dd className="tabular-nums">−{money(order.discountTotal)}</dd>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4 border-t border-line pt-2 text-body font-semibold text-forest-900">
+                <dt>{t('common.total')}</dt>
+                <dd className="tabular-nums">{money(order.total)}</dd>
+              </div>
+            </dl>
+          </Panel>
+
+          <Panel title={t('payments.title')}>
+            {order.payments.length === 0 ? (
+              <p className="text-body-sm text-fg-muted">{t('payments.none')}</p>
+            ) : (
+              <ol className="space-y-4">
+                {order.payments.map((payment) => (
+                  <li key={payment.id} className="rounded-control border border-line-subtle p-4">
+                    <div className="flex flex-wrap items-center gap-2 text-body-sm">
+                      <span className="font-semibold text-forest-900">
+                        {tco(`paymentMethods.${payment.method}`)}
+                      </span>
+                      <span className="text-fg-subtle">
+                        · {t(`payments.providers.${payment.provider}`)}
+                      </span>
+                      <PaymentStatusPill status={payment.status} />
+                      <span className="ml-auto font-semibold tabular-nums">
+                        {money(payment.amount)}
+                      </span>
+                    </div>
+                    {payment.provider === 'DEMO' ? (
+                      <p className="mt-1 text-xs font-semibold text-warning">
+                        {t('payments.demoNote')}
+                      </p>
+                    ) : null}
+                    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+                      {payment.providerReference ? (
+                        <>
+                          <dt className="text-fg-subtle">{t('payments.reference')}</dt>
+                          <dd className="font-mono break-all">{payment.providerReference}</dd>
+                        </>
+                      ) : null}
+                      {payment.expiresAt ? (
+                        <>
+                          <dt className="text-fg-subtle">{t('payments.expires')}</dt>
+                          <dd>{formatDateTime(payment.expiresAt, locale)}</dd>
+                        </>
+                      ) : null}
+                      {payment.failureCode ? (
+                        <>
+                          <dt className="text-fg-subtle">{t('payments.failure')}</dt>
+                          <dd>{failure(payment.failureCode)}</dd>
+                        </>
+                      ) : null}
+                    </dl>
+                    {payment.events.length > 0 ? (
+                      <details className="mt-2 text-xs">
+                        <summary className="cursor-pointer font-semibold text-fg-muted">
+                          {t('payments.history')}
+                        </summary>
+                        <ol className="mt-2 space-y-1.5 border-l-2 border-line pl-3">
+                          {payment.events.map((event) => (
+                            <li key={event.id}>
+                              <span className="font-semibold">
+                                {tco(`paymentStatuses.${event.toStatus}`)}
+                              </span>{' '}
+                              · {t(`payments.sources.${event.source as 'customer'}`)}
+                              {event.detail ? ` · ${eventDetail(event.detail)}` : ''}
+                              {event.actorName ? ` · ${event.actorName}` : ''}
+                              <span className="block text-fg-subtle">
+                                {formatDateTime(event.createdAt, locale)}
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+            <RecordRefund order={order} />
+          </Panel>
+
+          <Panel title={t('orders.historySection')}>
+            <ol className="space-y-3 border-l-2 border-line pl-5 text-body-sm">
+              <li>
+                <p className="font-semibold text-forest-900">{t('orders.historyCreated')}</p>
+                <p className="text-xs text-fg-subtle">{formatDateTime(order.createdAt, locale)}</p>
+              </li>
+              {order.events
+                .filter((event) => event.fromStatus !== null || event.paymentStatus !== null)
+                .map((event) => (
+                  <li key={event.id}>
+                    <p className="font-semibold text-forest-900">
+                      {event.fromStatus !== event.toStatus
+                        ? t(`orderStatus.${event.toStatus}`)
+                        : t('orders.historyPayment', {
+                            status: tco(`paymentStatuses.${event.paymentStatus ?? 'PENDING'}`),
+                          })}
+                    </p>
+                    {event.note ? <p className="text-fg-muted">{event.note}</p> : null}
+                    <p className="text-xs text-fg-subtle">
+                      {formatDateTime(event.createdAt, locale)} ·{' '}
+                      {event.actorName ?? t('orders.system')}
+                    </p>
+                  </li>
+                ))}
+            </ol>
           </Panel>
         </div>
       </div>

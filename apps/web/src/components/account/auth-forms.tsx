@@ -86,7 +86,7 @@ export function LoginForm({ next }: { next: string }) {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
       <FormErrorSummary message={form.summary} />
       <TextField
         label={t('email')}
@@ -153,7 +153,7 @@ export function RegisterForm({ next }: { next: string }) {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
       <FormErrorSummary message={form.summary} />
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField
@@ -240,6 +240,7 @@ export function ForgotPasswordForm() {
 
   return (
     <form
+      method="post"
       ref={formRef}
       onSubmit={(event) => {
         event.preventDefault();
@@ -289,6 +290,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   return (
     <form
+      method="post"
       ref={formRef}
       onSubmit={(event) => {
         event.preventDefault();

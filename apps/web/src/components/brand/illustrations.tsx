@@ -14,6 +14,12 @@ interface ArtPalette {
   accent?: 'flower' | 'berries' | 'ribbon' | 'mint' | 'cup';
 }
 
+/**
+ * Without a chosen illustration: the same medallion in sand and gold, a TERAN mark rather than a
+ * tea type, so a category or product of any kind (not only tea) gets a fitting placeholder.
+ */
+const NEUTRAL: ArtPalette = { tint: '#f3eee2', leaf: '#e6dcc2', leafDark: '#b8962e' };
+
 const PALETTES: Record<IllustrationKey, ArtPalette> = {
   black: { tint: '#efe4d6', leaf: '#5a3426', leafDark: '#2f1a12' },
   green: { tint: '#e3f0d8', leaf: '#2f9431', leafDark: '#1a5317' },
@@ -49,7 +55,10 @@ function Leaf({ rotate, fill, vein }: { rotate: number; fill: string; vein: stri
   );
 }
 
-/** Round medallion for a tea type, used for category tiles, menus and image placeholders. */
+/**
+ * Round medallion for a tea type, used for category tiles, menus and image placeholders; without a
+ * key, a neutral TERAN medallion.
+ */
 export function TeaTypeArt({
   kind,
   className,
@@ -60,7 +69,7 @@ export function TeaTypeArt({
   /** When set, the art stands in for content (e.g. a product without a photo) and gets an accessible name. */
   label?: string;
 }) {
-  const palette = PALETTES[kind ?? 'green'];
+  const palette = kind ? PALETTES[kind] : NEUTRAL;
   const id = useId();
   const gradient = `${id}-leaf`;
   const a11y = label

@@ -8,6 +8,7 @@ import { SelectField, TextAreaField } from '@/components/ui/field';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { useRouter } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
+import { notify } from './toast';
 
 /** Status and internal note of one inquiry (staff only). */
 export function InquiryEditor({
@@ -30,6 +31,7 @@ export function InquiryEditor({
 
   return (
     <form
+      method="post"
       ref={formRef}
       onSubmit={(event) => {
         event.preventDefault();
@@ -38,10 +40,12 @@ export function InquiryEditor({
             apiRequest(`/admin/inquiries/${kind}/${id}`, { method: 'PATCH', body: data }),
           )
           .then((saved) => {
-            if (saved) router.refresh();
+            if (!saved) return;
+            notify(t('inquiries.saved'));
+            router.refresh();
           });
       }}
-      className="mt-4 grid grid-cols-1 gap-3 border-t border-line pt-4 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-end"
+      className="mt-4 grid grid-cols-1 gap-3 border-t border-line pt-4 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-start"
     >
       <SelectField
         label={t('common.status')}
@@ -63,7 +67,7 @@ export function InquiryEditor({
         value={note}
         onChange={(event) => setNote(event.target.value)}
       />
-      <div className="sm:pb-7">
+      <div className="sm:pt-7">
         <SubmitButton
           sending={form.status === 'sending'}
           label={t('common.save')}

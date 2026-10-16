@@ -58,7 +58,7 @@ export function WholesaleForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
       <FormErrorSummary message={form.summary} />
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField

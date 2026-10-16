@@ -32,10 +32,12 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
     next === '/account'
       ? '/account/register'
       : `/account/register?next=${encodeURIComponent(next)}`;
+  // Staff coming from the administration see where they are signing in to (no sign-up offer).
+  const staff = next === '/admin' || next.startsWith('/admin/');
   return (
     <AuthCard
-      title={t('loginTitle')}
-      intro={t('guestNote')}
+      title={staff ? t('staffLoginTitle') : t('loginTitle')}
+      intro={staff ? t('staffLoginIntro') : t('guestNote')}
       footer={
         <>
           {features?.passwordReset ? (
@@ -48,7 +50,7 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
               </Link>
             </p>
           ) : null}
-          {features?.registration !== false ? (
+          {!staff && features?.registration !== false ? (
             <p>
               {t('noAccount')}{' '}
               <Link

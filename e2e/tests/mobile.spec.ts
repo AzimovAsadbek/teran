@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { API, publishProduct, staffRequest } from './support/admin.ts';
 
 /** Next.js keeps visited pages mounted but hidden, so assertions target the visible match. */
 function visible(locator: Locator): Locator {
@@ -43,5 +44,112 @@ test.describe('phone', () => {
     await expect(visible(page.getByRole('heading', { level: 1, name: 'Checkout' }))).toBeVisible();
     await expect(visible(page.getByLabel('Full name'))).toBeVisible();
     await expectNoSidewaysScroll(page);
+  });
+
+  test('the hero stage moves gently, and stays still with reduced motion @mobile', async ({
+    page,
+  }) => {
+    const botanicalMotion = () =>
+      page.evaluate(
+        () =>
+          document.getAnimations().filter((animation) => {
+            const target =
+              animation.effect && 'target' in animation.effect ? animation.effect.target : null;
+            return (
+              animation.playState === 'running' &&
+              target instanceof Element &&
+              target.closest('[data-hero-stage] .botanical') !== null
+            );
+          }).length,
+      );
+    await page.goto('/en');
+    // The stage is placed below the words and starts on the first screen.
+    const stage = page.locator('[data-hero-stage]');
+    const box = await stage.boundingBox();
+    expect(box?.y ?? 9999).toBeLessThan(page.viewportSize()!.height);
+    await expect.poll(botanicalMotion).toBeGreaterThan(0);
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.reload();
+    await expect(stage).toBeVisible();
+    expect(await botanicalMotion()).toBe(0);
+  });
+
+  test('a category with a very long name fits the phone, on its page and in the menu @mobile', async ({
+    page,
+  }) => {
+    const request = await staffRequest(page);
+    const id = Date.now().toString(36);
+    const slug = `e2e-long-${id}`;
+    const name =
+      'Tog‘ yonbag‘irlarida qo‘lda terilgan, an’anaviy usulda quritilgan noyob ko‘k choylar to‘plami';
+    const english =
+      'Rare hand-picked mountain-slope oolong teas, dried in the traditional way, with long names';
+    const category = await request.post(`${API}/admin/categories`, {
+      data: {
+        slug,
+        position: 70,
+        isActive: true,
+        illustrationKey: null,
+        parentId: null,
+        translations: { uz: { name }, ru: null, en: { name: english } },
+      },
+    });
+    expect(category.status()).toBe(201);
+    const { id: categoryId } = (await category.json()) as { id: string };
+    await publishProduct(request, {
+      slug: `${slug}-tea`,
+      categoryId,
+      format: 'LOOSE_LEAF',
+      isFeatured: false,
+      caffeineLevel: null,
+      brewTempCelsius: null,
+      brewTimeMinSeconds: null,
+      brewTimeMaxSeconds: null,
+      brewAmountGrams: null,
+      illustrationKey: null,
+      collectionIds: [],
+      translations: { uz: { name: 'Uzun nomli choy' }, ru: null, en: { name: 'Long-named tea' } },
+      variants: [
+        {
+          sku: `${slug.toUpperCase()}-50`,
+          weightGrams: 50,
+          unitCount: null,
+          price: '70000',
+          compareAtPrice: null,
+          lowStockThreshold: 2,
+          barcode: null,
+          isActive: true,
+          initialStock: 5,
+        },
+      ],
+    });
+
+    await expect(async () => {
+      await page.goto(`/en/${slug}`);
+      await expect(visible(page.getByRole('heading', { level: 1, name: english }))).toBeVisible({
+        timeout: 1_000,
+      });
+    }).toPass({ timeout: 20_000 });
+    await expectNoSidewaysScroll(page);
+
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    const menu = page.getByRole('dialog', { name: 'Explore' });
+    await expect(menu.getByText(english).first()).toBeVisible();
+    const fits = await menu.evaluate((element) => element.scrollWidth <= element.clientWidth);
+    expect(fits).toBe(true);
+    await expectNoSidewaysScroll(page);
+
+    const hidden = await request.put(`${API}/admin/categories/${categoryId}`, {
+      data: {
+        slug,
+        position: 70,
+        isActive: false,
+        illustrationKey: null,
+        parentId: null,
+        translations: { uz: { name }, ru: null, en: { name: english } },
+      },
+    });
+    expect(hidden.status()).toBe(200);
   });
 });

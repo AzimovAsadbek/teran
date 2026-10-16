@@ -22,6 +22,8 @@ export const ERROR_CODES = [
   'DELIVERY_METHOD_UNAVAILABLE',
   'PAYMENT_METHOD_UNAVAILABLE',
   'INVALID_STATUS_TRANSITION',
+  /** The item is not complete enough to publish; `details.missing` lists the readiness codes. */
+  'PUBLICATION_BLOCKED',
   'INTERNAL_ERROR',
   'SERVICE_UNAVAILABLE',
 ] as const;

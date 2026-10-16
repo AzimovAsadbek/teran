@@ -22,6 +22,8 @@ export const PRODUCT_FORMATS = [
   'PYRAMIDS',
   'GIFT_SET',
   'ACCESSORY',
+  /** None of the tea formats applies (honey, sweets, ceramics…): no format is shown. */
+  'OTHER',
 ] as const;
 export type ProductFormat = (typeof PRODUCT_FORMATS)[number];
 

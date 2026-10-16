@@ -83,7 +83,7 @@ export default async function FaqPage() {
               </h2>
               <div className="mt-4 divide-y divide-line border-y border-line">
                 {group.items.map((item) => (
-                  <details key={item.question} className="group py-1">
+                  <details key={item.question} data-disclose className="group py-1">
                     <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-title text-fg transition-colors hover:text-brand [&::-webkit-details-marker]:hidden">
                       {item.question}
                       <ChevronDown

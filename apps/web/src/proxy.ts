@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { routing } from './i18n/routing';
 import { accountRedirect } from './lib/account-redirect';
 import { legacyCategoryRedirect } from './lib/legacy-category-redirect';
+import { legacyMediaRedirect } from './lib/media-redirect';
 
 const handleI18nRouting = createMiddleware(routing);
 
@@ -13,7 +14,10 @@ const handleI18nRouting = createMiddleware(routing);
  * URL they requested and every language version stays reachable and indexable.
  */
 export default async function proxy(request: NextRequest) {
-  const redirect = accountRedirect(request) ?? (await legacyCategoryRedirect(request));
+  const redirect =
+    accountRedirect(request) ??
+    legacyMediaRedirect(request) ??
+    (await legacyCategoryRedirect(request));
   if (redirect) return redirect;
   if (!request.headers.has('accept-language')) return handleI18nRouting(request);
   const headers = new Headers(request.headers);

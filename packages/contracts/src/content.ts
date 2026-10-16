@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { localeSchema } from './common.js';
-import { illustrationKeySchema } from './catalog.js';
+import { illustrationKeySchema, imageSchema } from './catalog.js';
 
 const localizedText = (max: number) =>
   z.object({
@@ -69,20 +69,68 @@ export const articleSummarySchema = z.object({
   title: z.string(),
   excerpt: z.string().nullable(),
   illustrationKey: illustrationKeySchema.nullable(),
+  /** The cover picture (required to publish since 2026-10; older articles may have none). */
+  cover: imageSchema.nullable().default(null),
+  /** Chosen for the home page's journal section. */
+  isFeatured: z.boolean().default(false),
   publishedAt: z.string(),
 });
 export type ArticleSummaryDto = z.infer<typeof articleSummarySchema>;
 
+export const articleListQuerySchema = z.object({
+  locale: localeSchema.default('uz'),
+  /** Featured articles first (the home page). */
+  featuredFirst: z.stringbool().optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(24).default(9),
+});
+
+// ─── Media ("Lavhalar": photographs and short films) ───────────────────────
+
+export const MEDIA_KINDS = ['PHOTO', 'VIDEO'] as const;
+export const mediaKindSchema = z.enum(MEDIA_KINDS);
+export type MediaKind = z.infer<typeof mediaKindSchema>;
+
+/** Video files the storefront plays (MP4 with H.264/AAC, or WebM). */
+export const MEDIA_VIDEO_TYPES = ['video/mp4', 'video/webm'] as const;
+
+export const mediaItemSchema = z.object({
+  id: z.uuid(),
+  kind: mediaKindSchema,
+  title: z.string(),
+  caption: z.string().nullable(),
+  /** The photograph, or the video's poster frame (renditions like product images). */
+  image: imageSchema,
+  /** Videos only: the file, played when the visitor starts it (never automatically with sound). */
+  video: z
+    .object({
+      src: z.string(),
+      type: z.enum(MEDIA_VIDEO_TYPES),
+      durationSeconds: z.number().int().nullable(),
+      /** Optional subtitles (WebVTT), offered as a track the visitor can switch on. */
+      captions: z.object({ src: z.string(), srclang: localeSchema }).nullable().default(null),
+    })
+    .nullable(),
+  publishedAt: z.string(),
+});
+export type MediaItemDto = z.infer<typeof mediaItemSchema>;
+
+/** An article page: its text, and the gallery items chosen to go with it (published ones only). */
 export const articleDetailSchema = articleSummarySchema.extend({
   body: z.string(),
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
   updatedAt: z.string(),
+  media: z.array(mediaItemSchema).default([]),
 });
 export type ArticleDetailDto = z.infer<typeof articleDetailSchema>;
 
-export const articleListQuerySchema = z.object({
+export const mediaListQuerySchema = z.object({
   locale: localeSchema.default('uz'),
+  kind: mediaKindSchema.optional(),
+  /** Only the items chosen for the home page. */
+  featured: z.stringbool().optional(),
   page: z.coerce.number().int().min(1).max(1000).default(1),
-  pageSize: z.coerce.number().int().min(1).max(24).default(9),
+  pageSize: z.coerce.number().int().min(1).max(48).default(24),
 });
+export type MediaListQuery = z.infer<typeof mediaListQuerySchema>;

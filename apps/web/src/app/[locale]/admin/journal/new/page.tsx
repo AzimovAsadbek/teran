@@ -1,9 +1,10 @@
-import type { Locale } from '@teran/contracts';
+import type { AdminMediaItem, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { ArticleEditor } from '@/components/admin/article-editor';
 import { AdminPageHeader } from '@/components/admin/ui';
+import { adminGet, getTelegramSettings } from '@/lib/admin/server';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -12,11 +13,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function NewArticlePage() {
-  const t = await getTranslations('Admin');
+  const [t, telegram, gallery] = await Promise.all([
+    getTranslations('Admin'),
+    getTelegramSettings(),
+    adminGet<AdminMediaItem[]>('/media').catch(() => null),
+  ]);
   return (
     <>
       <AdminPageHeader title={t('journal.newArticle')} />
-      <ArticleEditor article={null} />
+      <ArticleEditor article={null} telegram={telegram} gallery={gallery ?? []} />
     </>
   );
 }

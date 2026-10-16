@@ -16,11 +16,15 @@ import { ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagg
 import {
   adminProductListQuerySchema,
   idSchema,
+  imageAltInputSchema,
   imageReorderSchema,
+  localeQuerySchema,
   productUpsertSchema,
   type AdminProductDetail,
   type AdminProductListItem,
+  type LocaleQuery,
   type Paginated,
+  type ProductDetailDto,
   type ProductUpsertPayload,
 } from '@teran/contracts';
 import type { z } from 'zod';
@@ -78,6 +82,17 @@ export class AdminProductsController {
     return this.products.update(id, body, actor);
   }
 
+  @Get(':id/preview')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'The product as its storefront page shows it, drafts included' })
+  @ApiOkResponse({ description: 'ProductDetailDto' })
+  preview(
+    @Param('id', { schema: idSchema }) id: string,
+    @Query({ schema: localeQuerySchema }) query: LocaleQuery,
+  ): Promise<ProductDetailDto> {
+    return this.products.preview(id, query.locale);
+  }
+
   @Post(':id/images')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -104,6 +119,35 @@ export class AdminProductsController {
     @CurrentActor() actor: Actor,
   ): Promise<AdminProductDetail> {
     return this.products.reorderImages(id, body.imageIds, actor);
+  }
+
+  @Post(':id/images/:imageId/file')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Replace an image file, keeping its position and alternative text',
+  })
+  @ApiOkResponse({ description: 'AdminProductDetail' })
+  replaceImage(
+    @Param('id', { schema: idSchema }) id: string,
+    @Param('imageId', { schema: idSchema }) imageId: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminProductDetail> {
+    if (!file) throw ApiException.badRequest('BAD_REQUEST', 'Attach an image in the "file" field');
+    return this.products.replaceImage(id, imageId, file.buffer, actor);
+  }
+
+  @Put(':id/images/:imageId/alt')
+  @ApiOperation({ summary: "Set an image's alternative text per language" })
+  @ApiOkResponse({ description: 'AdminProductDetail' })
+  updateImageAlt(
+    @Param('id', { schema: idSchema }) id: string,
+    @Param('imageId', { schema: idSchema }) imageId: string,
+    @Body({ schema: imageAltInputSchema }) body: z.output<typeof imageAltInputSchema>,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminProductDetail> {
+    return this.products.updateImageAlt(id, imageId, body, actor);
   }
 
   @Delete(':id/images/:imageId')

@@ -35,12 +35,13 @@ default is the US east coast, which adds a transatlantic round trip to every que
 
 ## What differs from the container
 
-| Concern        | Container                 | Vercel                                                                                                      |
-| -------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Product images | `UPLOADS_DIR` on a volume | Vercel Blob (`BLOB_READ_WRITE_TOKEN`); the storefront rewrites `/uploads/*` to the store (`UPLOADS_ORIGIN`) |
-| Scheduled jobs | Timers in the API process | Vercel Cron calls `GET /api/v1/internal/jobs/run` with `Authorization: Bearer $CRON_SECRET`                 |
-| Database       | PostgreSQL container      | Neon; the function uses the direct address (`DATABASE_URL_UNPOOLED`), a pool of 3                           |
-| Rate limits    | One process               | Counted per function instance (weaker)                                                                      |
+| Concern        | Container                  | Vercel                                                                                                                                                                                                                            |
+| -------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product images | `UPLOADS_DIR` on a volume  | Vercel Blob (`BLOB_READ_WRITE_TOKEN`); the storefront rewrites `/uploads/*` to the store (`UPLOADS_ORIGIN`)                                                                                                                       |
+| Gallery films  | `UPLOADS_DIR`, up to 64 MB | Blob as well. A function accepts request bodies of at most 4.5 MB, so films (up to 512 MB) are uploaded from the browser straight to Blob with a short-lived token from the API, which then checks the file; photos stay ≤ 4.5 MB |
+| Scheduled jobs | Timers in the API process  | Vercel Cron calls `GET /api/v1/internal/jobs/run` with `Authorization: Bearer $CRON_SECRET`                                                                                                                                       |
+| Database       | PostgreSQL container       | Neon; the function uses the direct address (`DATABASE_URL_UNPOOLED`), a pool of 3                                                                                                                                                 |
+| Rate limits    | One process                | Counted per function instance (weaker)                                                                                                                                                                                            |
 
 On the Hobby plan Vercel Cron runs **once a day** (03:15 UTC): unpaid online orders are then
 cancelled and their stock returned once a day rather than within minutes of the payment window
@@ -51,23 +52,37 @@ the Docker deployment.
 The API refuses to start on Vercel without a Blob token, because images written to the function's
 disk would be lost.
 
+Films: the admin area asks the API for an upload permission (`POST
+/api/v1/admin/media/:id/video/direct`: one file, its type, at most 512 MB, 30 minutes), sends the
+file to Blob itself (`@vercel/blob/client`, in parts above 32 MB), then asks the API to record it
+(`…/video/direct/complete`), which reads the file's first bytes and movie header from Blob to check
+the type and the running time and deletes anything that is not an MP4 or WebM. Only admin pages may
+connect to `vercel.com` / `*.blob.vercel-storage.com` (Content Security Policy). **Not yet run
+against the real Blob store**: after the next deployment, upload a short test film as a draft and
+check that it plays and shows its length.
+
+Telegram posts and the product advisor need nothing from Vercel beyond their environment variables;
+a post that waits for a retry is processed by the daily cron on the Hobby plan.
+
 ## Environment variables
 
 API (`teran-api`, Production):
 
-| Variable                                                             | Value                                                                   |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, …                           | Added by the Neon integration                                           |
-| `BLOB_READ_WRITE_TOKEN`                                              | Added by connecting the Blob store                                      |
-| `NODE_ENV`                                                           | `production` (set by Vercel)                                            |
-| `WEB_ORIGIN`                                                         | The storefront's address, e.g. `https://teran-web.vercel.app`           |
-| `WEB_REVALIDATE_URL`                                                 | `<storefront>/api/revalidate`                                           |
-| `APP_SECRET`, `INTERNAL_API_KEY`, `REVALIDATE_SECRET`, `CRON_SECRET` | Random, at least 32 characters each, generated for this deployment      |
-| `COOKIE_SECURE`                                                      | `true`                                                                  |
-| `DATABASE_POOL_MAX`                                                  | `3`                                                                     |
-| `UPLOADS_DIR`                                                        | `/tmp/teran-uploads` (the only writable place; images go to Blob)       |
-| `PAYMENT_PROVIDER_MODE`, `ALLOW_DEMO_PAYMENTS`                       | `demo`, `true` — simulated payments, an explicit decision for this site |
-| `PAYMENT_METHODS_ENABLED`                                            | `CASH_ON_DELIVERY,CLICK,PAYME,CARD`                                     |
+| Variable                                                             | Value                                                                                   |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, …                           | Added by the Neon integration                                                           |
+| `BLOB_READ_WRITE_TOKEN`                                              | Added by connecting the Blob store                                                      |
+| `NODE_ENV`                                                           | `production` (set by Vercel)                                                            |
+| `WEB_ORIGIN`                                                         | The storefront's address, e.g. `https://teran-web.vercel.app`                           |
+| `WEB_REVALIDATE_URL`                                                 | `<storefront>/api/revalidate`                                                           |
+| `APP_SECRET`, `INTERNAL_API_KEY`, `REVALIDATE_SECRET`, `CRON_SECRET` | Random, at least 32 characters each, generated for this deployment                      |
+| `COOKIE_SECURE`                                                      | `true`                                                                                  |
+| `DATABASE_POOL_MAX`                                                  | `3`                                                                                     |
+| `UPLOADS_DIR`                                                        | `/tmp/teran-uploads` (the only writable place; images go to Blob)                       |
+| `PAYMENT_PROVIDER_MODE`, `ALLOW_DEMO_PAYMENTS`                       | `demo`, `true` — simulated payments, an explicit decision for this site                 |
+| `PAYMENT_METHODS_ENABLED`                                            | `CASH_ON_DELIVERY,CLICK,PAYME,CARD`                                                     |
+| `TELEGRAM_MODE`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`         | **Not configured.** `disabled` by default; see ../architecture/telegram.md              |
+| `ANTHROPIC_API_KEY`                                                  | **Not configured.** The advisor runs rule-based; see ../architecture/product-advisor.md |
 
 Storefront (`teran-web`, Production):
 

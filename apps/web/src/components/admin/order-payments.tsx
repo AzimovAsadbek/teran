@@ -9,6 +9,7 @@ import { TextAreaField } from '@/components/ui/field';
 import { apiRequest } from '@/lib/api/client';
 import { formatMoney } from '@/lib/format';
 import { ConfirmDialog } from './confirm-dialog';
+import { notify } from './toast';
 import { useAdminAction } from './use-admin-action';
 
 /**
@@ -32,6 +33,7 @@ export function RecordRefund({ order }: { order: AdminOrderDetail }) {
     if (ok) {
       setNote('');
       setOpen(false);
+      notify(t('orders.refundRecorded'));
     }
   }
 
@@ -52,6 +54,7 @@ export function RecordRefund({ order }: { order: AdminOrderDetail }) {
           amount: formatMoney(order.total, locale as 'uz', tc('currency.UZS')),
         })}
         confirmLabel={t('payments.recordRefund')}
+        cancelLabel={t('orders.notNow')}
         tone="danger"
         pending={action.pending}
         error={action.error}
@@ -69,6 +72,7 @@ export function RecordRefund({ order }: { order: AdminOrderDetail }) {
           maxLength={300}
           value={note}
           onChange={(event) => setNote(event.target.value)}
+          data-autofocus
         />
       </ConfirmDialog>
     </>

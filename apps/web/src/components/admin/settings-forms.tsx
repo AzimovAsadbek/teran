@@ -33,19 +33,20 @@ export function AnnouncementForm({ value }: { value: AnnouncementSetting | null 
   const [text, setText] = useState<LocalizedText>(value?.text ?? emptyText());
   const [href, setHref] = useState(value?.href ?? '');
 
+  const payload = { enabled, text, href: orNull(href) };
+  const visible = form.errorsFor(payload);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const saved = await form.submit(
-      announcementSettingSchema,
-      { enabled, text, href: orNull(href) },
-      (data) => apiRequest('/admin/settings/announcement', { method: 'PUT', body: data }),
+    const saved = await form.submit(announcementSettingSchema, payload, (data) =>
+      apiRequest('/admin/settings/announcement', { method: 'PUT', body: data }),
     );
     if (saved) router.refresh();
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-4">
-      <FormErrorSummary message={form.summary} />
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-4">
+      <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
       <CheckboxField
         label={t('settings.announcementEnabled')}
         name="enabled"
@@ -65,7 +66,7 @@ export function AnnouncementForm({ value }: { value: AnnouncementSetting | null 
             onChange={(event) =>
               setText((current) => ({ ...current, [locale]: event.target.value }))
             }
-            error={message(form.errors[`text.${locale}`], text[locale])}
+            error={message(visible[`text.${locale}`], text[locale])}
           />
         ))}
       </div>
@@ -75,7 +76,7 @@ export function AnnouncementForm({ value }: { value: AnnouncementSetting | null 
         hint={t('settings.announcementLinkHint')}
         value={href}
         onChange={(event) => setHref(event.target.value)}
-        error={message(form.errors.href, href)}
+        error={message(visible.href, href)}
       />
       <ApiAlert message={form.apiErrorMessage} />
       {form.status === 'sent' ? <SuccessMessage>{t('common.saved')}</SuccessMessage> : null}
@@ -106,16 +107,18 @@ export function ContactForm({ value }: { value: ContactSetting }) {
   const set = (key: keyof typeof fields) => (event: { target: { value: string } }) =>
     setFields((current) => ({ ...current, [key]: event.target.value }));
 
+  const payload = {
+    phone: orNull(fields.phone),
+    email: orNull(fields.email),
+    telegram: orNull(fields.telegram.replace(/^@/, '')),
+    instagram: orNull(fields.instagram.replace(/^@/, '')),
+    address: localizedOrNull(address),
+    workingHours: localizedOrNull(hours),
+  };
+  const visible = form.errorsFor(payload);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const payload = {
-      phone: orNull(fields.phone),
-      email: orNull(fields.email),
-      telegram: orNull(fields.telegram.replace(/^@/, '')),
-      instagram: orNull(fields.instagram.replace(/^@/, '')),
-      address: localizedOrNull(address),
-      workingHours: localizedOrNull(hours),
-    };
     const saved = await form.submit(contactSettingSchema, payload, (data) =>
       apiRequest('/admin/settings/contact', { method: 'PUT', body: data }),
     );
@@ -123,8 +126,8 @@ export function ContactForm({ value }: { value: ContactSetting }) {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-4">
-      <FormErrorSummary message={form.summary} />
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-4">
+      <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
       <div className="grid gap-4 md:grid-cols-2">
         <TextField
           label={t('settings.phone')}
@@ -132,7 +135,7 @@ export function ContactForm({ value }: { value: ContactSetting }) {
           type="tel"
           value={fields.phone}
           onChange={set('phone')}
-          error={message(form.errors.phone, fields.phone)}
+          error={message(visible.phone, fields.phone)}
         />
         <TextField
           label={t('settings.email')}
@@ -140,21 +143,21 @@ export function ContactForm({ value }: { value: ContactSetting }) {
           type="email"
           value={fields.email}
           onChange={set('email')}
-          error={message(form.errors.email, fields.email)}
+          error={message(visible.email, fields.email)}
         />
         <TextField
           label={t('settings.telegram')}
           name="telegram"
           value={fields.telegram}
           onChange={set('telegram')}
-          error={message(form.errors.telegram, fields.telegram)}
+          error={message(visible.telegram, fields.telegram)}
         />
         <TextField
           label={t('settings.instagram')}
           name="instagram"
           value={fields.instagram}
           onChange={set('instagram')}
-          error={message(form.errors.instagram, fields.instagram)}
+          error={message(visible.instagram, fields.instagram)}
         />
       </div>
       <div className="grid gap-4 md:grid-cols-3">

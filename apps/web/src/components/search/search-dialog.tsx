@@ -170,12 +170,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                         className="group flex items-center gap-3.5 rounded-card border border-transparent p-2 transition-colors hover:border-line hover:bg-surface"
                       >
                         <span className="h-16 w-16 shrink-0 overflow-hidden rounded-control bg-surface-muted">
-                          <ProductImage
-                            image={product.image}
-                            illustrationKey={product.illustrationKey}
-                            name={product.name}
-                            sizes="64px"
-                          />
+                          <ProductImage image={product.image} name={product.name} sizes="64px" />
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate text-title-sm text-fg group-hover:text-brand">

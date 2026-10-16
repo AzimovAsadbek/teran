@@ -69,6 +69,10 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         // Online payments are simulated by the demo provider: no provider is contacted.
         PAYMENT_PROVIDER_MODE: 'demo',
         PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY,CLICK,PAYME,CARD',
+        // Telegram posts are composed and recorded, never sent: no bot or channel is contacted.
+        TELEGRAM_MODE: 'dry-run',
+        // No AI provider: the product advisor answers with its rule-based matching.
+        ANTHROPIC_API_KEY: '',
       };
     case 'web-build':
       // Rewrites to the API are resolved at build time, so the web app is built for this stack.

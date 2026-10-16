@@ -85,6 +85,7 @@ export class AdminOrdersService {
     const digits = search?.replace(/\D/g, '') ?? '';
     const where: Prisma.OrderWhereInput = {
       status: query.status,
+      paymentStatus: query.paymentStatus,
       createdAt: {
         ...(query.from ? { gte: tashkentDayBoundary(query.from, 'start') } : {}),
         ...(query.to ? { lte: tashkentDayBoundary(query.to, 'end') } : {}),

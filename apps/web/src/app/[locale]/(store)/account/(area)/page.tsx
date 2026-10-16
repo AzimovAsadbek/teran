@@ -5,7 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { AccountPanel, OrderRow } from '@/components/account/account-ui';
-import { LogoutButton } from '@/components/account/account-forms';
+import { LogoutButton } from '@/components/account/logout';
 import { ButtonLink } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';

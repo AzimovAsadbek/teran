@@ -65,33 +65,34 @@ There is no dark theme; `color-scheme: light` and the browser theme colour is fo
 
 Computed from the tokens (text needs 4.5:1, large text and non-text indicators 3:1):
 
-| Foreground                                            | Background                              | Ratio              |
-| ----------------------------------------------------- | --------------------------------------- | ------------------ |
-| fg (ink-900)                                          | canvas / surface                        | 15.66 / 16.35      |
-| fg-muted (ink-700)                                    | canvas / surface-muted / surface-sunken | 9.94 / 9.13 / 8.13 |
-| fg-subtle (ink-500)                                   | canvas / surface / surface-muted        | 5.70 / 5.95 / 5.24 |
-| accent-fg (gold-700)                                  | canvas / surface / surface-muted        | 5.70 / 5.95 / 5.24 |
-| brand (forest-900)                                    | canvas                                  | 11.87              |
-| fg-inverse (ivory-50)                                 | surface-inverse / surface-inverse-deep  | 11.87 / 14.78      |
-| ivory-50 (title bars, ribbon, slogan strip)           | forest-700                              | 8.77               |
-| accent-on-inverse (gold-300)                          | surface-inverse / surface-inverse-deep  | 8.08 / 10.06       |
-| ivory-100 at 85 % / 70 % (footer links / legal)       | surface-inverse-deep                    | 10.10 / 7.32       |
-| forest-950 (accent button text)                       | accent / accent-hover                   | 6.50 / 8.22        |
-| success                                               | success-soft / surface                  | 6.40 / 7.59        |
-| warning                                               | warning-soft                            | 6.88               |
-| danger                                                | danger-soft / surface                   | 5.77 / 7.09        |
-| info                                                  | info-soft                               | 8.01               |
-| forest-900 (filter chips)                             | brand-soft                              | 10.85              |
-| Hero text on its mist (darkest pixel behind any line) | the lake painting                       | ≥ 4.97             |
-| line-strong (text-field and select borders, non-text) | surface / canvas                        | 3.67 / 3.52        |
-| focus ring (forest-700, non-text)                     | canvas                                  | 8.77               |
-| focus ring on dark (gold-300, non-text)               | surface-inverse                         | 8.08               |
+| Foreground                                            | Background                               | Ratio                     |
+| ----------------------------------------------------- | ---------------------------------------- | ------------------------- |
+| fg (ink-900)                                          | canvas / surface                         | 15.66 / 16.35             |
+| fg-muted (ink-700)                                    | canvas / surface-muted / surface-sunken  | 9.94 / 9.13 / 8.13        |
+| fg-subtle (ink-500)                                   | canvas / surface / surface-muted         | 5.70 / 5.95 / 5.24        |
+| accent-fg (gold-700)                                  | canvas / surface / surface-muted         | 5.70 / 5.95 / 5.24        |
+| brand (forest-900)                                    | canvas                                   | 11.87                     |
+| fg-inverse (ivory-50)                                 | surface-inverse / surface-inverse-deep   | 11.87 / 14.78             |
+| ivory-50 (title bars, ribbon, slogan strip)           | forest-700                               | 8.77                      |
+| accent-on-inverse (gold-300)                          | surface-inverse / surface-inverse-deep   | 8.08 / 10.06              |
+| ivory-100 at 85 % / 70 % (footer links / legal)       | surface-inverse-deep                     | 10.10 / 7.32              |
+| forest-950 (accent button text)                       | accent / accent-hover                    | 6.50 / 8.22               |
+| success                                               | success-soft / surface                   | 6.40 / 7.59               |
+| warning                                               | warning-soft                             | 6.88                      |
+| danger                                                | danger-soft / surface                    | 5.77 / 7.09               |
+| info                                                  | info-soft                                | 8.01                      |
+| forest-900 (filter chips)                             | brand-soft                               | 10.85                     |
+| Hero words (lightest pixel behind any line)           | the night garden, its jade glow and mist | ≥ 6.57 (headline ≥ 10.28) |
+| line-strong (text-field and select borders, non-text) | surface / canvas                         | 3.67 / 3.52               |
+| focus ring (forest-700, non-text)                     | canvas                                   | 8.77                      |
+| focus ring on dark (gold-300, non-text)               | surface-inverse                          | 8.08                      |
 
 Rules that keep it that way:
 
 - Gold lighter than 700 is never text on light surfaces (gold-500 on ivory is 2.3:1).
-- Text over artwork sits on a mist or scrim measured against the darkest pixel behind it (the
-  hero is checked at desktop and phone sizes in all three languages).
+- Text over artwork or atmosphere is measured against the least favourable pixel behind each
+  line (the lightest under light text), at several moments while mist and light move; the hero is
+  checked at 1280 and 390 px in all three languages.
 - Text fields and selects keep the full `line-strong` border: their boundary is the only cue that
   identifies an empty field (WCAG 1.4.11). Lighter borders are used only around controls that
   carry their own text or icon.
@@ -150,19 +151,99 @@ removed.)
 
 ## Motion
 
-- Easing `--ease-standard` `cubic-bezier(0.2, 0, 0, 1)` for state changes and `--ease-soft`
-  `cubic-bezier(0.22, 1, 0.36, 1)` for movement. Durations: 150 ms for colour and border
-  changes, 200–300 ms for movement, drawers and menus, 500 ms for image zoom and progress bars.
-- Animations: `rise` (hero headline, transform only, so it never delays the largest contentful
-  paint), `reveal` (sections entering the viewport; skipped for content already in view),
-  `fade-in` (menu panels, sticky bar), `pop-in` (dialogs, popovers). The marquee was removed.
+Calm and unhurried, like steam over a cup: small distances, no bounce, and nothing that moves
+while someone is reading, paying or filling in a form.
+
+- Easing `--ease-standard` `cubic-bezier(0.2, 0, 0, 1)` for state changes, `--ease-soft`
+  `cubic-bezier(0.22, 1, 0.36, 1)` for movement and `--ease-ambient`
+  `cubic-bezier(0.37, 0, 0.63, 1)` for slow background motion. Durations: 150 ms for colour and
+  border changes, 200–300 ms for movement, drawers and menus, 500 ms for image zoom and progress
+  bars, 600–900 ms for entrances, 24–31 s per half cycle for background leaves and 60–90 s for a
+  return trip of background mist.
+- Animations: `rise` (the hero's words, as one group; transform only, so they are readable from
+  the first frame and never delay the largest contentful paint), `reveal` (sections entering the viewport; skipped for
+  content already in view), `fade-in` (menu panels), `pop-in` (dialogs, popovers, confirmations),
+  `draw` (gold rules), `slide-up` (the sticky purchase bar), `badge-pop` (the bag count
+  going up), `disclose` (opened `<details data-disclose>`), `glow-out` (the highlight on a bag
+  line just added). The marquee was removed.
+- Entrances: the hero's words arrive together, the stage's products stream in after them; cards,
+  articles and the three brand principles in a revealed section rise one after another
+  (`data-stagger` on the list, `--i` on each item, at most six steps).
 - Hover: tea-type tiles lift 2 px, product images scale 3 %, article art 5 %, arrows nudge
   2 px; buttons press 1 px.
 - Drawers slide with the `translate` property and fade their backdrop; the top sheet (search)
-  drops 12 px.
-- `prefers-reduced-motion: reduce` shortens every animation and transition to near zero, shows
-  revealed content immediately and disables smooth scrolling; the showcase's arrow buttons then
-  jump instead of scrolling smoothly.
+  drops 12 px. The product gallery is a row of slides with scroll snapping: a swipe on phones,
+  smooth scrolling from the arrows, thumbnails and ←/→.
+- Only `transform`, the individual `translate`/`rotate`/`scale` properties and `opacity` are
+  animated; progress bars grow with `scaleX`, not `width`.
+- `prefers-reduced-motion: reduce` shortens every animation and transition to near zero (and
+  drops their delays), shows revealed content immediately and disables smooth scrolling; the
+  gallery and the showcase's arrow buttons then jump instead of scrolling smoothly. The botanical
+  atmosphere (mist, light, branches) stays at rest (it also stays still below 1024 px).
+
+### Botanical atmosphere
+
+A tea garden at dawn behind a few storefront sections (`<BotanicalLayer scene>` in
+`components/brand/botanical.tsx`, styles in `styles/botanical.css`). Every shape and texture is an
+original drawing made in code for the website by `scripts/botanical/generate-botanical.mjs`
+(writes `public/brand/botanical/`), not packaging artwork. Each scene is built in depth, back to
+front:
+
+- **Ridges** (hero only): far and near ranges of karst peaks along the lower half of the night
+  garden, faint behind the words and the stage. `sage-500` deepened with `forest-800`, darker at
+  the crests, dissolving into mist at the foot; the far layer paler and softer.
+- **Mist**: long irregular bands from two textures of soft fractal noise (`mist-band.webp`,
+  `mist-wisps.webp`, 4–6 KB) that repeat seamlessly from side to side. Each band drifts endlessly
+  at its own speed and direction (one texture tile in 53–84 s) and thins and thickens on its own
+  cycle (23–61 s); the farthest only sways over 47 s. `ivory-50` over the painted hero and on dark
+  green, a faint `sage-300` veil on white.
+- **Light**: warm radial glows (`gold-400`, a little red-gold `amber` in the brewing section, a
+  `sage-200` wash on editorial headers), shafts of pale morning sun through the hero mist, and a
+  halo just outside the moon gate's rim. The strength is part of the gradient's colour; the rays
+  are a ready-made drawing (`rays.svg`). Over the painted hero the rays and one glow brighten,
+  fade and wander slowly (31–59 s). On plain cream, white and dark green the glows stay still,
+  and from 1024 px a soft texture (`light.webp`) varies their strength a little: a smooth
+  gradient this faint shows rings on an 8-bit screen, more so when the compositor animates it.
+- **Leaves**: tea branches with alternate leaves ending in "one bud, two leaves", a branch that
+  follows the moon gate's circle, a sprig, and the branch out of focus (`branch-soft.webp`): the
+  nearest foliage on the hero stage, and soft shadows of branches on cream and white. Branches
+  sway 1–2.4° about their cut ends (9–27 s). On the hero stage, from 1024 px and with motion
+  allowed, a few single leaves drift down at different depths, never over the product: two small
+  pale ones behind it and one near leaf at each side in front, each falling for 27–41 s on a
+  swaying path, tilting with each sway, out of step. Each fall is one animation of `transform`:
+  short alternating animations would wake the main thread every time they turn.
+
+| Scene        | Where                                              | Wide screens (from 1024 px)                                                                                                                    | Phones and tablets                                       |
+| ------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `heroNight`  | Home hero, behind the words and the stage          | Far and near ridges low in the garden, mist bands at their foot and wisps above, the sun's shafts from the top right corner (breathing slowly) | The far ridges only (one small file on the first screen) |
+| `gate`       | Inside the moon gate, over the lake painting       | Bands of mist drifting slowly across the lake                                                                                                  | None                                                     |
+| `stageBack`  | Hero stage, behind the product                     | Mist at the foot of the gate spreading into the garden; two small pale leaves drifting down                                                    | None                                                     |
+| `stageFront` | Hero stage, in front of the product, at the sides  | A near leaf drifting down on each side; a branch out of focus reaching in from the top right                                                   | None                                                     |
+| `story`      | Behind the moon gate (home) and the emblem (About) | Warm light and a halo behind the ring, ground mist drifting beneath it, a branch following the circle, a sprig at the upper right              | Light, halo, the branch and the sprig, still (no mist)   |
+| `storyEdges` | Corners of the home philosophy section             | Soft shadows of branches top left and bottom right                                                                                             | None                                                     |
+| `brewing`    | Home brewing section                               | Amber light behind the heading, a branch's shadow falling across the top left, a branch at the lower left, a sprig at the upper right          | Light and a still sprig                                  |
+| `gallery`    | The gallery's dark band (home) and `/media` header | Warm light behind the heading, a faint bank of mist far below the pictures, a branch out of focus beyond the right edge                        | None                                                     |
+| `editorial`  | About and Journal headers                          | Warm light, a cream-to-sage wash from the lower left, a branch's shadow at the right edge, a sprig at the lower left                           | Light, the wash and one still leaf                       |
+| `business`   | Inside the dark partnership band                   | Warm light in the upper corner, fog drifting low over the band, a pale branch out of focus                                                     | Light only                                               |
+| `listing`    | Catalogue, category and collection headers         | Still: a little warm light and a branch beside the title                                                                                       | None                                                     |
+| `product`    | Product page, behind the gallery                   | Still: warm light behind the gallery, a branch's soft shadow and a sprig beneath it                                                            | None                                                     |
+
+Motion: only `translate`, `rotate` and `opacity` animate, and each element animates at most one
+transform property (static turns and mirroring sit on a parent), so the compositor runs every
+animation without the main thread. Every moving piece is a single layer: it carries its own
+opacity (no parent group to blend again each frame), still light is drawn before the mist so it
+merges with the background, and the scene's one-off fade-in fills only backwards. Durations are
+all different, so nothing moves in step. Below 1024 px and with reduced motion nothing moves; with
+reduced transparency mist, light and shadows are hidden; the still composition is complete on its
+own. Pieces hidden at a breakpoint also drop their shapes and textures, so phones fetch at most
+three small files per page (the far ranges, the moon gate's branch, a sprig or leaf).
+
+Rules: decoration only (`aria-hidden`, `pointer-events: none`), below every heading, price, photo
+and control, at the edges and in empty space, never behind a product grid or filters; layers that
+reach past a section edge clip sideways (no horizontal scrolling) and fade out vertically (no hard
+lines). The bag, checkout, accounts, sign-in, contact and legal pages and the administration have
+none of it. To remove it, delete the `@import './botanical.css'` line in `globals.css`, the
+`<BotanicalLayer>` calls and `public/brand/botanical/`.
 
 ## Components
 
@@ -173,21 +254,128 @@ accessibility behaviour. In short:
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Primitives | `ui/button` (Button, ButtonLink, IconButton, CountBadge), `ui/controls` (input, select, textarea, radio classes; select chevron), `ui/field` (labelled fields, checkbox, error summary), `ui/notice`, `ui/badge`, `ui/price`, `ui/sheet`, `ui/modal`, `ui/section-heading`, `ui/skeleton`, `ui/demo-notice`, `ui/reveal` |
 | Layout     | announcement bar, sticky header, desktop mega menus, mobile drawer, header actions, search overlay, language switcher, footer, checkout header and footer, skip link                                                                                                                                                     |
-| Catalogue  | product card and quick add, listing header with tea-type chips, filter bar, price popover, mobile filters, sort, pagination, breadcrumbs                                                                                                                                                                                 |
+| Catalogue  | product card and quick add, category cards and category art, listing header with category chips, filter bar, price popover, mobile filters, sort, pagination, breadcrumbs                                                                                                                                                |
 | Product    | gallery, purchase panel with pack-size cards and sticky bar, brewing facts, delivery facts, information disclosures                                                                                                                                                                                                      |
 | Commerce   | bag drawer and page, quantity stepper, checkout with numbered sections, choice cards, order summary, order progress and details                                                                                                                                                                                          |
 | Content    | page header, long-form pages, article card and body, help footer, contact and wholesale forms                                                                                                                                                                                                                            |
 | Brand      | logo set (`Wordmark`, `Emblem`, `StackedLogo`, `LogoPlate`), ornaments from the pack (`BrandValues`, `Pennant`, `GoldRule`, `WavePattern`, `GreenTeaCalligraphy`, `TeaSeal`, `MoonGate`), tea-type medallions                                                                                                            |
-| Admin      | shell, page header, panels, tables, status pills, filter forms, confirm dialog, editors                                                                                                                                                                                                                                  |
+| Admin      | shell with grouped menu and work counts (drawer on phones), page header, panels, tables that become cards below 768 px, status tabs, status pills, filter forms that apply on change, confirm dialog, top-of-screen confirmation, sticky save bar, editors                                                               |
 
 ### Navigation pattern
 
-Announcement bar (forest-950) → sticky header: on phones and tablets a menu button, the centred
-wordmark, search, account and bag; from 1280 px the category triggers on the left with mega
-menus (WAI-ARIA disclosure buttons; each panel follows its button in the DOM so Tab moves into
-it; open on click, Enter, Space or a short hover; Esc closes and returns focus) and a search
-field-style button on the right. The bag opens as a 30rem side drawer after adding a product.
+Announcement bar (forest-950) → sticky header: on phones and tablets the menu button and search
+on the left, the wordmark in the centre, account and bag on the right (two 44 px buttons on each
+side, so the wordmark is really centred; below 360 px the account is reached from the drawer and
+the wordmark is at most 12 px off centre); from 1280 px "Catalogue", "Collections", "For
+business" and "About TERAN" on the left and a search field-style button on the right. Both search
+buttons open the same overlay. The bag opens as a 30rem side drawer after adding a product.
 Checkout uses a distraction-free header (back to bag, wordmark) and a footer with the policies.
+
+Every menu is built from one category tree (`lib/navigation.ts`, from `GET /catalog/categories`
+and `/catalog/collections`): the same order, names, counts, pictures and parent/child structure on
+desktop, in the drawer and on the home page's cards. No category is named in code.
+
+- **Desktop panels** open full width under the header, aligned to the page grid (WAI-ARIA
+  disclosure buttons; click, Enter/Space or a short hover; Esc closes and returns focus; a click
+  outside or on a link closes). They fade and slide 6 px in 200 ms and the page dims behind them
+  (`forest-950` at 25 %); a panel taller than the window scrolls inside itself. Like the drawer's,
+  their contents are rendered the first time they open (no page carries the menus in its HTML)
+  and kept afterwards.
+  - _Catalogue_: the top-level categories on the left (illustration, name, count; the active one
+    marked with a gold bar). Pointing at or focusing one shows, in the middle, its count, name,
+    description, its subcategories in two columns and a "Barchasi: …" link, and on the right its
+    category card. Each category's details follow its row in the document, so Tab walks row → its
+    subcategories → next row. Long names wrap to two lines; a long subcategory list scrolls.
+  - _Collections_: collection tiles in the category card style, at most four across, filling the
+    row.
+  - _About TERAN_: "The world of TERAN" and "Help" with a line about each page, and a dark card
+    with the brand tagline.
+- **Drawer** (below 1280 px, left, native dialog): the catalogue first — each top-level category
+  with subcategories is a disclosure button that opens to "Barchasi: …" and its subcategories with
+  counts (the first starts open while there are at most three top-level categories), the others
+  are links — then "All products", collections as tiles, "The world of TERAN", "Help" and the
+  account; the account link and language switch stay in the footer. Rows are at least 48 px
+  tall; long names wrap; the close button stays in the header row.
+
+### Home hero
+
+Two columns from 1024 px (about 45 : 55). On the left, as one group: the descriptor, the pack's
+tagline as the headline (one sentence per line), the signature line with its gold rule, the
+description and both calls to action. On the right, the product stage: a moon gate onto the lake
+painting (the page's largest image, prerendered and requested first), a halo and the gate's rim,
+the botanical layers before and behind, and one product at a time (`components/home/hero*.tsx`,
+`styles/hero.css`).
+
+- **Data.** The stage shows up to six products the catalogue marks as featured, in the
+  catalogue's featured order: those with a cut-out image stand in front of the gate, otherwise
+  their photograph sits inside it. Under each: category · pack, name (the link), price ("from …"
+  with several packs). Nothing in the code names a product; with no featured product the gate
+  stays as an image.
+- **Change.** Every 6.5 s: the product leaves away from the viewer (640 ms) and the next arrives
+  from the other side (1100 ms, starting 340 ms later), the painting in the gate shifts a little
+  and the halo brightens — transforms and opacity only (Web Animations API, no library). The
+  active indicator fills over the interval and its end advances the stage.
+- **Control.** Previous/next buttons, one hairline indicator per product (equal lengths; the
+  active one fills with gold), ←/→ on any of them and swiping on the stage. It holds while the
+  pointer rests on the stage, while keyboard focus is inside it (a mouse click on a control does
+  not hold it), in a hidden tab and while scrolled away, and goes on by itself afterwards. There
+  is no visible pause button; a pause control appears only when it receives keyboard focus, for
+  keyboard and screen-reader users (WCAG 2.2.2). With reduced motion nothing advances by itself
+  and changes are immediate. Captions are a labelled group per product (`aria-roledescription`),
+  inactive ones inert; announcements are off while it rotates.
+- **Phones.** One column: words and buttons first, then a shorter stage with the caption and
+  controls centred beneath the product; of the atmosphere only the far ridges remain.
+- **Layout stability.** The stage has a fixed height per breakpoint and the caption area a fixed
+  height, so nothing moves when products, captions or images arrive.
+
+### Category cards
+
+The home page's "Turkum boʻyicha" shows the categories shoppers browse (subcategories, and
+top-level categories without any; at most eight, then "All products") as deep green cards
+(`components/home/category-cards.tsx`, art in `components/catalog/category-art.tsx` and
+`styles/category-art.css`). Each card holds a moon window with the category's picture from its
+data (`CategoryDto.image`: a product standing in front of the window when it has a cut-out, a
+photograph inside it otherwise, the category's illustration — the neutral medallion when none is
+set — without either), warm light behind it, and two botanical silhouettes at different depths:
+a soft, out-of-focus branch shadow and a crisp branch or sprig in forest green. Four compositions
+alternate so neighbouring cards never move alike.
+
+From 1024 px, with motion allowed, each silhouette drifts on its own 40–70 s cycle (one
+`transform` animation per layer); on hover or keyboard focus the light warms, the window rises
+4 px, the near silhouette leans further than the far one and a gold hairline draws in. Touch
+screens need no hover: the whole card is the link. Rows hold at most four cards and are balanced
+(6 → 3 + 3, 7 → 4 + 3); tablets show two per row; phones scroll the cards sideways. The same art
+appears in the desktop catalogue panel and on the collection tiles.
+
+### Media: photographs ("Rasmlar") and films ("Videolar") kept apart
+
+Photographs and short films managed in Admin → Gallery, in two separate lists with their own
+"new" buttons and order (`MediaItem`: kind fixed when created, title, caption or description and
+image description in three languages, status, shown on the home page or not; a photo, or a film's
+poster, file, running time read from the file and optional WebVTT subtitles).
+
+- **Home page**: "TERAN olamidan lavhalar" on a dark band (`forest-950`, the quiet `gallery`
+  botanical scene) with two groups, each with its own heading and "all" link: **Rasmlar** — an
+  editorial spread of the photographs chosen for the home page (a wide feature with its caption
+  over the picture, a tall picture beside it, then a full row with captions beneath; phones scroll
+  the rest sideways) — and **Videolar** — up to three film posters in a 16:9 grid with the running
+  time. While no film exists, the films group says plainly that films are coming; no footage is
+  invented.
+- **`/media`**: an overview with the same two groups; **`/media/photos`** and **`/media/videos`**:
+  every published item of one kind, paginated. Tabs ("Hammasi · Rasmlar · Videolar", with counts)
+  link the three pages; old `/media?kind=…` links redirect permanently. Photographs keep their
+  proportions in rows of equal height; films are posters with play marks.
+- **In articles**: an article can show photographs and films chosen from the gallery (reused,
+  never uploaded twice; up to 12, in the editor's order). They appear below the text on the same
+  dark band, photographs and films in separate groups, and only while they are published.
+- **Viewer**: full screen (native modal dialog: focus moves in and returns to the tile; Esc
+  closes; ←/→, Home/End, buttons and a swipe move), a counter, the caption, and a strip of
+  thumbnails; the neighbours load ahead. Films show their poster and start only when the visitor
+  presses play, with the browser's controls and subtitles when they exist; moving on stops them.
+- Pictures are lazy WebP renditions with `srcset`; hover draws them 3.5 % closer over 1.4 s and
+  frames the smaller ones with a gold hairline.
+- The demonstration items are the packaging artwork, titled as such ("Qadoq rasmi: …"); they are
+  never presented as photographs of real places or processes.
 
 ## Imagery
 
@@ -206,8 +394,9 @@ Checkout uses a distraction-free header (back to bag, wordmark) and a footer wit
   ([ADR-009](../architecture/decisions.md)). XC2025, G8810, 8830 and 8009 have pack shots made
   from their print files (front and back); the other demonstration products keep pack shots and
   leaf studies drawn in code ([ADR-014](../architecture/decisions.md)).
-- **Illustrations** (ten tea-type medallions) are inline SVG components, also used as the
-  placeholder when a product has no photo. Medallions are always shown whole (never cropped by a
+- **Illustrations** (ten tea-type medallions, and a neutral sand-and-gold one when none is chosen,
+  so a category or product of any kind gets a fitting mark) are inline SVG components, also used
+  as the placeholder when a product has no photo. Medallions are always shown whole (never cropped by a
   container edge); large decorative rings, the hero's tea sprigs and the emblem watermark are the
   only art that bleeds off a panel.
 - **Alternative text:** product images use the product name (plus "demonstration image" in demo
@@ -223,9 +412,15 @@ To keep the store consistent when photos arrive:
   the long side (the admin creates the smaller sizes). The product card and the product page
   show the image on `surface-muted`, so a matching background blends in.
 - **Second images:** the dry leaf on a plain plate or a cup of the brewed tea, same light.
-- **Hero:** the lake from the front of the pack, with the packs standing on its shore. A future
-  photograph should keep calm space in the upper middle for the centred headline; the mist keeps
-  the text readable, but busy detail behind the words should be avoided.
+- **Hero:** the lake from the front of the pack seen through a moon gate, and one featured
+  product at a time in front of it. A pack shot on a transparent background (PNG or WebP, at least
+  1600 px tall, tightly cropped) stands free on the stage; the upload marks it automatically
+  (transparent corners). Products with only an ordinary photograph are shown inside the gate
+  instead.
+- **Gallery ("Lavhalar"):** real photographs and short films only — tea gardens, the packs,
+  brewing, people at work with their permission. Landscape pictures at least 2000 px wide suit the
+  large tiles; films as web-ready MP4 (H.264/AAC) or WebM up to 64 MB with a poster frame, and with
+  sound that makes sense when a visitor chooses to play it (nothing plays by itself).
 - **About and journal:** only real places, people and processes, with permission.
 
 ### Missing assets

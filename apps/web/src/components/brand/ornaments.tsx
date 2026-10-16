@@ -98,13 +98,32 @@ export function WavePattern({ className }: { className?: string }) {
   );
 }
 
-/** The gold rule with a diamond at its centre, from under the logo on the pack. */
-export function GoldRule({ className }: { className?: string }) {
+/**
+ * The gold rule with a diamond at its centre, from under the logo on the pack. `animated` draws
+ * the two hairlines outwards from the diamond once (skipped with reduced motion).
+ */
+export function GoldRule({
+  className,
+  animated = false,
+}: {
+  className?: string;
+  animated?: boolean;
+}) {
+  const draw = animated && 'motion-safe:animate-draw motion-safe:[animation-delay:160ms]';
   return (
     <div aria-hidden className={cn('flex items-center', className)}>
-      <span className="h-px flex-1 bg-linear-to-r from-transparent to-gold-500" />
-      <span className="mx-2 h-1.5 w-1.5 shrink-0 rotate-45 bg-gold-500" />
-      <span className="h-px flex-1 bg-linear-to-l from-transparent to-gold-500" />
+      <span
+        className={cn('h-px flex-1 origin-right bg-linear-to-r from-transparent to-gold-500', draw)}
+      />
+      <span
+        className={cn(
+          'mx-2 h-1.5 w-1.5 shrink-0 rotate-45 bg-gold-500',
+          animated && 'motion-safe:animate-fade-in motion-safe:[animation-delay:120ms]',
+        )}
+      />
+      <span
+        className={cn('h-px flex-1 origin-left bg-linear-to-l from-transparent to-gold-500', draw)}
+      />
     </div>
   );
 }

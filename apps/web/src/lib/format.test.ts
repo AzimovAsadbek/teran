@@ -1,3 +1,4 @@
+import { PRODUCT_FORMATS } from '@teran/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   formatAmount,
@@ -5,6 +6,7 @@ import {
   formatDateTime,
   formatGrams,
   multiplyMoney,
+  namesFormat,
   packLabel,
 } from './format';
 
@@ -59,5 +61,19 @@ describe('pack labels', () => {
     expect(packLabel({ weightGrams: 100, unitCount: null }, 'LOOSE_LEAF', 'en', units)).toBe(
       '100 g',
     );
+    // A product of no tea format (honey, a teapot) is described by its pack alone.
+    expect(packLabel({ weightGrams: 500, unitCount: 2 }, 'OTHER', 'en', units)).toBe(
+      '2 default · 500 g',
+    );
+  });
+
+  it('names every format except "other"', () => {
+    expect(PRODUCT_FORMATS.filter(namesFormat)).toEqual([
+      'LOOSE_LEAF',
+      'TEA_BAGS',
+      'PYRAMIDS',
+      'GIFT_SET',
+      'ACCESSORY',
+    ]);
   });
 });

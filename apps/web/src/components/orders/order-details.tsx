@@ -95,12 +95,7 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
           {order.items.map((item) => (
             <li key={item.sku} className="flex gap-4 py-4">
               <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted">
-                <ProductImage
-                  image={item.image}
-                  illustrationKey={item.illustrationKey}
-                  name={item.productName}
-                  sizes="80px"
-                />
+                <ProductImage image={item.image} name={item.productName} sizes="80px" />
               </span>
               <span className="min-w-0 flex-1">
                 <Link

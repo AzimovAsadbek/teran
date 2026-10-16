@@ -7,14 +7,17 @@ import { InventoryRowActions } from '@/components/admin/inventory-row-actions';
 import {
   AccessDenied,
   AdminPageHeader,
+  Cell,
   EmptyState,
   FilterForm,
+  Pill,
   table,
 } from '@/components/admin/ui';
+import { Checkbox } from '@/components/ui/field';
 import { Link } from '@/i18n/navigation';
+import { packLabel } from '@/lib/admin/pack';
 import { adminGet, apiQuery, pageHref, param } from '@/lib/admin/server';
 import { cn } from '@/lib/cn';
-import { Checkbox } from '@/components/ui/field';
 
 const FILTERS = ['q', 'lowStockOnly'] as const;
 
@@ -36,8 +39,12 @@ export default async function AdminInventoryPage({
 
   return (
     <>
-      <AdminPageHeader title={t('inventory.title')} />
-      <FilterForm action="/admin/inventory" q={param(params, 'q')}>
+      <AdminPageHeader title={t('inventory.title')} description={t('inventory.intro')} />
+      <FilterForm
+        action="/admin/inventory"
+        q={param(params, 'q')}
+        active={FILTERS.some((key) => param(params, key))}
+      >
         <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-control border border-line-strong bg-surface px-3.5 text-body-sm shadow-xs">
           <Checkbox name="lowStockOnly" value="true" defaultChecked={lowOnly} />
           {t('inventory.lowStockOnly')}
@@ -56,9 +63,6 @@ export default async function AdminInventoryPage({
                 <th scope="col" className={table.th}>
                   {t('products.sku')}
                 </th>
-                <th scope="col" className={table.th}>
-                  {t('inventory.pack')}
-                </th>
                 <th scope="col" className={`${table.th} text-right`}>
                   {t('inventory.stock')}
                 </th>
@@ -72,43 +76,44 @@ export default async function AdminInventoryPage({
             </thead>
             <tbody>
               {rows.items.map((row) => {
-                const low = row.isActive && row.stockQuantity <= row.lowStockThreshold;
+                const out = row.isActive && row.stockQuantity === 0;
+                const low = row.isActive && !out && row.stockQuantity <= row.lowStockThreshold;
                 return (
                   <tr key={row.variantId} className={row.isActive ? undefined : 'opacity-60'}>
-                    <td className={table.td}>
+                    <Cell primary>
                       <Link href={`/admin/products/${row.productId}`} className={table.link}>
                         {row.productName}
                       </Link>
-                      {!row.isActive ? (
-                        <span className="ml-2 text-xs text-fg-subtle">
-                          ({t('common.inactive')})
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className={`${table.td} font-mono text-xs`}>{row.sku}</td>
-                    <td className={table.td}>
-                      {[
-                        row.weightGrams ? `${row.weightGrams} g` : null,
-                        row.unitCount ? `× ${row.unitCount}` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                    </td>
-                    <td
+                      <span className="block text-xs text-fg-subtle">
+                        {packLabel(row)}
+                        {!row.isActive ? ` · ${t('common.inactive')}` : ''}
+                      </span>
+                    </Cell>
+                    <Cell label={t('products.sku')} className="font-mono text-xs">
+                      {row.sku}
+                    </Cell>
+                    <Cell
+                      label={t('inventory.stock')}
                       className={cn(
-                        table.td,
                         'text-right font-semibold tabular-nums',
-                        row.stockQuantity === 0 ? 'text-danger' : low ? 'text-warning' : '',
+                        out ? 'text-danger' : low ? 'text-warning' : '',
                       )}
                     >
-                      {row.stockQuantity}
-                    </td>
-                    <td className={`${table.td} text-right text-fg-subtle tabular-nums`}>
+                      <span className="inline-flex items-center gap-2">
+                        {out ? <Pill tone="danger">{t('inventory.statusOut')}</Pill> : null}
+                        {low ? <Pill tone="gold">{t('inventory.statusLow')}</Pill> : null}
+                        {row.stockQuantity}
+                      </span>
+                    </Cell>
+                    <Cell
+                      label={t('inventory.threshold')}
+                      className="text-right text-fg-subtle tabular-nums"
+                    >
                       {row.lowStockThreshold}
-                    </td>
-                    <td className={`${table.td} text-right`}>
+                    </Cell>
+                    <Cell className="text-right max-md:justify-end max-md:pt-2">
                       <InventoryRowActions row={row} />
-                    </td>
+                    </Cell>
                   </tr>
                 );
               })}

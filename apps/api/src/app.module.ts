@@ -7,6 +7,7 @@ import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage } from 'node:http';
 import { AccountModule } from './account/account.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { AssistantModule } from './assistant/assistant.module.js';
 import { validateEnv, type Env } from './config/env.js';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter.js';
 import { isInternalRequest, redactUrl } from './common/security/internal-request.js';
@@ -94,6 +95,7 @@ function requestId(request: IncomingMessage): string {
     AccountModule,
     InquiriesModule,
     AdminModule,
+    AssistantModule,
     MaintenanceModule,
   ],
   providers: [

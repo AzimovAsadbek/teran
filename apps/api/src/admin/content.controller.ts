@@ -1,5 +1,18 @@
-import { Body, Controller, Get, Header, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  Param,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   adminSimpleListQuerySchema,
   announcementSettingSchema,
@@ -7,14 +20,19 @@ import {
   contactSettingSchema,
   deliveryMethodUpsertSchema,
   idSchema,
+  localeQuerySchema,
   type AdminArticle,
+  type ArticleDetailDto,
   type AdminDeliveryMethod,
   type AnnouncementSetting,
   type ContactSetting,
+  type LocaleQuery,
   type Paginated,
 } from '@teran/contracts';
 import type { z } from 'zod';
 import { RequireStaff } from '../auth/auth.guard.js';
+import { ApiException } from '../common/errors/api-exception.js';
+import { ArticlesService } from '../content/articles.service.js';
 import type { SettingValues } from '../content/settings.service.js';
 import { CurrentActor, type Actor } from './admin-support.js';
 import { AdminContentService } from './content.service.js';
@@ -26,7 +44,10 @@ type ArticlePayload = z.output<typeof articleUpsertSchema>;
 @Controller('admin')
 @RequireStaff()
 export class AdminContentController {
-  constructor(private readonly content: AdminContentService) {}
+  constructor(
+    private readonly content: AdminContentService,
+    private readonly articlesPublic: ArticlesService,
+  ) {}
 
   @Get('settings')
   @Header('Cache-Control', 'private, no-store')
@@ -102,6 +123,17 @@ export class AdminContentController {
     return this.content.article(id);
   }
 
+  @Get('articles/:id/preview')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'The article as its storefront page shows it, drafts included' })
+  @ApiOkResponse({ description: 'ArticleDetailDto' })
+  articlePreview(
+    @Param('id', { schema: idSchema }) id: string,
+    @Query({ schema: localeQuerySchema }) query: LocaleQuery,
+  ): Promise<ArticleDetailDto> {
+    return this.articlesPublic.preview(id, query.locale);
+  }
+
   @Post('articles')
   @ApiOkResponse({ description: 'AdminArticle' })
   createArticle(
@@ -119,5 +151,29 @@ export class AdminContentController {
     @CurrentActor() actor: Actor,
   ): Promise<AdminArticle> {
     return this.content.saveArticle(id, body, actor);
+  }
+
+  @Post('articles/:id/cover')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Set the cover picture (JPEG, PNG, WebP or AVIF)' })
+  @ApiOkResponse({ description: 'AdminArticle' })
+  setArticleCover(
+    @Param('id', { schema: idSchema }) id: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminArticle> {
+    if (!file) throw ApiException.badRequest('BAD_REQUEST', 'Attach an image in the "file" field');
+    return this.content.setArticleCover(id, file.buffer, actor);
+  }
+
+  @Delete('articles/:id/cover')
+  @ApiOperation({ summary: 'Remove the cover picture (not while the article is published)' })
+  @ApiOkResponse({ description: 'AdminArticle' })
+  removeArticleCover(
+    @Param('id', { schema: idSchema }) id: string,
+    @CurrentActor() actor: Actor,
+  ): Promise<AdminArticle> {
+    return this.content.removeArticleCover(id, actor);
   }
 }

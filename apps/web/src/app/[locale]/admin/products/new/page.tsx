@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { ProductEditor } from '@/components/admin/product-editor';
 import { AccessDenied, AdminPageHeader } from '@/components/admin/ui';
-import { adminGet } from '@/lib/admin/server';
+import { adminGet, getTelegramSettings } from '@/lib/admin/server';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -14,23 +14,22 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewProductPage() {
   const t = await getTranslations('Admin');
-  const [categories, collections, productTypes] = await Promise.all([
+  const [categories, collections, productTypes, telegram] = await Promise.all([
     adminGet<AdminTaxonomy[]>('/categories'),
     adminGet<AdminTaxonomy[]>('/collections'),
     adminGet<AdminProductType[]>('/product-types'),
+    getTelegramSettings(),
   ]);
   if (!categories || !collections || !productTypes) return <AccessDenied />;
   return (
     <>
-      <AdminPageHeader
-        title={t('products.newProduct')}
-        description={t('products.imagesAfterSave')}
-      />
+      <AdminPageHeader title={t('products.newProduct')} />
       <ProductEditor
         product={null}
         categories={categories}
         collections={collections}
         productTypes={productTypes}
+        telegram={telegram}
       />
     </>
   );

@@ -53,6 +53,7 @@ describe('toProductSummary', () => {
     productTypeId: null,
     format: 'LOOSE_LEAF',
     isFeatured: true,
+    announceOnTelegram: false,
     caffeineLevel: null,
     brewTempCelsius: null,
     brewTimeMinSeconds: null,

@@ -18,7 +18,8 @@ import { apiRequest } from '@/lib/api/client';
 import { formatMoney } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
-import { table } from './ui';
+import { Cell, table } from './table';
+import { notify } from './toast';
 import { buttonClasses, iconButtonClasses } from '@/components/ui/button';
 
 const KEYS = ['name', 'description', 'estimate'] as const;
@@ -47,34 +48,42 @@ function MethodForm({
   const [translations, setTranslations] = useState(() =>
     fromTranslation(method?.translations ?? null, KEYS),
   );
-  const error = (path: string, value?: string) => message(form.errors[path], value);
+  const payload = {
+    code: code.trim(),
+    isActive,
+    position: Number(position) || 0,
+    price: money(price),
+    freeFromAmount: freeFrom.trim() ? money(freeFrom) : null,
+    regionCodes: regions,
+    requiresAddress,
+    translations: toTranslationPayload(translations),
+  };
+  const visible = form.errorsFor(payload);
+  const error = (path: string, value?: string) => message(visible[path], value);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const payload = {
-      code: code.trim(),
-      isActive,
-      position: Number(position) || 0,
-      price: money(price),
-      freeFromAmount: freeFrom.trim() ? money(freeFrom) : null,
-      regionCodes: regions,
-      requiresAddress,
-      translations: toTranslationPayload(translations),
-    };
     const saved = await form.submit(deliveryMethodUpsertSchema, payload, (data) =>
       method
         ? apiRequest(`/admin/delivery-methods/${method.id}`, { method: 'PUT', body: data })
         : apiRequest('/admin/delivery-methods', { method: 'POST', body: data }),
     );
     if (saved) {
+      notify(t('common.saved'));
       router.refresh();
       onDone();
     }
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5 px-5 py-4">
-      <FormErrorSummary message={form.summary} />
+    <form
+      method="post"
+      ref={formRef}
+      onSubmit={onSubmit}
+      noValidate
+      className="space-y-5 px-5 py-4"
+    >
+      <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
       <TextField
         label={t('delivery.code')}
         name="code"
@@ -238,28 +247,41 @@ export function DeliveryManager({
           <tbody>
             {methods.map((method) => (
               <tr key={method.id}>
-                <td className={table.td}>
-                  <span className="font-semibold">{name(method)}</span>
-                  <span className="block font-mono text-xs text-fg-subtle">{method.code}</span>
-                </td>
-                <td className={`${table.td} whitespace-nowrap tabular-nums`}>
+                <Cell primary className="font-semibold">
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditing(method)}
+                      className="text-left font-semibold text-brand underline-offset-4 hover:underline"
+                    >
+                      {name(method)}
+                    </button>
+                  ) : (
+                    name(method)
+                  )}
+                </Cell>
+                <Cell label={t('delivery.price')} className="whitespace-nowrap tabular-nums">
                   {formatMoney(method.price, locale, currency)}
-                </td>
-                <td className={`${table.td} whitespace-nowrap tabular-nums`}>
+                </Cell>
+                <Cell label={t('delivery.freeFrom')} className="whitespace-nowrap tabular-nums">
                   {method.freeFromAmount
                     ? formatMoney(method.freeFromAmount, locale, currency)
                     : '—'}
-                </td>
-                <td className={table.td}>
+                </Cell>
+                <Cell label={t('delivery.regions')}>
                   {method.regionCodes.length === 0
                     ? t('delivery.allRegions')
                     : method.regionCodes.length}
-                </td>
-                <td className={table.td}>
-                  {method.isActive ? t('common.active') : t('common.inactive')}
-                </td>
+                </Cell>
+                <Cell label={t('common.status')}>
+                  <span
+                    className={method.isActive ? 'font-semibold text-success' : 'text-fg-subtle'}
+                  >
+                    {method.isActive ? t('common.active') : t('common.inactive')}
+                  </span>
+                </Cell>
                 {canEdit ? (
-                  <td className={`${table.td} text-right`}>
+                  <Cell className="text-right max-md:justify-end">
                     <button
                       type="button"
                       onClick={() => setEditing(method)}
@@ -268,7 +290,7 @@ export function DeliveryManager({
                     >
                       <Pencil aria-hidden className="h-4 w-4" />
                     </button>
-                  </td>
+                  </Cell>
                 ) : null}
               </tr>
             ))}

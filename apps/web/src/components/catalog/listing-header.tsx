@@ -1,41 +1,59 @@
-import type { CategoryDto, IllustrationKey } from '@teran/contracts';
+import type { CategoryDto, IllustrationKey, ImageDto } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import type { ReactNode } from 'react';
+import { BotanicalLayer } from '@/components/brand/botanical';
 import { TeaTypeArt } from '@/components/brand/illustrations';
+import { CoverImage } from '@/components/content/cover-image';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories } from '@/lib/data/catalog';
 
 /**
- * Compact listing header: tea-type medallion, title and one line of description, then optional
- * navigation (tea-type chips) and the demo note. Kept short so products start on the first screen
- * of a phone.
+ * Compact listing header: the category's own cover picture in a round frame when one is assigned,
+ * otherwise its medallion (a neutral one when it has no illustration), then the title, one line of
+ * description, optional navigation (category chips) and the demo note. Kept short so products
+ * start on the first screen of a phone.
  */
 export function ListingHeader({
   eyebrow,
   title,
   description,
   illustrationKey,
+  image,
   children,
 }: {
   eyebrow?: string;
   title: string;
   description?: string | null;
   illustrationKey?: IllustrationKey | null;
+  /** The category's or collection's assigned cover; never a product's picture. */
+  image?: ImageDto | null;
   /** Rendered under the title, e.g. <CategoryChips />. */
   children?: ReactNode;
 }) {
   return (
-    <header className="mt-4 sm:mt-6">
+    <header className="relative isolate mt-4 sm:mt-6">
+      <BotanicalLayer scene="listing" className="-z-10" />
       <div className="flex items-center gap-4 sm:gap-6">
-        <span aria-hidden className="h-14 w-14 shrink-0 sm:h-20 sm:w-20">
-          <TeaTypeArt kind={illustrationKey ?? 'green'} />
-        </span>
+        {image ? (
+          <span className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-ivory-50 ring-1 ring-line sm:h-24 sm:w-24">
+            <CoverImage
+              image={image}
+              sizes="(min-width: 640px) 96px, 64px"
+              priority
+              cutoutInset="p-1.5 sm:p-2"
+            />
+          </span>
+        ) : (
+          <span aria-hidden className="h-14 w-14 shrink-0 sm:h-20 sm:w-20">
+            <TeaTypeArt kind={illustrationKey ?? null} />
+          </span>
+        )}
         <div className="min-w-0">
           {eyebrow ? <p className="mb-1 text-eyebrow text-accent-fg">{eyebrow}</p> : null}
-          <h1 className="text-display-lg text-forest-900">{title}</h1>
+          <h1 className="text-display-lg break-words text-forest-900 [hyphens:auto]">{title}</h1>
         </div>
       </div>
       {description ? (
@@ -112,10 +130,7 @@ export async function CategoryChips({
   const items: ChipLink[] = [
     { href: '/catalog', name: t('shopAllTitle'), current: active === undefined },
     ...categories
-      .filter(
-        (category) =>
-          category.parentSlug === null && (category.productCount > 0 || category.slug === active),
-      )
+      .filter((category) => category.parentSlug === null)
       .map((category) => ({
         href: `/${category.path}`,
         name: category.name,

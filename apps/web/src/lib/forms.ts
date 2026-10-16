@@ -11,6 +11,8 @@ export interface FieldIssue {
   message: string;
   minimum?: number;
   maximum?: number;
+  /** What was checked ("number", "string"…), so "too small" can be worded for each. */
+  origin?: string;
 }
 
 /** Field path ("customer.phone") → its first issue. */
@@ -32,6 +34,7 @@ export function fieldErrorsFromZod(error: z.ZodError): FieldErrors {
       message: issue.message,
       minimum: 'minimum' in issue ? numeric(issue.minimum) : undefined,
       maximum: 'maximum' in issue ? numeric(issue.maximum) : undefined,
+      origin: 'origin' in issue && typeof issue.origin === 'string' ? issue.origin : undefined,
     };
   }
   return errors;
@@ -68,6 +71,11 @@ export const VALIDATION_KEYS = [
   'invalid_telegram',
   'invalid_instagram',
   'invalid_code',
+  'invalid_key',
+  'options_required',
+  'options_not_allowed',
+  'not_filterable',
+  'duplicate_key',
   'cancel_reason_required',
 ] as const;
 export type ValidationKey = (typeof VALIDATION_KEYS)[number];

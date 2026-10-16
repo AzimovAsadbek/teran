@@ -6,15 +6,16 @@ import { Suspense } from 'react';
 import { BrewingGuide } from '@/components/home/brewing-guide';
 import { BusinessCta } from '@/components/home/business-cta';
 import { Hero } from '@/components/home/hero';
+import { CategoryCardsFallback, CategoryCardsSection } from '@/components/home/category-cards';
 import {
-  CategoryRailFallback,
-  CategoryRailSection,
   CollectionSection,
   JournalSection,
   ShowcaseFallback,
   ShowcaseSection,
 } from '@/components/home/home-sections';
+import { MediaSection } from '@/components/home/media-section';
 import { StorySection } from '@/components/home/story-section';
+import { BotanicalLayer } from '@/components/brand/botanical';
 import { BrandValues } from '@/components/brand/ornaments';
 import { Reveal } from '@/components/ui/reveal';
 import { brandCopy } from '@/content/brand';
@@ -76,16 +77,21 @@ export default async function HomePage() {
         </h2>
         <BrandValues locale={locale} className="mx-auto max-w-3xl" />
       </section>
-      <Suspense fallback={<CategoryRailFallback />}>
-        <CategoryRailSection />
+      <Suspense fallback={<CategoryCardsFallback />}>
+        <CategoryCardsSection />
       </Suspense>
       <CollectionSection />
       <StorySection />
+      <Suspense fallback={null}>
+        <MediaSection />
+      </Suspense>
       <Suspense fallback={<ShowcaseFallback />}>
         <ShowcaseSection />
       </Suspense>
-      <section aria-labelledby="brewing-title" className="container-page pt-section">
-        <Reveal className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-16">
+      <section aria-labelledby="brewing-title" className="relative isolate pt-section">
+        {/* Amber light, a branch's shadow and branches in the corners, beyond the text and card. */}
+        <BotanicalLayer scene="brewing" className="-z-10" />
+        <Reveal className="container-page grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-16">
           <div className="lg:col-span-5">
             <p className="text-eyebrow text-accent-fg">{t('brewingEyebrow')}</p>
             <h2 id="brewing-title" className="mt-4 text-display-lg text-forest-900">

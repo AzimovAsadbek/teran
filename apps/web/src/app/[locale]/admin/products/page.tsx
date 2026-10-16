@@ -14,6 +14,7 @@ import { Pagination } from '@/components/catalog/pagination';
 import {
   AccessDenied,
   AdminPageHeader,
+  Cell,
   EmptyState,
   FilterForm,
   FilterSelect,
@@ -69,7 +70,11 @@ export default async function AdminProductsPage({
           </ButtonLink>
         }
       />
-      <FilterForm action="/admin/products" q={param(params, 'q')}>
+      <FilterForm
+        action="/admin/products"
+        q={param(params, 'q')}
+        active={FILTERS.some((key) => param(params, key))}
+      >
         <FilterSelect
           name="status"
           label={t('common.status')}
@@ -125,37 +130,47 @@ export default async function AdminProductsPage({
             </thead>
             <tbody>
               {products.items.map((product) => (
-                <tr key={product.id}>
-                  <td className={table.td}>
+                <tr key={product.id} className={table.row}>
+                  <Cell primary>
                     <div className="flex items-center gap-3">
                       <span className="h-12 w-12 shrink-0 overflow-hidden rounded-control bg-surface-muted">
-                        <ProductImage
-                          image={product.image}
-                          illustrationKey={product.illustrationKey}
-                          name={product.name}
-                          sizes="48px"
-                        />
+                        <ProductImage image={product.image} name={product.name} sizes="48px" />
                       </span>
                       <span className="min-w-0">
-                        <Link href={`/admin/products/${product.id}`} className={table.link}>
+                        <Link href={`/admin/products/${product.id}`} className={table.rowLink}>
                           {product.name}
                         </Link>
                         <span className="block text-xs text-fg-subtle">
-                          {product.slug} ·{' '}
                           {t('products.variantsCount', { count: product.variantCount })}
                         </span>
                       </span>
                     </div>
-                  </td>
-                  <td className={table.td}>{product.categoryName}</td>
-                  <td className={`${table.td} whitespace-nowrap tabular-nums`}>{price(product)}</td>
-                  <td className={`${table.td} text-right tabular-nums`}>{product.totalStock}</td>
-                  <td className={table.td}>
-                    <ProductStatusPill status={product.status} />
-                  </td>
-                  <td className={`${table.td} whitespace-nowrap text-fg-muted`}>
+                  </Cell>
+                  <Cell label={t('products.category')}>{product.categoryName}</Cell>
+                  <Cell label={t('products.price')} className="whitespace-nowrap tabular-nums">
+                    {price(product)}
+                  </Cell>
+                  <Cell label={t('products.stock')} className="text-right tabular-nums">
+                    {product.totalStock}
+                  </Cell>
+                  <Cell label={t('common.status')}>
+                    <span className="flex flex-col items-start gap-1">
+                      <ProductStatusPill status={product.status} />
+                      {product.missing.length > 0 ? (
+                        <span
+                          className="text-caption text-warning"
+                          title={product.missing
+                            .map((code) => t(`readiness.codes.${code}`))
+                            .join(', ')}
+                        >
+                          {t('readiness.incompleteShort', { count: product.missing.length })}
+                        </span>
+                      ) : null}
+                    </span>
+                  </Cell>
+                  <Cell label={t('common.updated')} className="whitespace-nowrap text-fg-muted">
                     {formatDate(product.updatedAt, locale as Locale)}
-                  </td>
+                  </Cell>
                 </tr>
               ))}
             </tbody>

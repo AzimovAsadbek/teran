@@ -1,5 +1,6 @@
 import type { IllustrationKey } from '@teran/contracts';
 import type { ReactNode } from 'react';
+import { BotanicalLayer, type BotanicalScene } from '@/components/brand/botanical';
 import { TeaTypeArt } from '@/components/brand/illustrations';
 import { WavePattern } from '@/components/brand/ornaments';
 import { Notice } from '@/components/ui/notice';
@@ -13,17 +14,21 @@ export function PageHeader({
   title,
   intro,
   illustration = 'green',
+  atmosphere,
   children,
 }: {
   eyebrow?: string;
   title: string;
   intro?: ReactNode;
   illustration?: IllustrationKey;
+  /** Botanical scene behind editorial pages (About, Journal); forms and legal pages stay plain. */
+  atmosphere?: BotanicalScene;
   children?: ReactNode;
 }) {
   return (
     <header className="relative isolate border-b border-line-subtle">
       <WavePattern className="inset-x-0 top-0 -z-10 h-28 opacity-25" />
+      {atmosphere ? <BotanicalLayer scene={atmosphere} className="-z-10" /> : null}
       <div className="container-page grid items-center gap-10 py-12 sm:py-16 lg:grid-cols-12">
         <div className="lg:col-span-8">
           {eyebrow ? <p className="text-eyebrow text-accent-fg">{eyebrow}</p> : null}

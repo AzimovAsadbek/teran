@@ -6,13 +6,16 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { ApiAlert, SubmitButton } from '@/components/account/auth-forms';
 import { FormErrorSummary, SelectField, TextField } from '@/components/ui/field';
+import { Notice } from '@/components/ui/notice';
 import { Sheet } from '@/components/ui/sheet';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { useRouter } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
 import { formatDateTime } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
-import { table } from './ui';
+import { Cell, table } from './table';
+import { ConfirmDialog } from './confirm-dialog';
+import { notify } from './toast';
 import { useAdminAction } from './use-admin-action';
 import { buttonClasses } from '@/components/ui/button';
 
@@ -31,19 +34,27 @@ function NewStaffForm({ onDone }: { onDone: () => void }) {
   });
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) =>
     setValues((current) => ({ ...current, [key]: event.target.value }));
+  const visible = form.errorsFor(values);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const saved = await form.submit(staffCreateSchema, values, '/admin/staff');
     if (saved) {
+      notify(t('staff.saved'));
       router.refresh();
       onDone();
     }
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-4 px-5 py-4">
-      <FormErrorSummary message={form.summary} />
+    <form
+      method="post"
+      ref={formRef}
+      onSubmit={onSubmit}
+      noValidate
+      className="space-y-4 px-5 py-4"
+    >
+      <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
       <TextField
         label={t('staff.email')}
         name="email"
@@ -52,7 +63,7 @@ function NewStaffForm({ onDone }: { onDone: () => void }) {
         required
         value={values.email}
         onChange={set('email')}
-        error={message(form.errors.email, values.email)}
+        error={message(visible.email, values.email)}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
@@ -61,14 +72,14 @@ function NewStaffForm({ onDone }: { onDone: () => void }) {
           required
           value={values.firstName}
           onChange={set('firstName')}
-          error={message(form.errors.firstName, values.firstName)}
+          error={message(visible.firstName, values.firstName)}
         />
         <TextField
           label={t('staff.lastName')}
           name="lastName"
           value={values.lastName}
           onChange={set('lastName')}
-          error={message(form.errors.lastName, values.lastName)}
+          error={message(visible.lastName, values.lastName)}
         />
       </div>
       <SelectField
@@ -91,7 +102,7 @@ function NewStaffForm({ onDone }: { onDone: () => void }) {
         hint={t('staff.passwordHint')}
         value={values.password}
         onChange={set('password')}
-        error={message(form.errors.password, values.password)}
+        error={message(visible.password, values.password)}
       />
       <ApiAlert message={form.apiErrorMessage} />
       <SubmitButton
@@ -103,7 +114,35 @@ function NewStaffForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-/** Staff accounts: roles and access (administrators only; self-demotion is refused by the API). */
+type Change = 'makeAdmin' | 'makeManager' | 'deactivate' | 'activate';
+
+const CHANGE_TEXT = {
+  makeAdmin: {
+    title: 'staff.confirmMakeAdmin',
+    text: 'staff.confirmMakeAdminText',
+    button: 'staff.makeAdmin',
+  },
+  makeManager: {
+    title: 'staff.confirmMakeManager',
+    text: 'staff.confirmMakeManagerText',
+    button: 'staff.makeManager',
+  },
+  deactivate: {
+    title: 'staff.confirmDeactivate',
+    text: 'staff.confirmDeactivateText',
+    button: 'staff.deactivate',
+  },
+  activate: {
+    title: 'staff.confirmActivate',
+    text: 'staff.confirmActivateText',
+    button: 'staff.activate',
+  },
+} as const;
+
+/**
+ * Staff accounts: roles and access (administrators only; self-demotion is refused by the API).
+ * Every change of role or access is confirmed first and says what it means.
+ */
 export function StaffManager({
   staff,
   currentUserId,
@@ -116,21 +155,38 @@ export function StaffManager({
   const locale = useLocale() as Locale;
   const action = useAdminAction();
   const [creating, setCreating] = useState(false);
+  const [pending, setPending] = useState<{ member: AdminStaffMember; change: Change } | null>(null);
+  const fullName = (member: AdminStaffMember) =>
+    [member.firstName, member.lastName].filter(Boolean).join(' ') || member.email;
 
-  const update = (
-    member: AdminStaffMember,
-    patch: Partial<Pick<AdminStaffMember, 'role' | 'isActive'>>,
-  ) =>
-    void action.run(() =>
+  async function apply() {
+    if (!pending) return;
+    const { member, change } = pending;
+    const ok = await action.run(() =>
       apiRequest(`/admin/staff/${member.id}`, {
         method: 'PATCH',
-        body: { role: patch.role ?? member.role, isActive: patch.isActive ?? member.isActive },
+        body: {
+          role:
+            change === 'makeAdmin' ? 'ADMIN' : change === 'makeManager' ? 'MANAGER' : member.role,
+          isActive:
+            change === 'activate' ? true : change === 'deactivate' ? false : member.isActive,
+        },
       }),
     );
+    if (ok) {
+      setPending(null);
+      notify(t('staff.saved'));
+    }
+  }
+
+  const text = pending ? CHANGE_TEXT[pending.change] : null;
 
   return (
     <>
-      <div className="mb-5 flex justify-end">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <Notice tone="info" className="max-w-2xl">
+          {t('staff.roleHelp')}
+        </Notice>
         <button
           type="button"
           onClick={() => setCreating(true)}
@@ -140,7 +196,7 @@ export function StaffManager({
           {t('staff.newStaff')}
         </button>
       </div>
-      {action.error ? (
+      {action.error && pending === null ? (
         <p
           role="alert"
           className="mb-4 rounded-control bg-danger-soft px-4 py-3 text-body-sm font-medium text-danger"
@@ -174,32 +230,39 @@ export function StaffManager({
               const self = member.id === currentUserId;
               return (
                 <tr key={member.id}>
-                  <td className={table.td}>
+                  <Cell primary>
                     <span className="font-semibold">
                       {[member.firstName, member.lastName].filter(Boolean).join(' ')}
                       {self ? (
                         <span className="ml-1 font-normal text-fg-subtle">({t('staff.you')})</span>
                       ) : null}
                     </span>
-                    <span className="block text-xs text-fg-subtle">{member.email}</span>
-                  </td>
-                  <td className={table.td}>{t(`roles.${member.role}`)}</td>
-                  <td className={`${table.td} whitespace-nowrap`}>
+                    <span className="block text-xs break-all text-fg-subtle">{member.email}</span>
+                  </Cell>
+                  <Cell label={t('staff.role')}>{t(`roles.${member.role}`)}</Cell>
+                  <Cell label={t('staff.lastLogin')} className="whitespace-nowrap">
                     {member.lastLoginAt
                       ? formatDateTime(member.lastLoginAt, locale)
                       : t('staff.never')}
-                  </td>
-                  <td className={table.td}>
-                    {member.isActive ? t('common.active') : t('common.inactive')}
-                  </td>
-                  <td className={`${table.td} text-right`}>
+                  </Cell>
+                  <Cell label={t('common.status')}>
+                    <span
+                      className={member.isActive ? 'font-semibold text-success' : 'text-fg-subtle'}
+                    >
+                      {member.isActive ? t('common.active') : t('common.inactive')}
+                    </span>
+                  </Cell>
+                  <Cell className="text-right max-md:justify-end">
                     {self ? null : (
                       <span className="inline-flex flex-wrap justify-end gap-1">
                         <button
                           type="button"
                           disabled={action.pending}
                           onClick={() =>
-                            update(member, { role: member.role === 'ADMIN' ? 'MANAGER' : 'ADMIN' })
+                            setPending({
+                              member,
+                              change: member.role === 'ADMIN' ? 'makeManager' : 'makeAdmin',
+                            })
                           }
                           className={buttonClasses('ghost', 'sm')}
                         >
@@ -208,7 +271,12 @@ export function StaffManager({
                         <button
                           type="button"
                           disabled={action.pending}
-                          onClick={() => update(member, { isActive: !member.isActive })}
+                          onClick={() =>
+                            setPending({
+                              member,
+                              change: member.isActive ? 'deactivate' : 'activate',
+                            })
+                          }
                           className={buttonClasses(
                             member.isActive ? 'danger-ghost' : 'ghost',
                             'sm',
@@ -218,13 +286,28 @@ export function StaffManager({
                         </button>
                       </span>
                     )}
-                  </td>
+                  </Cell>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        open={pending !== null}
+        title={pending && text ? t(text.title, { name: fullName(pending.member) }) : ''}
+        description={text ? t(text.text) : undefined}
+        confirmLabel={text ? t(text.button) : ''}
+        cancelLabel={t('orders.notNow')}
+        tone={pending?.change === 'deactivate' ? 'danger' : 'primary'}
+        pending={action.pending}
+        error={pending ? action.error : null}
+        onClose={() => {
+          setPending(null);
+          action.clearError();
+        }}
+        onConfirm={() => void apply()}
+      />
       <Sheet
         open={creating}
         onClose={() => setCreating(false)}

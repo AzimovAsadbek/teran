@@ -1,12 +1,11 @@
-import type { IllustrationKey, ImageDto } from '@teran/contracts';
+import type { ImageDto } from '@teran/contracts';
 import { useTranslations } from 'next-intl';
-import { TeaTypeArt } from '@/components/brand/illustrations';
+import { Emblem } from '@/components/brand/logo';
 import { cn } from '@/lib/cn';
 import { isDemoContent } from '@/lib/site';
 
 interface ProductImageProps {
   image: ImageDto | null;
-  illustrationKey: IllustrationKey | null;
   name: string;
   /** Responsive `sizes` hint, e.g. "(min-width: 1024px) 25vw, 50vw". */
   sizes: string;
@@ -16,12 +15,13 @@ interface ProductImageProps {
 
 /**
  * Product photos are re-encoded by the API into fixed WebP widths at upload time, so the browser
- * can pick one through srcset without a second optimisation pass. Without a photo, the tea-type
- * illustration stands in (and carries the accessible name).
+ * can pick one through srcset without a second optimisation pass. Packaging cut-outs stand whole
+ * on their background (contain); photographs fill the frame (cover). Without a photo (a draft, or
+ * an older product published before a main picture was required) a neutral TERAN placeholder
+ * stands in: never a tea illustration or another product's picture, which would misrepresent it.
  */
 export function ProductImage({
   image,
-  illustrationKey,
   name,
   sizes,
   priority = false,
@@ -31,8 +31,15 @@ export function ProductImage({
 
   if (!image) {
     return (
-      <div className={cn('flex items-center justify-center bg-surface-muted p-[12%]', className)}>
-        <TeaTypeArt kind={illustrationKey} label={name} />
+      <div
+        role="img"
+        aria-label={name}
+        className={cn(
+          'flex h-full w-full items-center justify-center bg-ivory-100 bg-[radial-gradient(circle_at_50%_42%,var(--color-ivory-50),transparent_70%)]',
+          className,
+        )}
+      >
+        <Emblem className="w-[34%] max-w-32 opacity-55 grayscale-[35%]" sizes="128px" />
       </div>
     );
   }
@@ -56,7 +63,11 @@ export function ProductImage({
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
       decoding="async"
-      className={cn('h-full w-full object-cover', className)}
+      className={cn(
+        'h-full w-full',
+        image.transparent ? 'object-contain p-[6%]' : 'object-cover',
+        className,
+      )}
     />
   );
 }

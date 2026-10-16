@@ -16,6 +16,8 @@ export interface CartState {
   pendingKey: string | null;
   error: ApiError | null;
   drawerOpen: boolean;
+  /** The pack most recently added, so the bag can point it out; cleared when the bag closes. */
+  lastAdded: { variantId: string; at: number } | null;
 }
 
 const INITIAL: CartState = {
@@ -24,6 +26,7 @@ const INITIAL: CartState = {
   pendingKey: null,
   error: null,
   drawerOpen: false,
+  lastAdded: null,
 };
 
 let state: CartState = INITIAL;
@@ -85,7 +88,7 @@ export const cartActions = {
         body: { variantId, quantity },
       }),
     );
-    if (cart) setState({ drawerOpen: true });
+    if (cart) setState({ drawerOpen: true, lastAdded: { variantId, at: Date.now() } });
     return cart !== null;
   },
 
@@ -125,7 +128,7 @@ export const cartActions = {
   },
 
   closeDrawer(): void {
-    setState({ drawerOpen: false });
+    setState({ drawerOpen: false, lastAdded: null });
   },
 
   dismissError(): void {

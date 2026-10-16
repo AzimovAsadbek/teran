@@ -82,6 +82,7 @@ export default async function JournalPage({ searchParams }: PageProps<'/[locale]
         title={t('journalTitle')}
         intro={t('journalDescription')}
         illustration="jasmine"
+        atmosphere="editorial"
       />
       <div className="container-page py-12 sm:py-16">
         <Suspense

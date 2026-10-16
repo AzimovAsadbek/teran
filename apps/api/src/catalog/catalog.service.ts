@@ -30,6 +30,7 @@ import {
   asIllustrationKey,
   categoryBreadcrumbs,
   categoryPath,
+  coverImageDto,
   detailInclude,
   summaryInclude,
   toProductDetail,
@@ -46,6 +47,7 @@ const PUBLIC_CATEGORY_WHERE = {
   OR: [{ parentId: null }, { parent: { isActive: true } }],
 } satisfies Prisma.CategoryWhereInput;
 
+type StageImageRow = Prisma.ProductImageGetPayload<object>;
 type CategoryRow = Prisma.CategoryGetPayload<{
   include: { translations: true; parent: { select: { slug: true } } };
 }>;
@@ -175,6 +177,10 @@ export class CatalogService {
         name: translation?.name ?? collection.slug,
         description: translation?.description ?? null,
         illustrationKey: asIllustrationKey(collection.illustrationKey),
+        image: coverImageDto(
+          collection,
+          translation?.imageAlt ?? translation?.name ?? collection.slug,
+        ),
         productCount: collection._count.products,
         seoTitle: translation?.seoTitle ?? null,
         seoDescription: translation?.seoDescription ?? null,
@@ -219,11 +225,15 @@ export class CatalogService {
     ]);
 
     const now = new Date();
+    const stageImages = await this.stageImages(products.map((product) => product.id));
     const facets: FacetsDto = {
-      formats: formatGroups.map((group) => ({
-        value: group.format,
-        count: typeof group._count === 'object' ? (group._count._all ?? 0) : 0,
-      })),
+      // OTHER is no format to filter by: those products simply have none of the tea formats.
+      formats: formatGroups
+        .filter((group) => group.format !== 'OTHER')
+        .map((group) => ({
+          value: group.format,
+          count: typeof group._count === 'object' ? (group._count._all ?? 0) : 0,
+        })),
       priceRange:
         priceRange._min.minPrice && priceRange._max.minPrice
           ? { min: toMoney(priceRange._min.minPrice), max: toMoney(priceRange._max.minPrice) }
@@ -232,13 +242,26 @@ export class CatalogService {
     };
 
     return {
-      items: products.map((product) => toProductSummary(product, query.locale, now)),
+      items: products.map((product) =>
+        toProductSummary(product, query.locale, now, stageImages.get(product.id)),
+      ),
       page: query.page,
       pageSize: query.pageSize,
       total,
       totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
       facets,
     };
+  }
+
+  /** The first cut-out image of each product, for presentations that stage the product. */
+  private async stageImages(productIds: string[]) {
+    if (productIds.length === 0) return new Map<string, StageImageRow>();
+    const images = await this.prisma.productImage.findMany({
+      where: { productId: { in: productIds }, transparent: true },
+      orderBy: [{ productId: 'asc' }, { position: 'asc' }],
+      distinct: ['productId'],
+    });
+    return new Map(images.map((image) => [image.productId, image]));
   }
 
   /**
@@ -398,6 +421,7 @@ export class CatalogService {
         collections: { some: { collection: { slug: query.collection, isActive: true } } },
       });
     }
+    if (query.type) conditions.push({ productType: { key: query.type, isActive: true } });
     if (query.featured) conditions.push({ isFeatured: true });
     if (query.inStock)
       conditions.push({ variants: { some: { isActive: true, stockQuantity: { gt: 0 } } } });
@@ -533,6 +557,7 @@ export class CatalogService {
       path: categoryPath(category),
       body: translation?.body ?? null,
       position: category.position,
+      image: coverImageDto(category, translation?.imageAlt ?? translation?.name ?? category.slug),
     };
   }
 

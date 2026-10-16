@@ -17,6 +17,8 @@
  *   public/brand/packs/<code>.webp                               pack fronts, cut out
  *   public/brand/ornaments/*.svg                                 the pack's four icons, 绿茶, seal
  *   ../api/prisma/seed/assets/packaging/<code>-{front,back}.webp  square pack shots for the seed
+ *   ../api/prisma/seed/assets/packaging/<code>-cutout.webp        the cut-out front, for the seed
+ *                                                                (the home page stage)
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -377,10 +379,12 @@ for (const code of PACKS) {
       .png()
       .toBuffer(),
   );
-  await writeWebp(
-    sharp(front).resize({ height: 1000 }),
+  for (const path of [
     resolve(packsDir, `${code.toLowerCase()}.webp`),
-  );
+    resolve(seedDir, `${code.toLowerCase()}-cutout.webp`),
+  ]) {
+    await writeWebp(sharp(front).resize({ height: 1000 }), path);
+  }
   await writeWebp(await packShot(front), resolve(seedDir, `${code.toLowerCase()}-front.webp`), {
     quality: 88,
   });

@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
+import { BotanicalLayer } from '@/components/brand/botanical';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
 import { ProductCard } from '@/components/catalog/product-card';
@@ -16,6 +17,7 @@ import { ProductGridSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { Link, getPathname } from '@/i18n/navigation';
 import { getProduct, getRelatedProducts, getSlugRedirect } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
+import { namesFormat } from '@/lib/format';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { siteUrl } from '@/lib/site';
 
@@ -112,13 +114,11 @@ async function ProductView({
           { label: product.name },
         ]}
       />
-      <div className="mt-4 grid grid-cols-1 gap-8 sm:mt-6 lg:grid-cols-12 lg:gap-12 xl:gap-16">
+      <div className="relative isolate mt-4 grid grid-cols-1 gap-8 sm:mt-6 lg:grid-cols-12 lg:gap-12 xl:gap-16">
+        {/* The lightest touch: warm light behind the gallery, one still sprig beneath it. */}
+        <BotanicalLayer scene="product" className="-z-10" />
         <div className="lg:col-span-7">
-          <ProductGallery
-            images={product.images}
-            illustrationKey={product.illustrationKey}
-            name={product.name}
-          />
+          <ProductGallery images={product.images} name={product.name} />
         </div>
         <div className="lg:col-span-5">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-eyebrow">
@@ -128,10 +128,14 @@ async function ProductView({
             >
               {product.category.name}
             </Link>
-            <span aria-hidden className="text-fg-subtle">
-              ·
-            </span>
-            <span className="text-fg-subtle">{tc(`formats.${product.format}`)}</span>
+            {namesFormat(product.format) ? (
+              <>
+                <span aria-hidden className="text-fg-subtle">
+                  ·
+                </span>
+                <span className="text-fg-subtle">{tc(`formats.${product.format}`)}</span>
+              </>
+            ) : null}
           </p>
           <h1 className="mt-3 text-display-lg text-forest-900">{product.name}</h1>
           {product.isNew || product.onSale ? (

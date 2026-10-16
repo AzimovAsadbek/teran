@@ -11,7 +11,7 @@ import {
   type RawSearchParams,
 } from '@/features/catalog/query';
 import { getCategoryPage } from '@/lib/data/catalog';
-import { pageMetadata } from '@/lib/seo';
+import { coverShareImage, pageMetadata } from '@/lib/seo';
 import { Breadcrumbs } from './breadcrumbs';
 import { CatalogResults, CatalogResultsSkeleton } from './catalog-results';
 import { CategoryChipRow, ListingHeader, ListingHeaderSkeleton } from './listing-header';
@@ -39,6 +39,7 @@ export async function categoryMetadata(
     query: filters.page > 1 ? `page=${filters.page}` : '',
     locale,
     noIndex: hasRefinements(filters),
+    image: coverShareImage(category.image),
   });
 }
 
@@ -68,13 +69,11 @@ async function CategoryListing({
   const top = parent ?? category;
   const chips = [
     { href: `/${top.path}`, name: t('allIn', { name: top.name }), current: parent === null },
-    ...subcategories
-      .filter((child) => child.productCount > 0 || child.slug === category.slug)
-      .map((child) => ({
-        href: `/${child.path}`,
-        name: child.name,
-        current: child.slug === category.slug,
-      })),
+    ...subcategories.map((child) => ({
+      href: `/${child.path}`,
+      name: child.name,
+      current: child.slug === category.slug,
+    })),
   ];
   const paragraphs = (category.body ?? '')
     .split(/\n\s*\n/)
@@ -95,6 +94,7 @@ async function CategoryListing({
         title={category.name}
         description={category.description}
         illustrationKey={category.illustrationKey}
+        image={category.image}
       >
         {chips.length > 1 ? <CategoryChipRow label={t('subcategories')} items={chips} /> : null}
       </ListingHeader>

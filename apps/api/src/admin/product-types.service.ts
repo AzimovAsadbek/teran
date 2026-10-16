@@ -66,6 +66,7 @@ export class AdminProductTypesService {
           key: input.key,
           isActive: input.isActive,
           position: input.position,
+          brewingGuide: input.brewingGuide ?? false,
           translations: { create: this.typeTranslations(input) },
         },
         select: { id: true },
@@ -98,7 +99,13 @@ export class AdminProductTypesService {
       await this.assertKeyKinds(tx, id, input);
       await tx.productType.update({
         where: { id },
-        data: { key: input.key, isActive: input.isActive, position: input.position },
+        data: {
+          key: input.key,
+          isActive: input.isActive,
+          position: input.position,
+          // Left out by the request: the current setting stays.
+          ...(input.brewingGuide === undefined ? {} : { brewingGuide: input.brewingGuide }),
+        },
       });
       const translations = this.typeTranslations(input);
       await tx.productTypeTranslation.deleteMany({
@@ -348,6 +355,7 @@ export class AdminProductTypesService {
       key: row.key,
       isActive: row.isActive,
       position: row.position,
+      brewingGuide: row.brewingGuide,
       productCount: row._count.products,
       translations: toAdminTranslation(row.translations, (translation) => ({
         name: translation.name,

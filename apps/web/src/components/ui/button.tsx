@@ -156,6 +156,8 @@ type IconButtonProps = Omit<ComponentProps<'button'>, 'children' | 'aria-label'>
   size?: IconButtonSize;
   /** Small count shown on the icon (e.g. bag items); announced through `label`. */
   badge?: ReactNode;
+  /** Increase to make the badge acknowledge a change with a brief pop (0: never). */
+  badgeBump?: number;
 };
 
 export function IconButton({
@@ -164,6 +166,7 @@ export function IconButton({
   variant,
   size,
   badge,
+  badgeBump = 0,
   className,
   type = 'button',
   ...props
@@ -177,17 +180,25 @@ export function IconButton({
       {...props}
     >
       {icon}
-      {badge ? <CountBadge>{badge}</CountBadge> : null}
+      {badge ? (
+        // A new key restarts the pop animation; the first render never pops.
+        <CountBadge key={badgeBump} bump={badgeBump > 0}>
+          {badge}
+        </CountBadge>
+      ) : null}
     </button>
   );
 }
 
 /** Small numeric badge on an icon (bag count). Decorative: the parent's label carries the number. */
-export function CountBadge({ children }: { children: ReactNode }) {
+export function CountBadge({ children, bump = false }: { children: ReactNode; bump?: boolean }) {
   return (
     <span
       aria-hidden
-      className="absolute -top-0.5 -right-0.5 inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-accent px-1 text-micro leading-none font-bold text-forest-950 figures ring-2 ring-canvas"
+      className={cn(
+        'absolute -top-0.5 -right-0.5 inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-accent px-1 text-micro leading-none font-bold text-forest-950 figures ring-2 ring-canvas',
+        bump && 'motion-safe:animate-badge-pop',
+      )}
     >
       {children}
     </span>

@@ -17,6 +17,9 @@ const PANEL: Record<Side, string> = {
   left: 'mr-auto h-dvh w-[min(26rem,100vw)] -translate-x-full open:translate-x-0 starting:open:-translate-x-full',
   top: 'mt-0 w-full -translate-y-3 opacity-0 open:translate-y-0 open:opacity-100 starting:open:-translate-y-3 starting:open:opacity-0',
 };
+/** A wider right-hand panel for editors with several columns of fields. */
+const WIDE_RIGHT =
+  'ml-auto h-dvh w-[min(60rem,100vw)] translate-x-full open:translate-x-0 starting:open:translate-x-full';
 
 interface SheetProps {
   open: boolean;
@@ -34,6 +37,8 @@ interface SheetProps {
   headerExtra?: ReactNode;
   /** No header row: the content provides its own close control (the title stays as the name). */
   bare?: boolean;
+  /** Right-hand panel at up to 60rem instead of 30rem. */
+  wide?: boolean;
 }
 
 /**
@@ -53,6 +58,7 @@ export function Sheet({
   hideTitle = false,
   headerExtra,
   bare = false,
+  wide = false,
 }: SheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -66,6 +72,8 @@ export function Sheet({
       // Focus returns here on close (nothing to return to if focus was on the page itself).
       openerRef.current = active instanceof HTMLElement && active !== document.body ? active : null;
       dialog.showModal();
+      // As in Modal: a control marked data-autofocus (e.g. a form's first field) takes focus.
+      dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
     } else if (!open && dialog.open) {
       dialog.close();
     }
@@ -86,7 +94,7 @@ export function Sheet({
       className={cn(
         'm-0 max-h-none max-w-none bg-transparent p-0 backdrop:bg-forest-950/45 backdrop:backdrop-blur-[2px]',
         'transition-[translate,opacity,overlay,display] duration-300 ease-[var(--ease-soft)] transition-discrete',
-        PANEL[side],
+        side === 'right' && wide ? WIDE_RIGHT : PANEL[side],
       )}
     >
       <div

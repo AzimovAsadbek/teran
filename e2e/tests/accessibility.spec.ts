@@ -26,6 +26,8 @@ async function visit(page: Page, path: string): Promise<void> {
 
 test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
   test('storefront pages', async ({ page }) => {
+    // Twenty-eight pages, each loaded and analysed in turn: well over a minute on a busy machine.
+    test.setTimeout(180_000);
     const paths = [
       '/',
       '/ru',
@@ -41,6 +43,10 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
       '/en/about',
       '/en/wholesale',
       '/en/journal',
+      '/en/media',
+      '/en/media/photos',
+      '/en/media/videos',
+      '/en/assistant',
       '/en/contact',
       '/en/faq',
       '/en/delivery',
@@ -77,6 +83,7 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
   });
 
   test('administration', async ({ page }) => {
+    test.setTimeout(150_000);
     await visit(page, '/en/account/login?next=/admin');
     await page.getByRole('main').getByLabel('Email').fill(E2E_ADMIN.email);
     await page.getByRole('main').getByLabel('Password').fill(E2E_ADMIN.password);
@@ -88,6 +95,12 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
       '/en/admin/products',
       '/en/admin/products/new',
       '/en/admin/categories',
+      '/en/admin/journal',
+      '/en/admin/journal/new',
+      '/en/admin/media',
+      '/en/admin/media?kind=videos',
+      '/en/admin/media/new?kind=videos',
+      '/en/admin/telegram',
       '/en/admin/product-types',
       '/en/admin/inventory',
       '/en/admin/customers',

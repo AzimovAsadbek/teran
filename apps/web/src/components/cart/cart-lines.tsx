@@ -15,7 +15,7 @@ export function CartLines({ cart, compact = false }: { cart: CartDto; compact?: 
   const t = useTranslations('Cart');
   const tp = useTranslations('Product');
   const locale = useLocale();
-  const { pendingKey } = useCart();
+  const { pendingKey, lastAdded } = useCart();
 
   return (
     <ul className="divide-y divide-line">
@@ -24,16 +24,25 @@ export function CartLines({ cart, compact = false }: { cart: CartDto; compact?: 
         const pack = packLabel(line, line.format, locale, (key, values) =>
           tp(`units.${key}`, values),
         );
+        const justAdded = lastAdded?.variantId === line.variantId;
         return (
           <li
             key={line.id}
             aria-busy={pending || undefined}
             className={cn(
-              'flex gap-4 py-4 transition-opacity duration-150 first:pt-0 last:pb-0 sm:gap-5',
+              'relative isolate flex gap-4 py-4 transition-opacity duration-150 first:pt-0 last:pb-0 sm:gap-5',
               !compact && 'sm:py-6 sm:first:pt-0 sm:last:pb-0',
               pending && 'opacity-60',
             )}
           >
+            {justAdded ? (
+              // A warm highlight behind the line just added, fading away (none with reduced motion).
+              <span
+                key={lastAdded.at}
+                aria-hidden
+                className="pointer-events-none absolute -inset-x-3 inset-y-1 -z-10 rounded-control bg-gold-50 opacity-0 motion-safe:animate-glow-out"
+              />
+            ) : null}
             <Link
               href={`/products/${line.productSlug}`}
               className={cn(
@@ -43,12 +52,7 @@ export function CartLines({ cart, compact = false }: { cart: CartDto; compact?: 
               tabIndex={-1}
               aria-hidden
             >
-              <ProductImage
-                image={line.image}
-                illustrationKey={line.illustrationKey}
-                name={line.productName}
-                sizes="112px"
-              />
+              <ProductImage image={line.image} name={line.productName} sizes="112px" />
             </Link>
             <div className="flex min-w-0 flex-1 flex-col">
               <div className="flex items-start justify-between gap-3">
@@ -137,12 +141,13 @@ export function FreeDeliveryProgress({ cart, className }: { cart: CartDto; class
         aria-valuenow={percent}
         aria-label={hint.methodName}
       >
+        {/* Grows with transform (no layout work); the track's rounding clips its ends. */}
         <div
           className={cn(
-            'h-full rounded-full transition-[width] duration-500 ease-[var(--ease-soft)]',
+            'h-full origin-left rounded-full transition-transform duration-500 ease-[var(--ease-soft)]',
             reached ? 'bg-success' : 'bg-accent',
           )}
-          style={{ width: `${percent}%` }}
+          style={{ transform: `scaleX(${percent / 100})` }}
         />
       </div>
     </div>

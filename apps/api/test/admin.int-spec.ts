@@ -1,15 +1,23 @@
 import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import sharp from 'sharp';
 import request from 'supertest';
-import type {
-  AdminAuditEntry,
-  AdminOrderDetail,
-  AdminProductDetail,
-  Paginated,
-  ProductUpsertInput,
-  UserRole,
+import {
+  mediaItemSchema,
+  type AdminAuditEntry,
+  type AdminBadges,
+  type AdminMediaItem,
+  type AdminOrderDetail,
+  type AdminOrderListItem,
+  type AdminProductDetail,
+  type MediaUpsertInput,
+  type Paginated,
+  type ProductUpsertInput,
+  type UserRole,
 } from '@teran/contracts';
 import { createTestApp, type TestApp } from './helpers/app.js';
+import { TEST_ENV } from './test-env.js';
 import {
   TEST_PASSWORD,
   createCategory,
@@ -139,6 +147,7 @@ describe('admin API', () => {
       const forbidden = await customer.agent.get(`${API}/admin/dashboard`).expect(403);
       expect(forbidden.body).toMatchObject({ code: 'FORBIDDEN' });
       await customer.agent.get(`${API}/admin/orders`).expect(403);
+      await customer.agent.get(`${API}/admin/badges`).expect(403);
 
       const manager = await signedIn('MANAGER');
       await manager.agent.get(`${API}/admin/dashboard`).expect(200);
@@ -169,14 +178,48 @@ describe('admin API', () => {
   describe('catalogue', () => {
     it('creates, publishes, edits and deactivates variants without losing history', async () => {
       const { agent } = await signedIn('MANAGER');
-      const created = await agent
+      // A new product has no image yet: publishing it straight away is refused, with the reason.
+      const refused = await agent
         .post(`${API}/admin/products`)
         .send(productPayload(categoryId))
+        .expect(422);
+      expect(refused.body).toMatchObject({
+        code: 'PUBLICATION_BLOCKED',
+        details: { missing: ['mainImage'] },
+      });
+      const created = await agent
+        .post(`${API}/admin/products`)
+        .send(productPayload(categoryId, { status: 'DRAFT' }))
         .expect(201);
-      const product = created.body as AdminProductDetail;
+      const draft = created.body as AdminProductDetail;
+      expect(draft.publishedAt).toBeNull();
+      expect(draft.readiness.ready).toBe(false);
+      expect(draft.readiness.items.find((item) => item.code === 'mainImage')).toMatchObject({
+        ok: false,
+        required: true,
+      });
+      await request(server()).get(`${API}/catalog/products/admin-test-tea?locale=uz`).expect(404);
+      await agent
+        .post(`${API}/admin/products/${draft.id}/images`)
+        .attach('file', await png(400), { filename: 'tea.png', contentType: 'image/png' })
+        .expect(201);
+      const product = (
+        await agent
+          .put(`${API}/admin/products/${draft.id}`)
+          .send(
+            productPayload(categoryId, {
+              variants: productPayload(categoryId).variants.map((variant, index) => ({
+                ...variant,
+                id: draft.variants[index]!.id,
+              })),
+            }),
+          )
+          .expect(200)
+      ).body as AdminProductDetail;
       expect(product.variants.map((variant) => variant.stockQuantity)).toEqual([12, 4]);
       expect(product.translations.en).toBeNull();
       expect(product.publishedAt).not.toBeNull();
+      expect(product.readiness.ready).toBe(true);
 
       const publicView = await request(server())
         .get(`${API}/catalog/products/admin-test-tea?locale=ru`)
@@ -224,7 +267,7 @@ describe('admin API', () => {
 
       const duplicate = await agent
         .post(`${API}/admin/products`)
-        .send(productPayload(categoryId))
+        .send(productPayload(categoryId, { status: 'DRAFT' }))
         .expect(409);
       expect(duplicate.body).toMatchObject({ code: 'CONFLICT' });
     });
@@ -232,7 +275,10 @@ describe('admin API', () => {
     it('validates uploads by decoding them, not by trusting the file name', async () => {
       const { agent } = await signedIn('MANAGER');
       const product = (
-        await agent.post(`${API}/admin/products`).send(productPayload(categoryId)).expect(201)
+        await agent
+          .post(`${API}/admin/products`)
+          .send(productPayload(categoryId, { status: 'DRAFT' }))
+          .expect(201)
       ).body as AdminProductDetail;
 
       const uploaded = await agent
@@ -359,6 +405,32 @@ describe('admin API', () => {
       await agent.post(`${API}/admin/orders/${number}/payments`).send({}).expect(409);
     });
 
+    it('counts the work waiting for staff', async () => {
+      const { agent } = await signedIn('MANAGER');
+      const before = (await agent.get(`${API}/admin/badges`).expect(200)).body as AdminBadges;
+      const product = await createProduct(ctx.prisma, {
+        categoryId,
+        variants: [{ price: '30000', stock: 1 }],
+      });
+      const number = await placeOrder(product.variants[0]!.id, 1);
+
+      const after = (await agent.get(`${API}/admin/badges`).expect(200)).body as AdminBadges;
+      expect(after.ordersByStatus.PENDING).toBe(before.ordersByStatus.PENDING + 1);
+      // The only pack is sold out now, so it is at or below its low-stock level.
+      expect(after.lowStock).toBe(before.lowStock + 1);
+      expect(after.newInquiries).toEqual(before.newInquiries);
+
+      // The list filters by payment status too (cash orders wait for payment until delivery).
+      const unpaid = (
+        await agent.get(`${API}/admin/orders?paymentStatus=PENDING&q=${number}`).expect(200)
+      ).body as Paginated<AdminOrderListItem>;
+      expect(unpaid.items.map((order) => order.number)).toEqual([number]);
+      const paid = (
+        await agent.get(`${API}/admin/orders?paymentStatus=PAID&q=${number}`).expect(200)
+      ).body as Paginated<AdminOrderListItem>;
+      expect(paid.items).toEqual([]);
+    });
+
     it('marks cash orders paid only when staff record the payment', async () => {
       const { agent, user } = await signedIn('MANAGER');
       const product = await createProduct(ctx.prisma, {
@@ -459,6 +531,172 @@ describe('admin API', () => {
       const audit = (await agent.get(`${API}/admin/audit`).expect(200))
         .body as Paginated<AdminAuditEntry>;
       expect(audit.items.map((entry) => entry.action)).toContain('newsletter.export');
+    });
+  });
+  describe('media ("Lavhalar")', () => {
+    function media(title: string, overrides: Partial<MediaUpsertInput> = {}): MediaUpsertInput {
+      return {
+        kind: 'PHOTO',
+        status: 'DRAFT',
+        isFeatured: true,
+        videoDurationSeconds: null,
+        translations: { uz: { title }, ru: null, en: { title: `${title} (en)` } },
+        ...overrides,
+      };
+    }
+
+    async function visible(query = '') {
+      const response = await request(server())
+        .get(`${API}/content/media?locale=en${query}`)
+        .expect(200);
+      return (response.body as Paginated<unknown>).items.map((item) => mediaItemSchema.parse(item));
+    }
+
+    /** The smallest file that starts like an MP4 (an ISO base media "ftyp" box). */
+    const mp4 = Buffer.concat([
+      Buffer.from([0, 0, 0, 0x18]),
+      Buffer.from('ftypisom', 'latin1'),
+      Buffer.from([0, 0, 2, 0]),
+      Buffer.from('isomiso2', 'latin1'),
+      Buffer.alloc(64),
+    ]);
+
+    it('publishes photographs and films only with their files, each kind in its own order', async () => {
+      const { agent } = await signedIn('ADMIN');
+      // A new item is a draft until its photograph exists.
+      const blocked = await agent
+        .post(`${API}/admin/media`)
+        .send(media('Dawn', { status: 'PUBLISHED' }))
+        .expect(422);
+      expect(blocked.body).toMatchObject({
+        code: 'PUBLICATION_BLOCKED',
+        details: { missing: ['image'] },
+      });
+      const photo = (await agent.post(`${API}/admin/media`).send(media('Dawn')).expect(201))
+        .body as AdminMediaItem;
+      expect(photo).toMatchObject({ status: 'DRAFT', image: null, video: null, position: 0 });
+      expect(photo.readiness.ready).toBe(false);
+      const early = await agent
+        .put(`${API}/admin/media/${photo.id}`)
+        .send(media('Dawn', { status: 'PUBLISHED' }))
+        .expect(422);
+      expect(early.body.details).toEqual({ missing: ['image'] });
+      await agent
+        .post(`${API}/admin/media/${photo.id}/image`)
+        .attach('file', await png(400), { filename: 'dawn.png', contentType: 'image/png' })
+        .expect(201);
+      const published = (
+        await agent
+          .put(`${API}/admin/media/${photo.id}`)
+          .send(media('Dawn', { status: 'PUBLISHED' }))
+          .expect(200)
+      ).body as AdminMediaItem;
+      expect(published.publishedAt).not.toBeNull();
+      expect(published.image?.widths).toEqual([320]);
+
+      // A film needs its poster and a real MP4 or WebM file, never just a file name.
+      const film = (
+        await agent
+          .post(`${API}/admin/media`)
+          .send(media('Harvest', { kind: 'VIDEO', videoDurationSeconds: 95 }))
+          .expect(201)
+      ).body as AdminMediaItem;
+      // Films are ordered among films: the first film comes first.
+      expect(film.position).toBe(0);
+      // A film never becomes a photograph (and the other way round).
+      const switched = await agent
+        .put(`${API}/admin/media/${film.id}`)
+        .send(media('Harvest', { kind: 'PHOTO' }))
+        .expect(409);
+      expect(switched.body.details).toEqual({ reason: 'kind_fixed' });
+      await agent
+        .post(`${API}/admin/media/${film.id}/image`)
+        .attach('file', await png(400), { filename: 'poster.png', contentType: 'image/png' })
+        .expect(201);
+      const filmPublish = media('Harvest', {
+        kind: 'VIDEO',
+        status: 'PUBLISHED',
+        videoDurationSeconds: 95,
+      });
+      const noFile = await agent.put(`${API}/admin/media/${film.id}`).send(filmPublish).expect(422);
+      expect(noFile.body.details).toEqual({ missing: ['video'] });
+      await agent
+        .post(`${API}/admin/media/${film.id}/video`)
+        .attach('file', Buffer.from('<html>not a film</html>'.padEnd(64)), {
+          filename: 'film.mp4',
+          contentType: 'video/mp4',
+        })
+        .expect(415);
+      const withFile = (
+        await agent
+          .post(`${API}/admin/media/${film.id}/video`)
+          .attach('file', mp4, { filename: 'film.mp4', contentType: 'video/mp4' })
+          .expect(201)
+      ).body as AdminMediaItem;
+      expect(withFile.video).toMatchObject({ type: 'video/mp4', bytes: mp4.length });
+      await agent.put(`${API}/admin/media/${film.id}`).send(filmPublish).expect(200);
+
+      // A second photograph, then the photographs reordered (films keep their own order).
+      const noon = (await agent.post(`${API}/admin/media`).send(media('Noon')).expect(201))
+        .body as AdminMediaItem;
+      expect(noon.position).toBe(1);
+      await agent
+        .post(`${API}/admin/media/${noon.id}/image`)
+        .attach('file', await png(420), { filename: 'noon.png', contentType: 'image/png' })
+        .expect(201);
+      await agent
+        .put(`${API}/admin/media/${noon.id}`)
+        .send(media('Noon', { status: 'PUBLISHED' }))
+        .expect(200);
+      expect((await visible('&kind=PHOTO')).map((item) => item.title)).toEqual([
+        'Dawn (en)',
+        'Noon (en)',
+      ]);
+      await agent
+        .put(`${API}/admin/media/order`)
+        .send({ kind: 'PHOTO', ids: [noon.id, film.id] })
+        .expect(400);
+      const photos = (
+        await agent
+          .put(`${API}/admin/media/order`)
+          .send({ kind: 'PHOTO', ids: [noon.id, photo.id] })
+          .expect(200)
+      ).body as AdminMediaItem[];
+      expect(photos.map((item) => item.kind)).toEqual(['PHOTO', 'PHOTO']);
+      expect((await visible('&kind=PHOTO')).map((item) => item.title)).toEqual([
+        'Noon (en)',
+        'Dawn (en)',
+      ]);
+      const films = await visible('&kind=VIDEO');
+      expect(films.map((item) => item.title)).toEqual(['Harvest (en)']);
+      expect(films[0]?.video).toMatchObject({ type: 'video/mp4', durationSeconds: 95 });
+      expect(films[0]?.video?.src).toMatch(/^\/uploads\/media\/.+\/video\.mp4$/);
+      const videosOnly = (await agent.get(`${API}/admin/media?kind=VIDEO`).expect(200))
+        .body as AdminMediaItem[];
+      expect(videosOnly.map((item) => item.id)).toEqual([film.id]);
+
+      // Unpublished again (or archived), an item disappears; deleted, its files go with it.
+      await agent
+        .put(`${API}/admin/media/${photo.id}`)
+        .send(media('Dawn', { status: 'DRAFT' }))
+        .expect(200);
+      await agent
+        .put(`${API}/admin/media/${noon.id}`)
+        .send(media('Noon', { status: 'ARCHIVED' }))
+        .expect(200);
+      expect((await visible()).map((item) => item.title)).toEqual(['Harvest (en)']);
+      const videoKey = (await ctx.prisma.mediaItem.findUniqueOrThrow({ where: { id: film.id } }))
+        .videoKey!;
+      expect(existsSync(join(TEST_ENV.UPLOADS_DIR!, videoKey, 'video.mp4'))).toBe(true);
+      await agent.delete(`${API}/admin/media/${film.id}`).expect(204);
+      expect(existsSync(join(TEST_ENV.UPLOADS_DIR!, videoKey, 'video.mp4'))).toBe(false);
+      expect(await visible()).toEqual([]);
+
+      const audit = (await agent.get(`${API}/admin/audit`).expect(200))
+        .body as Paginated<AdminAuditEntry>;
+      expect(audit.items.map((entry) => entry.action)).toEqual(
+        expect.arrayContaining(['media.create', 'media.video', 'media.reorder', 'media.delete']),
+      );
     });
   });
 });

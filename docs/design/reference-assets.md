@@ -39,7 +39,8 @@ corepack pnpm --filter @teran/api visuals:import --dir storage/reference-assets
 ```
 
 On the live site this runs against the production database with the Blob token (the same way as
-the production seed, docs/deployment/vercel.md), only when the owner asks for a deploy.
+the production seed, docs/deployment/vercel.md), only when the owner asks for a deploy. Done on
+2026-10-18 with the release: 23 places filled from the 27 files (four are phone crops).
 
 ## 2. `storage/reference-mockup/` — presentation mockup (43 entries, **local only**)
 

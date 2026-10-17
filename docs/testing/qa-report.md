@@ -243,3 +243,52 @@ Measured and rejected:
 
 Correction to the 2026-10-14 notes above: the second copy of the React Server Components payload
 in the HTML came from cached navigations, not from partial prerendering, and is now removed.
+
+## Release check of 2026-10-18 (owner content, legal texts, SEO and security)
+
+Released as e4e50cd and 920526b to terantrade.uz (both projects rebuilt; the production seed and
+the 27 unbranded reference pictures loaded afterwards; `NEXT_PUBLIC_DEMO_CONTENT=false`).
+
+**Automated tests**, all passing: web unit 49 (10 files), API unit 102 (20 files), contracts 29,
+API integration 136 (15 files, including the new closed-ordering suite), end-to-end 51 on the
+production build (axe WCAG 2.2 AA included, plus the new store-map and picture tests).
+
+**Live crawl** of terantrade.uz after the release (scratchpad `perf/site-crawl-live.mjs`): 44
+storefront addresses × Uzbek, Russian and English × phone 390 px, tablet 820 px and desktop
+1440 px = 396 loads, **0 problems** — no error status, console or page error, failed request,
+error text, visible price, price in attributes, structured data or the page's data, broken image
+or sideways scrolling. Crawlers get a real 404 for an unknown product, category, article,
+collection or help page and a 308 for a renamed tea; visitors keep the streamed page.
+
+**Speed**, phone LCP (Pixel 7, 1.6 Mbit/s, 150 ms, CPU 4×; median of three on the end-to-end
+stack, served over HTTP/1.1):
+
+| Page                   | Before this pass | Now             |
+| ---------------------- | ---------------- | --------------- |
+| Homepage               | 1.57 s           | 1.59 s          |
+| Category (Tea)         | 1.56 s           | 1.57 s          |
+| Product (XC2025)       | 3.92 s           | 2.89 s          |
+| Store locator          | 3.84 s           | 2.06 s          |
+| About                  | 1.52 s           | 1.53 s          |
+| Journal / article      | 1.49 s / —       | 1.51 s / 1.40 s |
+| Bag                    | 1.40 s           | 1.42 s          |
+| Tea 101 / For business | 1.47 s / —       | 1.48 s / 1.58 s |
+
+Product page: a cut-out's `sizes` follow the width it is drawn at, with 5 % slack, so a 412 px
+phone takes the 640 px file (108 KB) instead of the 960 px one (175 KB); the first thumbnail reuses
+that file and the others wait for the page to load. Store locator: the first map tiles are
+rendered on the server and the tile host is preconnected. The article page without a cover had a
+desktop CLS of 0.29 (its placeholder had another shape); now 0.
+
+**Found and fixed in this pass**: online ordering still open at the API while the storefront
+takes orders by phone (closed with `CHECKOUT_ENABLED`, ADR-035); placeholder prices in the pages'
+data; soft 404s for crawlers; breadcrumb structured data with a step without an address;
+next-intl's hreflang `Link` header on every response; announcement links to `//host`; the
+Russian footer row 112 px too wide at 1024 px; unconfirmed delivery times shown while ordering by
+phone; 60 `[placeholders]` in the legal texts; about 70 wording fixes across the three languages.
+
+**Open recommendations** (not blocking): a shared rate-limit store or Vercel Firewall rules (the
+in-memory limits are per function instance); a per-(account, IP) login lock and a second factor for
+staff; a nonce-based CSP for `/admin`; double opt-in for the newsletter once e-mail is configured;
+purging abandoned direct uploads; registering the site in Google Search Console and Yandex
+Webmaster with the sitemap.

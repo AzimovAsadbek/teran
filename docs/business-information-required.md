@@ -1,10 +1,10 @@
 # Business information required from TERAN
 
 The platform is complete, but some facts can only come from TERAN. Nothing below has been
-invented: where a fact is missing, the site shows a highlighted `[placeholder]`, a draft banner,
-an empty slot (hidden until filled), or clearly labelled demonstration data. The site stays in
-demonstration mode (`DEMO_CONTENT=true`: notices shown, not indexed by search engines) until the
-items marked **launch blocker** are done.
+invented. Since 2026-10-18 the site is out of demonstration mode (`NEXT_PUBLIC_DEMO_CONTENT=false`:
+indexed by search engines) and the legal pages carry no `[placeholders]`: they state what TERAN
+supplied and refer to the law where TERAN has not decided. The items below would make them
+complete; a lawyer should still review the three legal documents.
 
 How to supply each item: **Admin** = enter it in the admin area yourself; **Text** = send the
 wording (in Uzbek, and Russian and English if available) for a developer to place in
@@ -13,7 +13,10 @@ wording (in Uzbek, and Russian and English if available) for a developer to plac
 ## 1. Company and legal (launch blocker)
 
 Used in the privacy policy, terms of use and returns page (`/privacy`, `/terms`, `/returns`) and
-the footer. Have a lawyer review all three documents; they are drafts.
+the footer. Already in the texts (2026-10-18): TERAN TRADE MChJ (ООО «TERAN TRADE»), Namangan, the
+two phones, the e-mail, the website, the hosting (Vercel and Neon, Frankfurt), the legal bases and
+retention described generally, and the competent court of the Republic of Uzbekistan. Still to
+supply for a complete text:
 
 | Item                                                                                                                                                                                     | Where it appears        | How             |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------- |
@@ -42,20 +45,22 @@ the footer. Have a lawyer review all three documents; they are drafts.
 
 ## 3. Products (launch blocker)
 
-The current catalogue is **demonstration data** (see [demo mode](./development/demo-mode.md)):
-21 products with placeholder prices and stock. Four of them — XC2025, G8810, 8830 and 8009 — are
-described from their packaging (supplied 2026-10-14): Chinese green tea, 400 g, brewing,
-description, taste, storage, shelf life, producer and importer, with images made from the print
-files ([packaging](./design/packaging.md)). HET8800 has no packaging yet and is still shown with
-a provisional tea type, labelled as such. The others are generic Chinese tea styles with
-code-drawn images and tasting notes that describe a style, not a product. Replace the catalogue
-product by product in the admin (archive the demo products when done); photographs are specified
-in the [asset replacement brief](./design/asset-replacement-brief.md).
+Supplied on 2026-10-17 and now on the site: the five teas (XC2025, G8810, 8800, 8830, 8009) with
+the owner's descriptions in Uzbek and Russian, a 400 g zip pouch each, photographs of the pouches,
+the barcodes of 8800 and G8810 (XC2025, 8830 and 8009 followed on 2026-10-18), and the catalogue
+reduced to these five (the generic demo range is
+archived; see [demo mode](./development/demo-mode.md)).
 
-Still needed for the identifiers: prices and stock for all five; HET8800's tea type,
-description, pack sizes and packaging; and the answers to the
-[packaging questions](./design/packaging.md#questions-for-teran) (region, 8009 or STD8009, the
-benefits list and nutrition table, the printer's note in the window, artwork rights).
+Prices are hidden on the storefront since 2026-10-17 at the owner's request
+([ADR-027](./architecture/decisions.md)): shoppers are asked to order by phone and messengers,
+and the admin area keeps the placeholder prices (XC2025 189,000, G8810 179,000, 8800 179,000,
+8830 199,000, 8009 159,000 UZS), which staff can change at any time. Still needed for the five
+teas: **real prices** (before prices are shown again), real stock and the print file of 8800 (its producer and importer are not on the site yet). The
+pouch photographs differ from the print files in three places — the tagline ("Fikirlang …
+xush ta’m" on the photographs, "Fikrlang … xushta’m" in the print files), the four values (Sof
+tabiat, Yaxshi kayfiyat, Teran bilan o‘zgartir, Premium sifat against Tabiiy mahsulot, Nafis
+ta’m, Har kungi tetiklik, Sifatli tanlov) and the characters 龙井茶 (Longjing tea) instead of
+绿茶 (green tea): on 2026-10-17 the owner decided that the site keeps the print files' texts.
 
 For each product:
 
@@ -70,8 +75,8 @@ For each product:
 | Photographs that TERAN owns or has licensed (at least 1200 px wide)                         | Admin (upload)       |
 | Certifications or awards, with documents — only if real                                     | Text (needs a field) |
 
-Also confirm the product range described on the About page (loose leaf, tea bags, pyramids and
-gift sets) and the category names (black, green, white, oolong, pu-erh, gift sets).
+The About page and the categories now describe the five green teas only; new kinds of tea need a
+category in the admin first.
 
 ## 4. Delivery (launch blocker)
 
@@ -88,12 +93,16 @@ the real ones in Admin → Delivery (administrators only):
 
 ## 5. Contact details
 
-All contact channels are currently empty, so the site hides them. Fill in what should be public
-in Admin → Settings (administrators only): phone, e-mail, Telegram, Instagram, address, working
-hours. They appear in the footer, the contact page and structured data. The packs print
-+998 97 570 70 07, terantea.uz and www.terantrade.uz, and icons for Instagram, Telegram, YouTube
-and WhatsApp without account names — supply the account names, and say whether the packaging
-phone number is the one customers should call.
+Supplied on 2026-10-17 and set by the seed (Admin → Settings can change them): +998 97 570 70 07
+and +998 95 110 13 26, terantradellc@gmail.com and teran.trade@mail.ru, Telegram @TeranTrade, the
+WhatsApp link from the WhatsApp Business QR code and the city (Namangan). They appear in the
+footer, the contact page, the About page and the partnership page; the social networks also on
+the home page (a "Social networks" button beside the shop button and a column of icons on the
+hero) and, with the phones, wherever the bag would be while prices are hidden.
+
+Still needed: the **Instagram** account name (and a YouTube channel, if there is one), working
+hours and the full street address. Each network appears everywhere as soon as it is entered in
+Admin → Settings.
 
 ## 6. Brand content
 

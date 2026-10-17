@@ -2,13 +2,15 @@
 
 The owner's brief makes the reference site's **structure and interaction model** the layout
 specification for TERAN's storefront. On 2026-10-17 the owner tightened it to a 1:1 clone of the
-reference's layouts, motion and typography, with only the **colours** staying TERAN's; the logo,
-photographs and texts remain TERAN's own (the reference's are copyrighted), and the reference's
-commercial fonts are replaced by open-licence look-alikes (see "Typography and motion"). This file records what was measured on the live reference (davidstea.com, Shopify
+reference's layouts, motion and typography, then — stating written permission from DAVIDsTEA —
+of its colours and pictures too: the palette follows the reference (ADR-029), its pictures fill
+the page-picture places (ADR-028; branded campaign and product photographs only in a local
+presentation mockup, see reference-assets.md). The logo and texts remain TERAN's own, and the
+reference's commercial fonts are replaced by open-licence look-alikes (see "Typography and motion"). This file records what was measured on the live reference (davidstea.com, Shopify
 "Horizon"-based theme, region CA/EN) at 1440×900 and 390×844, so the TERAN implementation can be
-compared against numbers rather than memory. No reference text, image, logo or code is reused;
-reference screenshots are kept outside the repository (session scratchpad) because they contain the
-reference's photography.
+compared against numbers rather than memory. No reference text, logo or code is reused, and no
+reference picture is committed: screenshots and the permitted pictures are kept outside the
+repository (the pictures in git-ignored folders, reference-assets.md).
 
 ## Global frame
 
@@ -79,6 +81,13 @@ Sizes used at 1440 / 390 px: hero headline 100 / 72 px; campaign banners 110 / 5
 28–36 px serif; footer greeting 32 px condensed; page titles 50 px condensed (category), 64 px serif
 (blog), 40 px serif (policy pages).
 
+Page frames (measured at 1920 and 2560 px, 2026-10-18): the home page, catalogue and category
+pages use 1792 px between 64 px margins (`container-page`); the product page, the bag, contact,
+the store locator, the help centre, the journal list, Tea 101's bands, the missing page and the
+for-business hero's words use the reference's 1440 px frame between 40 px margins, 16 px on phones
+(`container-frame`); policy columns are 920 px (the accessibility statement 1000 px); the footer
+is 1600 px; an article's split hero spans the window at any width.
+
 Motion: hero slides glide sideways (300 ms ease-out), autoplay every 4 s — the owner asked for
 quicker changes than the reference's 5 s — (paused on pointer, focus, off screen and with reduced
 motion); marquees 48.1 s and 36.8 s per loop; buttons brighten with a
@@ -112,9 +121,20 @@ Where each reference element lives in TERAN, and what deliberately differs.
 | Product page                                   | `products/[slug]/page.tsx`, `product/product-gallery.tsx`, `product-tabs.tsx`, `product-info.tsx`, `purchase-panel.tsx`, `recently-viewed.tsx`     | Tabs and rows only for data the product has; brewing infographic only with brewing values; recently viewed stays on the device (local storage).          |
 | Search, cart, about, journal, article, gallery | `search/page.tsx`, `cart/page.tsx`, `content/page-header.tsx`, `article-card.tsx`, `article-content.tsx`, `media/media-archive.tsx`                | Heroes use TERAN's own packaging artwork (lake, terraces); no reference photography.                                                                     |
 | About template                                 | `about/page.tsx`, `content/scroll-track.tsx`, `brand/stamp.tsx`                                                                                    | Story cards = the pack's four values (no figures); timeline = the three ideas; certifications row = the values; stores/press/social only if real.        |
-| Help and policy pages                          | `content/page-header.tsx` (light tone), `promise-card.tsx`, `help-footer.tsx`, `long-form.tsx`                                                     | The "promise" card shows the pack's values and the brand line, not shipping or review claims.                                                            |
+| Help centre (embedded Gorgias)                 | `faq/page.tsx`, `faq/articles`, `faq/[group]`, `faq/[group]/[article]`, `faq/search`, `components/help/*`                                          | The FAQ groups are the categories, each question an article; search runs over the same answers. Ratings are not recorded (ADR-031).                      |
+| Contact (embedded form + option cards)         | `contact/page.tsx`, `forms/contact-form.tsx`, `content/contact-options.tsx`                                                                        | TERAN's fields (phone as well as e-mail, subjects from a list); no attachments or reCAPTCHA note. The chat card opens the chat window.                   |
+| Policy pages (shipping, privacy, terms)        | `content/page-header.tsx` (light tone), `promise-card.tsx`, `legal-page.tsx`, `long-form.tsx`, `delivery/page.tsx`                                 | The "promise" card shows the pack's values and the brand line, not shipping or review claims; delivery's table lists the configured methods.             |
+| Wholesale landing                              | `wholesale/page.tsx`, `content/pages/wholesale.ts`                                                                                                 | Login bar → contact; certifications card → the pack's values; press logos → the teas' names; the request form sits in the dealer section.                |
+| Chat (Gorgias) and offer card (Klaviyo)        | `chat/chat-widget.tsx`, `chat-panel.tsx`, `layout/promo-popup.tsx`                                                                                 | The chat answers with TERAN's advisor and contacts; the offer card shows a real collection (ADR-030).                                                    |
 | Footer                                         | `layout/site-footer.tsx`                                                                                                                           | Contact details and social links appear only once entered in Settings.                                                                                   |
+| Store locator (Storepoint on Google Maps)      | `stores/page.tsx`, `stores/store-locator.tsx`, `stores/store-map.tsx`, `admin/stores-form.tsx`                                                     | Stores from Admin → Settings → Stores (none invented; an empty list points to contact); OpenStreetMap tiles instead of Google's (ADR-032).               |
+| Tea 101                                        | `tea-101/page.tsx`                                                                                                                                 | The Chinese teas TERAN deals in; pills and product rows only where the catalogue has that kind.                                                          |
+| Accessibility page                             | `accessibility/page.tsx`, `content/pages/accessibility.ts`                                                                                         | TERAN's own website statement instead of the reference's employer policy.                                                                                |
 
-Not reproduced, because TERAN has no such content or capability (and none is invented): store
-locator, ratings and reviews, loyalty programme, promotions/discount banners, ambassador programme,
-gift cards, recipe tags. Tea guides use the journal until dedicated guide pages exist.
+Not reproduced, because TERAN has no such content or capability (and none is invented): ratings
+and reviews, loyalty programme, promotions/discount banners, ambassador programme, gift cards,
+recipe tags, wholesale accounts, order tracking and file attachments in the contact form, nor the
+reference's company pages (impact report, careers, contests, investor relations). The reference's
+wholesale page has its own header; TERAN's keeps the store's, and its footer columns change on that
+page as the reference's do. The photo and video gallery has no counterpart on the reference: it
+stays behind `NEXT_PUBLIC_SHOW_GALLERY` (off by default, ADR-033).

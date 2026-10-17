@@ -11,6 +11,7 @@ import type {
 } from '@teran/contracts';
 import { cacheLife, cacheTag } from 'next/cache';
 import { apiGet, apiGetOrNull } from '@/lib/api/server';
+import { detailPrices, listPrices, summaryPrices } from './prices';
 
 /*
  * Catalogue loaders. Results are cached across requests and invalidated on demand: the API calls
@@ -79,7 +80,9 @@ export async function getProductList(locale: Locale, query: string): Promise<Pro
   cacheLife('hours');
   cacheTag('catalog');
   const separator = query ? '&' : '';
-  return apiGet<ProductListDto>(`/catalog/products?locale=${locale}${separator}${query}`);
+  return listPrices(
+    await apiGet<ProductListDto>(`/catalog/products?locale=${locale}${separator}${query}`),
+  );
 }
 
 /** Null when no public product has this slug (unknown, draft, archived or unpublished). */
@@ -87,9 +90,10 @@ export async function getProduct(locale: Locale, slug: string): Promise<ProductD
   'use cache';
   cacheLife('hours');
   cacheTag('catalog');
-  return apiGetOrNull<ProductDetailDto>(
+  const product = await apiGetOrNull<ProductDetailDto>(
     `/catalog/products/${encodeURIComponent(slug)}?locale=${locale}`,
   );
+  return product ? detailPrices(product) : null;
 }
 
 export async function getRelatedProducts(
@@ -99,9 +103,10 @@ export async function getRelatedProducts(
   'use cache';
   cacheLife('hours');
   cacheTag('catalog');
-  return apiGet<ProductSummaryDto[]>(
+  const related = await apiGet<ProductSummaryDto[]>(
     `/catalog/products/${encodeURIComponent(slug)}/related?locale=${locale}`,
   );
+  return related.map(summaryPrices);
 }
 
 export async function getSitemapEntries(): Promise<SitemapEntriesDto> {

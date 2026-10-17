@@ -1,6 +1,6 @@
 'use client';
 
-import type { ImageDto } from '@teran/contracts';
+import type { ImageDto, PublicVisualDto } from '@teran/contracts';
 import { Pause, Play } from 'lucide-react';
 import Image, { type StaticImageData } from 'next/image';
 import {
@@ -8,9 +8,11 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { VisualPicture } from '@/components/content/visual-picture';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { imageSources } from '@/lib/navigation';
@@ -24,7 +26,7 @@ const HERO_SPARKLES: SparklePoint[] = [
 ];
 
 /** A slide's colours: TERAN's palette in the roles the reference's slides give theirs. */
-export type HeroTone = 'art' | 'jade' | 'gold' | 'sage' | 'forest';
+export type HeroTone = 'art' | 'jade' | 'gold' | 'sage' | 'forest' | 'photo';
 
 /** Which part of a painting a slide shows (it is cropped to fill the slide). */
 export type ArtFocus = 'left' | 'centre' | 'right';
@@ -42,6 +44,11 @@ export interface HeroSlideData {
   artFocus?: ArtFocus;
   /** A product cut-out standing on the right (below the words on phones). */
   product?: ImageDto | null;
+  /**
+   * A campaign photograph from Admin → Settings filling the slide, with its own phone crop, as the
+   * reference's slides are; no veil (the photograph leaves room for the words).
+   */
+  photo?: PublicVisualDto | null;
 }
 
 const ART_FOCUS: Record<ArtFocus, string> = {
@@ -79,9 +86,10 @@ const TONES: Record<
     slide: 'bg-forest-950',
     veil: 'from-forest-950/85 via-forest-950/45 to-forest-950/0 lg:from-forest-950/80 lg:via-forest-950/35 lg:to-forest-950/0',
     eyebrow: 'text-ivory-50',
-    title: 'text-gold-300',
+    // The reference's warm yellow headline (3:1 and more on the dark veil and on the teal).
+    title: 'text-sun',
     text: 'text-ivory-100',
-    button: 'bg-ivory-50 text-forest-900',
+    button: 'bg-ivory-50 text-fg',
     spark: 'text-ivory-50',
     dots: 'bg-ivory-50',
   },
@@ -89,7 +97,7 @@ const TONES: Record<
     slide: 'bg-jade-700',
     veil: 'from-jade-700 from-35% via-jade-700/80 via-55% to-jade-700/0 to-80% lg:from-jade-700 lg:from-25% lg:via-jade-700/75 lg:via-45% lg:to-jade-700/0 lg:to-70%',
     eyebrow: 'text-ivory-50',
-    title: 'text-gold-300',
+    title: 'text-sun',
     text: 'text-ivory-50',
     button: 'bg-ivory-50 text-jade-700',
     spark: 'text-ivory-50',
@@ -98,9 +106,9 @@ const TONES: Record<
   gold: {
     slide: 'bg-gold-100',
     veil: 'from-gold-100 from-35% via-gold-100/85 via-55% to-gold-100/0 to-80% lg:from-gold-100 lg:from-25% lg:via-gold-100/80 lg:via-45% lg:to-gold-100/0 lg:to-70%',
-    eyebrow: 'text-forest-900',
-    title: 'text-forest-900',
-    text: 'text-forest-900',
+    eyebrow: 'text-fg',
+    title: 'text-fg',
+    text: 'text-fg',
     button: 'bg-forest-900 text-ivory-50',
     spark: 'text-gold-500',
     dots: 'bg-forest-900',
@@ -108,20 +116,30 @@ const TONES: Record<
   sage: {
     slide: 'bg-sage-200',
     veil: 'from-sage-200 from-35% via-sage-200/85 via-55% to-sage-200/0 to-80% lg:from-sage-200 lg:from-25% lg:via-sage-200/80 lg:via-45% lg:to-sage-200/0 lg:to-70%',
-    eyebrow: 'text-forest-900',
+    eyebrow: 'text-fg',
     title: 'text-jade-700',
-    text: 'text-forest-900',
+    text: 'text-fg',
     button: 'bg-jade-700 text-ivory-50',
     spark: 'text-jade-600',
     dots: 'bg-forest-900',
+  },
+  photo: {
+    slide: 'bg-forest-950',
+    veil: '',
+    eyebrow: 'text-ivory-50',
+    title: 'text-sun',
+    text: 'text-ivory-50',
+    button: 'bg-cream text-fg',
+    spark: 'text-ivory-50',
+    dots: 'bg-ivory-50',
   },
   forest: {
     slide: 'bg-forest-900',
     veil: 'from-forest-900 from-35% via-forest-900/80 via-55% to-forest-900/0 to-80% lg:from-forest-900 lg:from-25% lg:via-forest-900/75 lg:via-45% lg:to-forest-900/0 lg:to-70%',
     eyebrow: 'text-ivory-50',
-    title: 'text-gold-300',
-    text: 'text-ivory-100',
-    button: 'bg-ivory-50 text-forest-900',
+    title: 'text-sun',
+    text: 'text-ivory-50',
+    button: 'bg-ivory-50 text-fg',
     spark: 'text-ivory-50',
     dots: 'bg-ivory-50',
   },
@@ -146,12 +164,25 @@ const SWIPE_DISTANCE = 48;
 const fill = (template: string, values: Record<string, string | number>) =>
   template.replace(/\{(\w+)\}/g, (match, key: string) => String(values[key] ?? match));
 
+/** The first campaign photograph's proportions (desktop and phone crops), for the slide height. */
+function heroRatios(slides: HeroSlideData[]): CSSProperties | undefined {
+  const photo = slides.find((slide) => slide.photo)?.photo;
+  if (!photo) return undefined;
+  const mobile = photo.mobile ?? photo.image;
+  return {
+    '--hero-ratio': (photo.image.width / photo.image.height).toFixed(4),
+    '--hero-ratio-mobile': (mobile.width / mobile.height).toFixed(4),
+  } as CSSProperties;
+}
+
 /**
  * Headline size, so a long name still fits: the reference's 72 px (phones) and 100 px (desktop)
  * capitals for short words, smaller for long ones. On phones a slide with a product keeps its
- * headline on one line where it can (the product stands below it), so there the whole line counts.
+ * headline on one line where it can (the product stands below it), so there the whole line counts;
+ * over a photograph the words keep to its free left side, so on wide screens the line counts too
+ * (up to the 16 characters the block holds before it wraps).
  */
-function headlineSize(lines: string[], withProduct: boolean): string {
+function headlineSize(lines: string[], withProduct: boolean, overPhoto: boolean): string {
   const longestWord = Math.max(
     ...lines.flatMap((line) => line.split(/\s+/)).map((word) => word.length),
   );
@@ -163,12 +194,15 @@ function headlineSize(lines: string[], withProduct: boolean): string {
       : phone <= 14
         ? 'text-[clamp(2.5rem,0.25rem+10.5vw,3.5rem)]'
         : 'text-[clamp(2.25rem,0.5rem+7.5vw,2.75rem)]';
+  const desktop = overPhoto ? Math.max(longestWord, Math.min(longestLine, 16)) : longestWord;
   const desktopSize =
-    longestWord <= 9
+    desktop <= 9
       ? 'lg:text-[6.25rem]'
-      : longestWord <= 13
+      : desktop <= 13
         ? 'lg:text-[5rem]'
-        : 'lg:text-[4rem]';
+        : desktop <= 16
+          ? 'lg:text-[4.25rem]'
+          : 'lg:text-[4rem]';
   return `${phoneSize} ${desktopSize}`;
 }
 
@@ -179,9 +213,11 @@ function headlineSize(lines: string[], withProduct: boolean): string {
  * with a product standing on the right. Small dots centred at the foot choose a slide.
  *
  * Slides glide sideways (300 ms ease-out) and follow a finger or the mouse when dragged. They
- * advance every four seconds, but not with reduced motion, and wait while pointed at, while
- * keyboard focus is inside, while scrolled away or after the pause control is used; that control
- * shows when it receives keyboard focus (WCAG 2.2.2), like the reference's banner, which has none.
+ * advance every four seconds and, as the reference's, keep going under the pointer; they wait
+ * while keyboard focus is inside, while scrolled away, with reduced motion or after the pause
+ * control is used; that control shows when it receives keyboard focus (WCAG 2.2.2), the
+ * reference's banner having none. With a campaign photograph the slide is as tall as the picture
+ * at the window's width (at least 560 px; 540 px on phones), as the reference's.
  */
 export function HeroSlider({ slides, labels }: { slides: HeroSlideData[]; labels: HeroLabels }) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -298,8 +334,7 @@ export function HeroSlider({ slides, labels }: { slides: HeroSlideData[]; labels
       aria-roledescription="carousel"
       aria-label={labels.region}
       className="relative overflow-hidden bg-forest-950"
-      onPointerEnter={(event) => event.pointerType === 'mouse' && setHeld(true)}
-      onPointerLeave={(event) => event.pointerType === 'mouse' && setHeld(false)}
+      style={heroRatios(slides)}
       onFocus={(event) => event.target.matches(':focus-visible') && setHeld(true)}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setHeld(false);
@@ -335,9 +370,15 @@ export function HeroSlider({ slides, labels }: { slides: HeroSlideData[]; labels
       </div>
 
       {count > 1 ? (
-        <div className="absolute inset-x-0 bottom-4 flex items-center justify-center gap-1 lg:bottom-5">
-          {/* Arrow keys move between the dots, as between tabs. */}
-          <div className="flex items-center" onKeyDown={onDotKey}>
+        <div className="absolute inset-x-0 bottom-[1.0625rem] flex items-center justify-center gap-1">
+          {/* Arrow keys move between the dots, as between tabs; pointing at them holds the
+              slides, as on the reference. */}
+          <div
+            className="flex items-center"
+            onKeyDown={onDotKey}
+            onPointerEnter={(event) => event.pointerType === 'mouse' && setHeld(true)}
+            onPointerLeave={(event) => event.pointerType === 'mouse' && setHeld(false)}
+          >
             {slides.map((slide, slideIndex) => (
               <button
                 key={slide.key}
@@ -351,12 +392,13 @@ export function HeroSlider({ slides, labels }: { slides: HeroSlideData[]; labels
                 tabIndex={slideIndex === index ? 0 : -1}
                 className="flex h-6 w-5 items-center justify-center rounded-full"
               >
+                {/* The reference's 10 px dots: half-clear, the current one solid. */}
                 <span
                   aria-hidden
                   className={cn(
-                    'h-2 w-2 rounded-full shadow-[0_0_2px_rgb(0_0_0_/_0.25)] transition-[opacity,background-color] duration-200 ease-out',
+                    'h-2.5 w-2.5 rounded-full transition-[opacity,background-color] duration-200 ease-[ease]',
                     TONES[slides[index]?.tone ?? 'art'].dots,
-                    slideIndex === index ? 'opacity-100' : 'opacity-45',
+                    slideIndex === index ? 'opacity-100' : 'opacity-50',
                   )}
                 />
               </button>
@@ -407,7 +449,7 @@ function Slide({
       aria-hidden={current ? undefined : true}
       inert={!current}
       className={cn(
-        'relative isolate h-[33.75rem] w-full shrink-0 overflow-hidden lg:h-[35rem]',
+        'relative isolate h-[max(33.75rem,calc(100vw/var(--hero-ratio-mobile,100)))] w-full shrink-0 overflow-hidden min-[56.25rem]:h-[max(35rem,calc(100vw/var(--hero-ratio,100)))]',
         tone.slide,
       )}
     >
@@ -426,12 +468,17 @@ function Slide({
           className={cn('-z-20 object-cover', ART_FOCUS[slide.artFocus ?? 'centre'])}
         />
       ) : null}
+      {slide.photo && load ? (
+        <div aria-hidden className="absolute inset-0 -z-20">
+          <VisualPicture visual={slide.photo} sizes="100vw" priority={first} />
+        </div>
+      ) : null}
       {slide.art ? (
         <span
           aria-hidden
           className={cn('absolute inset-0 -z-10 bg-linear-to-b lg:bg-linear-to-r', tone.veil)}
         />
-      ) : (
+      ) : slide.photo ? null : (
         // A pool of light behind the product, as the reference's photographs are lit.
         <span
           aria-hidden
@@ -454,8 +501,23 @@ function Slide({
         />
       ) : null}
       <Sparkles points={HERO_SPARKLES} className={cn('-z-10 hidden lg:block', tone.spark)} />
-      <div className="container-page flex h-full flex-col items-center pt-8 text-center lg:items-start lg:justify-center lg:pt-0 lg:text-left">
-        <div className="flex max-w-[45rem] flex-col items-center lg:items-start">
+      {/* The picture leads where the pill does, for a pointer (the pill is the keyboard's way);
+          a drag that changes the slide is not a click (see the track's onClickCapture). */}
+      <Link
+        href={slide.cta.href}
+        tabIndex={-1}
+        aria-hidden
+        draggable={false}
+        className="absolute inset-0 -z-[5]"
+      />
+      <div className="pointer-events-none container-page flex h-full flex-col items-center pt-8 text-center lg:items-start lg:justify-center lg:pt-0 lg:text-left">
+        <div
+          className={cn(
+            'pointer-events-auto flex max-w-[45rem] flex-col items-center lg:items-start',
+            // A photograph's subject stands right of its first 40 %.
+            slide.photo && 'lg:max-w-[min(36rem,40vw)]',
+          )}
+        >
           {slide.eyebrow ? (
             <p className={cn('text-[1.25rem] leading-[1.1] font-bold uppercase', tone.eyebrow)}>
               {slide.eyebrow}
@@ -464,7 +526,7 @@ function Slide({
           <h2
             className={cn(
               'mt-3 font-headline [overflow-wrap:anywhere] lg:mt-4',
-              headlineSize(slide.lines, Boolean(slide.product)),
+              headlineSize(slide.lines, Boolean(slide.product), Boolean(slide.photo)),
               tone.title,
             )}
           >
@@ -480,6 +542,8 @@ function Slide({
               className={cn(
                 'mt-4 line-clamp-2 max-w-[30rem] text-[0.8125rem] leading-normal lg:mt-6 lg:text-[1rem]',
                 tone.text,
+                // A phone crop's subject fills its lower half: there the words would sit on it.
+                slide.photo && 'max-lg:hidden',
               )}
             >
               {slide.text}
@@ -489,7 +553,7 @@ function Slide({
             href={slide.cta.href}
             draggable={false}
             className={cn(
-              'mt-5 inline-flex h-[3.125rem] items-center rounded-full px-8 text-[1rem] font-medium transition-[filter,box-shadow] duration-200 ease-out hover:shadow-[0_6px_18px_-6px_rgb(0_0_0_/_0.45)] hover:brightness-[1.04] lg:mt-8 lg:text-[0.95625rem]',
+              'pill-hover mt-5 inline-flex h-[3.125rem] items-center rounded-full px-8 text-[1rem] font-medium lg:mt-8',
               tone.button,
             )}
           >

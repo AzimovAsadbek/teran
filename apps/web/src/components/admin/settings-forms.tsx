@@ -98,9 +98,13 @@ export function ContactForm({ value }: { value: ContactSetting }) {
   const form = useFormSubmission(formRef);
   const [fields, setFields] = useState({
     phone: value.phone ?? '',
+    phone2: value.phone2 ?? '',
     email: value.email ?? '',
+    email2: value.email2 ?? '',
     telegram: value.telegram ?? '',
     instagram: value.instagram ?? '',
+    whatsapp: value.whatsapp ?? '',
+    youtube: value.youtube ?? '',
   });
   const [address, setAddress] = useState<LocalizedText>(value.address ?? emptyText());
   const [hours, setHours] = useState<LocalizedText>(value.workingHours ?? emptyText());
@@ -109,9 +113,13 @@ export function ContactForm({ value }: { value: ContactSetting }) {
 
   const payload = {
     phone: orNull(fields.phone),
+    phone2: orNull(fields.phone2),
     email: orNull(fields.email),
+    email2: orNull(fields.email2),
     telegram: orNull(fields.telegram.replace(/^@/, '')),
     instagram: orNull(fields.instagram.replace(/^@/, '')),
+    whatsapp: orNull(fields.whatsapp),
+    youtube: orNull(fields.youtube),
     address: localizedOrNull(address),
     workingHours: localizedOrNull(hours),
   };
@@ -138,12 +146,28 @@ export function ContactForm({ value }: { value: ContactSetting }) {
           error={message(visible.phone, fields.phone)}
         />
         <TextField
+          label={t('settings.phone2')}
+          name="phone2"
+          type="tel"
+          value={fields.phone2}
+          onChange={set('phone2')}
+          error={message(visible.phone2, fields.phone2)}
+        />
+        <TextField
           label={t('settings.email')}
           name="email"
           type="email"
           value={fields.email}
           onChange={set('email')}
           error={message(visible.email, fields.email)}
+        />
+        <TextField
+          label={t('settings.email2')}
+          name="email2"
+          type="email"
+          value={fields.email2}
+          onChange={set('email2')}
+          error={message(visible.email2, fields.email2)}
         />
         <TextField
           label={t('settings.telegram')}
@@ -158,6 +182,22 @@ export function ContactForm({ value }: { value: ContactSetting }) {
           value={fields.instagram}
           onChange={set('instagram')}
           error={message(visible.instagram, fields.instagram)}
+        />
+        <TextField
+          label={t('settings.whatsapp')}
+          name="whatsapp"
+          value={fields.whatsapp}
+          onChange={set('whatsapp')}
+          error={message(visible.whatsapp, fields.whatsapp)}
+          hint={t('settings.whatsappHint')}
+        />
+        <TextField
+          label={t('settings.youtube')}
+          name="youtube"
+          value={fields.youtube}
+          onChange={set('youtube')}
+          error={message(visible.youtube, fields.youtube)}
+          hint={t('settings.youtubeHint')}
         />
       </div>
       <div className="grid gap-4 md:grid-cols-3">

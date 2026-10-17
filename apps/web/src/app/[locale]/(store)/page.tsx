@@ -11,6 +11,7 @@ import {
   CategoryMarquee,
   CategoryShortcuts,
   GalleryBanner,
+  OrderBanner,
   PairSection,
   PromoStrip,
   SloganBand,
@@ -27,8 +28,9 @@ import {
 } from '@/components/home/rail-sections';
 import { Skeleton } from '@/components/ui/skeleton';
 import { brandCopy } from '@/content/brand';
-import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
-import { siteUrl } from '@/lib/site';
+import { StoreStructuredData } from '@/components/seo/store-structured-data';
+import { pageMetadata } from '@/lib/seo';
+import { showAdvisor } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -65,36 +67,6 @@ function BannerFallback({ tall = false }: { tall?: boolean }) {
 export default async function HomePage() {
   const locale = (await rootParams.locale()) as Locale;
 
-  // Only facts we know: the brand name, its site and its logo. No invented address or ratings.
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${siteUrl}/#organization`,
-        name: 'TERAN',
-        url: siteUrl,
-        logo: `${siteUrl}/brand/teran-logo.png`,
-      },
-      {
-        '@type': 'WebSite',
-        '@id': `${siteUrl}/#website`,
-        name: 'TERAN',
-        url: localizedUrl('/', locale),
-        inLanguage: locale,
-        publisher: { '@id': `${siteUrl}/#organization` },
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: {
-            '@type': 'EntryPoint',
-            urlTemplate: `${localizedUrl('/search', locale)}?q={search_term_string}`,
-          },
-          'query-input': 'required name=search_term_string',
-        },
-      },
-    ],
-  };
-
   return (
     <>
       <Suspense fallback={<div aria-hidden className="h-[5.5rem] bg-forest-950 lg:h-20" />}>
@@ -107,28 +79,43 @@ export default async function HomePage() {
       <Suspense fallback={<RailFallback />}>
         <NewArrivalsRail />
       </Suspense>
-      <StoryBanner />
+      {/* Each banner renders at once with its own artwork; a photograph set in Admin → Settings
+          streams in over it (same frame, so nothing moves). */}
+      <Suspense fallback={<StoryBanner />}>
+        <StoryBanner withPhoto />
+      </Suspense>
       <Suspense fallback={null}>
         <CategoryShortcuts />
       </Suspense>
       <Suspense fallback={<BannerFallback />}>
         <GalleryBanner />
       </Suspense>
-      <Suspense fallback={<RailFallback tinted />}>
+      <Suspense fallback={<RailFallback compact cta={false} />}>
         <CollectionsRail />
       </Suspense>
-      <AdvisorBanner />
-      <Suspense fallback={<RailFallback />}>
+      {/* The advisor's banner, or while the advisor is hidden, how to order (same place and size). */}
+      {showAdvisor ? (
+        <AdvisorBanner />
+      ) : (
+        <Suspense fallback={<BannerFallback />}>
+          <OrderBanner />
+        </Suspense>
+      )}
+      <Suspense fallback={<RailFallback compact />}>
         <CategoriesRail />
       </Suspense>
       <Suspense fallback={<BannerFallback tall />}>
         <BentoSection />
       </Suspense>
-      <BrewingBanner />
+      <Suspense fallback={<BrewingBanner />}>
+        <BrewingBanner withPhoto />
+      </Suspense>
       <Suspense fallback={<CategoryCollageFallback />}>
         <CategoryCollage />
       </Suspense>
-      <ValuesBanner />
+      <Suspense fallback={<ValuesBanner />}>
+        <ValuesBanner withPhoto />
+      </Suspense>
       <Suspense fallback={null}>
         <MediaBandSection />
       </Suspense>
@@ -136,7 +123,9 @@ export default async function HomePage() {
         <PairSection />
       </Suspense>
       <SloganBand />
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
+      <Suspense fallback={null}>
+        <StoreStructuredData locale={locale} />
+      </Suspense>
     </>
   );
 }

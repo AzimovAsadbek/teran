@@ -45,6 +45,10 @@ const vocabulary: CatalogVocabulary = {
       options: [],
     },
   ],
+  origins: [
+    { key: 'hunan', names: ['Hunan', 'Хунань'] },
+    { key: 'yunnan', names: ['Yunnan', 'Юньнань'] },
+  ],
 };
 
 describe('parsePrices', () => {
@@ -109,6 +113,20 @@ describe('parseRequest', () => {
     });
     expect(parseRequest('choy paketchalarda', vocabulary).formats).toEqual(['TEA_BAGS']);
     expect(parseRequest('ozish uchun foydali choy', vocabulary).unrecorded).toEqual(['health']);
+  });
+
+  it('finds a place of origin the catalogue records, with its endings', () => {
+    expect(parseRequest('Yunnan choyi', vocabulary)).toMatchObject({
+      origin: 'yunnan',
+      categorySlug: 'tea',
+      textQuery: null,
+    });
+    expect(parseRequest('Hunandan yashil choy', vocabulary)).toMatchObject({
+      origin: 'hunan',
+      categorySlug: 'green-tea',
+    });
+    expect(parseRequest('юньнаньский чай', vocabulary).origin).toBe('yunnan');
+    expect(parseRequest('Yashil choy tavsiya qiling', vocabulary).origin).toBeNull();
   });
 });
 

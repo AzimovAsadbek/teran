@@ -20,11 +20,7 @@ export function FormSuccess({ onReset }: { onReset: () => void }) {
       className="rounded-panel border border-success/20 bg-success-soft/60 px-6 py-10 text-center"
     >
       <CircleCheck aria-hidden className="mx-auto h-10 w-10 text-success" />
-      <h3
-        ref={headingRef}
-        tabIndex={-1}
-        className="mt-4 text-display-sm text-forest-900 outline-none"
-      >
+      <h3 ref={headingRef} tabIndex={-1} className="mt-4 text-display-sm text-fg outline-none">
         {t('successTitle')}
       </h3>
       <p className="mt-2 text-body text-fg-muted">{t('successText')}</p>

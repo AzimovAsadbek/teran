@@ -45,4 +45,5 @@ export const STORE_CLIENT_NAMESPACES = [
   'Account',
   'Payment',
   'Wholesale',
+  'Chat',
 ] as const satisfies readonly (keyof Messages)[];

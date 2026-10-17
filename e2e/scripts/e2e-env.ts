@@ -66,7 +66,9 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         THROTTLE_DISABLED: 'true',
         WEB_REVALIDATE_URL: `${E2E_WEB_URL}/api/revalidate`,
         REVALIDATE_SECRET,
-        // Online payments are simulated by the demo provider: no provider is contacted.
+        // The stack sells online (its storefront is built with prices) ...
+        CHECKOUT_ENABLED: 'true',
+        // ... and online payments are simulated by the demo provider: no provider is contacted.
         PAYMENT_PROVIDER_MODE: 'demo',
         PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY,CLICK,PAYME,CARD',
         // Telegram posts are composed and recorded, never sent: no bot or channel is contacted.
@@ -80,6 +82,8 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         API_INTERNAL_URL: E2E_API_URL,
         NEXT_PUBLIC_SITE_URL: E2E_WEB_URL,
         NEXT_PUBLIC_DEMO_CONTENT: 'true',
+        // The journeys buy things: prices and the bag on (the live site hides them for now).
+        NEXT_PUBLIC_SHOW_PRICES: 'true',
       };
     case 'web':
       return {

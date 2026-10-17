@@ -132,7 +132,7 @@ export function ArticleMediaPicker({
       ) : (
         <p className="text-body-sm text-fg-muted">
           {t('journal.mediaGalleryEmpty')}{' '}
-          <Link href="/admin/media" className="font-semibold text-forest-900 underline">
+          <Link href="/admin/media" className="font-semibold text-fg underline">
             {t('nav.media')}
           </Link>
         </p>

@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { whenIdle } from '@/lib/when-idle';
+import { showPrices } from '@/lib/site';
 
 const loadDrawer = () => import('./cart-drawer');
 const CartDrawer = dynamic(() => loadDrawer().then((module) => module.CartDrawer), {
@@ -24,16 +25,18 @@ export function CartDrawerSlot() {
   if (drawerOpen && !ready) setReady(true);
 
   useEffect(() => {
-    void cartActions.load(locale);
+    if (showPrices) void cartActions.load(locale);
   }, [locale]);
 
   useEffect(
     () =>
-      whenIdle(() => {
-        void loadDrawer().then(() => setReady(true));
-      }),
+      showPrices
+        ? whenIdle(() => {
+            void loadDrawer().then(() => setReady(true));
+          })
+        : undefined,
     [],
   );
 
-  return ready ? <CartDrawer /> : null;
+  return showPrices && ready ? <CartDrawer /> : null;
 }

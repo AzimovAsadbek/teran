@@ -1,9 +1,11 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { Suspense } from 'react';
 import { CartDrawerSlot } from '@/components/cart/cart-drawer-slot';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SkipLink } from '@/components/layout/skip-link';
+import { ChatSlot, PromoPopupSlot } from '@/components/layout/store-widgets';
 import { pickMessages, STORE_CLIENT_NAMESPACES, type Messages } from '@/i18n/messages';
 
 export default async function StoreLayout({ children }: LayoutProps<'/[locale]'>) {
@@ -18,6 +20,13 @@ export default async function StoreLayout({ children }: LayoutProps<'/[locale]'>
       </main>
       <SiteFooter />
       <CartDrawerSlot />
+      {/* The reference's corner widgets: the offer card (lower left) and the chat (lower right). */}
+      <Suspense fallback={null}>
+        <PromoPopupSlot />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ChatSlot />
+      </Suspense>
     </NextIntlClientProvider>
   );
 }

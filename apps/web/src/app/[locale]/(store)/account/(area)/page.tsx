@@ -33,9 +33,7 @@ async function Overview() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-eyebrow text-accent-fg">{t('title')}</p>
-          <h1 className="mt-2 text-display-lg text-forest-900">
-            {t('welcome', { name: user.firstName })}
-          </h1>
+          <h1 className="mt-2 text-display-lg text-fg">{t('welcome', { name: user.firstName })}</h1>
           {summary ? (
             <p className="mt-1 text-body-sm text-fg-subtle">
               {t('memberSince', { date: formatDate(summary.memberSince, locale) })}
@@ -75,9 +73,7 @@ async function Overview() {
                   <span className="block text-caption text-fg-subtle sm:text-body-sm">
                     {t(key)}
                   </span>
-                  <span className="mt-1 block text-display-sm text-forest-900 figures">
-                    {value}
-                  </span>
+                  <span className="mt-1 block text-display-sm text-fg figures">{value}</span>
                 </Link>
               </li>
             ))}
@@ -88,10 +84,7 @@ async function Overview() {
               aria-labelledby="attention-title"
               className="rounded-panel border border-warning/30 bg-warning-soft/60 p-5 sm:p-7"
             >
-              <h2
-                id="attention-title"
-                className="flex items-center gap-2 text-display-sm text-forest-900"
-              >
+              <h2 id="attention-title" className="flex items-center gap-2 text-display-sm text-fg">
                 <CreditCard aria-hidden className="h-5 w-5 text-warning" />
                 {t('attentionTitle')}
               </h2>

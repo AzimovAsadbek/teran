@@ -1,11 +1,13 @@
 import type { ImageDto } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
+import type { CSSProperties } from 'react';
 import { Emblem } from '@/components/brand/logo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories, getCollections, getProductList } from '@/lib/data/catalog';
+import { fitWidth } from '@/lib/fit';
 import { browsableCategories, categoryTree, imageSources } from '@/lib/navigation';
 
 const MAX_TILES = 6;
@@ -33,8 +35,10 @@ function tileSpan(index: number, count: number): 'wide' | 'narrow' | 'full' {
 
 /**
  * The catalogue as a collage of cream tiles, each with its name, a picture (the category's own,
- * or one of its products standing) and a pill. Built from the API's tree: stocked categories, then
- * collections with products, up to six; a new category appears here without code changes.
+ * or one of its products standing) and a pill. Built from the API's tree in menu order: stocked
+ * categories and any category given its own cover in the admin area (a picture chosen for it, even
+ * before its first product), then collections likewise, up to six; a new category appears here
+ * without code changes.
  */
 export async function CategoryCollage() {
   await connection();
@@ -44,16 +48,21 @@ export async function CategoryCollage() {
     getCategories(locale).catch(() => []),
     getCollections(locale).catch(() => []),
   ]);
+  const tree = categoryTree(categories);
+  const stocked = new Set(browsableCategories(tree).map((category) => category.slug));
   const sources = [
-    ...browsableCategories(categoryTree(categories)).map((category) => ({
-      key: `c-${category.path}`,
-      name: category.name,
-      href: `/${category.path}`,
-      image: category.image,
-      query: `category=${category.slug}`,
-    })),
+    ...tree
+      .flatMap((top) => [top, ...top.children])
+      .filter((category) => stocked.has(category.slug) || category.image)
+      .map((category) => ({
+        key: `c-${category.path}`,
+        name: category.name,
+        href: `/${category.path}`,
+        image: category.image,
+        query: `category=${category.slug}`,
+      })),
     ...collections
-      .filter((collection) => collection.productCount > 0)
+      .filter((collection) => collection.productCount > 0 || collection.image)
       .map((collection) => ({
         key: `k-${collection.slug}`,
         name: collection.name,
@@ -78,11 +87,11 @@ export async function CategoryCollage() {
   );
 
   return (
-    <section aria-labelledby="collage-title" className="container-page py-12 sm:py-14">
+    <section aria-labelledby="collage-title" className="container-page py-8 min-[46.875rem]:py-12">
       <h2 id="collage-title" className="sr-only">
         {t('categoriesTitle')}
       </h2>
-      <ul className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+      <ul className="grid grid-cols-2 gap-4 min-[56.25rem]:grid-cols-4 min-[75rem]:gap-8">
         {tiles.map((tile, index) => {
           const span = tileSpan(index, tiles.length);
           const wide = span !== 'narrow';
@@ -91,29 +100,35 @@ export async function CategoryCollage() {
               key={tile.key}
               className={cn(
                 span === 'narrow' ? 'col-span-1' : 'col-span-2',
-                span === 'full' && 'lg:col-span-4',
+                span === 'full' && 'min-[56.25rem]:col-span-4',
               )}
             >
-              <Link
-                href={tile.href}
+              {/* As the reference's: the whole tile leads to the category (pointer only) and its
+                  pill is the link for the keyboard and screen readers. */}
+              <div
                 className={cn(
-                  'group flex h-full min-h-[14.5rem] overflow-hidden rounded-tile p-5 sm:min-h-[19.25rem] sm:p-8',
+                  'relative flex h-full min-h-[13.75rem] overflow-hidden rounded-[0.75rem] p-4 min-[46.875rem]:h-[19.25rem] min-[46.875rem]:p-6',
                   COLLAGE_TONES[index % COLLAGE_TONES.length]!.tile,
                   wide
-                    ? 'items-center gap-4 sm:gap-8'
-                    : 'flex-col items-center justify-between gap-3 text-center',
+                    ? 'items-center gap-6'
+                    : '@container flex-col items-center justify-between gap-3 text-center',
                 )}
               >
+                <Link
+                  href={tile.href}
+                  tabIndex={-1}
+                  aria-hidden
+                  className="absolute inset-0 z-[1]"
+                />
                 {wide ? (
                   <>
-                    <TilePicture image={tile.image} className="w-[46%] sm:w-[42%]" />
-                    <span className="min-w-0 flex-1">
+                    <TilePicture image={tile.image} className="w-[45%]" />
+                    <span className="@container flex min-w-0 flex-1 flex-col items-start gap-4">
                       <TileName
                         name={tile.name}
-                        large
                         tone={COLLAGE_TONES[index % COLLAGE_TONES.length]!.name}
                       />
-                      <Pill label={t('viewCategory')} />
+                      <Pill href={tile.href} label={t('viewCategory')} name={tile.name} />
                     </span>
                   </>
                 ) : (
@@ -122,11 +137,12 @@ export async function CategoryCollage() {
                       name={tile.name}
                       tone={COLLAGE_TONES[index % COLLAGE_TONES.length]!.name}
                     />
-                    <TilePicture image={tile.image} className="w-[72%] max-w-[11rem]" />
-                    <Pill label={t('viewCategory')} />
+                    {/* The reference's 308 px tile: a 150 px picture between the name and pill. */}
+                    <TilePicture image={tile.image} className="w-[72%] max-w-[9.5rem]" />
+                    <Pill href={tile.href} label={t('viewCategory')} name={tile.name} />
                   </>
                 )}
-              </Link>
+              </div>
             </li>
           );
         })}
@@ -135,33 +151,38 @@ export async function CategoryCollage() {
   );
 }
 
-/** The reference's collage: each tile on its own pastel, its name in the deep shade of that colour. */
-const COLLAGE_TONES = [
-  { tile: 'bg-jade-100', name: 'text-jade-700' },
-  { tile: 'bg-gold-50', name: 'text-gold-800' },
-  { tile: 'bg-sage-100', name: 'text-forest-800' },
-  { tile: 'bg-ivory-100', name: 'text-forest-900' },
-];
+/** The reference's collage: every tile on its warm grey, names in its deep ocean blue. */
+const COLLAGE_TONES = [{ tile: 'bg-ivory-200', name: 'text-ocean' }];
 
-function TileName({ name, large = false, tone }: { name: string; large?: boolean; tone: string }) {
+/**
+ * The name at the reference's 45 px (32 px from 1199 px down, 25 px on phones), smaller when a
+ * long word would not fit its box (fit.ts).
+ */
+function TileName({ name, tone }: { name: string; tone: string }) {
   return (
     <span
       className={cn(
         'block font-heading leading-none [overflow-wrap:anywhere]',
         tone,
-        large ? 'text-[1.75rem] sm:text-[2.8125rem]' : 'text-[1.375rem] sm:text-[2.25rem]',
+        'text-[length:min(1.5469rem,var(--fit))] min-[46.875rem]:text-[length:min(1.9688rem,var(--fit))] min-[75rem]:text-[length:min(2.8125rem,var(--fit))]',
       )}
+      style={{ '--fit': fitWidth(name, 0.6) } as CSSProperties}
     >
       {name}
     </span>
   );
 }
 
-function Pill({ label }: { label: string }) {
+/** The tile's pill, above its surface link; named with the tile for screen readers. */
+function Pill({ href, label, name }: { href: string; label: string; name: string }) {
   return (
-    <span className="mt-4 inline-flex h-10 items-center rounded-full bg-forest-900 px-6 text-[0.9375rem] font-semibold text-ivory-50 transition-[filter] duration-200 group-hover:brightness-125">
+    <Link
+      href={href}
+      className="pill-hover relative z-[2] inline-flex min-h-10 items-center rounded-full bg-forest-900 px-6 text-[0.9375rem] font-semibold text-ivory-50"
+    >
       {label}
-    </span>
+      <span className="sr-only">: {name}</span>
+    </Link>
   );
 }
 
@@ -190,7 +211,7 @@ function TilePicture({ image, className }: { image: ImageDto | null; className?:
       loading="lazy"
       decoding="async"
       className={cn(
-        'aspect-square transition-transform duration-[350ms] ease-out group-hover:scale-105',
+        'aspect-square min-w-0',
         image.transparent
           ? 'object-contain drop-shadow-[0_18px_20px_rgb(32_24_8_/_0.25)]'
           : 'rounded-full object-cover',
@@ -203,12 +224,15 @@ function TilePicture({ image, className }: { image: ImageDto | null; className?:
 /** The collage's footprint while it streams (one row on phones, two on wide screens). */
 export function CategoryCollageFallback() {
   return (
-    <div aria-hidden className="container-page py-12 sm:py-14">
-      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4 lg:gap-8">
+    <div aria-hidden className="container-page py-8 min-[46.875rem]:py-12">
+      <div className="grid grid-cols-2 gap-4 min-[56.25rem]:grid-cols-4 min-[75rem]:gap-8">
         {[2, 1, 1, 1, 1, 2].map((span, index) => (
           <Skeleton
             key={index}
-            className={cn('h-[14.5rem] rounded-tile sm:h-[19.25rem]', span === 2 && 'col-span-2')}
+            className={cn(
+              'h-[13.75rem] rounded-[0.75rem] min-[46.875rem]:h-[19.25rem]',
+              span === 2 && 'col-span-2',
+            )}
           />
         ))}
       </div>

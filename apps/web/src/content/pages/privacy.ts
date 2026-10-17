@@ -1,9 +1,10 @@
 import type { Localized, LongFormContent } from '../types';
 
 /**
- * DRAFT privacy policy. It describes what this platform actually does (data collected by the
- * checkout, account, forms and cookies); everything in [brackets] must be confirmed by TERAN and the
- * whole text reviewed by a lawyer before launch.
+ * Privacy policy. It describes what this platform actually does (data collected by orders, the
+ * account, forms and cookies) and where it runs (Vercel and Neon, Frankfurt). Details TERAN has not
+ * supplied (its taxpayer number and full legal address) are left out rather than invented; a
+ * lawyer should review the text, in particular against Uzbekistan's data-localisation rules.
  */
 export const privacyPolicy: Localized<LongFormContent> = {
   en: {
@@ -11,14 +12,14 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'How TERAN collects, uses and protects personal data when you shop, create an account or contact us.',
     intro:
-      'This policy explains which personal data the TERAN online store processes, why, for how long and what your rights are. Last updated: [date of publication].',
+      'This policy explains which personal data the TERAN online store processes, why, for how long and what your rights are. Last updated: 18 October 2026.',
     sections: [
       {
         id: 'controller',
         heading: 'Who is responsible for your data',
         blocks: [
-          'The operator of this website and controller of your personal data is [company legal name, legal form], [legal address], taxpayer identification number (STIR) [number].',
-          'For any question about your personal data, write to [e-mail address for privacy requests].',
+          'The operator of this website and controller of your personal data is TERAN TRADE MChJ, a limited liability company in Namangan, Uzbekistan (phone +998 97 570 70 07, +998 95 110 13 26).',
+          'For any question about your personal data, write to terantradellc@gmail.com.',
         ],
       },
       {
@@ -32,10 +33,10 @@ export const privacyPolicy: Localized<LongFormContent> = {
               'Customer account (optional): e-mail address, name, optional phone number, preferred language and order history. Passwords are never stored in readable form, only as a one-way cryptographic hash.',
               'Contact and business enquiries: the details you enter in the form (name, phone or e-mail, company, business type, region, message).',
               'Newsletter (optional): your e-mail address and preferred language.',
-              'Technical data: the cookies listed below and server records needed for security, such as the time of a request and the IP address [retention period for server logs].',
+              'Technical data: the cookies listed below and server records needed for security, such as the time of a request and the IP address, which are kept only for a short time.',
             ],
           },
-          'We do not collect payment card data: orders are currently paid in cash on delivery.',
+          'We do not collect bank card data: the website itself takes no payments.',
         ],
       },
       {
@@ -52,7 +53,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
               'To meet legal obligations such as accounting and tax record keeping.',
             ],
           },
-          'We process personal data in accordance with the Law of the Republic of Uzbekistan "On Personal Data" [legal basis for each purpose to be confirmed by a lawyer].',
+          'We process personal data in accordance with the Law of the Republic of Uzbekistan "On Personal Data": to fulfil your order or request, with your consent (for example to the newsletter), or where the law requires it.',
         ],
       },
       {
@@ -62,8 +63,8 @@ export const privacyPolicy: Localized<LongFormContent> = {
           'We do not sell personal data. We share it only when necessary:',
           {
             list: [
-              'with the courier or delivery partner who brings your order (name, phone number and address) [names of delivery partners];',
-              'with the companies that host this website and, if enabled, send our e-mails, under confidentiality obligations [hosting provider and e-mail provider];',
+              'with the courier or delivery service that brings your order (name, phone number and address);',
+              'with the companies that host this website, its database and its files (Vercel Inc. and Neon) and, if enabled, send our e-mails, under confidentiality obligations;',
               'with public authorities when the law requires it.',
             ],
           },
@@ -73,13 +74,13 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'storage',
         heading: 'Where and how long we keep it',
         blocks: [
-          'Personal data is stored on servers located in [country and data centre — must satisfy the data-localisation requirements of Uzbek law].',
+          'Personal data is stored on our hosting providers’ servers in Frankfurt am Main, Germany (European Union).',
           {
             list: [
-              'Orders: [period required by accounting and tax law].',
+              'Orders: for the period required by accounting and tax law.',
               'Customer account: until you ask us to delete it.',
               'Newsletter: until you unsubscribe.',
-              'Enquiries: [retention period for enquiries].',
+              'Enquiries: for as long as needed to answer them and to follow up on any cooperation.',
               'By default, sign-in sessions end after 30 days (12 hours for staff) and an inactive bag is deleted after 30 days.',
             ],
           },
@@ -110,8 +111,8 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'rights',
         heading: 'Your rights',
         blocks: [
-          'You may ask us what data we hold about you, ask us to correct or delete it, and withdraw consent you have given (for example to the newsletter). Some data, such as order records, must be kept for the period required by law. You also have the right to complain to [authorised state body for personal data protection].',
-          'To exercise these rights, contact us at [e-mail address for privacy requests]. We will answer within [response period].',
+          'You may ask us what data we hold about you, ask us to correct or delete it, and withdraw consent you have given (for example to the newsletter). Some data, such as order records, must be kept for the period required by law. You also have the right to complain to the authorised state body for personal data protection of the Republic of Uzbekistan.',
+          'To exercise these rights, write to terantradellc@gmail.com or call +998 97 570 70 07. We will answer as soon as possible, within the time limits set by law.',
         ],
       },
       {
@@ -128,14 +129,14 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'Как TERAN собирает, использует и защищает персональные данные при покупках, регистрации и обращениях.',
     intro:
-      'Эта политика объясняет, какие персональные данные обрабатывает интернет-магазин TERAN, зачем, как долго и какие у вас права. Дата последнего обновления: [дата публикации].',
+      'Эта политика объясняет, какие персональные данные обрабатывает интернет-магазин TERAN, зачем, как долго и какие у вас права. Дата последнего обновления: 18.10.2026.',
     sections: [
       {
         id: 'controller',
         heading: 'Кто отвечает за ваши данные',
         blocks: [
-          'Оператором сайта и ваших персональных данных является [наименование и организационно-правовая форма компании], [юридический адрес], ИНН (СТИР) [номер].',
-          'По любым вопросам о персональных данных пишите на [адрес электронной почты для обращений по данным].',
+          'Оператором сайта и ваших персональных данных является общество с ограниченной ответственностью «TERAN TRADE» (TERAN TRADE MChJ), Наманган, Узбекистан (телефоны +998 97 570 70 07, +998 95 110 13 26).',
+          'По любым вопросам о персональных данных пишите на terantradellc@gmail.com.',
         ],
       },
       {
@@ -149,10 +150,10 @@ export const privacyPolicy: Localized<LongFormContent> = {
               'Аккаунт покупателя (по желанию): e-mail, имя, телефон (по желанию), язык и история заказов. Пароли никогда не хранятся в открытом виде — только в виде необратимого криптографического хеша.',
               'Обращения и запросы для бизнеса: данные, которые вы вводите в форму (имя, телефон или e-mail, компания, вид деятельности, регион, сообщение).',
               'Рассылка (по желанию): адрес e-mail и язык.',
-              'Технические данные: файлы cookie, перечисленные ниже, и серверные записи, необходимые для безопасности, например время запроса и IP-адрес [срок хранения серверных журналов].',
+              'Технические данные: файлы cookie, перечисленные ниже, и серверные записи, необходимые для безопасности, например время запроса и IP-адрес; они хранятся недолго.',
             ],
           },
-          'Мы не собираем данные банковских карт: сейчас заказы оплачиваются наличными при получении.',
+          'Мы не собираем данные банковских карт: сам сайт платежи не принимает.',
         ],
       },
       {
@@ -169,7 +170,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
               'Чтобы выполнять требования закона, например вести бухгалтерский и налоговый учёт.',
             ],
           },
-          'Мы обрабатываем персональные данные в соответствии с Законом Республики Узбекистан «О персональных данных» [правовые основания для каждой цели подтверждаются юристом].',
+          'Мы обрабатываем персональные данные в соответствии с Законом Республики Узбекистан «О персональных данных»: для исполнения вашего заказа или обращения, с вашего согласия (например, на рассылку) или когда этого требует закон.',
         ],
       },
       {
@@ -179,8 +180,8 @@ export const privacyPolicy: Localized<LongFormContent> = {
           'Мы не продаём персональные данные и передаём их только при необходимости:',
           {
             list: [
-              'курьеру или службе доставки, которая привозит заказ (имя, телефон и адрес) [названия служб доставки];',
-              'компаниям, которые размещают сайт и, если это включено, отправляют наши письма, на условиях конфиденциальности [хостинг-провайдер и почтовый сервис];',
+              'курьеру или службе доставки, которая привозит заказ (имя, телефон и адрес);',
+              'компаниям, которые размещают сайт, его базу данных и файлы (Vercel Inc. и Neon) и, если это включено, отправляют наши письма, — на условиях конфиденциальности;',
               'государственным органам, когда этого требует закон.',
             ],
           },
@@ -190,13 +191,13 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'storage',
         heading: 'Где и как долго мы их храним',
         blocks: [
-          'Персональные данные хранятся на серверах, расположенных в [страна и дата-центр — с учётом требований законодательства Узбекистана о локализации данных].',
+          'Персональные данные хранятся на серверах наших хостинг-провайдеров во Франкфурте-на-Майне, Германия (Европейский союз).',
           {
             list: [
-              'Заказы: [срок, установленный законодательством о бухгалтерском и налоговом учёте].',
+              'Заказы: в течение срока, установленного законодательством о бухгалтерском и налоговом учёте.',
               'Аккаунт покупателя: пока вы не попросите его удалить.',
               'Рассылка: пока вы не отпишетесь.',
-              'Обращения: [срок хранения обращений].',
+              'Обращения: столько, сколько нужно, чтобы ответить на них и продолжить сотрудничество.',
               'По умолчанию сеанс входа действует до 30 дней (для сотрудников — 12 часов), а неактивная корзина хранится 30 дней.',
             ],
           },
@@ -227,8 +228,8 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'rights',
         heading: 'Ваши права',
         blocks: [
-          'Вы можете узнать, какие данные о вас мы храним, попросить исправить или удалить их и отозвать данное согласие (например, на рассылку). Некоторые данные, например сведения о заказах, мы обязаны хранить в течение срока, установленного законом. Вы также вправе обратиться с жалобой в [уполномоченный государственный орган по защите персональных данных].',
-          'Чтобы воспользоваться этими правами, напишите на [адрес электронной почты для обращений по данным]. Мы ответим в течение [срок ответа].',
+          'Вы можете узнать, какие данные о вас мы храним, попросить исправить или удалить их и отозвать данное согласие (например, на рассылку). Некоторые данные, например сведения о заказах, мы обязаны хранить в течение срока, установленного законом. Вы также вправе обратиться с жалобой в уполномоченный государственный орган Республики Узбекистан по защите персональных данных.',
+          'Чтобы воспользоваться этими правами, напишите на terantradellc@gmail.com или позвоните по номеру +998 97 570 70 07. Мы ответим как можно скорее, в сроки, установленные законом.',
         ],
       },
       {
@@ -245,14 +246,14 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'TERAN xarid qilish, roʻyxatdan oʻtish va murojaat qilishda shaxsiy maʼlumotlarni qanday toʻplashi, ishlatishi va himoya qilishi haqida.',
     intro:
-      'Ushbu siyosat TERAN internet-doʻkoni qaysi shaxsiy maʼlumotlarga ishlov berishi, nima uchun va qancha muddat saqlashi hamda sizning huquqlaringiz haqida tushuntiradi. Oxirgi yangilanish sanasi: [eʼlon qilingan sana].',
+      'Ushbu siyosat TERAN internet-doʻkoni qaysi shaxsiy maʼlumotlarga ishlov berishi, nima uchun va qancha muddat saqlashi hamda sizning huquqlaringiz haqida tushuntiradi. Oxirgi yangilanish sanasi: 18.10.2026.',
     sections: [
       {
         id: 'controller',
         heading: 'Maʼlumotlaringiz uchun kim javobgar',
         blocks: [
-          'Sayt va shaxsiy maʼlumotlaringiz operatori — [kompaniyaning nomi va tashkiliy-huquqiy shakli], [yuridik manzil], STIR [raqam].',
-          'Shaxsiy maʼlumotlar boʻyicha har qanday savol bilan [maʼlumotlar boʻyicha murojaatlar uchun elektron pochta] manziliga yozing.',
+          'Sayt va shaxsiy maʼlumotlaringiz operatori — «TERAN TRADE» masʼuliyati cheklangan jamiyati (MChJ), Namangan, Oʻzbekiston (telefonlar: +998 97 570 70 07, +998 95 110 13 26).',
+          'Shaxsiy maʼlumotlar boʻyicha har qanday savol bilan terantradellc@gmail.com manziliga yozing.',
         ],
       },
       {
@@ -264,12 +265,12 @@ export const privacyPolicy: Localized<LongFormContent> = {
             list: [
               'Buyurtmalar: ism, telefon raqami, elektron pochta (ixtiyoriy), yetkazib berish viloyati, shahri, manzili va moʻljali, izoh (ixtiyoriy), buyurtma qilingan mahsulotlar va summalar.',
               'Xaridor hisobi (ixtiyoriy): elektron pochta, ism, telefon (ixtiyoriy), afzal til va buyurtmalar tarixi. Parollar hech qachon ochiq koʻrinishda saqlanmaydi — faqat qaytarib boʻlmaydigan kriptografik xesh sifatida.',
-              'Murojaatlar va biznes soʻrovlari: formaga kiritgan maʼlumotlaringiz (ism, telefon yoki elektron pochta, kompaniya, faoliyat turi, hudud, xabar).',
-              'Yangiliklar rassilkasi (ixtiyoriy): elektron pochta manzili va til.',
-              'Texnik maʼlumotlar: quyida keltirilgan cookie fayllari va xavfsizlik uchun zarur server yozuvlari, masalan soʻrov vaqti va IP-manzil [server jurnallarini saqlash muddati].',
+              'Murojaatlar va biznes soʻrovlari: shaklga kiritgan maʼlumotlaringiz (ism, telefon yoki elektron pochta, kompaniya, faoliyat turi, hudud, xabar).',
+              'Yangiliklar obunasi (ixtiyoriy): elektron pochta manzili va til.',
+              'Texnik maʼlumotlar: quyida keltirilgan cookie fayllari va xavfsizlik uchun zarur server yozuvlari, masalan soʻrov vaqti va IP-manzil; ular qisqa muddat saqlanadi.',
             ],
           },
-          'Biz bank kartasi maʼlumotlarini toʻplamaymiz: hozircha buyurtmalar yetkazib berilganda naqd pul bilan toʻlanadi.',
+          'Biz bank kartasi maʼlumotlarini toʻplamaymiz: saytning oʻzi toʻlov qabul qilmaydi.',
         ],
       },
       {
@@ -286,7 +287,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
               'Qonun talablarini, masalan buxgalteriya va soliq hisobini yuritishni bajarish uchun.',
             ],
           },
-          'Biz shaxsiy maʼlumotlarga Oʻzbekiston Respublikasining «Shaxsga doir maʼlumotlar toʻgʻrisida»gi Qonuniga muvofiq ishlov beramiz [har bir maqsad uchun huquqiy asoslar yurist tomonidan tasdiqlanadi].',
+          'Biz shaxsiy maʼlumotlarga Oʻzbekiston Respublikasining «Shaxsga doir maʼlumotlar toʻgʻrisida»gi Qonuniga muvofiq ishlov beramiz: buyurtmangiz yoki murojaatingizni bajarish uchun, sizning roziligingiz bilan (masalan, yangiliklar obunasi uchun) yoki qonun talab qilganda.',
         ],
       },
       {
@@ -296,8 +297,8 @@ export const privacyPolicy: Localized<LongFormContent> = {
           'Biz shaxsiy maʼlumotlarni sotmaymiz va ularni faqat zarur hollarda beramiz:',
           {
             list: [
-              'buyurtmani olib keladigan kuryer yoki yetkazib berish xizmatiga (ism, telefon va manzil) [yetkazib berish xizmatlari nomlari];',
-              'saytni joylashtiradigan va, agar yoqilgan boʻlsa, xatlarimizni yuboradigan kompaniyalarga — maxfiylik shartlari asosida [xosting provayderi va pochta xizmati];',
+              'buyurtmani olib keladigan kuryer yoki yetkazib berish xizmatiga (ism, telefon va manzil);',
+              'saytni, uning maʼlumotlar bazasi va fayllarini joylashtiradigan (Vercel Inc. va Neon) hamda, agar yoqilgan boʻlsa, xatlarimizni yuboradigan kompaniyalarga — maxfiylik shartlari asosida;',
               'qonun talab qilganda davlat organlariga.',
             ],
           },
@@ -307,13 +308,13 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'storage',
         heading: 'Maʼlumotlar qayerda va qancha muddat saqlanadi',
         blocks: [
-          'Shaxsiy maʼlumotlar [mamlakat va maʼlumotlar markazi — Oʻzbekiston qonunchiligidagi maʼlumotlarni lokalizatsiya qilish talablarini hisobga olgan holda] joylashgan serverlarda saqlanadi.',
+          'Shaxsiy maʼlumotlar xosting provayderlarimizning Germaniyaning Frankfurt-Mayn shahridagi (Yevropa Ittifoqi) serverlarida saqlanadi.',
           {
             list: [
-              'Buyurtmalar: [buxgalteriya va soliq qonunchiligida belgilangan muddat].',
+              'Buyurtmalar: buxgalteriya va soliq qonunchiligida belgilangan muddat davomida.',
               'Xaridor hisobi: uni oʻchirishni soʻraguningizcha.',
-              'Yangiliklar rassilkasi: obunani bekor qilguningizcha.',
-              'Murojaatlar: [murojaatlarni saqlash muddati].',
+              'Yangiliklar obunasi: obunani bekor qilguningizcha.',
+              'Murojaatlar: ularga javob berish va hamkorlikni davom ettirish uchun zarur boʻlgan muddat davomida.',
               'Standart holatda tizimga kirish seansi 30 kungacha (xodimlar uchun 12 soat), faol boʻlmagan savat esa 30 kun saqlanadi.',
             ],
           },
@@ -344,8 +345,8 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'rights',
         heading: 'Sizning huquqlaringiz',
         blocks: [
-          'Siz biz qanday maʼlumotlaringizni saqlayotganimizni bilishingiz, ularni tuzatish yoki oʻchirishni soʻrashingiz va bergan roziligingizni (masalan, rassilkaga) qaytarib olishingiz mumkin. Ayrim maʼlumotlarni, masalan buyurtmalar haqidagi maʼlumotlarni qonunda belgilangan muddat davomida saqlashimiz shart. Shuningdek, siz [shaxsga doir maʼlumotlarni himoya qilish boʻyicha vakolatli davlat organi]ga shikoyat qilish huquqiga egasiz.',
-          'Ushbu huquqlardan foydalanish uchun [maʼlumotlar boʻyicha murojaatlar uchun elektron pochta] manziliga yozing. Biz [javob berish muddati] ichida javob beramiz.',
+          'Siz biz qanday maʼlumotlaringizni saqlayotganimizni bilishingiz, ularni tuzatish yoki oʻchirishni soʻrashingiz va bergan roziligingizni (masalan, yangiliklar obunasiga) qaytarib olishingiz mumkin. Ayrim maʼlumotlarni, masalan buyurtmalar haqidagi maʼlumotlarni qonunda belgilangan muddat davomida saqlashimiz shart. Shuningdek, siz Oʻzbekiston Respublikasining shaxsga doir maʼlumotlarni himoya qilish boʻyicha vakolatli davlat organiga shikoyat qilish huquqiga egasiz.',
+          'Ushbu huquqlardan foydalanish uchun terantradellc@gmail.com manziliga yozing yoki +998 97 570 70 07 raqamiga qoʻngʻiroq qiling. Biz imkon qadar tez, qonunda belgilangan muddatlarda javob beramiz.',
         ],
       },
       {

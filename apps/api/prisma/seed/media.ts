@@ -72,13 +72,13 @@ export const DEMO_MEDIA: DemoMedia[] = [
   },
   {
     id: '019a3c00-7e5a-7000-8000-00000000a003',
-    file: resolve(packaging, '8009-front.webp'),
+    file: resolve(packaging, '8009-pack.webp'),
     featured: true,
     title: { uz: 'TERAN 8009 qadogʻi', ru: 'Упаковка TERAN 8009', en: 'The TERAN 8009 pack' },
     caption: {
-      uz: 'Qadoqning old tomoni: TERAN emblemasi, 绿茶 va qadoq oynasi.',
-      ru: 'Лицевая сторона упаковки: эмблема TERAN, 绿茶 и окошко упаковки.',
-      en: 'The front of the pack: the TERAN emblem, 绿茶 and the window.',
+      uz: 'TERAN 8009 zip-paketi: Xitoy yashil choyi, 400 g.',
+      ru: 'Зип-пакет TERAN 8009: китайский зелёный чай, 400 г.',
+      en: 'The TERAN 8009 zip pouch: Chinese green tea, 400 g.',
     },
   },
   {
@@ -113,13 +113,13 @@ export const DEMO_MEDIA: DemoMedia[] = [
   },
   {
     id: '019a3c00-7e5a-7000-8000-00000000a006',
-    file: resolve(packaging, 'g8810-front.webp'),
-    featured: false,
+    file: resolve(packaging, 'g8810-pack.webp'),
+    featured: true,
     title: { uz: 'TERAN G8810 qadogʻi', ru: 'Упаковка TERAN G8810', en: 'The TERAN G8810 pack' },
     caption: {
-      uz: 'Qadoqning old tomoni.',
-      ru: 'Лицевая сторона упаковки.',
-      en: 'The front of the pack.',
+      uz: 'TERAN G8810 zip-paketi: Xitoy yashil choyi, 400 g.',
+      ru: 'Зип-пакет TERAN G8810: китайский зелёный чай, 400 г.',
+      en: 'The TERAN G8810 zip pouch: Chinese green tea, 400 g.',
     },
   },
   {
@@ -161,9 +161,42 @@ export const DEMO_MEDIA: DemoMedia[] = [
     featured: true,
     title: { uz: 'TERAN qadoqlari', ru: 'Упаковки TERAN', en: 'The TERAN packs' },
     caption: {
-      uz: 'TERAN XC2025, 8009, 8830 va G8810 qadoqlari, qadoq rasmlari fonida.',
-      ru: 'Упаковки TERAN XC2025, 8009, 8830 и G8810 на фоне рисунков с упаковки.',
-      en: 'The TERAN XC2025, 8009, 8830 and G8810 packs, on the paintings from the packs.',
+      uz: 'TERAN XC2025, G8810, 8800, 8830 va 8009 zip-paketlari, qadoq rasmlari fonida.',
+      ru: 'Зип-пакеты TERAN XC2025, G8810, 8800, 8830 и 8009 на фоне рисунков с упаковки.',
+      en: 'The TERAN XC2025, G8810, 8800, 8830 and 8009 zip pouches, on the paintings from the packs.',
+    },
+  },
+  {
+    id: '019a3c00-7e5a-7000-8000-00000000a007',
+    file: resolve(packaging, 'xc2025-pack.webp'),
+    featured: true,
+    title: { uz: 'TERAN XC2025 qadogʻi', ru: 'Упаковка TERAN XC2025', en: 'The TERAN XC2025 pack' },
+    caption: {
+      uz: 'TERAN XC2025 zip-paketi: Xitoy yashil choyi, 400 g.',
+      ru: 'Зип-пакет TERAN XC2025: китайский зелёный чай, 400 г.',
+      en: 'The TERAN XC2025 zip pouch: Chinese green tea, 400 g.',
+    },
+  },
+  {
+    id: '019a3c00-7e5a-7000-8000-00000000a008',
+    file: resolve(packaging, '8800-pack.webp'),
+    featured: true,
+    title: { uz: 'TERAN 8800 qadogʻi', ru: 'Упаковка TERAN 8800', en: 'The TERAN 8800 pack' },
+    caption: {
+      uz: 'TERAN 8800 zip-paketi: Xitoy yashil choyi, 400 g.',
+      ru: 'Зип-пакет TERAN 8800: китайский зелёный чай, 400 г.',
+      en: 'The TERAN 8800 zip pouch: Chinese green tea, 400 g.',
+    },
+  },
+  {
+    id: '019a3c00-7e5a-7000-8000-00000000a009',
+    file: resolve(packaging, '8830-pack.webp'),
+    featured: true,
+    title: { uz: 'TERAN 8830 qadogʻi', ru: 'Упаковка TERAN 8830', en: 'The TERAN 8830 pack' },
+    caption: {
+      uz: 'TERAN 8830 zip-paketi: Xitoy yashil choyi, 400 g.',
+      ru: 'Зип-пакет TERAN 8830: китайский зелёный чай, 400 г.',
+      en: 'The TERAN 8830 zip pouch: Chinese green tea, 400 g.',
     },
   },
 ];
@@ -175,6 +208,18 @@ export const DEMO_MEDIA: DemoMedia[] = [
  */
 const EARLIER_IMAGES: Record<string, { width: number; height: number }> = {
   '019a3c00-7e5a-7000-8000-00000000a002': { width: 2400, height: 1200 },
+  // The flat renders of the print files, before the owner's photographs of the zip pouches.
+  '019a3c00-7e5a-7000-8000-00000000a003': { width: 2000, height: 2000 },
+  '019a3c00-7e5a-7000-8000-00000000a006': { width: 2000, height: 2000 },
+};
+
+/**
+ * Films an earlier version of this seed stored, by their size in bytes: the pack film showed four
+ * flat renders before the owner's photographs of the five pouches. Replaced (with its poster)
+ * while it is still that exact file.
+ */
+const EARLIER_FILMS: Record<string, number> = {
+  '019a3c00-7e5a-7000-8000-00000000a013': 2155265,
 };
 
 /**
@@ -207,6 +252,39 @@ const EARLIER_COPY: Record<string, Partial<Record<Locale, { title: string; capti
     uz: { title: 'Choy barglari' },
     ru: { title: 'Чайные листья' },
     en: { title: 'Tea leaves' },
+  },
+  '019a3c00-7e5a-7000-8000-00000000a003': {
+    uz: {
+      title: 'TERAN 8009 qadogʻi',
+      caption: 'Qadoqning old tomoni: TERAN emblemasi, 绿茶 va qadoq oynasi.',
+    },
+    ru: {
+      title: 'Упаковка TERAN 8009',
+      caption: 'Лицевая сторона упаковки: эмблема TERAN, 绿茶 и окошко упаковки.',
+    },
+    en: {
+      title: 'The TERAN 8009 pack',
+      caption: 'The front of the pack: the TERAN emblem, 绿茶 and the window.',
+    },
+  },
+  '019a3c00-7e5a-7000-8000-00000000a006': {
+    uz: { title: 'TERAN G8810 qadogʻi', caption: 'Qadoqning old tomoni.' },
+    ru: { title: 'Упаковка TERAN G8810', caption: 'Лицевая сторона упаковки.' },
+    en: { title: 'The TERAN G8810 pack', caption: 'The front of the pack.' },
+  },
+  '019a3c00-7e5a-7000-8000-00000000a013': {
+    uz: {
+      title: 'TERAN qadoqlari',
+      caption: 'TERAN XC2025, 8009, 8830 va G8810 qadoqlari, qadoq rasmlari fonida.',
+    },
+    ru: {
+      title: 'Упаковки TERAN',
+      caption: 'Упаковки TERAN XC2025, 8009, 8830 и G8810 на фоне рисунков с упаковки.',
+    },
+    en: {
+      title: 'The TERAN packs',
+      caption: 'The TERAN XC2025, 8009, 8830 and G8810 packs, on the paintings from the packs.',
+    },
   },
 };
 
@@ -258,6 +336,41 @@ async function updateEarlierImage(
   return true;
 }
 
+async function updateEarlierFilm(
+  prisma: PrismaClient,
+  item: DemoMedia,
+  uploadsDir: string,
+): Promise<boolean> {
+  const bytes = EARLIER_FILMS[item.id];
+  if (!bytes || !item.video) return false;
+  const row = await prisma.mediaItem.findUnique({
+    where: { id: item.id },
+    select: { imageKey: true, videoKey: true, videoBytes: true },
+  });
+  if (!row || row.videoBytes !== bytes) return false;
+  const store = seedImageStore(uploadsDir);
+  const poster = await storeImage(await readFile(item.file), store, mediaPrefix(item.id));
+  const video = await storeDemoVideo(item, uploadsDir);
+  if (!video) return false;
+  await prisma.mediaItem.update({
+    where: { id: item.id },
+    data: {
+      imageKey: poster.storageKey,
+      imageWidths: poster.widths,
+      imageWidth: poster.width,
+      imageHeight: poster.height,
+      videoKey: video.storageKey,
+      videoType: video.type,
+      videoBytes: video.bytes,
+      videoDurationSeconds: video.durationSeconds,
+    },
+  });
+  for (const key of [row.imageKey, row.videoKey]) {
+    if (key) await deleteStoredImage(store, key);
+  }
+  return true;
+}
+
 /** A film's file, kept as it is, with the running time it records. */
 async function storeDemoVideo(item: DemoMedia, uploadsDir: string) {
   if (!item.video) return null;
@@ -281,7 +394,8 @@ export async function seedMedia(
     if (await prisma.mediaItem.findUnique({ where: { id: item.id }, select: { id: true } })) {
       const copy = await updateEarlierCopy(prisma, item);
       const image = await updateEarlierImage(prisma, item, options.uploadsDir);
-      if (copy || image) created += 1;
+      const film = await updateEarlierFilm(prisma, item, options.uploadsDir);
+      if (copy || image || film) created += 1;
       continue;
     }
     const stored = await storeImage(

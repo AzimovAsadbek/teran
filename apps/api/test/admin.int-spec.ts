@@ -502,6 +502,143 @@ describe('admin API', () => {
       });
     });
 
+    it("stores the store list and shows only the shown stores, in the visitor's language", async () => {
+      const { agent } = await signedIn('ADMIN');
+      const shop = {
+        id: 'shop-chilonzor',
+        name: 'TERAN Chilonzor',
+        address: { uz: 'Bunyodkor shoh koʻchasi 12', ru: 'проспект Бунёдкор, 12', en: '' },
+        hours: { uz: 'Du–Ju 9:00–18:00', ru: 'Пн–Пт 9:00–18:00', en: '' },
+        phone: '+998 71 200 00 01',
+        latitude: 41.2856,
+        longitude: 69.2034,
+        kinds: ['SHOP'],
+        active: true,
+      };
+      const hidden = {
+        ...shop,
+        id: 'dealer-namangan',
+        name: 'Hidden dealer',
+        hours: null,
+        phone: null,
+        kinds: ['DEALER'],
+        active: false,
+      };
+      await agent.put(`${API}/admin/settings/stores`).send([shop, hidden]).expect(200);
+
+      const uz = await request(server()).get(`${API}/content/settings?locale=uz`).expect(200);
+      expect(uz.body.stores).toEqual([
+        {
+          id: 'shop-chilonzor',
+          name: 'TERAN Chilonzor',
+          address: 'Bunyodkor shoh koʻchasi 12',
+          hours: 'Du–Ju 9:00–18:00',
+          phone: '+998 71 200 00 01',
+          latitude: 41.2856,
+          longitude: 69.2034,
+          kinds: ['SHOP'],
+          image: null,
+        },
+      ]);
+      const ru = await request(server()).get(`${API}/content/settings?locale=ru`).expect(200);
+      expect(ru.body.stores[0]).toMatchObject({
+        address: 'проспект Бунёдкор, 12',
+        hours: 'Пн–Пт 9:00–18:00',
+      });
+      // Without an English text the Uzbek one is shown.
+      const en = await request(server()).get(`${API}/content/settings?locale=en`).expect(200);
+      expect(en.body.stores[0]).toMatchObject({ address: 'Bunyodkor shoh koʻchasi 12' });
+
+      // A place off the globe, a missing Uzbek address or an unknown kind is refused.
+      await agent
+        .put(`${API}/admin/settings/stores`)
+        .send([{ ...shop, latitude: 123 }])
+        .expect(400);
+      await agent
+        .put(`${API}/admin/settings/stores`)
+        .send([{ ...shop, address: { uz: ' ', ru: '', en: '' } }])
+        .expect(400);
+      await agent
+        .put(`${API}/admin/settings/stores`)
+        .send([{ ...shop, kinds: ['KIOSK'] }])
+        .expect(400);
+      const manager = await signedIn('MANAGER');
+      await manager.agent.put(`${API}/admin/settings/stores`).send([]).expect(403);
+
+      await agent.put(`${API}/admin/settings/stores`).send([]).expect(200);
+      const cleared = await request(server()).get(`${API}/content/settings?locale=uz`).expect(200);
+      expect(cleared.body.stores).toEqual([]);
+    });
+
+    it('sets, replaces and removes page pictures, and refuses unknown places', async () => {
+      const { agent } = await signedIn('ADMIN');
+      const wide = await sharp({
+        create: { width: 2400, height: 400, channels: 3, background: { r: 160, g: 210, b: 90 } },
+      })
+        .png()
+        .toBuffer();
+      const first = await agent
+        .post(`${API}/admin/settings/visuals/banner:catalog`)
+        .attach('file', wide, { filename: 'banner.png', contentType: 'image/png' })
+        .attach('mobile', await png(800), { filename: 'phone.png', contentType: 'image/png' })
+        .field('source', 'https://example.com/banner.png')
+        .expect(201);
+      const stored = first.body.visuals['banner:catalog'];
+      expect(stored).toMatchObject({ source: 'https://example.com/banner.png' });
+      // Wide pictures get renditions up to 2560 px and one at their own width (2400 px here).
+      expect(stored.image.widths).toEqual([320, 480, 640, 960, 1280, 1600, 1920, 2400]);
+      expect(stored.mobile.widths).toEqual([320, 480, 640, 800]);
+
+      const settings = await request(server()).get(`${API}/content/settings?locale=uz`).expect(200);
+      expect(settings.body.visuals['banner:catalog']).toMatchObject({
+        image: { src: `/uploads/${stored.image.key}`, width: 2400, height: 400, alt: '' },
+        mobile: { src: `/uploads/${stored.mobile.key}` },
+      });
+
+      // A new picture replaces the old one and its files; the phone crop stays.
+      const replaced = await agent
+        .post(`${API}/admin/settings/visuals/banner:catalog`)
+        .attach('file', await png(600), { filename: 'other.png', contentType: 'image/png' })
+        .expect(201);
+      const uploads = TEST_ENV.UPLOADS_DIR!;
+      expect(existsSync(join(uploads, stored.image.key, '320.webp'))).toBe(false);
+      expect(replaced.body.visuals['banner:catalog'].mobile.key).toBe(stored.mobile.key);
+      expect(existsSync(join(uploads, stored.mobile.key, '320.webp'))).toBe(true);
+
+      // The phone crop on its own: replaced, then removed.
+      const phone = await agent
+        .post(`${API}/admin/settings/visuals/banner:catalog/mobile`)
+        .attach('file', await png(700), { filename: 'phone2.png', contentType: 'image/png' })
+        .expect(201);
+      const newPhone = phone.body.visuals['banner:catalog'].mobile.key;
+      expect(newPhone).not.toBe(stored.mobile.key);
+      expect(existsSync(join(uploads, stored.mobile.key, '320.webp'))).toBe(false);
+      await agent.delete(`${API}/admin/settings/visuals/banner:catalog/mobile`).expect(200);
+      expect(existsSync(join(uploads, newPhone, '320.webp'))).toBe(false);
+      await agent
+        .post(`${API}/admin/settings/visuals/about.showcase/mobile`)
+        .attach('file', await png(700), { filename: 'phone3.png', contentType: 'image/png' })
+        .expect(400);
+
+      await agent.delete(`${API}/admin/settings/visuals/banner:catalog`).expect(200);
+      const cleared = await request(server()).get(`${API}/content/settings?locale=uz`).expect(200);
+      expect(cleared.body.visuals).toEqual({});
+
+      await agent
+        .post(`${API}/admin/settings/visuals/home.hero`)
+        .attach('file', await png(600), { filename: 'x.png', contentType: 'image/png' })
+        .expect(400);
+      await agent
+        .post(`${API}/admin/settings/visuals/about.hero`)
+        .attach('file', await png(80), { filename: 'tiny.png', contentType: 'image/png' })
+        .expect(400);
+      const manager = await signedIn('MANAGER');
+      await manager.agent
+        .post(`${API}/admin/settings/visuals/about.hero`)
+        .attach('file', await png(600), { filename: 'x.png', contentType: 'image/png' })
+        .expect(403);
+    });
+
     it('exports subscribers with working unsubscribe links', async () => {
       const { agent } = await signedIn('ADMIN');
       await request(server())

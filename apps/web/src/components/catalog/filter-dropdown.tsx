@@ -52,7 +52,7 @@ export function FilterDropdown({
       <summary
         className={cn(
           selectedCount > 0 ? FILTER_BUTTON_ON : FILTER_BUTTON,
-          'cursor-pointer list-none group-open:border-forest-900 group-open:ring-1 group-open:ring-forest-900 [&::-webkit-details-marker]:hidden',
+          'cursor-pointer list-none group-open:border-[#191919] [&::-webkit-details-marker]:hidden',
         )}
       >
         {label}
@@ -62,9 +62,10 @@ export function FilterDropdown({
             <span className="sr-only"> ({appliedLabel})</span>
           </span>
         ) : null}
+        {/* The reference's caret: half-tone, full when pointed at or open. */}
         <ChevronDown
           aria-hidden
-          className="h-4 w-4 transition-transform duration-150 group-open:rotate-180"
+          className="h-4 w-4 text-fg/50 transition-[transform,color] duration-200 group-hover:text-fg group-open:rotate-180 group-open:text-fg"
         />
       </summary>
       <div className="absolute top-full left-0 z-30 mt-1 max-h-80 min-w-[13rem] overflow-y-auto rounded-sm border border-line bg-surface py-2 shadow-overlay motion-safe:animate-pop-in">

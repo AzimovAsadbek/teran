@@ -48,10 +48,7 @@ export function SectionHeading({
             {eyebrow}
           </p>
         ) : null}
-        <Heading
-          id={id}
-          className={cn('text-display-md', inverse ? 'text-fg-inverse' : 'text-forest-900')}
-        >
+        <Heading id={id} className={cn('text-display-md', inverse ? 'text-fg-inverse' : 'text-fg')}>
           {title}
         </Heading>
         {description ? (

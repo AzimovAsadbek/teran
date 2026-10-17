@@ -30,7 +30,7 @@ export function AdminPageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4 sm:mb-8">
       <div className="min-w-0">
-        <h1 className="text-display-md text-forest-900">{title}</h1>
+        <h1 className="text-display-md text-fg">{title}</h1>
         {description ? (
           <div className="mt-1.5 max-w-3xl text-body text-fg-muted">{description}</div>
         ) : null}
@@ -255,7 +255,7 @@ export function StatusTabs({
               aria-current={tab.current ? 'page' : undefined}
               className={cn(
                 'inline-flex min-h-9 items-center gap-2 rounded-full px-3.5 text-body-sm font-semibold whitespace-nowrap transition-colors',
-                tab.current ? 'bg-brand text-fg-inverse' : 'text-forest-900 hover:bg-surface-muted',
+                tab.current ? 'bg-brand text-fg-inverse' : 'text-fg hover:bg-surface-muted',
               )}
             >
               {tab.label}

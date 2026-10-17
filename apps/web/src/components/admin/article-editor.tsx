@@ -134,7 +134,7 @@ export function ArticleEditor({
           id="article-cover"
           className="scroll-mt-24 space-y-3 rounded-card border border-line bg-surface p-5 sm:p-6"
         >
-          <h2 className="text-body-lg font-semibold text-forest-900">{t('journal.cover')}</h2>
+          <h2 className="text-body-lg font-semibold text-fg">{t('journal.cover')}</h2>
           <ImageUploader
             image={article?.cover ?? null}
             uploadPath={article ? `/admin/articles/${article.id}/cover` : null}
@@ -202,7 +202,7 @@ export function ArticleEditor({
           aria-labelledby="article-media-title"
           className="scroll-mt-24 space-y-3 rounded-card border border-line bg-surface p-5 sm:p-6"
         >
-          <h2 id="article-media-title" className="text-body-lg font-semibold text-forest-900">
+          <h2 id="article-media-title" className="text-body-lg font-semibold text-fg">
             {t('journal.media')}
           </h2>
           <ArticleMediaPicker gallery={gallery} value={mediaIds} onChange={setMediaIds} />
@@ -278,7 +278,7 @@ export function ArticleEditor({
               <Link
                 href={`/admin/journal/${article.id}/preview`}
                 target="_blank"
-                className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
+                className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-fg hover:underline"
               >
                 <Eye aria-hidden className="h-3.5 w-3.5" />
                 {t('preview.open')}
@@ -288,7 +288,7 @@ export function ArticleEditor({
               <Link
                 href={`/journal/${article.slug}`}
                 target="_blank"
-                className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
+                className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-fg hover:underline"
               >
                 {t('products.openInStore')}
                 <ExternalLink aria-hidden className="h-3.5 w-3.5" />

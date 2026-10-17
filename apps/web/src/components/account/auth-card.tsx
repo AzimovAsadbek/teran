@@ -19,7 +19,7 @@ export function AuthCard({
         <span aria-hidden className="mx-auto block h-14 w-14">
           <Emblem className="w-full" />
         </span>
-        <h1 className="mt-4 text-center text-display-md text-forest-900">{title}</h1>
+        <h1 className="mt-4 text-center text-display-md text-fg">{title}</h1>
         {intro ? <div className="mt-3 text-center text-body text-fg-muted">{intro}</div> : null}
         <div className="mt-8">{children}</div>
         {footer ? (

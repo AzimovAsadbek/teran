@@ -70,8 +70,24 @@ node scripts/generate-brand-assets.mjs
   soft shadow, as the art direction asks of product photography. Real photographs of the packs
   can replace them through the admin at any time.
 
-Outputs: `apps/web/public/brand/` (logo set, `art/`, `packs/`, `ornaments/`) and
-`apps/api/prisma/seed/assets/packaging/` (pack shots used by the demo seed).
+Outputs: `apps/web/public/brand/` (logo set, `art/`, `ornaments/`) and
+`apps/api/prisma/seed/assets/packaging/` (the backs of the packs used by the seed).
+
+### The zip pouches (photographs, 2026-10-17)
+
+The owner's photographs of the five zip pouches replace the print-file fronts: as product images,
+on the home page stage, on the About and partnership pages and in the gallery's pack film.
+
+```bash
+# Photographs named xc2025.jpg, g8810.jpg, 8800.jpg, 8830.jpg, 8009.jpg in one folder (macOS 14+)
+node scripts/packaging/build-pouch-assets.mjs "<folder with the photographs>"   # from apps/web
+FFMPEG=<ffmpeg> node scripts/films/generate-films.mjs packs                     # the pack film
+```
+
+The pouch is lifted off its background with Apple's Vision framework (`lift-subject.swift`, the
+model behind "Lift subject" in Photos): `public/brand/packs/<code>.webp` and
+`seed/assets/packaging/<code>-pack-cutout.webp` are the cut-outs, `<code>-pack.webp` the
+photographs. Nothing is redrawn.
 
 ## Performance
 
@@ -113,19 +129,23 @@ nutrition table (per 100 g: 109 kcal, 3 g carbohydrate, 25 g protein, 3 g fat).
 
 ## Questions for TERAN
 
-1. **Region.** The detail line on every pack reads "Kelib chiqqan mamlakat va hudud: Xitoy,
-   Yunnan", but the product sentences of XC2025, 8009 and 8830 say Hunan, and the taste paragraph
-   on all four (G8810 included) says Hunan. Which region is right for each tea? The website shows
-   the product sentence as printed and "China" as the origin.
-2. **8009 or STD8009?** The first list of identifiers said STD8009; the pack says 8009. The
-   website now shows 8009 (the product's address and SKU keep "std8009").
+1. **Region.** _Answered 2026-10-17:_ the owner's descriptions give Hunan for XC2025, 8800, 8830
+   and 8009 and Yunnan for G8810; the website shows these as each tea's origin.
+2. **8009 or STD8009?** _Answered:_ 8009, as on the pack (the address is now /products/teran-8009,
+   with a redirect from teran-std8009; likewise HET8800 → 8800).
 3. **Printer's note.** The front of every pack carries the red text "This part will have a
    transparent coating." inside the window. Make sure it is not printed.
 4. **Health and nutrition claims.** Should the benefits list and the nutrition table appear on the
    website? Health claims may need substantiation under advertising rules.
 5. **Artwork rights.** Confirm that TERAN may use the lake, terrace and leaf illustrations online
    (they may be licensed stock or commissioned art).
-6. **HET8800** has no packaging file yet; the site still shows it as a demo with a provisional tea
-   type.
-7. **Website address.** The packs print terantea.uz and www.terantrade.uz; which one will the shop
+6. **8800** has a photograph of its zip pouch and a barcode (2026-10-17) but no print file yet, so
+   its producer and importer are not on the website.
+7. **Photographs and print files differ.** The pouch photographs read "Fikirlang, tabiatning xush
+   ta’m lazzati." (the print files: "Fikrlang, tabiatning xushta’m lazzati."), show the values
+   Sof tabiat · Yaxshi kayfiyat · Teran bilan o‘zgartir · Premium sifat (print files: Tabiiy
+   mahsulot · Nafis ta’m · Har kungi tetiklik · Sifatli tanlov) and the characters 龙井茶
+   (Longjing tea) where the print files have 绿茶 (green tea). _Answered 2026-10-17:_ the
+   website keeps the print files' texts (the owner's decision).
+8. **Website address.** The packs print terantea.uz and www.terantrade.uz; which one will the shop
    use?

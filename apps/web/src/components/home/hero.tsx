@@ -3,8 +3,10 @@ import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
-import { BRAND, brandCopy } from '@/content/brand';
-import { getProductList } from '@/lib/data/catalog';
+import { BRAND, brandCopy, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
+import { getCollections, getProductList } from '@/lib/data/catalog';
+import { getPublicSettings } from '@/lib/data/content';
+import { visualFor } from '@/lib/visuals';
 import lake from '../../../public/brand/art/lake.webp';
 import terraces from '../../../public/brand/art/terraces.webp';
 import { HeroSlider, type HeroLabels, type HeroSlideData } from './hero-slider';
@@ -48,7 +50,8 @@ export async function Hero() {
     art: lake,
   };
   const labels: HeroLabels = {
-    heading: `${BRAND.name} — ${copy.tagline}`,
+    // Read by screen readers and search engines only: the brand, what it sells, its tagline.
+    heading: `${BRAND.name} — ${t('heroHeadingKind')}. ${copy.tagline}`,
     region: t('heroStageLabel'),
     // A template the slider fills in per slide.
     slide: t('heroSlide', { index: '{index}', total: '{total}' }),
@@ -72,10 +75,37 @@ async function FeaturedSlides({
   labels: HeroLabels;
 }) {
   await connection();
-  const [list, t] = await Promise.all([
+  const [list, t, settings, collections] = await Promise.all([
     getProductList(locale, FEATURED_QUERY).catch(() => null),
     getTranslations('Home'),
+    getPublicSettings(locale).catch(() => null),
+    getCollections(locale).catch(() => []),
   ]);
+  // Campaign photographs set in Admin → Settings make the slides, as on the reference: TERAN's
+  // words over the first, the premium collection over the second.
+  const photos = (['home.hero.1', 'home.hero.2'] as const)
+    .map((slot) => visualFor(settings, slot))
+    .filter((photo) => photo !== null);
+  if (photos.length > 0) {
+    const collection =
+      collections.find((item) => item.slug === PREMIUM_COLLECTION_SLUG) ?? collections[0];
+    const copy = brandCopy[locale];
+    const slides = photos.map((photo, index): HeroSlideData => {
+      if (index === 0 || !collection) {
+        return { ...brand, key: `photo-${index}`, tone: 'photo', art: undefined, photo };
+      }
+      return {
+        key: `photo-${index}`,
+        tone: 'photo',
+        eyebrow: BRAND.descriptor,
+        lines: [collection.name],
+        text: copy.collection.heading,
+        cta: { href: `/collections/${collection.slug}`, label: t('promoCta') },
+        photo,
+      };
+    });
+    return <HeroSlider slides={slides} labels={labels} />;
+  }
   // Only products with a cut-out stand on a slide; a photograph would not sit on the colour.
   const staged = (list?.items ?? []).filter((product) => product.stageImage);
   const slides: HeroSlideData[] = [

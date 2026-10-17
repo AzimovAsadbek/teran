@@ -56,8 +56,9 @@ export async function ArticleContent({
   const t = await getTranslations('Pages');
   return (
     <>
-      {/* The reference's split hero: the picture across the left half, the words centred right. */}
-      <header className="-mx-gutter grid grid-cols-1 bg-surface-muted lg:min-h-[25rem] lg:grid-cols-2">
+      {/* The reference's split hero: the picture across the left 704 of 1440 px (400 px high),
+          the date, title and excerpt centred on white at the right. */}
+      <header className="-mx-gutter grid grid-cols-1 bg-white lg:min-h-[25rem] lg:grid-cols-[minmax(0,704fr)_minmax(0,736fr)]">
         <div className="relative aspect-[16/10] bg-ivory-200 lg:aspect-auto">
           {article.cover ? (
             <div className="absolute inset-0">
@@ -74,15 +75,17 @@ export async function ArticleContent({
         <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:px-12 lg:px-16">
           <time
             dateTime={article.publishedAt}
-            className="rounded-full bg-forest-900 px-3.5 py-1.5 text-caption text-ivory-50"
+            className="rounded-full bg-forest-900 px-3 py-1 text-[0.8125rem] leading-5 font-medium text-ivory-50"
           >
             {t('published', { date: formatDate(article.publishedAt, locale) })}
           </time>
-          <h1 className="mt-4 font-headline text-[2.75rem] break-words text-forest-900 sm:text-[4rem]">
+          <h1 className="mt-4 font-headline text-[2.75rem] leading-none break-words text-[#121212] [--headline-weight:800] sm:text-[3.75rem]">
             {article.title}
           </h1>
           {article.excerpt ? (
-            <p className="mt-4 max-w-xl text-body-lg text-fg-muted">{article.excerpt}</p>
+            <p className="mt-4 max-w-[32rem] text-[1rem] leading-[1.6rem] font-semibold text-[#121212]/80">
+              {article.excerpt}
+            </p>
           ) : null}
         </div>
       </header>

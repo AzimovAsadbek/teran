@@ -62,7 +62,7 @@ export function NewsletterForm({
         role="status"
         className={cn(
           'flex items-center gap-2 text-body font-medium',
-          tone === 'dark' ? 'text-accent-on-inverse' : 'text-success',
+          tone === 'dark' ? 'text-ivory-50' : 'text-success',
         )}
       >
         <CheckCircle2 aria-hidden className="h-5 w-5" /> {t('success')}
@@ -83,7 +83,7 @@ export function NewsletterForm({
       >
         {t('emailLabel')}
       </label>
-      <div className={cn('flex gap-2.5', dark ? 'flex-row' : 'mt-2 flex-col sm:flex-row')}>
+      <div className={cn(dark ? 'flex flex-row gap-2' : 'mt-2 flex flex-col gap-2.5 sm:flex-row')}>
         <input
           id={`${id}-email`}
           type="email"
@@ -97,7 +97,8 @@ export function NewsletterForm({
           aria-describedby={describedBy}
           className={
             dark
-              ? 'h-12 w-full min-w-0 flex-1 rounded-full border border-transparent bg-ivory-50 px-5 text-body text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle focus:border-gold-300 focus:ring-[3px] focus:ring-gold-300/30'
+              ? // The reference's footer field: a white pill, 244 px wide from 990 px.
+                'h-11 w-full min-w-0 flex-[1_1_auto] rounded-full border border-ivory-50 bg-ivory-50 px-[1.0625rem] pt-[0.3125rem] text-[0.9375rem] font-medium text-black outline-none placeholder:text-black/55 focus:border-[#008484] focus:ring-2 focus:ring-[#008484] min-[61.875rem]:h-12 min-[61.875rem]:flex-[0_1_15.25rem]'
               : inputClasses({ invalid: Boolean(fieldError), size: 'lg', className: 'sm:flex-1' })
           }
         />
@@ -110,21 +111,28 @@ export function NewsletterForm({
           aria-hidden
           className="hidden"
         />
-        <Button
-          type="submit"
-          size="lg"
-          variant={dark ? 'outline-inverse' : 'primary'}
-          loading={state === 'sending'}
-        >
-          {state === 'sending' ? t('submitting') : t('submit')}
-        </Button>
+        {dark ? (
+          // The reference's outlined pill beside the field.
+          <button
+            type="submit"
+            disabled={state === 'sending'}
+            aria-busy={state === 'sending' || undefined}
+            className="outline-hover inline-flex h-11 flex-none items-center justify-center rounded-full border border-ivory-50 px-[1.5625rem] pt-[0.1875rem] text-[0.875rem] leading-[1.3125rem] font-medium text-ivory-50 disabled:opacity-70 min-[61.875rem]:h-12 min-[61.875rem]:px-[2.0625rem] min-[61.875rem]:pt-1 min-[61.875rem]:text-[1rem] min-[61.875rem]:leading-6"
+          >
+            {state === 'sending' ? t('submitting') : t('submit')}
+          </button>
+        ) : (
+          <Button type="submit" size="lg" variant="primary" loading={state === 'sending'}>
+            {state === 'sending' ? t('submitting') : t('submit')}
+          </Button>
+        )}
       </div>
       {fieldError ? (
         <p
           id={`${id}-error`}
           className={cn(
             'mt-2 flex items-center gap-1.5 text-helper font-medium',
-            dark ? 'text-gold-300' : 'text-danger',
+            dark ? 'text-ivory-50' : 'text-danger',
           )}
         >
           <CircleAlert aria-hidden className="h-4 w-4 shrink-0" />
@@ -134,23 +142,28 @@ export function NewsletterForm({
       {apiErrorMessage ? (
         <p
           role="alert"
-          className={cn('mt-2 text-helper font-medium', dark ? 'text-gold-300' : 'text-danger')}
+          className={cn('mt-2 text-helper font-medium', dark ? 'text-ivory-50' : 'text-danger')}
         >
           {apiErrorMessage}
         </p>
       ) : null}
-      <p
-        id={`${id}-consent`}
-        className={cn('mt-3 text-helper', dark ? 'text-ivory-100/70' : 'text-fg-subtle')}
-      >
-        {t.rich('consent', {
-          privacy: (chunks) => (
-            <Link href="/privacy" className="underline underline-offset-2">
-              {chunks}
-            </Link>
-          ),
-        })}
-      </p>
+      {dark ? (
+        // The footer's form shows no line under it, as the reference's (the privacy policy is
+        // linked in the footer's last row); the consent is still read out with the field.
+        <p id={`${id}-consent`} className="sr-only">
+          {t.rich('consent', { privacy: (chunks) => chunks })}
+        </p>
+      ) : (
+        <p id={`${id}-consent`} className="mt-3 text-helper text-fg-subtle">
+          {t.rich('consent', {
+            privacy: (chunks) => (
+              <Link href="/privacy" className="underline underline-offset-2">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
+      )}
     </form>
   );
 }

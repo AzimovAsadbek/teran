@@ -32,6 +32,8 @@ async function main(): Promise<void> {
     const catalogue = await seedCatalogue(prisma, {
       uploadsDir: uploadsDirectory(),
       emblem: await readEmblem(),
+      // The generic test range, for the end-to-end tests only (e2e/scripts/prepare-db.ts).
+      testCatalogue: process.env.SEED_TEST_CATALOGUE === 'true',
     });
     console.log(
       `Catalogue: ${catalogue.products} new product(s), ${catalogue.articles} new article(s), ` +

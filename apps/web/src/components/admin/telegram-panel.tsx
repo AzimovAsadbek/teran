@@ -149,7 +149,7 @@ export function TelegramPanel({
       <div className="flex items-center justify-between gap-3">
         <h2
           id="telegram-title"
-          className="flex items-center gap-2 text-body-lg font-semibold text-forest-900"
+          className="flex items-center gap-2 text-body-lg font-semibold text-fg"
         >
           <Send aria-hidden className="h-4 w-4" />
           {t('telegram.panelTitle')}

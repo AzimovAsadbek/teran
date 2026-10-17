@@ -1,9 +1,11 @@
 import type { Locale } from '@teran/contracts';
 import type { MetadataRoute } from 'next';
 import { connection } from 'next/server';
+import { helpCentre } from '@/content/pages/faq';
 import { routing } from '@/i18n/routing';
 import { getSitemapEntries } from '@/lib/data/catalog';
 import { localizedUrl } from '@/lib/seo';
+import { showAdvisor, showGallery } from '@/lib/site';
 
 const STATIC_PAGES = [
   '/',
@@ -11,17 +13,29 @@ const STATIC_PAGES = [
   '/about',
   '/wholesale',
   '/journal',
-  '/media',
-  '/media/photos',
-  '/media/videos',
-  '/assistant',
+  '/tea-101',
+  // The gallery only while the storefront links to it (lib/site showGallery).
+  ...(showGallery ? (['/media', '/media/photos', '/media/videos'] as const) : []),
+  // The advisor is listed only while the storefront links to it (lib/site showAdvisor).
+  ...(showAdvisor ? (['/assistant'] as const) : []),
   '/contact',
+  '/stores',
   '/faq',
   '/delivery',
   '/returns',
   '/privacy',
   '/terms',
+  '/accessibility',
 ] as const;
+
+/** The help centre's categories and articles (their addresses are the same in every language). */
+const HELP_PAGES = [
+  '/faq/articles',
+  ...helpCentre('en', false).flatMap((category) => [
+    `/faq/${category.id}`,
+    ...category.articles.map((article) => `/faq/${category.id}/${article.slug}`),
+  ]),
+];
 
 /** One entry per language version, each listing all versions (hreflang) and x-default. */
 function entries(path: string, lastModified?: string): MetadataRoute.Sitemap {
@@ -44,6 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const data = await getSitemapEntries().catch(() => null);
   return [
     ...STATIC_PAGES.flatMap((path) => entries(path)),
+    ...HELP_PAGES.flatMap((path) => entries(path)),
     ...(data?.categories ?? []).flatMap((item) => entries(`/${item.path}`, item.updatedAt)),
     ...(data?.collections ?? []).flatMap((item) =>
       entries(`/collections/${item.slug}`, item.updatedAt),

@@ -84,7 +84,7 @@ export function AddressBook({ initial }: { initial: AddressDto[] }) {
                   <p className="flex flex-wrap items-center gap-2 text-title-sm text-fg">
                     {address.label ?? address.recipientName}
                     {address.isDefault ? (
-                      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-caption font-semibold text-forest-900">
+                      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-caption font-semibold text-fg">
                         {t('defaultAddress')}
                       </span>
                     ) : null}

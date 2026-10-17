@@ -46,7 +46,7 @@ export function ProductTabs({ tabs, label }: { tabs: ProductTab[]; label: string
         aria-label={label}
         onKeyDown={onKeyDown}
         // One row that scrolls sideways on narrow screens instead of wrapping.
-        className="-mx-gutter flex gap-x-6 overflow-x-auto px-gutter [scrollbar-width:none] sm:mx-0 sm:gap-x-7 sm:px-0 [&::-webkit-scrollbar]:hidden"
+        className="-mx-frame flex gap-x-6 overflow-x-auto px-frame [scrollbar-width:none] sm:mx-0 sm:gap-x-7 sm:px-0 [&::-webkit-scrollbar]:hidden"
       >
         {tabs.map((tab, index) => (
           <button
@@ -62,11 +62,9 @@ export function ProductTabs({ tabs, label }: { tabs: ProductTab[]; label: string
             tabIndex={index === active ? 0 : -1}
             onClick={() => setActive(index)}
             className={cn(
-              'relative min-h-11 shrink-0 pb-1 text-[1rem] font-medium tracking-[0.02em] whitespace-nowrap uppercase transition-colors duration-150 sm:text-[1.0625rem]',
-              'after:absolute after:inset-x-0 after:bottom-1 after:h-0.5 after:bg-forest-900 after:transition-transform after:duration-200',
-              index === active
-                ? 'text-forest-900 after:scale-x-100'
-                : 'text-fg after:scale-x-0 hover:text-forest-800',
+              // The reference's tabs: 18 px semibold capitals, the chosen one on a 3 px teal rule.
+              'min-h-11 shrink-0 border-b-[3px] text-[1rem] leading-6 font-semibold whitespace-nowrap text-fg uppercase min-[46.875rem]:text-[1.125rem]',
+              index === active ? 'border-[#0f7e84]' : 'border-transparent',
             )}
           >
             {tab.label}

@@ -33,35 +33,35 @@ test.describe('catalogue', () => {
     await expect(page).toHaveURL(/inStock=true/);
     await expect(count(page, '1 product')).toBeVisible();
 
-    // Green tea: seven loose-leaf teas and one in pyramids.
+    // Green tea: TERAN's five and three test teas loose, one test tea in pyramids.
     await page.goto('/en/tea/green-tea');
-    await expect(count(page, '8 products')).toBeVisible();
+    await expect(count(page, '9 products')).toBeVisible();
     // Filters are dropdowns, as on the reference; a choice applies at once.
     await visible(page.locator('details summary', { hasText: 'Format' })).click();
     await visible(page.getByRole('main').getByRole('link', { name: /^Loose leaf/ })).click();
     await expect(page).toHaveURL(/format=LOOSE_LEAF/);
-    await expect(count(page, '7 products')).toBeVisible();
+    await expect(count(page, '8 products')).toBeVisible();
 
     await page.waitForLoadState('networkidle');
     await visible(page.getByLabel('Sort')).selectOption('price_asc');
     await expect(page).toHaveURL(/format=LOOSE_LEAF&sort=price_asc/);
 
-    // From 150,000 UZS: the four 400 g TERAN packs.
+    // From 150,000 UZS: the five 400 g TERAN pouches.
     await visible(page.locator('details summary', { hasText: 'Price' })).click();
     await visible(page.getByLabel('Min price')).fill('150000');
     await visible(page.getByRole('button', { name: 'Apply' })).click();
     await expect(page).toHaveURL(/minPrice=150000/);
-    await expect(count(page, '4 products')).toBeVisible();
+    await expect(count(page, '5 products')).toBeVisible();
     await expect(visible(page.getByRole('link', { name: /^Remove filter/ }))).toBeVisible();
 
     // A reload (or a shared link) restores the same results.
     await page.reload();
-    await expect(count(page, '4 products')).toBeVisible();
+    await expect(count(page, '5 products')).toBeVisible();
 
     // Clearing removes the filters and keeps the chosen sort order.
     await visible(page.getByRole('link', { name: 'Clear filters' })).click();
     await expect(page).toHaveURL(/\/en\/tea\/green-tea\?sort=price_asc$/);
-    await expect(count(page, '8 products')).toBeVisible();
+    await expect(count(page, '9 products')).toBeVisible();
   });
 
   test('choosing a pack size updates the price and the URL', async ({ page }) => {

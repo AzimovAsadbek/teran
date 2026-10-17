@@ -5,37 +5,81 @@ import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { cn } from '@/lib/cn';
 
+interface BrewingEntry {
+  code: string;
+  grams: number;
+  gramsMax?: number;
+  temperature: number;
+  temperatureMax?: number;
+  minMinutes: number;
+  maxMinutes: number;
+}
+
 /**
- * Brewing guidance per tea type. Green tea follows the instructions printed on TERAN's green tea
- * packs (5 g per 250 ml, 90 °C, 2–3 minutes); the other types carry general, widely used guidance
- * (not product claims).
+ * How to brew each of the five TERAN teas, as the owner gives it (2026-10-17): grams per 250 ml,
+ * water temperature and steeping time. The same values are on each product's page.
  */
-export const BREWING_GUIDE = [
-  { type: 'green', temperature: 90, minMinutes: 2, maxMinutes: 3, grams: 5 },
-  { type: 'black', temperature: 95, minMinutes: 3, maxMinutes: 5, grams: 2.5 },
-  { type: 'white', temperature: 85, minMinutes: 3, maxMinutes: 5, grams: 2.5 },
-  { type: 'oolong', temperature: 90, minMinutes: 3, maxMinutes: 5, grams: 3 },
-  { type: 'puerh', temperature: 95, minMinutes: 3, maxMinutes: 5, grams: 3 },
-] as const;
+export const BREWING_GUIDE: readonly BrewingEntry[] = [
+  { code: 'XC2025', grams: 5, temperature: 80, temperatureMax: 90, minMinutes: 2, maxMinutes: 3 },
+  { code: 'G8810', grams: 5, temperature: 90, minMinutes: 2, maxMinutes: 3 },
+  {
+    code: '8800',
+    grams: 3,
+    gramsMax: 5,
+    temperature: 85,
+    temperatureMax: 90,
+    minMinutes: 2,
+    maxMinutes: 2,
+  },
+  {
+    code: '8830',
+    grams: 3,
+    gramsMax: 5,
+    temperature: 85,
+    temperatureMax: 90,
+    minMinutes: 2,
+    maxMinutes: 2,
+  },
+  {
+    code: '8009',
+    grams: 3,
+    gramsMax: 5,
+    temperature: 85,
+    temperatureMax: 90,
+    minMinutes: 2,
+    maxMinutes: 2,
+  },
+];
 
 /** The pack's "Tayyorlash usuli" panel: a green title bar and the facts side by side. */
 export function BrewingGuide() {
   const t = useTranslations('Brewing');
   const baseId = useId();
   const [active, setActive] = useState(0);
-  const current = BREWING_GUIDE[active] ?? BREWING_GUIDE[0];
+  const current = BREWING_GUIDE[active] ?? BREWING_GUIDE[0]!;
 
   const facts = [
-    { icon: Scale, label: t('amount'), value: t('gramsPerCup', { grams: current.grams }) },
+    {
+      icon: Scale,
+      label: t('amount'),
+      value: current.gramsMax
+        ? t('gramsRangePerCup', { min: current.grams, max: current.gramsMax })
+        : t('gramsPerCup', { grams: current.grams }),
+    },
     {
       icon: Thermometer,
       label: t('temperature'),
-      value: t('celsius', { value: current.temperature }),
+      value: current.temperatureMax
+        ? t('celsiusRange', { min: current.temperature, max: current.temperatureMax })
+        : t('celsius', { value: current.temperature }),
     },
     {
       icon: Timer,
       label: t('time'),
-      value: t('minutes', { min: current.minMinutes, max: current.maxMinutes }),
+      value:
+        current.maxMinutes !== current.minMinutes
+          ? t('minutes', { min: current.minMinutes, max: current.maxMinutes })
+          : t('minutesSingle', { min: current.minMinutes }),
     },
   ];
 
@@ -47,11 +91,11 @@ export function BrewingGuide() {
       <div className="p-5 sm:p-8">
         {/* Native radios: one tab stop and arrow-key selection come from the browser. */}
         <fieldset>
-          <legend className="sr-only">{t('chooseType')}</legend>
+          <legend className="sr-only">{t('chooseTea')}</legend>
           <div className="flex flex-wrap justify-center gap-2">
             {BREWING_GUIDE.map((entry, index) => (
               <label
-                key={entry.type}
+                key={entry.code}
                 className={cn(
                   'inline-flex h-10 cursor-pointer items-center rounded-full border px-4 text-body-sm font-semibold transition-colors duration-150',
                   'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
@@ -63,12 +107,12 @@ export function BrewingGuide() {
                 <input
                   type="radio"
                   name={`${baseId}-type`}
-                  value={entry.type}
+                  value={entry.code}
                   checked={index === active}
                   onChange={() => setActive(index)}
                   className="sr-only"
                 />
-                {t(`types.${entry.type}`)}
+                TERAN {entry.code}
               </label>
             ))}
           </div>
@@ -95,7 +139,7 @@ export function BrewingGuide() {
                 >
                   <Icon className="h-[1.125rem] w-[1.125rem]" />
                 </span>
-                <span className="mt-3 text-title-lg text-forest-900 sm:text-[1.5rem] sm:leading-tight">
+                <span className="mt-3 text-title-lg text-fg sm:text-[1.5rem] sm:leading-tight">
                   {value}
                 </span>
               </dd>

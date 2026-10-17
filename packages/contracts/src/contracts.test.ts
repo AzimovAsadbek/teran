@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  announcementSettingSchema,
+  FIXED_VISUAL_SLOTS,
   ORDER_STATUSES,
   ORDER_STATUS_TRANSITIONS,
   buildSearchText,
@@ -7,11 +9,14 @@ import {
   checkoutSchema,
   contactInquirySchema,
   formatUzPhone,
+  listingBannerSlot,
   normalizeSearchText,
   normalizeUzPhone,
   productListQuerySchema,
   productUpsertSchema,
   regionName,
+  visualSlotSchema,
+  visualsSettingSchema,
 } from './index.js';
 
 describe('normalizeUzPhone', () => {
@@ -198,5 +203,65 @@ describe('productUpsertSchema', () => {
     expect(result.success).toBe(false);
     const messages = result.error?.issues.map((issue) => issue.message);
     expect(messages).toEqual(expect.arrayContaining(['duplicate_sku', 'brew_time_order']));
+  });
+});
+
+describe('page pictures', () => {
+  const id = '01a139dd-acff-735f-b882-7227b6c2d156';
+  const picture = {
+    key: `visuals/${id}/abcdefghijkl`,
+    widths: [320, 640],
+    width: 640,
+    height: 400,
+  };
+
+  it('accepts the fixed places and listing banners by id', () => {
+    for (const slot of FIXED_VISUAL_SLOTS)
+      expect(visualSlotSchema.safeParse(slot).success).toBe(true);
+    expect(visualSlotSchema.safeParse(listingBannerSlot('category', id)).success).toBe(true);
+    expect(visualSlotSchema.safeParse(listingBannerSlot('collection', id)).success).toBe(true);
+  });
+
+  it('refuses unknown places, slugs and anything else', () => {
+    for (const slot of [
+      'about.idea.4',
+      'home.hero',
+      'banner:category:green-tea',
+      'banner:product:' + id,
+      '',
+    ]) {
+      expect(visualSlotSchema.safeParse(slot).success).toBe(false);
+    }
+  });
+
+  it('keeps a picture with an optional phone crop and source', () => {
+    const parsed = visualsSettingSchema.parse({ 'about.hero': { image: picture } });
+    expect(parsed['about.hero']).toEqual({ image: picture, mobile: null, source: null });
+    expect(
+      visualsSettingSchema.safeParse({ 'about.hero': { image: { ...picture, widths: [] } } })
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe('announcementSettingSchema', () => {
+  const setting = (href: string | null) => ({
+    enabled: true,
+    text: { uz: 'Xush kelibsiz', ru: 'Добро пожаловать', en: 'Welcome' },
+    href,
+  });
+
+  it('accepts a path on the site and no link', () => {
+    expect(announcementSettingSchema.safeParse(setting('/catalog')).success).toBe(true);
+    expect(announcementSettingSchema.safeParse(setting('/tea/green-tea?page=2')).success).toBe(
+      true,
+    );
+    expect(announcementSettingSchema.safeParse(setting(null)).success).toBe(true);
+  });
+
+  it('refuses addresses on another site, including protocol-relative ones', () => {
+    for (const href of ['https://example.com', '//example.com', '//2130706433', 'catalog']) {
+      expect(announcementSettingSchema.safeParse(setting(href)).success).toBe(false);
+    }
   });
 });

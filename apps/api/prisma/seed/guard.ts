@@ -44,6 +44,29 @@ export function assertSeedAllowed(env: Env): DatabaseTarget {
 }
 
 /**
+ * Material for a presentation on this machine only (a picture manifest marked `localOnly`):
+ * refused unless NODE_ENV is not "production", the database runs here and the pictures stay in
+ * the local uploads folder (no BLOB_READ_WRITE_TOKEN). There is no override.
+ */
+export function assertLocalOnly(env: Env): DatabaseTarget {
+  if (env.NODE_ENV === 'production') {
+    throw new Error('Refusing to load local-only material while NODE_ENV=production.');
+  }
+  const target = databaseTarget(env.DATABASE_URL);
+  if (!LOCAL_HOSTS.has(target.host)) {
+    throw new Error(
+      `${describeTarget(target)} is not on this machine; local-only material is never loaded there.`,
+    );
+  }
+  if (env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error(
+      'BLOB_READ_WRITE_TOKEN is set; local-only material is never uploaded to Vercel Blob.',
+    );
+  }
+  return target;
+}
+
+/**
  * Removing demo data is destructive, so every condition must hold:
  * - NODE_ENV is not "production" (there is no override);
  * - `confirm` repeats the name of the target database exactly;

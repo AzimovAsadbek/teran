@@ -36,11 +36,12 @@ import { AdminTaxonomyService } from './taxonomy.service.js';
     ContentModule,
     PaymentsModule,
     TelegramModule,
-    // Uploads stay in memory (sharp re-encodes them) and are capped by UPLOAD_MAX_BYTES.
+    // Uploads stay in memory (sharp re-encodes them) and are capped by UPLOAD_MAX_BYTES. At most
+    // two files: a page picture and its phone crop; every other endpoint takes only "file".
     MulterModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => ({
-        limits: { fileSize: config.get('UPLOAD_MAX_BYTES', { infer: true }), files: 1, fields: 5 },
+        limits: { fileSize: config.get('UPLOAD_MAX_BYTES', { infer: true }), files: 2, fields: 5 },
       }),
     }),
   ],

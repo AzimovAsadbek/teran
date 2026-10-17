@@ -128,9 +128,13 @@ export const productUpsertSchema = z
     isFeatured: z.boolean(),
     caffeineLevel: caffeineLevelSchema.nullable(),
     brewTempCelsius: z.number().int().min(40).max(100).nullable(),
+    /** Upper end when the pack gives a range ("80–90 °C"); null for one temperature. */
+    brewTempMaxCelsius: z.number().int().min(40).max(100).nullable().default(null),
     brewTimeMinSeconds: z.number().int().min(10).max(3600).nullable(),
     brewTimeMaxSeconds: z.number().int().min(10).max(3600).nullable(),
     brewAmountGrams: z.number().min(0.1).max(50).multipleOf(0.1).nullable(),
+    /** Upper end when the pack gives a range ("3–5 g"); null for one amount. */
+    brewAmountMaxGrams: z.number().min(0.1).max(50).multipleOf(0.1).nullable().default(null),
     illustrationKey: illustrationKeySchema.nullable(),
     collectionIds: z.array(z.uuid()).max(20),
     /** Decides which attributes apply; null = common fields only. */
@@ -148,6 +152,18 @@ export const productUpsertSchema = z
       product.brewTimeMaxSeconds === null ||
       product.brewTimeMaxSeconds >= product.brewTimeMinSeconds,
     { error: 'brew_time_order', path: ['brewTimeMaxSeconds'] },
+  )
+  .refine(
+    (product) =>
+      product.brewTempMaxCelsius === null ||
+      (product.brewTempCelsius !== null && product.brewTempMaxCelsius > product.brewTempCelsius),
+    { error: 'brew_range_order', path: ['brewTempMaxCelsius'] },
+  )
+  .refine(
+    (product) =>
+      product.brewAmountMaxGrams === null ||
+      (product.brewAmountGrams !== null && product.brewAmountMaxGrams > product.brewAmountGrams),
+    { error: 'brew_range_order', path: ['brewAmountMaxGrams'] },
   )
   .refine(
     (product) =>
@@ -535,9 +551,11 @@ export interface AdminProductDetail {
   isFeatured: boolean;
   caffeineLevel: CaffeineLevel | null;
   brewTempCelsius: number | null;
+  brewTempMaxCelsius: number | null;
   brewTimeMinSeconds: number | null;
   brewTimeMaxSeconds: number | null;
   brewAmountGrams: number | null;
+  brewAmountMaxGrams: number | null;
   illustrationKey: IllustrationKey | null;
   collectionIds: string[];
   translations: AdminTranslation<z.output<typeof productTranslationInputSchema>>;

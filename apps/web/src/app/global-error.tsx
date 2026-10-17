@@ -20,7 +20,7 @@ export default function GlobalError({
         <title>TERAN</title>
         <meta name="robots" content="noindex" />
         <main className="max-w-md" role="alert">
-          <h1 className="text-display-md text-forest-900">Nimadir notoʻgʻri ketdi</h1>
+          <h1 className="text-display-md text-fg">Nimadir notoʻgʻri ketdi</h1>
           <p className="mt-2 text-fg-muted" lang="ru">
             Что-то пошло не так
           </p>

@@ -90,6 +90,12 @@ const envObjectSchema = z.object({
    *   ALLOW_DEMO_PAYMENTS=true records that decision explicitly.
    */
   PAYMENT_PROVIDER_MODE: z.enum(['live', 'demo']).default('live'),
+  /**
+   * Online ordering (adding to a cart, placing an order, starting a payment). Off unless set, so a
+   * deployment whose storefront takes orders by phone (NEXT_PUBLIC_SHOW_PRICES unset) cannot be
+   * ordered from by calling the API directly. Turn it on together with the storefront's prices.
+   */
+  CHECKOUT_ENABLED: flag.default(false),
   ALLOW_DEMO_PAYMENTS: flag.default(false),
   /** Minutes an online payment may stay unpaid before the order is cancelled and stock returned. */
   ONLINE_PAYMENT_WINDOW_MINUTES: z.coerce

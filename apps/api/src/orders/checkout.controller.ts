@@ -8,6 +8,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -25,6 +26,7 @@ import {
 import type { Request } from 'express';
 import { DeliveryService } from '../delivery/delivery.service.js';
 import { PaymentConfig } from '../payments/payment-config.js';
+import { CheckoutEnabledGuard } from './checkout-enabled.guard.js';
 import { OrdersService } from './orders.service.js';
 
 @ApiTags('checkout')
@@ -63,6 +65,7 @@ export class CheckoutController {
   }
 
   @Post('orders')
+  @UseGuards(CheckoutEnabledGuard)
   @HttpCode(HttpStatus.CREATED)
   @Header('Cache-Control', 'private, no-store')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })

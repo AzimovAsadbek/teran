@@ -42,7 +42,7 @@ export function AccountPageHeader({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-display-lg text-forest-900">{title}</h1>
+        <h1 className="text-display-lg text-fg">{title}</h1>
         {text ? <p className="mt-2 max-w-2xl text-body text-fg-muted">{text}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -66,7 +66,7 @@ export function AccountPanel({
       aria-label={title}
       className={cn('rounded-panel border border-line bg-surface p-5 sm:p-7', className)}
     >
-      <h2 className="text-display-sm text-forest-900">{title}</h2>
+      <h2 className="text-display-sm text-fg">{title}</h2>
       {text ? <p className="mt-1 text-body-sm text-fg-subtle">{text}</p> : null}
       <div className="mt-5">{children}</div>
     </section>

@@ -54,9 +54,21 @@ async function Purchases() {
               key={product.sku}
               className="flex gap-4 rounded-card border border-line bg-surface p-4"
             >
-              <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted">
-                <ProductImage image={product.image} name={product.productName} sizes="80px" />
-              </span>
+              {product.available ? (
+                // The picture leads where "View product" does (for a pointer only).
+                <Link
+                  href={`/products/${product.productSlug}`}
+                  tabIndex={-1}
+                  aria-hidden
+                  className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted"
+                >
+                  <ProductImage image={product.image} name={product.productName} sizes="80px" />
+                </Link>
+              ) : (
+                <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted">
+                  <ProductImage image={product.image} name={product.productName} sizes="80px" />
+                </span>
+              )}
               <span className="min-w-0 flex-1">
                 <span className="block text-title-sm text-fg">{product.productName}</span>
                 <span className="block text-body-sm text-fg-subtle">

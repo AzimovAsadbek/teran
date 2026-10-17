@@ -141,20 +141,31 @@ Product images (`apps/api/src/media/image-processing.ts`), staff only:
 
 ```
 default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
-img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none';
+img-src 'self' data: blob: https://tile.openstreetmap.org; media-src 'self' blob:;
+font-src 'self'; connect-src 'self'; object-src 'none';
 base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 ```
 
 plus `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
 `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`
-and a `Permissions-Policy` that disables camera, microphone, geolocation, payment and USB. Caddy
-adds `Strict-Transport-Security: max-age=31536000` and removes the `Server` header.
+and a `Permissions-Policy` that disables camera, microphone, payment and USB and allows
+geolocation to this origin only (`geolocation=(self)`), for the store locator's "use my
+location" button; the browser still asks the visitor. Caddy adds
+`Strict-Transport-Security: max-age=31536000` and removes the `Server` header.
+
+**The one third-party origin.** The store locator (`/stores`) draws its map from OpenStreetMap's
+tiles, so `img-src` allows `https://tile.openstreetmap.org` (images only: no script, style or
+connection reaches it; the browser sends it the page's origin as the referrer, as the tile usage
+policy asks). It is allowed on every page rather than on `/stores` alone because a page opened
+through an in-app link keeps the policy of the document the visitor first loaded. The map credits
+OpenStreetMap's contributors, as its licence requires.
 
 **Why `'unsafe-inline'` instead of nonces.** A nonce must be unique per response, which forces
 every page to render on each request and gives up static prerendering and the partial
 prerendering of Cache Components. Next.js inlines its hydration data, so a static policy has to
-allow inline scripts. The policy compensates by allowing no third-party origin at all (scripts,
-styles, fonts, images, connections and form targets are same-origin only), by never rendering
+allow inline scripts. The policy compensates by allowing no third-party origin for anything that
+can run or send data (scripts, styles, fonts, connections and form targets are same-origin only;
+the map tiles above are images), by never rendering
 user-supplied HTML (journal articles are plain text, rendered as text), and by escaping the only
 inline JSON (JSON-LD: `<` is written as `\u003c`). `eval` stays forbidden: the browser runs Zod
 in jitless mode (`apps/web/src/instrumentation-client.ts`), so nothing even attempts it. Revisit with nonces or hashes if third-party scripts

@@ -17,10 +17,13 @@ export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: L
   const t = await getTranslations('Common');
   const trail: Crumb[] = [{ label: t('home'), href: '/' }, ...items];
 
+  // Search engines need an address for every step but the last, so a step without a page of its
+  // own (the collections heading) stays out of the structured data.
+  const linked = trail.filter((crumb, index) => crumb.href || index === trail.length - 1);
   const structured = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: trail.map((crumb, index) => ({
+    itemListElement: linked.map((crumb, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       name: crumb.label,
@@ -39,7 +42,10 @@ export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: L
                 {crumb.label}
               </Link>
             ) : (
-              <span aria-current="page" className="text-fg-muted">
+              <span
+                aria-current={index === trail.length - 1 ? 'page' : undefined}
+                className="text-fg-muted"
+              >
                 {crumb.label}
               </span>
             )}

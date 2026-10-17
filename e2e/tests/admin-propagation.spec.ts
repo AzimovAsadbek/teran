@@ -184,6 +184,33 @@ test.describe('admin changes reach the storefront', () => {
     await store.context().close();
   });
 
+  test('page pictures: a catalogue banner set in Settings fills the header until it is removed', async ({
+    page,
+    browser,
+  }) => {
+    await signInAsAdmin(page);
+    const store = await storefront(browser);
+    await page.goto('/en/admin/settings');
+    const card = page
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('heading', { name: 'Catalogue banner', exact: true }) });
+    await card.locator('input[type="file"]').first().setInputFiles(PICTURES.terraces);
+    await card.getByRole('button', { name: 'Upload', exact: true }).click();
+    const remove = card.getByRole('button', { name: 'Remove', exact: true });
+    await expect(remove).toBeVisible();
+    // The phone crop can be added once the main picture is there.
+    await expect(card.locator('input[type="file"]')).toHaveCount(2);
+
+    const banner = store.locator('main header picture img[src*="/uploads/visuals/"]');
+    await eventually(store, '/en/catalog', () => expect(banner).toBeVisible({ timeout: 1_000 }));
+
+    await remove.click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(remove).toHaveCount(0);
+    await eventually(store, '/en/catalog', () => expect(banner).toHaveCount(0, { timeout: 1_000 }));
+    await store.context().close();
+  });
+
   test('a new category shows in the menu at once, its texts update, and it goes when switched off', async ({
     page,
     browser,
@@ -490,7 +517,7 @@ test.describe('what visitors send reaches the admin area', () => {
     await visible(form.getByLabel(/^Your name/)).fill('Propagation Visitor');
     await visible(form.getByLabel(/^Email/)).fill(`visitor-${id}@example.test`);
     await visible(form.getByLabel(/^Message/)).fill('A question about gift boxes for a wedding.');
-    await visible(form.getByRole('button', { name: 'Send', exact: true })).click();
+    await visible(form.getByRole('button', { name: 'Send message', exact: true })).click();
     await expect(visible(visitor.getByText('Your message has been sent'))).toBeVisible();
 
     // A newsletter subscription from the footer.

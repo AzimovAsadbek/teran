@@ -15,12 +15,12 @@ export function Skeleton({ className }: { className?: string }) {
 /** Placeholder with the same footprint as a product card. */
 export function ProductCardSkeleton() {
   return (
-    <div aria-hidden className="overflow-hidden rounded-sm bg-surface shadow-card">
-      <Skeleton className="aspect-square rounded-none" />
-      <div className="px-2 pt-3 pb-4 sm:px-2.5">
-        <Skeleton className="h-3 w-1/3" />
-        <Skeleton className="mt-2 h-5 w-3/4" />
-        <Skeleton className="mt-4 h-4 w-1/2" />
+    <div aria-hidden className="overflow-hidden rounded-[0.5rem] bg-surface shadow-card">
+      <Skeleton className="aspect-square rounded-none rounded-t-[0.75rem]" />
+      <div className="flex flex-col gap-1 p-2">
+        <Skeleton className="my-1 h-4 w-1/3" />
+        <Skeleton className="h-8 w-3/4" />
+        <Skeleton className="my-1 h-4 w-1/2" />
       </div>
     </div>
   );

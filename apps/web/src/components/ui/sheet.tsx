@@ -122,10 +122,7 @@ export function Sheet({
           <header className="flex items-center gap-3 border-b border-line px-5 py-3.5 sm:px-6">
             <h2
               id={titleId}
-              className={cn(
-                'min-w-0 flex-1 text-display-sm text-forest-900',
-                hideTitle && 'sr-only',
-              )}
+              className={cn('min-w-0 flex-1 text-display-sm text-fg', hideTitle && 'sr-only')}
             >
               {title}
             </h2>

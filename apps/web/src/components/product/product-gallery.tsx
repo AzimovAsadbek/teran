@@ -2,40 +2,77 @@
 
 import type { ImageDto } from '@teran/contracts';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
 import { ProductImage } from '@/components/catalog/product-image';
 import { IconButton } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 
+/** The zoomed gallery's code arrives when the shopper reaches for the pictures, not with the page. */
+const loadZoom = () => import('./product-zoom');
+const ProductZoom = dynamic(() => loadZoom().then((module) => module.ProductZoom), {
+  ssr: false,
+});
+
 /**
- * The picture's real width in the page column (gutters 1.5 rem up to 4.45 vw, two columns 48 px
- * apart from 1024 px), so a phone loads the 960 px file rather than the 1280 px one.
+ * The picture's real width in the reference's 1440 px frame: edge to edge on phones, then one of
+ * two columns 40 px apart between 40 px margins (700 px at most), so each screen loads the file it
+ * needs.
  */
-const MAIN_SIZES =
-  '(min-width: 1440px) 632px, (min-width: 1024px) calc(45.5vw - 1.5rem), (min-width: 640px) 91vw, calc(100vw - 3rem)';
+const MAIN_SIZES = '(min-width: 95rem) 700px, (min-width: 46.875rem) calc(50vw - 3.75rem), 100vw';
+
+/** Whether the page has finished loading, its first picture included (never on the server). */
+function subscribeToLoad(onChange: () => void) {
+  window.addEventListener('load', onChange);
+  return () => window.removeEventListener('load', onChange);
+}
+const pageLoaded = () => document.readyState === 'complete';
+const loadedOnServer = () => false;
 
 /**
  * Product images as a row of slides that scroll sideways with snap points: a swipe on touch
  * screens, the arrow buttons, the thumbnails or ←/→ elsewhere. The browser does the movement
  * (smooth scrolling, or an instant jump with reduced motion). Only the first image is part of the
- * first load (it is the page's largest paint); the others are fetched once the shopper reaches for
+ * first load (it is the page's largest paint), and its thumbnail shows the same file; the other
+ * thumbnails follow once the page has loaded, and the other images once the shopper reaches for
  * the gallery (pointer over it, a touch, keyboard focus), so a visit that never browses the
- * images costs no extra bytes.
+ * images costs only their thumbnails.
  */
 export function ProductGallery({ images, name }: { images: ImageDto[]; name: string }) {
   const t = useTranslations('Product');
   const [index, setIndex] = useState(0);
   const [primed, setPrimed] = useState(false);
+  // The picture the zoomed gallery opened at, while it is open.
+  const [zoomAt, setZoomAt] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  // On a slow connection the thumbnails would share the first picture's bandwidth.
+  const loaded = useSyncExternalStore(subscribeToLoad, pageLoaded, loadedOnServer);
   const count = images.length;
+
+  const zoom =
+    zoomAt === null ? null : (
+      <ProductZoom images={images} name={name} start={zoomAt} onClose={() => setZoomAt(null)} />
+    );
+  /** The picture opens the zoomed gallery, as the reference's does. */
+  const zoomButton = (imageIndex: number, focusable: boolean) => (
+    <button
+      type="button"
+      tabIndex={focusable ? 0 : -1}
+      onClick={() => setZoomAt(imageIndex)}
+      aria-label={t('zoomImage', { index: imageIndex + 1 })}
+      className="absolute inset-0 cursor-zoom-in focus-visible:outline-offset-[-3px]"
+    />
+  );
 
   if (count < 2) {
     return (
       <section aria-label={t('gallery')} className="lg:sticky lg:top-40">
         <div className="relative aspect-square overflow-hidden bg-surface">
           <ProductImage image={images[0] ?? null} name={name} sizes={MAIN_SIZES} priority />
+          {images[0] ? zoomButton(0, true) : null}
         </div>
+        {zoom}
       </section>
     );
   }
@@ -60,7 +97,10 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
   };
 
   const prime = () => {
-    if (!primed) setPrimed(true);
+    if (primed) return;
+    setPrimed(true);
+    // The zoom's code, so a click on a picture opens it at once.
+    void loadZoom();
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -93,7 +133,7 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
             <div
               key={image.src}
               aria-hidden={imageIndex === index ? undefined : true}
-              className="h-full w-full shrink-0 snap-center snap-always"
+              className="relative h-full w-full shrink-0 snap-center snap-always"
             >
               {imageIndex === 0 || primed ? (
                 <ProductImage
@@ -103,23 +143,25 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
                   priority={imageIndex === 0}
                 />
               ) : null}
+              {zoomButton(imageIndex, imageIndex === index)}
             </div>
           ))}
         </div>
+        {/* The reference's arrows: teal, bare (no disc), 22 px with a heavy stroke. */}
         <IconButton
           label={t('previousImage')}
-          icon={<ArrowLeft />}
-          variant="ghost"
+          icon={<ArrowLeft strokeWidth={2.5} className="h-[1.375rem]! w-[1.375rem]!" />}
+          variant="plain"
           onClick={() => show(index - 1)}
           // IconButton nudges itself down when pressed, so centre with top rather than translate.
-          className="absolute top-[calc(50%-1.375rem)] left-1"
+          className="absolute top-[calc(50%-1.375rem)] left-1 text-[#107e84]!"
         />
         <IconButton
           label={t('nextImage')}
-          icon={<ArrowRight />}
-          variant="ghost"
+          icon={<ArrowRight strokeWidth={2.5} className="h-[1.375rem]! w-[1.375rem]!" />}
+          variant="plain"
           onClick={() => show(index + 1)}
-          className="absolute top-[calc(50%-1.375rem)] right-1"
+          className="absolute top-[calc(50%-1.375rem)] right-1 text-[#107e84]!"
         />
         <p
           aria-hidden
@@ -128,7 +170,8 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
           {index + 1} / {count}
         </p>
       </div>
-      <ul className="mt-3 flex justify-center gap-2 sm:mt-4">
+      {/* Centred under the picture; they wrap rather than spill out of a narrow column. */}
+      <ul className="mt-3 flex flex-wrap justify-center gap-2 sm:mt-4">
         {images.map((image, imageIndex) => (
           <li key={image.src}>
             <button
@@ -143,11 +186,17 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
                   : 'border-line hover:border-line-strong',
               )}
             >
-              <ProductImage image={image} name={name} sizes="80px" />
+              {imageIndex === 0 ? (
+                // The first picture's own file (the same `sizes` choose the same one): no download.
+                <ProductImage image={image} name={name} sizes={MAIN_SIZES} />
+              ) : loaded || primed ? (
+                <ProductImage image={image} name={name} sizes="80px" />
+              ) : null}
             </button>
           </li>
         ))}
       </ul>
+      {zoom}
     </section>
   );
 }

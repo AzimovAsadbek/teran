@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, ShoppingBag, Store } from 'lucide-react';
+import { Search, ShoppingBag } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -11,6 +11,7 @@ import { Link } from '@/i18n/navigation';
 import type { HeaderAccount } from '@/lib/session';
 import { whenIdle } from '@/lib/when-idle';
 import { AccountMenu } from './account-menu';
+import { showPrices } from '@/lib/site';
 
 const loadSearch = () => import('@/components/search/search-dialog');
 const SearchDialog = dynamic(() => loadSearch().then((module) => module.SearchDialog), {
@@ -18,9 +19,9 @@ const SearchDialog = dynamic(() => loadSearch().then((module) => module.SearchDi
 });
 
 /**
- * The bar's right side, as on the reference: a text utility link with its icon (TERAN's business
- * page, where the reference has its store finder), then search, account and bag as 44 px icons.
- * Below 1280 px only search and bag stay here (account and language are in the drawer).
+ * The bar's right side, as on the reference: its store finder as a text link with a solid pin,
+ * then search, account and bag as 44 px icons. Below 1280 px only search and bag stay here
+ * (account and language are in the drawer).
  */
 export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) {
   const t = useTranslations('Nav');
@@ -42,33 +43,50 @@ export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) 
   }
 
   return (
-    <div className="flex items-center justify-end xl:gap-4">
+    // The reference's actions: 32 px apart (40 px from 1920 px) and unchanged when pointed at.
+    <div className="flex items-center justify-end xl:gap-8 min-[120rem]:gap-10">
       <Link
-        href="/wholesale"
-        className="mr-3 hidden h-11 items-center gap-2 text-[0.9375rem] font-medium whitespace-nowrap text-fg transition-colors duration-150 hover:text-brand xl:inline-flex"
+        href="/stores"
+        className="hidden h-11 items-center gap-1 text-[0.9375rem] leading-6 font-medium whitespace-nowrap text-fg xl:inline-flex"
       >
-        <Store aria-hidden className="h-5 w-5 text-forest-900" />
-        {t('wholesale')}
+        <PinMark />
+        {t('findStore')}
       </Link>
       <IconButton
         label={t('search')}
-        icon={<Search />}
+        variant="plain"
+        icon={<Search className="h-[1.77rem]! w-[1.77rem]!" />}
         onClick={searchActions.open}
         onPointerEnter={() => void loadSearch()}
         onFocus={() => void loadSearch()}
         aria-haspopup="dialog"
       />
       <AccountMenu account={account} />
-      <IconButton
-        label={t('cartCount', { count })}
-        icon={<ShoppingBag />}
-        onClick={cartActions.openDrawer}
-        aria-haspopup="dialog"
-        badge={count > 0 ? (count > 99 ? '99+' : count) : null}
-        badgeBump={bump}
-        className="-mr-2 xl:mr-0"
-      />
+      {showPrices ? (
+        <IconButton
+          label={t('cartCount', { count })}
+          icon={<ShoppingBag />}
+          onClick={cartActions.openDrawer}
+          aria-haspopup="dialog"
+          badge={count > 0 ? (count > 99 ? '99+' : count) : null}
+          badgeBump={bump}
+          className="-mr-2 xl:mr-0"
+        />
+      ) : null}
       {searchReady ? <SearchDialog open={searchOpen} onClose={searchActions.close} /> : null}
     </div>
+  );
+}
+
+/** The reference's solid location pin, 21 px. */
+function PinMark() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="h-[1.34rem] w-[1.34rem] text-fg">
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M12 1.6a7.6 7.6 0 0 0-7.6 7.6c0 5.6 6.6 12.4 6.9 12.7a1 1 0 0 0 1.4 0c.3-.3 6.9-7.1 6.9-12.7A7.6 7.6 0 0 0 12 1.6Zm0 10.6a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"
+      />
+    </svg>
   );
 }

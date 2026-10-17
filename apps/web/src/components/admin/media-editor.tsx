@@ -130,7 +130,7 @@ export function MediaEditor({
             aria-labelledby="media-files-title"
             className="scroll-mt-24 space-y-6 rounded-card border border-line bg-surface p-5 sm:p-6"
           >
-            <h2 id="media-files-title" className="text-body-lg font-semibold text-forest-900">
+            <h2 id="media-files-title" className="text-body-lg font-semibold text-fg">
               {t('media.files')}
             </h2>
             {video ? (
@@ -318,7 +318,7 @@ function ItemActions({ item }: { item: AdminMediaItem }) {
         <Link
           href={item.kind === 'VIDEO' ? '/media/videos' : '/media/photos'}
           target="_blank"
-          className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
+          className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-fg hover:underline"
         >
           <ExternalLink aria-hidden className="h-4 w-4" />
           {t('media.viewOnSite')}

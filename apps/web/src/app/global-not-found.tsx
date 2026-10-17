@@ -17,7 +17,7 @@ export default function GlobalNotFound() {
       <body className="flex min-h-dvh items-center justify-center bg-canvas p-6 text-center">
         <main className="max-w-md">
           <p className="text-eyebrow text-accent-fg">404</p>
-          <h1 className="mt-3 text-display-md text-forest-900">Sahifa topilmadi</h1>
+          <h1 className="mt-3 text-display-md text-fg">Sahifa topilmadi</h1>
           <p className="mt-2 text-fg-muted" lang="ru">
             Страница не найдена
           </p>

@@ -30,7 +30,7 @@ async function ForgotPassword() {
     <p>
       <Link
         href="/account/login"
-        className="font-semibold text-forest-900 underline-offset-4 hover:underline"
+        className="font-semibold text-fg underline-offset-4 hover:underline"
       >
         {t('login')}
       </Link>
@@ -43,10 +43,7 @@ async function ForgotPassword() {
       <AuthCard title={t('forgotTitle')} footer={footer}>
         <p className="text-center text-fg-muted">{t('resetUnavailable')}</p>
         <p className="mt-4 text-center">
-          <Link
-            href="/contact"
-            className="font-semibold text-forest-900 underline underline-offset-4"
-          >
+          <Link href="/contact" className="font-semibold text-fg underline underline-offset-4">
             {tn('contact')}
           </Link>
         </p>

@@ -11,6 +11,8 @@ import {
   type deliveryMethodUpsertSchema,
   type Paginated,
   type SettingKey,
+  type StoresSetting,
+  type VisualsSetting,
 } from '@teran/contracts';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
@@ -27,6 +29,9 @@ import {
   imageStore,
   type ImageStore,
   storeImage,
+  type StoredImage,
+  visualImagePrefix,
+  WIDE_IMAGE_WIDTHS,
 } from '../media/image-processing.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
@@ -82,7 +87,7 @@ export class AdminContentService {
 
   async updateSetting(
     key: SettingKey,
-    value: AnnouncementSetting | ContactSetting,
+    value: AnnouncementSetting | ContactSetting | StoresSetting,
     actor: Actor,
   ): Promise<SettingValues> {
     await this.settings.update(key, value, actor.userId);
@@ -95,6 +100,126 @@ export class AdminContentService {
     });
     this.revalidation.notify('settings');
     return this.settings.getAll();
+  }
+
+  // ─── Page pictures ─────────────────────────────────────────────────────────
+
+  /**
+   * Sets the picture of a place on the storefront, replacing the previous one, whose files are
+   * removed once the setting is saved. A taller crop for phones sent with it replaces the current
+   * one; without it, the current crop stays. The slot has been validated by the controller.
+   */
+  async setVisual(
+    slot: string,
+    files: { image: Buffer; mobile: Buffer | null },
+    source: string | null,
+    actor: Actor,
+  ): Promise<SettingValues> {
+    const stored: StoredImage[] = [];
+    try {
+      stored.push(await storeImage(files.image, this.images, visualImagePrefix(), WIDE_PICTURE));
+      if (files.mobile) {
+        stored.push(await storeImage(files.mobile, this.images, visualImagePrefix(), WIDE_PICTURE));
+      }
+    } catch (error) {
+      for (const item of stored) await deleteStoredImage(this.images, item.storageKey);
+      uploadError(error);
+    }
+    const [image, mobile] = stored.map(storedPicture);
+    const { visuals } = await this.settings.getAll();
+    const previous = visuals[slot];
+    const keptMobile = mobile ? null : (previous?.mobile ?? null);
+    try {
+      await this.settings.update(
+        'visuals',
+        { ...visuals, [slot]: { image: image!, mobile: mobile ?? keptMobile, source } },
+        actor.userId,
+      );
+      await this.audit.record({
+        actorUserId: actor.userId,
+        action: 'settings.visual.set',
+        entityType: 'SiteSetting',
+        entityId: slot,
+        metadata: { source, mobile: Boolean(mobile) },
+        ipAddress: actor.ipAddress,
+      });
+    } catch (error) {
+      for (const item of stored) await deleteStoredImage(this.images, item.storageKey);
+      throw error;
+    }
+    if (previous) {
+      await deleteStoredImage(this.images, previous.image.key);
+      if (previous.mobile && !keptMobile) await deleteStoredImage(this.images, previous.mobile.key);
+    }
+    this.revalidation.notify('settings');
+    return this.settings.getAll();
+  }
+
+  /**
+   * Sets (file) or removes (null) the taller crop for phones of a place that has a picture. The
+   * previous crop's files are removed once the setting is saved.
+   */
+  async setVisualMobile(slot: string, file: Buffer | null, actor: Actor): Promise<SettingValues> {
+    const { visuals } = await this.settings.getAll();
+    const current = visuals[slot];
+    if (!current) {
+      throw ApiException.badRequest('BAD_REQUEST', 'Set the main picture first', {
+        reason: 'visual_missing',
+      });
+    }
+    let stored: StoredImage | null = null;
+    if (file) {
+      try {
+        stored = await storeImage(file, this.images, visualImagePrefix(), WIDE_PICTURE);
+      } catch (error) {
+        uploadError(error);
+      }
+    }
+    try {
+      await this.settings.update(
+        'visuals',
+        { ...visuals, [slot]: { ...current, mobile: stored ? storedPicture(stored) : null } },
+        actor.userId,
+      );
+      await this.audit.record({
+        actorUserId: actor.userId,
+        action: stored ? 'settings.visual.mobile' : 'settings.visual.mobile.remove',
+        entityType: 'SiteSetting',
+        entityId: slot,
+        ipAddress: actor.ipAddress,
+      });
+    } catch (error) {
+      if (stored) await deleteStoredImage(this.images, stored.storageKey);
+      throw error;
+    }
+    if (current.mobile) await deleteStoredImage(this.images, current.mobile.key);
+    this.revalidation.notify('settings');
+    return this.settings.getAll();
+  }
+
+  /** Removes a place's picture: the storefront shows TERAN's artwork there again. */
+  async removeVisual(slot: string, actor: Actor): Promise<SettingValues> {
+    const { visuals } = await this.settings.getAll();
+    const previous = visuals[slot];
+    if (!previous) return this.settings.getAll();
+    const rest: VisualsSetting = { ...visuals };
+    delete rest[slot];
+    await this.settings.update('visuals', rest, actor.userId);
+    await this.audit.record({
+      actorUserId: actor.userId,
+      action: 'settings.visual.remove',
+      entityType: 'SiteSetting',
+      entityId: slot,
+      ipAddress: actor.ipAddress,
+    });
+    await this.deleteVisualFiles(previous);
+    this.revalidation.notify('settings');
+    return this.settings.getAll();
+  }
+
+  private async deleteVisualFiles(visual: VisualsSetting[string]): Promise<void> {
+    await deleteStoredImage(this.images, visual.image.key);
+    if (visual.mobile) await deleteStoredImage(this.images, visual.mobile.key);
   }
 
   // ─── Delivery methods ──────────────────────────────────────────────────────
@@ -499,4 +624,17 @@ export class AdminContentService {
       }),
     };
   }
+}
+
+/** Page pictures span the page: renditions up to 2560 px and at the picture's own width. */
+const WIDE_PICTURE = { widths: WIDE_IMAGE_WIDTHS, fullWidth: true } as const;
+
+/** A stored image as the `visuals` setting keeps it. */
+function storedPicture(stored: StoredImage): VisualsSetting[string]['image'] {
+  return {
+    key: stored.storageKey,
+    widths: stored.widths,
+    width: stored.width,
+    height: stored.height,
+  };
 }

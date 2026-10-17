@@ -64,7 +64,9 @@ const env = stackEnv('api');
 runInApi(['exec', 'prisma', 'migrate', 'deploy'], env);
 await truncateAll(E2E_DATABASE_URL);
 rmSync(E2E_UPLOADS_DIR, { recursive: true, force: true });
-runInApi(['exec', 'prisma', 'db', 'seed'], env);
+// The generic test range as well as TERAN's teas: the journeys need other tea types, pack sizes,
+// a sale price, low and no stock and a draft.
+runInApi(['exec', 'prisma', 'db', 'seed'], { ...env, SEED_TEST_CATALOGUE: 'true' });
 // The administrator used by the admin journeys, created exactly as an operator would.
 runInApi(['admin:create', '--first-name', 'E2E'], {
   ...env,

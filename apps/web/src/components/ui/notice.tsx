@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 export type NoticeTone = 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 
 const TONES: Record<NoticeTone, { box: string; icon: ReactNode }> = {
-  info: { box: 'border-forest-700/15 bg-info-soft text-forest-900', icon: <Info aria-hidden /> },
+  info: { box: 'border-forest-700/15 bg-info-soft text-fg', icon: <Info aria-hidden /> },
   success: {
     box: 'border-success/20 bg-success-soft text-success',
     icon: <CircleCheck aria-hidden />,

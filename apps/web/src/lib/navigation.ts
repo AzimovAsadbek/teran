@@ -4,7 +4,9 @@ import type {
   CollectionDto,
   IllustrationKey,
   ImageDto,
+  PublicVisualDto,
 } from '@teran/contracts';
+import { showAdvisor, showGallery } from './site';
 
 /*
  * The catalogue as the menus and category cards show it, built from the API's category and
@@ -48,13 +50,23 @@ export interface NavArticle {
   cover: ImageDto | null;
 }
 
+/** The four desktop menus, whose right-hand picture Admin → Settings can set (`menu.<name>`). */
+export type MenuPicture = 'shop' | 'collections' | 'learn' | 'about';
+
 export interface Navigation {
   categories: NavCategoryTree[];
   collections: NavCollection[];
   articles: NavArticle[];
+  /** Pictures set for the menus; a menu without one shows its category, article or artwork. */
+  pictures: Partial<Record<MenuPicture, PublicVisualDto>>;
 }
 
-export const EMPTY_NAVIGATION: Navigation = { categories: [], collections: [], articles: [] };
+export const EMPTY_NAVIGATION: Navigation = {
+  categories: [],
+  collections: [],
+  articles: [],
+  pictures: {},
+};
 
 export function navArticles(articles: ArticleSummaryDto[]): NavArticle[] {
   return articles.map((article) => ({
@@ -70,23 +82,32 @@ export function navArticles(articles: ArticleSummaryDto[]): NavArticle[] {
  */
 export const LEARN_LINKS = [
   { href: '/journal', label: 'journal' },
-  { href: '/assistant', label: 'assistant' },
-  { href: '/media/photos', label: 'photos' },
-  { href: '/media/videos', label: 'videos' },
+  { href: '/tea-101', label: 'tea101' },
+  // The advisor and the gallery only while they are shown (lib/site showAdvisor, showGallery).
+  ...(showAdvisor ? ([{ href: '/assistant', label: 'assistant' }] as const) : []),
+  ...(showGallery
+    ? ([
+        { href: '/media/photos', label: 'photos' },
+        { href: '/media/videos', label: 'videos' },
+      ] as const)
+    : []),
 ] as const;
 
 export const ABOUT_LINKS = [
   { href: '/about', label: 'about' },
   { href: '/wholesale', label: 'wholesale' },
   { href: '/journal', label: 'journal' },
-  { href: '/media', label: 'media' },
+  ...(showGallery ? ([{ href: '/media', label: 'media' }] as const) : []),
 ] as const;
 
 export const HELP_LINKS = [
   { href: '/contact', label: 'contact' },
+  // The header's "find a store" is a desktop utility; phones reach it here (and in the footer).
+  { href: '/stores', label: 'findStore' },
   { href: '/delivery', label: 'delivery' },
   { href: '/returns', label: 'returns' },
   { href: '/faq', label: 'faq' },
+  { href: '/accessibility', label: 'accessibility' },
   { href: '/terms', label: 'terms' },
   { href: '/privacy', label: 'privacy' },
 ] as const;

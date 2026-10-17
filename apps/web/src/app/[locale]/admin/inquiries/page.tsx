@@ -93,7 +93,7 @@ export default async function AdminInquiriesPage({
             <li key={item.id} className="rounded-card border border-line bg-surface p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold text-forest-900">
+                  <p className="font-semibold text-fg">
                     {'companyName' in item
                       ? `${item.companyName} · ${item.contactName}`
                       : item.name}

@@ -14,9 +14,12 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
+import type { PublicVisualDto } from '@teran/contracts';
 import { CategoryArt } from '@/components/catalog/category-art';
+import { VisualPicture } from '@/components/content/visual-picture';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { showAdvisor } from '@/lib/site';
 import {
   ABOUT_LINKS,
   EMPTY_NAVIGATION,
@@ -31,32 +34,33 @@ import lake from '../../../public/brand/art/lake.webp';
 
 type MenuId = 'shop' | 'collections' | 'learn' | 'about';
 
-const OPEN_DELAY_MS = 120;
-const CLOSE_DELAY_MS = 220;
+/** The reference's hover timings (its dt-navigation.js): open, close, and switch a category. */
+const OPEN_DELAY_MS = 60;
+const CLOSE_DELAY_MS = 160;
+const SECTION_DELAY_MS = 80;
 
-/** Each menu's panel has its own tint, as on the reference (cream, jade, gold, sage). */
+/** Each menu's panel has its own tint, as on the reference (stone, pistachio, peach, sky). */
 const PANEL_TONE: Record<MenuId, string> = {
-  shop: 'bg-ivory-100',
-  collections: 'bg-jade-100',
-  learn: 'bg-gold-50',
-  about: 'bg-sage-100',
+  shop: 'bg-[#e9e8df]',
+  collections: 'bg-[#c6e7c0]',
+  learn: 'bg-[#ffeadc]',
+  about: 'bg-[#c9ebfc]',
 };
 
 /*
- * A trigger fills the bar's height; its underline sits on the bar's lower edge. 16 px labels from
- * 1440 px (the reference); a little tighter from 1280 px, so the longest labels (Uzbek) stay clear
- * of the centred wordmark.
+ * A trigger fills the bar's height, as the reference's: 16 px semibold words, a 2 px rule along
+ * the bar's lower edge that colours in (200 ms) while pointed at or open; the words keep their ink.
  */
 const ITEM =
-  'relative inline-flex h-full items-center gap-1 px-2 text-[0.9375rem] font-medium whitespace-nowrap text-fg transition-colors duration-[220ms] ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-brand min-[90rem]:gap-1.5 min-[90rem]:px-3 min-[90rem]:text-[1rem] ' +
-  "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:origin-left after:scale-x-0 after:bg-forest-900 after:transition-transform after:duration-200 after:content-['']";
+  'inline-flex h-full items-center gap-0.5 border-b-2 border-transparent px-1 text-[1rem] leading-6 font-semibold whitespace-nowrap text-fg transition-[border-color] duration-200 ease-[ease] hover:border-[#00a6a5] aria-expanded:border-[#00a6a5]';
 
-const COLUMN_HEADING = 'font-heading text-[2rem] leading-[1.1] text-forest-900';
+const COLUMN_HEADING = 'font-heading text-[2rem] leading-[1.2] text-black';
+/** The reference's menu links: 15 px words that are underlined while pointed at. */
 const COLUMN_LINK_BASE =
-  'inline-flex min-h-8 max-w-full items-center gap-2 py-1 text-[0.9375rem] transition-colors duration-[220ms] ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-brand hover:underline hover:underline-offset-4';
+  'inline-flex min-h-6 max-w-full items-center gap-2 text-[0.9375rem] leading-6 font-medium tracking-[0.01em] hover:underline hover:underline-offset-4';
 const COLUMN_LINK = `${COLUMN_LINK_BASE} text-fg`;
 /** The closing "all in …" link of a column. */
-const COLUMN_LINK_STRONG = `${COLUMN_LINK_BASE} font-semibold text-forest-900`;
+const COLUMN_LINK_STRONG = `${COLUMN_LINK_BASE} font-semibold text-fg`;
 
 /**
  * Desktop navigation from 1280 px (narrower screens use the drawer), on the reference's model:
@@ -131,7 +135,15 @@ export function DesktopNav({ navigation }: { navigation: Promise<Navigation> }) 
         </Suspense>
       ),
     },
-    { id: 'about', label: t('about'), panel: <AboutPanel /> },
+    {
+      id: 'about',
+      label: t('about'),
+      panel: (
+        <Suspense fallback={<AboutPanel navigation={EMPTY_NAVIGATION} />}>
+          <Streamed navigation={navigation} render={(data) => <AboutPanel navigation={data} />} />
+        </Suspense>
+      ),
+    },
   ];
 
   return (
@@ -146,7 +158,7 @@ export function DesktopNav({ navigation }: { navigation: Promise<Navigation> }) 
       }}
     >
       <nav aria-label={t('main')} className="h-full">
-        <ul className="-ml-2 flex h-full items-stretch min-[90rem]:-ml-3 min-[90rem]:gap-1">
+        <ul className="-ml-1 flex h-full items-stretch gap-4">
           {menus.map((menu) => (
             // Each panel follows its trigger in the DOM, so Tab moves from a button into its menu.
             <li key={menu.id} className="flex">
@@ -159,13 +171,14 @@ export function DesktopNav({ navigation }: { navigation: Promise<Navigation> }) 
                 onPointerEnter={(event) =>
                   event.pointerType === 'mouse' && schedule(menu.id, OPEN_DELAY_MS)
                 }
-                className={cn(ITEM, 'aria-expanded:text-brand aria-expanded:after:scale-x-100')}
+                className={ITEM}
               >
                 {menu.label}
                 <ChevronDown
                   aria-hidden
+                  strokeWidth={2.25}
                   className={cn(
-                    'h-4 w-4 transition-transform duration-200',
+                    'h-3.5 w-3.5 -translate-y-px transition-transform duration-200',
                     openMenu === menu.id && 'rotate-180',
                   )}
                 />
@@ -219,13 +232,14 @@ function MegaPanel({
       inert={!open}
       data-open={open ? '' : undefined}
       className={cn(
-        // The reference's panel: fades in while sliding 4 px into place, 220 ms, a soft ease-out.
-        'invisible absolute inset-x-0 top-full -translate-y-1 opacity-0 shadow-[0_28px_48px_-36px_rgb(8_43_13_/_0.45)] transition-[opacity,translate,visibility] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] data-open:visible data-open:translate-y-0 data-open:opacity-100 motion-reduce:transition-none',
+        // The reference's panel: a hairline on top, a deep soft shadow; it fades in while sliding
+        // 6 px into place (220 ms, a soft ease-out).
+        'invisible absolute inset-x-0 top-full -translate-y-1.5 border-t border-black/10 opacity-0 shadow-[0_34px_17px_rgb(0_0_0_/_15%)] transition-[opacity,translate,visibility] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] data-open:visible data-open:translate-y-0 data-open:opacity-100 motion-reduce:transition-none',
         className,
       )}
     >
       {opened ? (
-        <div className="container-page max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain py-8">
+        <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain px-12 pt-[1.9375rem] pb-10">
           {children}
         </div>
       ) : null}
@@ -233,51 +247,51 @@ function MegaPanel({
   );
 }
 
-/** The picture card on a panel's right (258×310 on the reference) with its label over it. */
+/**
+ * The picture card on a panel's right (258×310 on the reference) with its label over it. It shows
+ * what it leads to: the category's, collection's or article's own picture (`children`), so the
+ * page it opens shows the same one; the menu's picture from Admin → Settings (`photo`) only stands
+ * in for an item without a picture of its own, or for a page that is not an item.
+ */
 function FeatureCard({
   href,
   label,
+  photo,
   children,
 }: {
   href: string;
   label: string;
+  /** The menu's picture from Admin → Settings, shown instead of `children` when given. */
+  photo?: PublicVisualDto | null;
   children: ReactNode;
 }) {
   return (
+    // The reference's tile: the picture brightens a little while pointed at (350 ms), under a
+    // shade along its lower third and its label in white capitals.
     <Link
       href={href}
       tabIndex={-1}
       aria-hidden
       className="cat-card group relative block h-[19.375rem] w-full overflow-hidden rounded-tile bg-forest-900 text-ivory-50"
     >
-      {children}
-      <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-forest-950/85 via-forest-950/35 to-transparent px-4 pt-16 pb-4">
-        <span className="flex items-end justify-between gap-3">
-          <span className="font-headline text-[1.75rem]">{label}</span>
-          <ArrowRight
-            aria-hidden
-            className="mb-1 h-5 w-5 shrink-0 transition-transform duration-200 group-hover:translate-x-1"
-          />
-        </span>
+      <span className="picture-hover absolute inset-0">
+        {photo ? <VisualPicture visual={photo} sizes="16rem" /> : children}
+      </span>
+      <span className="absolute inset-0 bg-[linear-gradient(to_bottom,rgb(0_0_0_/_0)_66%,rgb(0_0_0_/_50%))]" />
+      <span className="absolute bottom-4 left-4 z-[1] max-w-[calc(100%-2rem)] font-headline text-[1.5rem] leading-[1.1]">
+        {label}
       </span>
     </Link>
   );
 }
 
 function PhotoFill({ src, sizes }: { src: StaticImageData; sizes: string }) {
-  return (
-    <Image
-      src={src}
-      alt=""
-      fill
-      sizes={sizes}
-      className="object-cover transition-transform duration-500 ease-[var(--ease-soft)] group-hover:scale-[1.04]"
-    />
-  );
+  return <Image src={src} alt="" fill sizes={sizes} className="object-cover" />;
 }
 
+/** The reference's category pills: teal capitals, a tint when pointed at, filled when chosen. */
 const CATEGORY_TAB =
-  'flex min-h-[2.625rem] items-center rounded-full px-4 py-1.5 font-headline text-[1.25rem] leading-none text-jade-700 transition-colors duration-[220ms] hover:bg-forest-900/[0.06] data-active:bg-jade-700 data-active:text-ivory-50';
+  'flex min-h-[2.625rem] items-center rounded-full px-4 py-1.5 font-headline text-[1.25rem] leading-none tracking-[0.02em] text-[#2e8e93] hover:bg-[#2e8e93]/10 data-active:bg-[#2e8e93] data-active:text-ivory-50';
 
 /**
  * The category whose picture the panel's card shows: the subcategory pointed at, else the
@@ -301,13 +315,21 @@ function ShopPanel({ navigation }: { navigation: Navigation }) {
   const { categories } = navigation;
   const [active, setActive] = useState(0);
   const [pointed, setPointed] = useState<NavCategory | null>(null);
+  const sectionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const current: NavCategoryTree | undefined =
     categories[Math.min(active, Math.max(categories.length - 1, 0))];
   const rows = categories.length;
   const activate = (index: number) => {
+    clearTimeout(sectionTimer.current);
     setActive(index);
     setPointed(null);
   };
+  // As the reference's: a category pointed at takes over after a short pause (80 ms).
+  const point = (index: number) => {
+    clearTimeout(sectionTimer.current);
+    sectionTimer.current = setTimeout(() => activate(index), SECTION_DELAY_MS);
+  };
+  useEffect(() => () => clearTimeout(sectionTimer.current), []);
 
   return (
     <div
@@ -318,14 +340,15 @@ function ShopPanel({ navigation }: { navigation: Navigation }) {
     >
       <span
         aria-hidden
-        className="rounded-tile bg-canvas/80"
+        className="rounded-tile bg-[#f2f1e9]"
         style={{ gridColumn: 1, gridRow: `1 / ${rows + 2}` }}
       />
       {categories.map((category, index) => (
         <Fragment key={category.slug}>
           <Link
             href={`/${category.path}`}
-            onPointerEnter={() => activate(index)}
+            onPointerEnter={() => point(index)}
+            onPointerLeave={() => clearTimeout(sectionTimer.current)}
             onFocus={() => activate(index)}
             data-active={category === current ? '' : undefined}
             style={{ gridColumn: 1, gridRow: index + 1 }}
@@ -337,14 +360,18 @@ function ShopPanel({ navigation }: { navigation: Navigation }) {
             <>
               <CategoryColumns category={category} onPoint={setPointed} />
               <div style={{ gridColumn: 3, gridRow: '1 / -1', alignSelf: 'start' }}>
-                <FeaturedCategory category={featuredOf(category, pointed)} variant={index} />
+                <FeaturedCategory
+                  category={featuredOf(category, pointed)}
+                  variant={index}
+                  photo={navigation.pictures.shop}
+                />
               </div>
             </>
           ) : null}
         </Fragment>
       ))}
       <div
-        className="mx-4 mb-4 border-t border-line pt-3"
+        className="mx-4 mb-4 border-t border-black/[0.12] pt-2"
         style={{ gridColumn: 1, gridRow: rows + 1 }}
       >
         <Link href="/catalog" className={CATEGORY_TAB}>
@@ -355,9 +382,22 @@ function ShopPanel({ navigation }: { navigation: Navigation }) {
   );
 }
 
-function FeaturedCategory({ category, variant }: { category: NavCategory; variant: number }) {
+function FeaturedCategory({
+  category,
+  variant,
+  photo,
+}: {
+  category: NavCategory;
+  variant: number;
+  /** The shop menu's picture from Admin → Settings, for a category without a picture. */
+  photo?: PublicVisualDto;
+}) {
   return (
-    <FeatureCard href={`/${category.path}`} label={category.name}>
+    <FeatureCard
+      href={`/${category.path}`}
+      label={category.name}
+      photo={category.image ? null : photo}
+    >
       <CategoryArt category={category} variant={variant} sizes="16rem" />
     </FeatureCard>
   );
@@ -380,7 +420,7 @@ function CategoryColumns({
     >
       <div className="min-w-0">
         <p className={COLUMN_HEADING}>{category.name}</p>
-        <ul className="mt-4">
+        <ul className="mt-4 flex flex-col gap-2">
           {category.children.map((child) => (
             <li key={child.slug}>
               <Link
@@ -406,7 +446,7 @@ function CategoryColumns({
       </div>
       <div className="min-w-0">
         <p className={COLUMN_HEADING}>{t('browse')}</p>
-        <ul className="mt-4">
+        <ul className="mt-4 flex flex-col gap-2">
           <li>
             <Link href={`/${category.path}?sort=newest`} className={COLUMN_LINK}>
               {t('newest')}
@@ -422,11 +462,13 @@ function CategoryColumns({
               {t('shopAll')}
             </Link>
           </li>
-          <li>
-            <Link href="/assistant" className={COLUMN_LINK}>
-              {t('assistant')}
-            </Link>
-          </li>
+          {showAdvisor ? (
+            <li>
+              <Link href="/assistant" className={COLUMN_LINK}>
+                {t('assistant')}
+              </Link>
+            </li>
+          ) : null}
         </ul>
       </div>
     </div>
@@ -442,7 +484,7 @@ function CollectionsPanel({ navigation }: { navigation: Navigation }) {
     <div className="grid min-h-[19.375rem] grid-cols-[minmax(0,1fr)_16.25rem] gap-x-10">
       <div className="min-w-0">
         <p className={COLUMN_HEADING}>{t('collections')}</p>
-        <ul className="mt-4 columns-3 gap-x-10">
+        <ul className="mt-4 columns-3 gap-x-14 [&>li]:mb-2">
           {collections.map((collection) => (
             <li key={collection.slug} className="break-inside-avoid">
               <Link href={`/collections/${collection.slug}`} className={COLUMN_LINK}>
@@ -462,7 +504,11 @@ function CollectionsPanel({ navigation }: { navigation: Navigation }) {
         </ul>
       </div>
       {first ? (
-        <FeatureCard href={`/collections/${first.slug}`} label={first.name}>
+        <FeatureCard
+          href={`/collections/${first.slug}`}
+          label={first.name}
+          photo={first.image ? null : navigation.pictures.collections}
+        >
           <CategoryArt category={first} variant={1} sizes="16rem" />
         </FeatureCard>
       ) : null}
@@ -481,7 +527,7 @@ function LearnPanel({ navigation }: { navigation: Navigation }) {
       <div className="grid min-w-0 grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] content-start gap-x-10">
         <div className="min-w-0">
           <p className={COLUMN_HEADING}>{t('articles')}</p>
-          <ul className="mt-4">
+          <ul className="mt-4 flex flex-col gap-2">
             {articles.map((article) => (
               <li key={article.slug}>
                 <Link href={`/journal/${article.slug}`} className={COLUMN_LINK}>
@@ -499,7 +545,7 @@ function LearnPanel({ navigation }: { navigation: Navigation }) {
         </div>
         <div className="min-w-0">
           <p className={COLUMN_HEADING}>{t('guides')}</p>
-          <ul className="mt-4">
+          <ul className="mt-4 flex flex-col gap-2">
             {LEARN_LINKS.filter((link) => link.href !== '/journal').map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className={COLUMN_LINK}>
@@ -511,6 +557,7 @@ function LearnPanel({ navigation }: { navigation: Navigation }) {
         </div>
       </div>
       {cover?.cover && coverSources ? (
+        // The article's own cover, as its page opens with it.
         <FeatureCard href={`/journal/${cover.slug}`} label={t('featuredArticle')}>
           {/* eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009) */}
           <img
@@ -524,7 +571,7 @@ function LearnPanel({ navigation }: { navigation: Navigation }) {
           />
         </FeatureCard>
       ) : (
-        <FeatureCard href="/journal" label={t('journal')}>
+        <FeatureCard href="/journal" label={t('journal')} photo={navigation.pictures.learn}>
           <PhotoFill src={lake} sizes="16rem" />
         </FeatureCard>
       )}
@@ -533,14 +580,14 @@ function LearnPanel({ navigation }: { navigation: Navigation }) {
 }
 
 /** The brand's own pages and the help pages, with the pack's landscape as the picture. */
-function AboutPanel() {
+function AboutPanel({ navigation }: { navigation: Navigation }) {
   const t = useTranslations('Nav');
   return (
     <div className="grid min-h-[19.375rem] grid-cols-[minmax(0,1fr)_16.25rem] gap-x-10">
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] content-start gap-x-10">
         <div>
           <p className={COLUMN_HEADING}>{t('brandWorld')}</p>
-          <ul className="mt-4">
+          <ul className="mt-4 flex flex-col gap-2">
             {ABOUT_LINKS.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className={COLUMN_LINK}>
@@ -552,7 +599,7 @@ function AboutPanel() {
         </div>
         <div>
           <p className={COLUMN_HEADING}>{t('help')}</p>
-          <ul className="mt-4">
+          <ul className="mt-4 flex flex-col gap-2">
             {HELP_LINKS.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className={COLUMN_LINK}>
@@ -563,7 +610,7 @@ function AboutPanel() {
           </ul>
         </div>
       </div>
-      <FeatureCard href="/about" label={t('ourStory')}>
+      <FeatureCard href="/about" label={t('ourStory')} photo={navigation.pictures.about}>
         <PhotoFill src={lake} sizes="16rem" />
       </FeatureCard>
     </div>

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 /**
- * Renders journal article text. The format is deliberately tiny and never parsed as HTML:
+ * Renders journal article text in the reference's article type. The format is deliberately tiny and never parsed as HTML:
  * blank lines separate blocks, "## " starts a heading and lines starting with "- " form a list.
  */
 export function ArticleBody({ body }: { body: string }) {
@@ -14,12 +14,16 @@ export function ArticleBody({ body }: { body: string }) {
     let list: string[] = [];
     const flush = (key: string) => {
       if (paragraph.length) {
-        nodes.push(<p key={`${key}-p`}>{paragraph.join(' ')}</p>);
+        nodes.push(
+          <p key={`${key}-p`} className="mb-[1.125rem]">
+            {paragraph.join(' ')}
+          </p>,
+        );
         paragraph = [];
       }
       if (list.length) {
         nodes.push(
-          <ul key={`${key}-ul`} className="list-disc space-y-2 pl-5 marker:text-accent">
+          <ul key={`${key}-ul`} className="mb-[1.125rem] list-disc pl-6">
             {list.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
@@ -34,7 +38,10 @@ export function ArticleBody({ body }: { body: string }) {
       if (line.startsWith('## ')) {
         flush(key);
         nodes.push(
-          <h2 key={`${key}-h`} className="pt-5 text-display-sm text-forest-900">
+          <h2
+            key={`${key}-h`}
+            className="mt-10 mb-1.5 font-headline text-[1.5rem] leading-6 text-[#121212] [--heading-case:none] [--headline-weight:600]"
+          >
             {line.slice(3).trim()}
           </h2>,
         );
@@ -49,5 +56,11 @@ export function ArticleBody({ body }: { body: string }) {
     flush(`${blockIndex}-end`);
   });
 
-  return <div className="space-y-5 text-body-lg text-fg-muted">{nodes}</div>;
+  // The reference's article text: 18 px on 28.8 px, 18 px between paragraphs, condensed 24 px
+  // headings 40 px below the text before them.
+  return (
+    <div className="text-[1.125rem] leading-[1.8rem] font-medium text-[#121212] [&>h2:first-child]:mt-0">
+      {nodes}
+    </div>
+  );
 }

@@ -341,3 +341,248 @@ Prefetching stays on: links still prefetch one App Shell per route.
 **Consequences.** Smaller documents (homepage 80 → 60 kB compressed), one render per request and
 less hydration work on phones. A route opened again by a link is not served from that inlined
 copy; it uses its prefetched App Shell and streams its data, as any other navigation does.
+
+## ADR-026: The seed loads TERAN's catalogue; a generic range only for tests
+
+**Context.** The seed's demonstration catalogue (21 generic teas around TERAN's five) was loaded
+everywhere, including the live site. On 2026-10-17 the owner supplied the real data for the five
+teas and asked for the site to show only those. The end-to-end journeys, however, need other tea
+types, pack sizes and formats, a sale price, low and no stock and a draft.
+
+**Decision.** `db:seed` loads the five TERAN teas (owner's descriptions, 400 g pouches, pouch
+photographs, barcodes) and the contact channels the owner supplied. The generic range is marked
+`testOnly` and loaded only with `SEED_TEST_CATALOGUE=true`, which `e2e/scripts/prepare-db.ts`
+sets. Without it, a database seeded earlier has its generic range archived and its empty
+categories and collections switched off, once; renamed TERAN products move to their new slugs with
+redirects, and their packs keep their rows.
+
+**Consequences.** The live catalogue and the tested catalogue differ: tests cover the platform's
+capabilities, the site shows the shop. Nothing is deleted (orders keep their products); staff can
+bring any archived product back from the admin area. Records changed after the retirement date are
+left alone by later seeds.
+
+## ADR-027: Prices hidden behind a build flag; orders by phone and messengers
+
+**Context.** On 2026-10-17 the owner asked for every price to be removed from the site for now,
+without deleting them: staff must still be able to enter prices in the admin area. Until prices
+return, shoppers order by phone, Telegram and WhatsApp.
+
+**Decision.** `NEXT_PUBLIC_SHOW_PRICES` (web, build time; off unless `true`), read as `showPrices`
+from `apps/web/src/lib/site.ts`. Off: no price, sale badge, price filter or price sort; no bag,
+quick-add or checkout (`/checkout` redirects to `/cart`, which says how to order); product pages
+show the pack and TERAN's contact channels where the bag button was; product structured data has
+no offers; delivery fees, payment methods and the demonstration notice about prices are hidden;
+the delivery page and the FAQ describe ordering by phone and messengers. The advisor is asked
+with `prices: false`, so its answers name no price and ignore budgets. The API, the admin area
+and the data are unchanged; the end-to-end tests build with the flag on.
+
+**Consequences.** One variable and a rebuild bring prices back. The catalogue API still returns
+prices (the storefront does not display them; they are not secret), and customer accounts still
+show the amounts of earlier orders.
+
+## ADR-028: Page pictures set in the admin area; reference pictures loaded from ignored folders
+
+**Context.** The 1:1 reference clone (docs/design/reference-map.md) fills its banners, slides,
+bento tiles, menus and about page with photographs. TERAN's pages drew those places from product
+cut-outs and brand art, and the owner needs to change the pictures without a release. On
+2026-10-17 the owner also stated that TERAN may reuse the reference's pictures (written permission)
+and asked for the site to match the reference, pictures included, for a presentation to a client.
+
+**Decision.** A `visuals` site setting maps fixed places (`home.hero.1`, `home.bento.3`,
+`menu.shop`, `about.hero`, `banner:catalog`, and a banner per category or collection, stored
+under its id) to a stored picture, an optional taller phone crop and its source. Settings → Page
+pictures uploads, replaces and removes them through the API's image pipeline (WebP renditions up
+to 2560 px, plus the picture's own width for full-width places). A place without a picture keeps
+TERAN's artwork, so the pages stay complete without any. Reference pictures are never committed
+(the repository is public): `apps/api/scripts/import-visuals.ts` loads them from git-ignored
+folders by manifest (page pictures, article and category covers, product photographs) and takes
+them out again with `--remove` (docs/design/reference-assets.md). A manifest marked `localOnly`
+(the presentation mockup with DAVIDsTEA's packs and products) is refused unless the database runs
+on this machine, outside production and without Blob storage.
+
+**Consequences.** Editors control every large picture of the storefront. The mockup can be shown
+on the owner's machine without reaching terantrade.uz, and removed with one command before any
+launch; until then the local database differs from the live one.
+
+## ADR-029: The reference's palette; the advisor hidden behind a build flag
+
+**Context.** The owner asked for the reference's colours as well as its layouts, and for the
+product advisor to be left out of the storefront for now (its code kept).
+
+**Decision.** The design tokens in `apps/web/src/styles/globals.css` keep their names (forest,
+gold, jade, ivory, sage) and take the reference's values: its teal for the brand band, footer and
+buttons, its black promo strip, white and warm greys, and its campaign colours as named tokens
+(lavender, cherry, wine, blush, tangerine, navy, sky, ocean, matcha, cream, sun, reef). Background
+colours are the reference's exactly; where its text fails WCAG 2.2 AA (white or teal words on its
+lighter colours), the text takes a darker ink of the same hue (`tangerine-ink`, `matcha-ink`,
+`teal-ink`, `blush-light`, `forest-800`) or solid white on the teal. `NEXT_PUBLIC_SHOW_ADVISOR`
+(web, build time; off unless `true`, read as `showAdvisor` from `apps/web/src/lib/site.ts`) shows
+the advisor's links in the menus, footer, catalogue, about page and sitemap, and its home banner
+(an ordering banner takes its place).
+
+**Consequences.** The storefront reads as the reference while passing the automated
+accessibility suite. TERAN's own brand colours return by changing the token values in one file.
+`/assistant` still works for a direct visit and in the tests; one variable and a rebuild bring the
+advisor's links back.
+
+## ADR-030: The reference's widgets and interaction tokens
+
+**Context.** On 2026-10-17 the owner asked for the storefront to behave as well as look like the
+reference: the same clickable parts and links, the same changes under the pointer, its chat in
+the lower right corner, its 1920 px page width, and no social-network blocks it does not have.
+
+**Decision.** Pointer feedback comes from shared tokens and utilities in
+`apps/web/src/styles/globals.css` measured on the reference (`--hover-duration` 0.2 s ease, pills
+lightening 8 % with a soft shadow, outlined pills frosting, rules thickening from 1 to 2 px,
+pictures brightening in 0.35 s, panels opening in 0.22 s); components use the utilities
+(`pill-hover`, `outline-hover`, `rule-hover`, `underline-reveal`, `picture-hover`) rather than
+their own colours. The page container is 1920 px wide (`container-page`), the footer 1600 px. The
+chat (`components/chat`) is a light disc that opens a teal window over the page: TERAN's advisor
+answers from the live catalogue, its delivery answer and contacts come from the site's settings,
+and the last conversation stays in the browser only; other controls open it with
+`OPEN_CHAT_EVENT`. The offer card (`layout/promo-popup.tsx`) appears after 20 s at the lower left
+and stays away for ten days once closed. The language menu is the reference's dropdown panel. The
+hero's social rail and the "social networks" pill beside the shop button were removed; the
+footer keeps its row of marks, as the reference's.
+
+**Consequences.** New components get the reference's behaviour by using the utilities. Colours the
+reference uses for text that fails WCAG 2.2 AA are darkened (see ADR-029), so a few hover and link
+colours differ slightly from its own.
+
+## ADR-031: The help centre as pages of the storefront
+
+**Context.** The reference's contact form and help centre are embedded third-party widgets
+(Gorgias): a teal panel with the form beside a portrait picture, and a help centre with a banner,
+search, category cards (grid or list), category pages, article pages and a results page. TERAN's
+form sends to its own API and its FAQ is part of the site's copy.
+
+**Decision.** The contact page draws the reference's panel and option cards itself (container
+queries follow the panel's width, as the embedded form follows its frame), keeping TERAN's fields
+(a phone as well as an e-mail; a subject chosen from a list). The FAQ groups become the help
+centre's categories and each question an article with one address in every language (made from
+its English question): `/faq`, `/faq/articles`, `/faq/[group]`, `/faq/[group]/[article]` and
+`/faq/search?q=` (not indexed). Category and article pages are prerendered from
+`generateStaticParams`; their address-dependent parts stream inside Suspense, as Partial
+Prefetching requires. Search runs in the browser over the same entries (all words, title matches
+first) and on the results page on the server. "Was this article helpful?" records nothing: it
+thanks the reader or, after "No", points to the contact page. Policy pages (privacy, terms,
+returns, delivery) follow the reference's page template: its warm banner with the title in lower
+case, a 920 px column of 16 px text, and on returns and delivery its promise card and teal
+headings; delivery shows the configured methods as its table.
+
+**Consequences.** No third-party script or frame is added and the answers stay editable in code
+with the rest of the copy. The help centre's pictures, the contact picture and the for-business
+page's pictures are page-picture places (ADR-028); the API now reads that setting place by place,
+so a place it does not know (data saved by a newer build) is left out on its own instead of
+hiding every picture.
+
+## ADR-032: The store locator from the admin's stores, on OpenStreetMap tiles
+
+**Context.** The reference's footer and header lead to a store locator (an embedded Storepoint
+widget on Google Maps): a search row with "use my location", a radius and a kind filter, the
+stores listed beside a map with pins, clusters and directions. TERAN had no list of points of
+sale, and the storefront's policy allowed no third-party origin.
+
+**Decision.** Stores are a site setting (`stores`: a list of up to 200 entries with a name, the
+address and opening hours in the three languages, a phone, latitude and longitude, kinds — shop,
+official dealer, wholesale — and whether it is shown), edited under Admin → Settings → Stores and
+saved with `PUT /admin/settings/stores` (admins only). Each store's picture is a page-picture place
+(`store:<id>`, ADR-028). The public settings carry the shown stores with the address and hours in
+the visitor's language. `/stores` draws the reference's panel itself: the search matches names and
+addresses in the browser; "use my location" asks the browser (the visitor is prompted) and then
+keeps the stores within the chosen radius, nearest first; the map is a small component of our own
+over OpenStreetMap's tiles (no map library, no key), with the attribution its licence asks for;
+directions open Google Maps with the store's coordinates. With no stores entered, the page says so
+and points to the contact and wholesale pages; nothing is invented.
+
+**Consequences.** The content security policy allows one third-party origin, for images only
+(`img-src https://tile.openstreetmap.org`), and the permissions policy allows geolocation to this
+origin (`geolocation=(self)`). Both apply site-wide because a page opened through an in-app link
+keeps the policy of the first document loaded (docs/architecture/security.md). The tile servers'
+usage policy suits a low-traffic page; a busier site would move to a tile provider with an
+agreement. The map is hard to use with a screen reader; the list carries the same facts, and the
+accessibility statement says so.
+
+## ADR-033: Footer pages, footer variants and the gallery behind a build flag
+
+**Context.** The owner asked for the reference's footer pages that are not specific to its company
+(its impact report, rewards, ambassadors, careers, gift cards, contests, investors and order
+tracking are), a footer that changes where the reference's does, and the photo and video gallery
+only if the reference has one (it does not).
+
+**Decision.** Tea 101 (`/tea-101`) follows the reference's page with general tea knowledge for the
+Chinese teas TERAN deals in (white, green, oolong, black, pu'erh); a kind gets a pill and a row of
+products only when TERAN's catalogue has that kind. It closes, as the reference's, with how much
+tea a pack makes (beside a page picture, `tea101.amount`) and three brewing steps, in the
+amounts, temperatures and times of TERAN's own teas. The accessibility page (`/accessibility`) is a
+statement of what this website does and does not do yet, not the reference's Canadian employer
+policy. The footer's link columns change on the for-business page as the reference's wholesale
+page does. The gallery stays in the code behind `NEXT_PUBLIC_SHOW_GALLERY` (off by default): when
+off it leaves the menus, the footer, the about page, the home page and the sitemap, and its pages
+are not indexed. The language menu shows each language's flag.
+
+**Consequences.** Turning the gallery on is a build setting, like prices and the advisor (ADR-027,
+ADR-029). Tea 101's words are the same for every shop and need no business details; its products
+follow the catalogue.
+
+## ADR-034: Pictures do what they show, and only unbranded pictures go live
+
+**Context.** The owner (2026-10-18) found an article previewed with a picture its own page does
+not have (the home page's pair showed a page picture, `home.pair.1`, beside a link to an article
+without a cover), asked that pictures not "just stand there" when they stand for something, and
+that the pictures stay when the site goes live with the current design.
+
+**Decision.** A picture shown with a link to an item is that item's own picture, so the page it
+opens shows the same one: the home pair's article card shows the newest article that has a cover
+(an article without one shows its illustration, as its page does), and the menus' cards show the
+category's, collection's or article's own picture; the menus' page pictures (`menu.*`) only stand
+in for an item without one, and `home.pair.1` is no longer shown (it stays a valid place so saved
+settings read). Where a picture stands for a link, a pointer on it follows the link (hero slides,
+bento tiles, the brewing and values bands, the pair, packs of the five teas on the about and
+for-business pages, which open their tea, and an order's or past purchase's product picture, as
+the bag's already did); the keyboard and screen readers keep the one named link
+(the pill), the pictures' links being hidden from them. A product's picture opens the reference's
+zoomed gallery (every picture full width, thumbnails, Escape to close; its code loads when the
+shopper reaches for the pictures). The reference pictures were sorted: the 27 without DAVIDsTEA's
+name, packs or products, and none shown as a TERAN product, are the set that goes live
+(`storage/reference-assets`, under the owner's stated permission); the 43 that show DAVIDsTEA's
+brand, products, staff, shops or store map, or other teas as TERAN's, stay a local mockup.
+
+**Consequences.** The live site keeps the design with those 27 pictures and TERAN's own pouches
+and paintings in the other places until TERAN uploads photographs; importing them into production
+is part of a deploy the owner asks for. A pointer can now reach a link from more of the page than
+the reference allows; keyboard and screen-reader behaviour is unchanged.
+
+## ADR-035: Ordering closed at the API, prices out of the page data, real status codes for crawlers
+
+**Context.** A security and search review before the 2026-10-18 release found three gaps. The
+storefront hides prices and takes orders by phone (ADR-027), but the API still accepted carts,
+orders and simulated payments from anyone calling it directly, so a script could reserve every
+pack in stock. The placeholder prices kept in the admin area were in the pages' data (the
+React payload of the product rows), where scrapers and AI crawlers read them. And because pages
+stream, an unknown or renamed product, article, category or collection answered 200 with a
+`noindex` tag (a renamed one by a meta refresh) instead of 404 or 308.
+
+**Decision.**
+
+- `CHECKOUT_ENABLED` (API, off unless `true`) guards adding to and changing a cart, placing an
+  order and starting or simulating a payment (`orders/checkout-enabled.guard.ts`, 503
+  `FEATURE_DISABLED`); reading a cart, an order or a payment's state stays open. It goes on
+  together with the storefront's `NEXT_PUBLIC_SHOW_PRICES`; the end-to-end and integration
+  environments set it.
+- While prices are hidden, the storefront's catalogue loaders send every price as 0 and no price
+  range (`lib/data/prices.ts`); nothing displays a price in that mode.
+- `generateMetadata` of those pages looks the item up and calls `permanentRedirect()` or
+  `notFound()` itself, and Googlebot joins Next.js's list of crawlers that get pages only once
+  their metadata is settled (`htmlLimitedBots` in next.config.ts), so they receive real 404s and
+  308s. Visitors keep the streamed pages.
+- The home page describes the shop as a schema.org `OnlineStore` built from Admin → Settings →
+  Contact (phones, e-mail, networks), with TERAN TRADE MChJ in Namangan; product pages add `url`,
+  `@id` and the packs' barcodes (`gtin13`). next-intl's `Link` header is off (pages state their own
+  language versions), and `NEXT_PUBLIC_DEMO_CONTENT` is `false` in production now that the
+  catalogue holds TERAN's own teas and texts.
+
+**Consequences.** Opening online sales takes two switches, one per project. Googlebot's requests
+are rendered without streaming (a little slower for it only). Admin-entered Instagram and YouTube
+addresses appear in the networks menu, the footer and the structured data as soon as they are
+saved.

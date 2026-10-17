@@ -80,7 +80,7 @@ export default async function AdminOrderPage({
     <>
       <Link
         href="/admin/orders"
-        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 hover:underline"
+        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-fg hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {t('orders.title')}
@@ -228,7 +228,7 @@ export default async function AdminOrderPage({
                   <dd className="tabular-nums">−{money(order.discountTotal)}</dd>
                 </div>
               ) : null}
-              <div className="flex justify-between gap-4 border-t border-line pt-2 text-body font-semibold text-forest-900">
+              <div className="flex justify-between gap-4 border-t border-line pt-2 text-body font-semibold text-fg">
                 <dt>{t('common.total')}</dt>
                 <dd className="tabular-nums">{money(order.total)}</dd>
               </div>
@@ -243,7 +243,7 @@ export default async function AdminOrderPage({
                 {order.payments.map((payment) => (
                   <li key={payment.id} className="rounded-control border border-line-subtle p-4">
                     <div className="flex flex-wrap items-center gap-2 text-body-sm">
-                      <span className="font-semibold text-forest-900">
+                      <span className="font-semibold text-fg">
                         {tco(`paymentMethods.${payment.method}`)}
                       </span>
                       <span className="text-fg-subtle">
@@ -311,14 +311,14 @@ export default async function AdminOrderPage({
           <Panel title={t('orders.historySection')}>
             <ol className="space-y-3 border-l-2 border-line pl-5 text-body-sm">
               <li>
-                <p className="font-semibold text-forest-900">{t('orders.historyCreated')}</p>
+                <p className="font-semibold text-fg">{t('orders.historyCreated')}</p>
                 <p className="text-xs text-fg-subtle">{formatDateTime(order.createdAt, locale)}</p>
               </li>
               {order.events
                 .filter((event) => event.fromStatus !== null || event.paymentStatus !== null)
                 .map((event) => (
                   <li key={event.id}>
-                    <p className="font-semibold text-forest-900">
+                    <p className="font-semibold text-fg">
                       {event.fromStatus !== event.toStatus
                         ? t(`orderStatus.${event.toStatus}`)
                         : t('orders.historyPayment', {

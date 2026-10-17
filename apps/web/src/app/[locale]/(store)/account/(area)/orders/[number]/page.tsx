@@ -52,14 +52,14 @@ async function AccountOrder({
     <div className="space-y-6">
       <Link
         href="/account/orders"
-        className="inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-2 text-body-sm font-semibold text-fg underline-offset-4 hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {ta('orders')}
       </Link>
       <div>
         <p className="text-eyebrow text-accent-fg">{t('statusTitle')}</p>
-        <h1 className="text-display-lg mt-2 text-forest-900">
+        <h1 className="text-display-lg mt-2 text-fg">
           {t('orderTitle', { number: order.number })}
         </h1>
       </div>

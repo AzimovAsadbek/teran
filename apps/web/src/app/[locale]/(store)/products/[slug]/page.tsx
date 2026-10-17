@@ -20,12 +20,15 @@ import { PurchasePanel } from '@/components/product/purchase-panel';
 import { RecentlyViewed } from '@/components/product/recently-viewed';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link, getPathname } from '@/i18n/navigation';
+import { getPathname } from '@/i18n/navigation';
 import { getProduct, getRelatedProducts, getSlugRedirect } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { namesFormat } from '@/lib/format';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
-import { siteUrl } from '@/lib/site';
+import { ShareButton } from '@/components/product/share-button';
+import { ContactToOrder } from '@/components/social/contact-to-order';
+import { packLabel } from '@/lib/format';
+import { showPrices, siteUrl } from '@/lib/site';
 
 function largestImageUrl(product: ProductDetailDto): string | null {
   const image = product.images[0];
@@ -45,10 +48,20 @@ export async function generateMetadata({
   } catch {
     return {}; // API unavailable: the page shows the error UI, which sets noindex itself
   }
-  if (!product) return { robots: { index: false } };
+  if (!product) {
+    // Settled before the page streams, so crawlers get a real 404, or a 308 to a renamed tea.
+    const current = await getSlugRedirect('products', slug).catch(() => null);
+    if (current) permanentRedirect(getPathname({ href: `/products/${current}`, locale }));
+    notFound();
+  }
   const image = largestImageUrl(product);
+  const title = product.seoTitle ?? product.name;
+  const pack = product.variants.length === 1 ? product.variants[0]?.weightGrams : null;
   return pageMetadata({
-    title: product.seoTitle ?? product.name,
+    // "TERAN G8810 — Yashil choy, 400 g": a name that carries the brand needs no "— TERAN".
+    title: /teran/i.test(title)
+      ? { absolute: `${title} — ${product.category.name}${pack ? `, ${pack} g` : ''}` }
+      : title,
     description: product.seoDescription ?? product.shortDescription ?? undefined,
     href: `/products/${product.slug}`,
     locale,
@@ -92,23 +105,30 @@ async function ProductView({
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Product',
+    '@id': `${productUrl}#product`,
+    url: productUrl,
     name: product.name,
     description: product.shortDescription ?? product.description ?? undefined,
     image: product.images.map(
       (image) => `${siteUrl}${image.src}/${image.widths[image.widths.length - 1]}.webp`,
     ),
     sku: initialVariant.sku,
+    ...(initialVariant.barcode ? { gtin13: initialVariant.barcode } : {}),
     brand: { '@type': 'Brand', name: 'TERAN' },
     category: product.category.name,
-    offers: product.variants.map((variant) => ({
-      '@type': 'Offer',
-      sku: variant.sku,
-      price: variant.price,
-      priceCurrency: variant.currency,
-      availability: AVAILABILITY[variant.stockLevel],
-      url: `${productUrl}?variant=${encodeURIComponent(variant.sku)}`,
-      itemCondition: 'https://schema.org/NewCondition',
-    })),
+    // No offer (it would publish the price) while the shop shows no prices.
+    offers: !showPrices
+      ? undefined
+      : product.variants.map((variant) => ({
+          '@type': 'Offer',
+          sku: variant.sku,
+          ...(variant.barcode ? { gtin13: variant.barcode } : {}),
+          price: variant.price,
+          priceCurrency: variant.currency,
+          availability: AVAILABILITY[variant.stockLevel],
+          url: `${productUrl}?variant=${encodeURIComponent(variant.sku)}`,
+          itemCondition: 'https://schema.org/NewCondition',
+        })),
   };
 
   const th = await getTranslations('Home');
@@ -119,10 +139,11 @@ async function ProductView({
     next: th('showcaseNext'),
   };
 
-  // The product's own parts sit in the page column; the rows of products bring their own.
+  // The product's own parts sit in the reference's 1440 px frame; the rows of products bring their
+  // own, in the same frame.
   return (
     <>
-      <div className="container-page">
+      <div className="container-frame">
         <Breadcrumbs
           locale={locale}
           items={[
@@ -131,18 +152,17 @@ async function ProductView({
           ]}
         />
         {/* The reference's two halves: gallery left, the product's column right. */}
-        <div className="mt-6 grid grid-cols-1 gap-8 sm:mt-8 lg:grid-cols-2 lg:gap-12">
-          <div>
+        <div className="mt-6 grid grid-cols-1 gap-8 sm:mt-8 min-[46.875rem]:grid-cols-2 min-[46.875rem]:gap-10">
+          {/* Edge to edge on phones, as the reference's gallery. */}
+          <div className="-mx-4 min-[46.875rem]:mx-0">
             <ProductGallery images={product.images} name={product.name} />
           </div>
           <div className="lg:pt-11">
             <p className="flex flex-wrap items-center gap-3">
-              <Link
-                href={`/${product.category.path}`}
-                className="inline-flex min-h-8 items-center rounded-full bg-jade-700 px-[1.375rem] text-[1rem] tracking-[0.04em] text-ivory-50 uppercase transition-[filter] duration-200 hover:brightness-110"
-              >
+              {/* The tea type as the reference's coloured label (not a link; the breadcrumbs are). */}
+              <span className="inline-flex min-h-8 items-center rounded-full bg-jade-700 px-[1.375rem] text-[1rem] tracking-[0.04em] text-ivory-50 uppercase">
                 {product.category.name}
-              </Link>
+              </span>
               {namesFormat(product.format) ? (
                 <span className="text-eyebrow text-fg-subtle">
                   {tc(`formats.${product.format}`)}
@@ -152,29 +172,59 @@ async function ProductView({
             <h1 className="mt-6 font-heading text-[1.75rem] leading-[1.2] text-fg sm:text-[2rem]">
               {product.name}
             </h1>
-            {product.isNew || product.onSale ? (
+            {product.isNew || (showPrices && product.onSale) ? (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {product.isNew ? <Badge tone="new">{t('badgeNew')}</Badge> : null}
-                {product.onSale ? <Badge tone="sale">{t('badgeSale')}</Badge> : null}
+                {showPrices && product.onSale ? <Badge tone="sale">{t('badgeSale')}</Badge> : null}
               </div>
             ) : null}
             <div className="mt-4">
-              <PurchasePanel
-                productName={product.name}
-                format={product.format}
-                variants={product.variants}
-                initialVariantId={initialVariant.id}
-                image={product.images[0] ?? null}
-                details={
-                  <>
-                    <ProductTabsSection product={product} />
-                    <AttributeRows product={product} />
-                  </>
-                }
-              />
+              {showPrices ? (
+                <PurchasePanel
+                  productName={product.name}
+                  format={product.format}
+                  variants={product.variants}
+                  initialVariantId={initialVariant.id}
+                  image={product.images[0] ?? null}
+                  details={
+                    <>
+                      <ProductTabsSection product={product} />
+                      <AttributeRows product={product} />
+                    </>
+                  }
+                />
+              ) : (
+                // No price and no bag for now: the pack, then how to order where the bag button
+                // would be (before the long description, so phones reach it without scrolling),
+                // then the product's facts.
+                <>
+                  <p className="text-[1.125rem] leading-[1.6] text-fg">
+                    {product.variants
+                      .map((variant) =>
+                        packLabel(variant, product.format, locale, (key, values) =>
+                          t(`units.${key}`, values),
+                        ),
+                      )
+                      .join(' · ')}
+                  </p>
+                  {/* The product cards' "Order" pill leads here (#order). */}
+                  <div id="order" className="scroll-mt-36">
+                    <ContactToOrder
+                      title={t('orderByContactTitle')}
+                      text={t('orderByContactText')}
+                      className="mt-5"
+                    />
+                  </div>
+                  <ProductTabsSection product={product} />
+                  <AttributeRows product={product} />
+                </>
+              )}
             </div>
             <DeliveryInfo options={options} />
             <DemoNotice variant="inline" className="mt-4" />
+            <div className="mt-4">
+              <ShareButton title={product.name} />
+            </div>
           </div>
         </div>
         <PreparationSection product={product} />
@@ -182,7 +232,7 @@ async function ProductView({
       <Suspense fallback={<RailFallback />}>
         <RelatedProducts product={product} />
       </Suspense>
-      <div className="container-page">
+      <div className="container-frame">
         <DifferenceSection product={product} />
       </div>
       <RecentlyViewed
@@ -190,6 +240,7 @@ async function ProductView({
         title={t('recentlyViewed')}
         cta={tn('shopAll')}
         labels={railLabels}
+        frame="content"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
     </>
@@ -249,6 +300,7 @@ async function RelatedProducts({ product }: { product: ProductDetailDto }) {
           next: th('showcaseNext'),
         }}
         heading="serif"
+        frame="content"
       />
     </div>
   );
@@ -256,7 +308,10 @@ async function RelatedProducts({ product }: { product: ProductDetailDto }) {
 
 function ProductSkeleton() {
   return (
-    <div className="mt-9 grid gap-8 sm:mt-11 lg:grid-cols-2 lg:gap-12 xl:gap-16" aria-hidden>
+    <div
+      className="mt-9 grid gap-8 sm:mt-11 min-[46.875rem]:grid-cols-2 min-[46.875rem]:gap-10"
+      aria-hidden
+    >
       <Skeleton className="aspect-square" />
       <div className="space-y-4 lg:pt-6">
         <Skeleton className="h-4 w-40" />
@@ -283,7 +338,7 @@ export default function ProductPage({
     <div className="pt-6 pb-section sm:pt-8">
       <Suspense
         fallback={
-          <div className="container-page">
+          <div className="container-frame">
             <ProductSkeleton />
           </div>
         }

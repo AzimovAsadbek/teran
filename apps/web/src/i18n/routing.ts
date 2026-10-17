@@ -19,4 +19,8 @@ export const routing = defineRouting({
   defaultLocale: DEFAULT_LOCALE,
   localePrefix: 'as-needed',
   localeCookie: { name: 'TERAN_LOCALE', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' },
+  // Each page states its language versions in its own metadata (lib/seo alternates); next-intl's
+  // Link header would repeat them on every response, 404s and private pages included, and drop the
+  // page number the canonical address keeps.
+  alternateLinks: false,
 });

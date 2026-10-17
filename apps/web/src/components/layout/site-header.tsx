@@ -6,8 +6,15 @@ import { Wordmark } from '@/components/brand/logo';
 import { Link } from '@/i18n/navigation';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCategories, getCollections } from '@/lib/data/catalog';
-import { getArticles } from '@/lib/data/content';
-import { categoryTree, navArticles, navCollections, type Navigation } from '@/lib/navigation';
+import { getArticles, getPublicSettings } from '@/lib/data/content';
+import {
+  categoryTree,
+  navArticles,
+  navCollections,
+  type MenuPicture,
+  type Navigation,
+} from '@/lib/navigation';
+import { visualFor } from '@/lib/visuals';
 import { hasSessionCookie, type HeaderAccount } from '@/lib/session';
 import { AnnouncementBar } from './announcement-bar';
 import { DesktopNav } from './desktop-nav';
@@ -19,18 +26,25 @@ import { StickyHeader } from './sticky-header';
 async function loadNavigation(): Promise<Navigation> {
   await connection();
   const locale = await getLocale();
-  const [categories, collections, articles] = await Promise.all([
+  const [categories, collections, articles, settings] = await Promise.all([
     getCategories(locale).catch(() => []),
     getCollections(locale).catch(() => []),
     getArticles(locale, 1, 5, true)
       .then((page) => page.items)
       .catch(() => []),
+    getPublicSettings(locale).catch(() => null),
   ]);
+  const pictures: Navigation['pictures'] = {};
+  for (const menu of ['shop', 'collections', 'learn', 'about'] satisfies MenuPicture[]) {
+    const picture = visualFor(settings, `menu.${menu}`);
+    if (picture) pictures[menu] = picture;
+  }
   // The same tree feeds the desktop panels, the drawer and the home page's category sections.
   return {
     categories: categoryTree(categories),
     collections: navCollections(collections),
     articles: navArticles(articles),
+    pictures,
   };
 }
 

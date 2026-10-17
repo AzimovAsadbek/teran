@@ -1,12 +1,11 @@
 import type { Locale } from '@teran/contracts';
-import { Search as SearchIcon } from 'lucide-react';
+import { Search as SearchIcon, X } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense, type ReactNode } from 'react';
 import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/catalog-results';
-import { buttonClasses } from '@/components/ui/button';
 import type { RawSearchParams } from '@/features/catalog/query';
 import { getPathname, Link } from '@/i18n/navigation';
 import { getCategories } from '@/lib/data/catalog';
@@ -53,7 +52,17 @@ async function SearchHeading({ searchParams }: { searchParams: Promise<RawSearch
             enterKeyHint="search"
             className="h-full min-w-0 flex-1 bg-transparent text-body-lg text-fg outline-none placeholder:text-fg-subtle"
           />
-          <button type="submit" className={buttonClasses('primary', 'md')}>
+          {/* As the reference's field: Enter searches; a cross clears the words. */}
+          {q ? (
+            <Link
+              href="/search"
+              aria-label={t('clear')}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-fg"
+            >
+              <X aria-hidden className="h-6 w-6" strokeWidth={1.75} />
+            </Link>
+          ) : null}
+          <button type="submit" className="sr-only">
             {t('submit')}
           </button>
         </div>
@@ -108,7 +117,7 @@ async function SearchSidebar({ searchParams }: { searchParams: Promise<RawSearch
             <li key={category.slug}>
               <Link
                 href={`/${category.path}`}
-                className="text-[1rem] text-fg underline-offset-4 hover:text-brand hover:underline"
+                className="text-[1rem] text-fg underline-offset-4 hover:underline"
               >
                 {category.name}
               </Link>
@@ -122,7 +131,7 @@ async function SearchSidebar({ searchParams }: { searchParams: Promise<RawSearch
             <li key={article.slug}>
               <Link
                 href={`/journal/${article.slug}`}
-                className="text-[1rem] text-fg underline-offset-4 hover:text-brand hover:underline"
+                className="text-[1rem] text-fg underline-offset-4 hover:underline"
               >
                 {article.title}
               </Link>

@@ -40,10 +40,7 @@ export async function OrderStatusView({
           aria-labelledby="awaiting-payment"
           className="rounded-panel border border-warning/30 bg-warning-soft/60 p-5 sm:p-7"
         >
-          <h2
-            id="awaiting-payment"
-            className="flex items-center gap-2 text-display-sm text-forest-900"
-          >
+          <h2 id="awaiting-payment" className="flex items-center gap-2 text-display-sm text-fg">
             <Clock aria-hidden className="h-5 w-5 text-warning" />
             {t('awaitingPaymentTitle')}
           </h2>
@@ -89,8 +86,7 @@ export async function OrderStatusView({
         className="rounded-panel border border-line bg-surface p-5 sm:p-7"
       >
         <p className="mb-4 text-body-sm text-fg-muted">
-          {t('statusTitle')}:{' '}
-          <strong className="text-forest-900">{t(`statuses.${order.status}`)}</strong>
+          {t('statusTitle')}: <strong className="text-fg">{t(`statuses.${order.status}`)}</strong>
         </p>
         <OrderProgress status={order.status} cancelReason={order.cancelReason} />
       </section>

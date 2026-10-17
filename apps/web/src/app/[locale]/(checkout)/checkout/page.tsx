@@ -1,6 +1,7 @@
 import type { AddressDto, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
@@ -8,10 +9,12 @@ import { CheckoutForm } from '@/components/checkout/checkout-form';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getPathname } from '@/i18n/navigation';
 import { currentUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
+import { showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -43,10 +46,12 @@ async function CheckoutLoader() {
 }
 
 export default async function CheckoutPage() {
+  // Without prices there is no bag to check out: orders go through TERAN's contact channels.
+  if (!showPrices) redirect(getPathname({ href: '/cart', locale: await getLocale() }));
   const t = await getTranslations('Checkout');
   return (
     <div className="container-page pt-8 pb-section-sm sm:pt-10">
-      <h1 className="text-display-lg text-forest-900">{t('title')}</h1>
+      <h1 className="text-display-lg text-fg">{t('title')}</h1>
       <DemoNotice className="mt-4 max-w-3xl" />
       <Suspense
         fallback={

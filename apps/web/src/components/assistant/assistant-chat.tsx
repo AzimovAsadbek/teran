@@ -17,6 +17,7 @@ import { Link } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
 import { formatMoney } from '@/lib/format';
+import { showPrices } from '@/lib/site';
 
 interface Exchange {
   id: number;
@@ -73,7 +74,7 @@ export function AssistantChat({ initialMode }: { initialMode: AssistantMode }) {
     try {
       const answer = await apiRequest<AssistantResponse>('/assistant/recommend', {
         method: 'POST',
-        body: { locale, message, history },
+        body: { locale, message, history, prices: showPrices },
       });
       setMode(answer.mode);
       setExchanges((current) =>
@@ -101,7 +102,7 @@ export function AssistantChat({ initialMode }: { initialMode: AssistantMode }) {
     <div className="mx-auto max-w-3xl">
       <p className="flex items-start gap-2 rounded-card border border-line bg-surface px-4 py-3 text-body-sm text-fg-muted">
         <Sparkles aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-accent-fg" />
-        {mode === 'ai' ? t('modeAi') : t('modeBasic')}
+        {mode === 'ai' ? (showPrices ? t('modeAi') : t('modeAiNoPrices')) : t('modeBasic')}
       </p>
 
       {exchanges.length === 0 ? (
@@ -166,7 +167,9 @@ export function AssistantChat({ initialMode }: { initialMode: AssistantMode }) {
             rows={2}
             maxLength={500}
             value={text}
-            placeholder={lastAnswer?.followUp ?? t('placeholder')}
+            placeholder={
+              lastAnswer?.followUp ?? (showPrices ? t('placeholder') : t('placeholderNoPrices'))
+            }
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -196,7 +199,7 @@ export function AssistantChat({ initialMode }: { initialMode: AssistantMode }) {
                 inputRef.current?.focus();
               }}
               disabled={pending}
-              className="inline-flex min-h-9 items-center gap-1.5 text-caption font-semibold text-forest-900 hover:underline disabled:opacity-50"
+              className="inline-flex min-h-9 items-center gap-1.5 text-caption font-semibold text-fg hover:underline disabled:opacity-50"
             >
               <RotateCcw aria-hidden className="h-3.5 w-3.5" />
               {t('startOver')}
@@ -205,11 +208,8 @@ export function AssistantChat({ initialMode }: { initialMode: AssistantMode }) {
         </div>
       </form>
       <p className="mt-6 text-caption text-fg-subtle">
-        {t('disclaimer')}{' '}
-        <Link
-          href="/catalog"
-          className="font-semibold text-forest-900 underline underline-offset-2"
-        >
+        {showPrices ? t('disclaimer') : t('disclaimerNoPrices')}{' '}
+        <Link href="/catalog" className="font-semibold text-fg underline underline-offset-2">
           {t('browseCatalog')}
         </Link>
       </p>
@@ -243,7 +243,7 @@ function Answer({ answer }: { answer: AssistantResponse }) {
         </ul>
       ) : null}
       {answer.followUp ? (
-        <p className="text-body-sm font-medium text-forest-900">{answer.followUp}</p>
+        <p className="text-body-sm font-medium text-fg">{answer.followUp}</p>
       ) : null}
     </div>
   );
@@ -269,6 +269,7 @@ function Understood({ criteria }: { criteria: AssistantCriteria }) {
   for (const attribute of criteria.attributes) {
     chips.push(`${attribute.label}: ${attribute.values.map((value) => value.label).join(', ')}`);
   }
+  if (criteria.origin) chips.push(t('origin', { place: criteria.origin }));
   if (criteria.gift) chips.push(t('gift'));
   if (criteria.query) chips.push(t('query', { query: criteria.query }));
   if (chips.length === 0) return null;
@@ -280,7 +281,7 @@ function Understood({ criteria }: { criteria: AssistantCriteria }) {
       {chips.map((chip) => (
         <span
           key={chip}
-          className="inline-flex min-h-7 items-center rounded-full bg-sage-100 px-3 text-caption font-medium text-forest-900"
+          className="inline-flex min-h-7 items-center rounded-full bg-sage-100 px-3 text-caption font-medium text-fg"
         >
           {chip}
         </span>
@@ -309,12 +310,14 @@ function RecommendationCard({ recommendation }: { recommendation: AssistantRecom
             {product.name}
           </Link>
         </h3>
-        <Price
-          amount={product.priceFrom}
-          compareAt={product.compareAtPriceFrom}
-          from={product.variantCount > 1}
-          className="mt-1 text-body-sm"
-        />
+        {showPrices ? (
+          <Price
+            amount={product.priceFrom}
+            compareAt={product.compareAtPriceFrom}
+            from={product.variantCount > 1}
+            className="mt-1 text-body-sm"
+          />
+        ) : null}
         {reasons.length > 0 ? (
           <ul className="mt-2 space-y-0.5 text-caption text-fg-muted">
             {reasons.slice(0, 4).map((reason) => (
@@ -327,7 +330,7 @@ function RecommendationCard({ recommendation }: { recommendation: AssistantRecom
             ))}
           </ul>
         ) : null}
-        <span className="mt-auto inline-flex items-center gap-1 pt-2 text-caption font-semibold text-forest-900">
+        <span className="mt-auto inline-flex items-center gap-1 pt-2 text-caption font-semibold text-fg">
           {t('viewProduct')}
           <ArrowRight
             aria-hidden

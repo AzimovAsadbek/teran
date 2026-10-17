@@ -49,7 +49,7 @@ function AccountNavLinks({ pathname }: { pathname: string | null }) {
                 className={cn(
                   'flex min-h-11 items-center rounded-control px-3.5 text-body-sm font-medium whitespace-nowrap transition-colors duration-150 lg:px-4',
                   active
-                    ? 'bg-brand text-fg-inverse lg:bg-brand-soft lg:text-forest-900 lg:shadow-[inset_3px_0_0_var(--color-brand)]'
+                    ? 'bg-brand text-fg-inverse lg:bg-brand-soft lg:text-fg lg:shadow-[inset_3px_0_0_var(--color-brand)]'
                     : 'border border-line bg-surface text-fg hover:border-brand/50 lg:border-transparent lg:bg-transparent lg:hover:bg-surface-muted',
                 )}
               >

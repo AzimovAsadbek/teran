@@ -1,8 +1,9 @@
 import type { Localized, LongFormContent } from '../types';
 
 /**
- * DRAFT returns and refunds policy. Periods, conditions and refund methods are business decisions
- * TERAN has to make in line with consumer protection law; they are left in [brackets] until then.
+ * Returns and refunds policy. It sets no period or condition TERAN has not decided: exchanges,
+ * returns and refunds follow the consumer protection law, and TERAN agrees the details with the
+ * customer. A lawyer should review it before TERAN adds periods of its own.
  */
 export const returnsPolicy: Localized<LongFormContent> = {
   en: {
@@ -10,7 +11,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
     description:
       'What to do if your TERAN order arrives damaged or incorrect, and how refunds work.',
     intro:
-      'We want every order to arrive exactly as you expect. If something is wrong, tell us and we will put it right. Last updated: [date of publication].',
+      'We want every order to arrive exactly as you expect. If something is wrong, tell us and we will put it right. Last updated: 18 October 2026.',
     sections: [
       {
         id: 'on-delivery',
@@ -23,14 +24,14 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'damaged',
         heading: 'Damaged, faulty or incorrect items',
         blocks: [
-          'If an item is damaged, faulty or not what you ordered, contact us within [number of days] days of delivery with your order number and, if possible, a photo. We will offer a replacement or a refund [conditions to be confirmed].',
+          'If an item is damaged, faulty or not what you ordered, contact us as soon as possible after delivery, preferably the same day, with your order details and, if possible, a photo. We will replace the item or refund it, as the Law of the Republic of Uzbekistan "On Protection of Consumer Rights" provides.',
         ],
       },
       {
         id: 'change-of-mind',
         heading: 'Returning items you no longer want',
         blocks: [
-          'Tea is a food product. [Whether unopened products can be returned when you change your mind, and within what period, is to be decided by TERAN in line with the Law of the Republic of Uzbekistan "On Protection of Consumer Rights".]',
+          'Tea is a food product: tea of proper quality can be exchanged or returned only in the cases provided by the Law of the Republic of Uzbekistan "On Protection of Consumer Rights". Call or write to us and we will tell you what is possible for your order.',
         ],
       },
       {
@@ -40,8 +41,8 @@ export const returnsPolicy: Localized<LongFormContent> = {
           {
             list: [
               'Contact us through the Contact page or the phone number shown there.',
-              'Give your order number (for example TRN-7K4Q2M9X) and describe the problem.',
-              'We will reply within [response period] and agree the next steps with you.',
+              'Give your order details (its number, for example TRN-7K4Q2M9X, if you have one, or the date and the phone number you ordered with) and describe the problem.',
+              'We will reply as soon as possible and agree the next steps with you.',
             ],
           },
         ],
@@ -50,7 +51,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'refunds',
         heading: 'Refunds',
         blocks: [
-          'Orders paid in cash on delivery are refunded [refund method, for example in cash or by bank transfer] within [refund period] after we approve the request. Delivery fees are refunded when the return is due to our mistake [to be confirmed].',
+          'Money is returned the way the order was paid, or another way agreed with you (in cash or by bank transfer), within the time limits set by law once we have approved the request. If the return is due to our mistake, the delivery cost is refunded as well.',
         ],
       },
       {
@@ -67,7 +68,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
     description:
       'Что делать, если заказ TERAN пришёл повреждённым или неверным, и как проходит возврат денег.',
     intro:
-      'Мы хотим, чтобы каждый заказ приходил именно таким, каким вы его ждёте. Если что-то не так — сообщите нам, и мы всё исправим. Дата последнего обновления: [дата публикации].',
+      'Мы хотим, чтобы каждый заказ приходил именно таким, каким вы его ждёте. Если что-то не так — сообщите нам, и мы всё исправим. Дата последнего обновления: 18.10.2026.',
     sections: [
       {
         id: 'on-delivery',
@@ -80,14 +81,14 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'damaged',
         heading: 'Повреждённые, бракованные или неверные товары',
         blocks: [
-          'Если товар повреждён, бракован или не соответствует заказу, свяжитесь с нами в течение [количество дней] дней после доставки, указав номер заказа и, по возможности, приложив фото. Мы предложим замену или возврат денег [условия подлежат подтверждению].',
+          'Если товар повреждён, бракован или не соответствует заказу, свяжитесь с нами как можно скорее после доставки, желательно в тот же день, указав данные заказа и, по возможности, приложив фото. Мы заменим товар или вернём деньги в порядке, предусмотренном Законом Республики Узбекистан «О защите прав потребителей».',
         ],
       },
       {
         id: 'change-of-mind',
         heading: 'Возврат товара, который вам больше не нужен',
         blocks: [
-          'Чай — пищевой продукт. [Можно ли вернуть невскрытый товар без причины и в какой срок, TERAN определяет в соответствии с Законом Республики Узбекистан «О защите прав потребителей».]',
+          'Чай — пищевой продукт: чай надлежащего качества можно обменять или вернуть только в случаях, предусмотренных Законом Республики Узбекистан «О защите прав потребителей». Позвоните или напишите нам — мы подскажем, что возможно для вашего заказа.',
         ],
       },
       {
@@ -97,8 +98,8 @@ export const returnsPolicy: Localized<LongFormContent> = {
           {
             list: [
               'Свяжитесь с нами через страницу «Контакты» или по указанному там телефону.',
-              'Сообщите номер заказа (например, TRN-7K4Q2M9X) и опишите проблему.',
-              'Мы ответим в течение [срок ответа] и согласуем с вами дальнейшие шаги.',
+              'Сообщите данные заказа (его номер, например TRN-7K4Q2M9X, если он есть, или дату и телефон, с которого вы заказывали) и опишите проблему.',
+              'Мы ответим как можно скорее и согласуем с вами дальнейшие шаги.',
             ],
           },
         ],
@@ -107,7 +108,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'refunds',
         heading: 'Возврат денег',
         blocks: [
-          'Заказы, оплаченные наличными при получении, возвращаются [способ возврата, например наличными или банковским переводом] в течение [срок возврата] после одобрения обращения. Стоимость доставки возвращается, если возврат вызван нашей ошибкой [подлежит подтверждению].',
+          'Деньги возвращаются тем же способом, которым был оплачен заказ, или другим согласованным с вами способом (наличными или банковским переводом) в сроки, установленные законом, после одобрения обращения. Если возврат вызван нашей ошибкой, стоимость доставки также возвращается.',
         ],
       },
       {
@@ -124,7 +125,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
     description:
       'TERAN buyurtmasi shikastlangan yoki notoʻgʻri kelsa nima qilish kerak va pul qanday qaytariladi.',
     intro:
-      'Har bir buyurtma siz kutgandek yetib kelishini istaymiz. Agar biror narsa notoʻgʻri boʻlsa, bizga xabar bering — biz uni tuzatamiz. Oxirgi yangilanish sanasi: [eʼlon qilingan sana].',
+      'Har bir buyurtma siz kutgandek yetib kelishini istaymiz. Agar biror narsa notoʻgʻri boʻlsa, bizga xabar bering — biz uni tuzatamiz. Oxirgi yangilanish sanasi: 18.10.2026.',
     sections: [
       {
         id: 'on-delivery',
@@ -137,14 +138,14 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'damaged',
         heading: 'Shikastlangan, nuqsonli yoki notoʻgʻri mahsulotlar',
         blocks: [
-          'Agar mahsulot shikastlangan, nuqsonli yoki buyurtmaga mos kelmasa, yetkazib berilgandan keyin [kunlar soni] kun ichida buyurtma raqamini koʻrsatib va iloji boʻlsa surat ilova qilib biz bilan bogʻlaning. Biz almashtirish yoki pulni qaytarishni taklif qilamiz [shartlar tasdiqlanishi kerak].',
+          'Agar mahsulot shikastlangan, nuqsonli yoki buyurtmaga mos kelmasa, yetkazib berilgandan keyin imkon qadar tezroq, iloji boʻlsa oʻsha kuni, buyurtma maʼlumotlarini koʻrsatib va iloji boʻlsa surat ilova qilib biz bilan bogʻlaning. Biz mahsulotni almashtiramiz yoki pulini qaytaramiz — Oʻzbekiston Respublikasining «Isteʼmolchilarning huquqlarini himoya qilish toʻgʻrisida»gi Qonunida belgilangan tartibda.',
         ],
       },
       {
         id: 'change-of-mind',
         heading: 'Endi kerak boʻlmagan mahsulotni qaytarish',
         blocks: [
-          'Choy oziq-ovqat mahsulotidir. [Ochilmagan mahsulotni sababsiz qaytarish mumkinmi va qaysi muddatda — buni TERAN Oʻzbekiston Respublikasining «Isteʼmolchilarning huquqlarini himoya qilish toʻgʻrisida»gi Qonuniga muvofiq belgilaydi.]',
+          'Choy oziq-ovqat mahsulotidir: sifati talabga javob beradigan choyni faqat Oʻzbekiston Respublikasining «Isteʼmolchilarning huquqlarini himoya qilish toʻgʻrisida»gi Qonunida nazarda tutilgan hollarda almashtirish yoki qaytarish mumkin. Bizga qoʻngʻiroq qiling yoki yozing — buyurtmangiz boʻyicha nima qilish mumkinligini aytib beramiz.',
         ],
       },
       {
@@ -154,8 +155,8 @@ export const returnsPolicy: Localized<LongFormContent> = {
           {
             list: [
               '«Aloqa» sahifasi yoki u yerda koʻrsatilgan telefon orqali biz bilan bogʻlaning.',
-              'Buyurtma raqamini (masalan, TRN-7K4Q2M9X) ayting va muammoni tasvirlang.',
-              'Biz [javob berish muddati] ichida javob beramiz va keyingi qadamlarni siz bilan kelishamiz.',
+              'Buyurtma maʼlumotlarini (raqami boʻlsa raqamini, masalan TRN-7K4Q2M9X, boʻlmasa buyurtma sanasi va qaysi telefon orqali berilganini) ayting va muammoni tasvirlang.',
+              'Biz imkon qadar tez javob beramiz va keyingi qadamlarni siz bilan kelishamiz.',
             ],
           },
         ],
@@ -164,7 +165,7 @@ export const returnsPolicy: Localized<LongFormContent> = {
         id: 'refunds',
         heading: 'Pulni qaytarish',
         blocks: [
-          'Yetkazib berilganda naqd toʻlangan buyurtmalar uchun pul murojaat maʼqullangandan keyin [qaytarish muddati] ichida [qaytarish usuli, masalan naqd yoki bank oʻtkazmasi] qaytariladi. Agar qaytarish bizning xatoimiz sababli boʻlsa, yetkazib berish narxi ham qaytariladi [tasdiqlanishi kerak].',
+          'Pul buyurtma qanday toʻlangan boʻlsa, shu usulda yoki siz bilan kelishilgan boshqa usulda (naqd yoki bank oʻtkazmasi orqali) murojaat maʼqullangandan keyin qonunda belgilangan muddatlarda qaytariladi. Agar qaytarish bizning xatomiz sababli boʻlsa, yetkazib berish narxi ham qaytariladi.',
         ],
       },
       {

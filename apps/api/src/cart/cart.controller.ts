@@ -10,6 +10,7 @@ import {
   Query,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -24,6 +25,7 @@ import {
 } from '@teran/contracts';
 import type { Request, Response } from 'express';
 import type { z } from 'zod';
+import { CheckoutEnabledGuard } from '../orders/checkout-enabled.guard.js';
 import { CartService } from './cart.service.js';
 
 type CartQuery = z.output<typeof cartQuerySchema>;
@@ -49,6 +51,7 @@ export class CartController {
   }
 
   @Post('items')
+  @UseGuards(CheckoutEnabledGuard)
   @Header('Cache-Control', PRIVATE)
   @ApiOperation({ summary: 'Add a pack size to the cart (creates the cart cookie if needed)' })
   @ApiOkResponse({ description: 'CartDto' })
@@ -62,6 +65,7 @@ export class CartController {
   }
 
   @Patch('items/:itemId')
+  @UseGuards(CheckoutEnabledGuard)
   @Header('Cache-Control', PRIVATE)
   @ApiOperation({ summary: 'Change the quantity of a cart line' })
   @ApiOkResponse({ description: 'CartDto' })
@@ -75,6 +79,7 @@ export class CartController {
   }
 
   @Delete('items/:itemId')
+  @UseGuards(CheckoutEnabledGuard)
   @Header('Cache-Control', PRIVATE)
   @ApiOperation({ summary: 'Remove a cart line' })
   @ApiOkResponse({ description: 'CartDto' })

@@ -2,9 +2,10 @@ import type { ProductFormat } from '@teran/contracts';
 
 /**
  * Rule-based reading of a shopper's request, in Uzbek, Russian or English: a budget, a category or
- * product type, pack formats, recorded attributes, a gift, and properties the catalogue does not
- * record. Category, type and attribute names come from the live catalogue (CatalogVocabulary), so
- * nothing here knows about tea in particular; only generic shopping words are listed below.
+ * product type, pack formats, recorded attributes, a place of origin, a gift, and properties the
+ * catalogue does not record. Category, type, attribute and place names come from the live
+ * catalogue (CatalogVocabulary), so nothing here knows about tea in particular; only generic
+ * shopping words are listed below.
  */
 
 export interface CatalogVocabulary {
@@ -22,6 +23,11 @@ export interface CatalogVocabulary {
     labels: string[];
     options: { key: string; labels: string[] }[];
   }[];
+  /**
+   * Places products come from (their recorded origin, e.g. "Xitoy, Yunnan"), with the place's
+   * name in every language. Only places that tell products apart: not one every product shares.
+   */
+  origins: { key: string; names: string[] }[];
 }
 
 export type UnrecordedQuality = 'taste' | 'quality' | 'health' | 'easyBrew';
@@ -35,6 +41,8 @@ export interface ParsedRequest {
   gift: boolean;
   /** Attribute key → option keys, or ["true"] / ["false"] for yes/no attributes. */
   attributes: Record<string, string[]>;
+  /** A place of origin asked for (an `origins` key, e.g. "yunnan"). */
+  origin: string | null;
   /** A descriptive word worth looking for in product texts (e.g. "mild"). */
   textQuery: string | null;
   unrecorded: UnrecordedQuality[];
@@ -239,6 +247,11 @@ export function parseRequest(raw: string, vocabulary: CatalogVocabulary): Parsed
     if (options.length > 0) attributes[attribute.key] = options;
   }
 
+  const origin =
+    vocabulary.origins.find((place) =>
+      place.names.some((name) => nameScore(name, requestWords) >= 1),
+    )?.key ?? null;
+
   const unrecorded = (Object.entries(UNRECORDED) as [UnrecordedQuality, string[]][])
     .filter(([, cues]) => containsAny(text, cues))
     .map(([quality]) => quality);
@@ -252,6 +265,7 @@ export function parseRequest(raw: string, vocabulary: CatalogVocabulary): Parsed
     formats,
     gift,
     attributes,
+    origin,
     textQuery,
     unrecorded,
   };

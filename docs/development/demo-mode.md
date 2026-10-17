@@ -17,39 +17,43 @@ Three independent switches make up "demo mode":
 
 ### Catalogue and content — `pnpm db:seed`
 
-The same command production uses for an optional review environment (`prisma db seed`).
+The same command production uses for an optional review environment (`prisma db seed`). Since
+2026-10-17 it loads **TERAN's own catalogue**; the generic test range is loaded only with
+`SEED_TEST_CATALOGUE=true` (the end-to-end tests: `e2e/scripts/prepare-db.ts`).
 
-| Records                                                                  | Count                                                |
-| ------------------------------------------------------------------------ | ---------------------------------------------------- |
-| Categories (Tea with black, green, white, oolong and pu-erh; Gift sets)  | 7                                                    |
-| Product types with demonstration characteristic values (tea, gift set)   | 2                                                    |
-| Collections (TERAN premium, everyday classics, evening calm, gift ideas) | 4                                                    |
-| Products                                                                 | 21 (20 published, 1 draft to demonstrate publishing) |
-| Pack sizes (variants) with stock and ledger entries                      | 29                                                   |
-| Product images: pack shots from the packaging print files (front, back)  | 8 (four products)                                    |
-| Code-drawn product images (packshot + loose-leaf study)                  | 34                                                   |
-| Delivery methods                                                         | 2 (courier in Tashkent, delivery to the regions)     |
-| Journal articles                                                         | 6 (5 published, 1 draft)                             |
-| Settings                                                                 | announcement; contact channels left empty            |
+| Records                                                                 | Count                                                     |
+| ----------------------------------------------------------------------- | --------------------------------------------------------- |
+| Categories (Tea → Green tea)                                            | 2                                                         |
+| Collections (TERAN premium)                                             | 1                                                         |
+| Products: XC2025, G8810, 8800, 8830, 8009                               | 5                                                         |
+| Pack sizes: one 400 g zip pouch each (G8810 and 8800 with their EAN-13) | 5                                                         |
+| Product images: the pouch cut out, its photograph, the back of the pack | 14 (the back only where a print file exists: not 8800)    |
+| Gallery: pack artwork, the five pouch photographs, three films          | 12                                                        |
+| Delivery methods                                                        | 2 (courier in Tashkent, delivery to the regions)          |
+| Journal articles                                                        | 6 (5 published, 1 draft)                                  |
+| Settings                                                                | announcement; contact channels as the owner supplied them |
 
-The five products of the **TERAN premium collection** carry the identifiers TERAN supplied
-(XC2025, G8810, HET8800, 8830, 8009). Four of them are described from their packaging (supplied
-2026-10-14; see [packaging](../design/packaging.md)): Chinese green tea in a 400 g pack, the pack's
-brewing (5 g per 250 ml, 90 °C, 2–3 minutes), product sentence, taste, storage, shelf life,
-producer and importer, origin "China", and images made from the print files. Their prices and
-stock are placeholders, which their descriptions say. HET8800 has no packaging yet: its tea type
-(shown as black tea), description, price and pack sizes are invented, and its page says so in all
-three languages. The other products are generic Chinese tea styles. Tasting notes describe what is
-typical of a style; no product has an ingredient list, caffeine level, certification, health
-claim or review (the benefits list and nutrition table on the packs are not published). The states
-a shop needs to show are included: an out-of-stock product (Mini pu-erh), low stock (Jasmine green
-tea; TERAN 8009 once the demo orders are loaded), a sale price (Earl Grey, TERAN premium gift box)
-and a draft (Spring green tea).
+The five teas carry the owner's own descriptions (2026-10-17): description, taste and aroma,
+brewing (with ranges such as 80–90 °C or 3–5 g), origin (Hunan; G8810 Yunnan), storage and shelf
+life, Uzbek and Russian as supplied and English translated. Producer and importer come from the
+four print files (not yet for 8800). **Prices are still placeholders** until the owner confirms
+them; the site-wide demo notice says so. Nothing claims ingredients, caffeine, certifications,
+health benefits or reviews. The contact setting holds both phone numbers, both e-mail addresses,
+Telegram @TeranTrade, the WhatsApp link from the WhatsApp Business QR code and the city;
+Instagram and working hours were not supplied.
 
-A database seeded by an earlier version is brought up to date by the next `pnpm db:seed`: the four
-identifier products are switched to their packaging data once — only while they still hold the
-earlier demo copy, so nothing edited in the admin area changes. Their earlier pack sizes stay
-(orders refer to them) but are switched off.
+The **test range** (`testOnly` in `apps/api/prisma/seed/demo-catalog.ts`) adds black, white,
+oolong and pu-erh teas and gift sets in other pack sizes and formats, a sale price (Earl Grey), low
+and no stock (Jasmine green tea, Mini pu-erh) and a draft (Spring green tea): the states the
+journeys exercise.
+
+A database seeded by an earlier version is brought up to date by the next `pnpm db:seed`, once
+and only for records nobody has edited since: the TERAN products get the owner's copy, a single
+400 g pack (earlier pack sizes stay but are switched off; HET8800 and STD8009 move to 8800 and 8009
+with redirects from their old addresses), demo stock of 50 without discounts and the pouch images;
+the generic range is archived (not deleted: orders keep their snapshots) and its categories and
+collections switched off once nothing of the shop is left in them; gallery items still carrying an
+earlier file (the flat 8009 and G8810 renders, the four-pack film) get the current one.
 
 ### Activity — `pnpm db:seed:demo`
 

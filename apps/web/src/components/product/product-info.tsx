@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { BRAND_VALUES, brandCopy, brandValueLabels } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { showPrices } from '@/lib/site';
 import { formatMoney, namesFormat } from '@/lib/format';
 import { imageSources } from '@/lib/navigation';
 import { ProductTabs, type ProductTab } from './product-tabs';
@@ -128,7 +129,14 @@ async function brewingFacts(brewing: ProductDetailDto['brewing']) {
           key: 'amount',
           icon: Scale,
           label: tb('amount'),
-          value: tb('gramsPerCup', { grams: Number(brewing.amountGrams) }),
+          // A range when the pack gives one ("3–5 g").
+          value:
+            brewing.amountMaxGrams !== null
+              ? tb('gramsRangePerCup', {
+                  min: Number(brewing.amountGrams),
+                  max: Number(brewing.amountMaxGrams),
+                })
+              : tb('gramsPerCup', { grams: Number(brewing.amountGrams) }),
         }
       : null,
     brewing.temperatureCelsius !== null
@@ -136,7 +144,13 @@ async function brewingFacts(brewing: ProductDetailDto['brewing']) {
           key: 'temperature',
           icon: Thermometer,
           label: tb('temperature'),
-          value: tb('celsius', { value: brewing.temperatureCelsius }),
+          value:
+            brewing.temperatureMaxCelsius !== null
+              ? tb('celsiusRange', {
+                  min: brewing.temperatureCelsius,
+                  max: brewing.temperatureMaxCelsius,
+                })
+              : tb('celsius', { value: brewing.temperatureCelsius }),
         }
       : null,
     brewing.timeMinSeconds !== null
@@ -241,13 +255,13 @@ export async function PreparationSection({ product }: { product: ProductDetailDt
             <Icon
               aria-hidden
               strokeWidth={1.25}
-              className="h-12 w-12 shrink-0 text-forest-900 sm:h-14 sm:w-14"
+              className="h-12 w-12 shrink-0 text-fg sm:h-14 sm:w-14"
             />
             <p className="flex flex-col">
-              <span className="font-headline text-[2.25rem] leading-none text-forest-900 [--headline-weight:500] sm:text-[2.75rem]">
+              <span className="font-headline text-[2.25rem] leading-none text-fg [--headline-weight:500] sm:text-[2.75rem]">
                 {value}
               </span>
-              <span className="mt-1.5 font-headline text-[1.125rem] leading-none text-forest-900 [--headline-weight:600]">
+              <span className="mt-1.5 font-headline text-[1.125rem] leading-none text-fg [--headline-weight:600]">
                 {label}
               </span>
             </p>
@@ -392,7 +406,8 @@ export async function DeliveryInfo({ options }: { options: CheckoutOptionsDto | 
   return (
     <section aria-labelledby="delivery-info" className="mt-8">
       <h2 id="delivery-info" className="text-label text-fg">
-        {t('delivery')}
+        {/* Payment is shown with prices only, so without them the heading names delivery alone. */}
+        {showPrices ? t('delivery') : t('deliveryOnly')}
       </h2>
       <ul className="mt-2.5 divide-y divide-line-subtle rounded-card border border-line bg-surface text-body-sm">
         {options && options.deliveryMethods.length > 0 ? (
@@ -405,29 +420,32 @@ export async function DeliveryInfo({ options }: { options: CheckoutOptionsDto | 
                   <span className="block text-helper text-fg-subtle">{method.estimate}</span>
                 ) : null}
               </span>
-              <span className="text-right">
-                <span className="block font-medium text-fg">
-                  {Number(method.price) === 0
-                    ? tco('free')
-                    : formatMoney(method.price, locale, currency)}
-                </span>
-                {method.freeFromAmount ? (
-                  <span className="block text-helper text-success">
-                    {tco('freeFrom', {
-                      amount: formatMoney(method.freeFromAmount, locale, currency),
-                    })}
+              {/* Fees are prices: hidden with them (lib/site showPrices). */}
+              {showPrices ? (
+                <span className="text-right">
+                  <span className="block font-medium text-fg">
+                    {Number(method.price) === 0
+                      ? tco('free')
+                      : formatMoney(method.price, locale, currency)}
                   </span>
-                ) : null}
-              </span>
+                  {method.freeFromAmount ? (
+                    <span className="block text-helper text-success">
+                      {tco('freeFrom', {
+                        amount: formatMoney(method.freeFromAmount, locale, currency),
+                      })}
+                    </span>
+                  ) : null}
+                </span>
+              ) : null}
             </li>
           ))
         ) : (
           <li className="flex items-start gap-3 px-4 py-3 text-fg-muted">
             <Truck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-accent-fg" />
-            {t('deliveryText')}
+            {showPrices ? t('deliveryText') : t('deliveryTextByContact')}
           </li>
         )}
-        {options && options.paymentMethods.length > 0 ? (
+        {showPrices && options && options.paymentMethods.length > 0 ? (
           <li className="flex items-start gap-3 px-4 py-3 text-fg">
             <CreditCard aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-accent-fg" />
             {/* Only methods that can be used now; simulated ones say so. */}

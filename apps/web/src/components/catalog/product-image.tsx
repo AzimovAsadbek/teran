@@ -1,8 +1,38 @@
 import type { ImageDto } from '@teran/contracts';
-import { useTranslations } from 'next-intl';
 import { Emblem } from '@/components/brand/logo';
 import { cn } from '@/lib/cn';
-import { isDemoContent } from '@/lib/site';
+
+/** The margin a cut-out keeps inside its frame (`p-[6%]` on each side). */
+const CUTOUT_FILL = 0.88;
+
+/**
+ * How much narrower than the drawn picture a file may be and still be chosen. Browsers take the
+ * first file at least as wide as the drawn width times the screen's density, so a pouch drawn
+ * 640.4 device pixels wide (a 412 px phone at 2.625×) skipped the 640 px file for the 960 px one:
+ * 60 % more bytes for a difference no eye can see. Five per cent is well below what shows.
+ */
+const SHARPNESS_SLACK = 0.95;
+
+/**
+ * A cut-out stands whole inside its square frame and margins, so a pouch taller than wide is
+ * drawn at only part of the frame's width (a 2:3 pouch at about 59 %). Its `sizes` are scaled to
+ * match, or the browser would fetch a file sized for the whole frame: on a 412 px phone the
+ * product page's first picture is the 640 px file (108 KB), not the 960 px one (175 KB).
+ */
+export function containedSizes(sizes: string, image: ImageDto): string {
+  const factor = CUTOUT_FILL * Math.min(1, image.width / image.height) * SHARPNESS_SLACK;
+  const scale = factor.toFixed(3);
+  return sizes
+    .split(',')
+    .map((part) => {
+      const entry = part.trim();
+      // "(media) length" or "length"; media conditions here hold no nested parentheses.
+      const media = entry.startsWith('(') ? entry.slice(0, entry.indexOf(')') + 1) : '';
+      const length = entry.slice(media.length).trim();
+      return `${media ? `${media} ` : ''}calc(${length} * ${scale})`;
+    })
+    .join(', ');
+}
 
 interface ProductImageProps {
   image: ImageDto | null;
@@ -30,8 +60,6 @@ export function ProductImage({
   decorative = false,
   className,
 }: ProductImageProps) {
-  const t = useTranslations('Product');
-
   if (!image) {
     return (
       <div
@@ -52,14 +80,15 @@ export function ProductImage({
     image.widths.find((width) => width >= 640) ??
     image.widths[image.widths.length - 1] ??
     image.width;
-  const alt = decorative ? '' : isDemoContent ? `${image.alt} (${t('demoImage')})` : image.alt;
+  // The pouches are photographed, so no image is labelled as a demonstration any more.
+  const alt = decorative ? '' : image.alt;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element -- pre-sized renditions from the API (see docs/architecture/decisions.md, ADR-009)
     <img
       src={url(fallbackWidth)}
       srcSet={image.widths.map((width) => `${url(width)} ${width}w`).join(', ')}
-      sizes={sizes}
+      sizes={image.transparent ? containedSizes(sizes, image) : sizes}
       width={image.width}
       height={image.height}
       alt={alt}

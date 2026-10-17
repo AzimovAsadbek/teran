@@ -33,12 +33,15 @@ import {
   EARLIER_DEMO_COPY,
   type DemoProduct,
   type DemoVariant,
+  type Localized,
 } from './demo-catalog.js';
 import {
+  ARTICLE_TEXT_FIXES,
   DEMO_ANNOUNCEMENT,
   DEMO_ARTICLES,
   DEMO_DELIVERY_METHODS,
   EMPTY_CONTACT,
+  TERAN_CONTACT,
 } from './demo-content.js';
 
 export const DAY_MS = 86_400_000;
@@ -80,6 +83,13 @@ export interface CatalogueReport {
 export interface CatalogueOptions {
   /** Directory for uploaded images (UPLOADS_DIR). */
   uploadsDir: string;
+  /**
+   * Load the generic test catalogue too (the end-to-end tests: SEED_TEST_CATALOGUE=true). Without
+   * it the test range is archived where an earlier seed loaded it.
+   */
+  testCatalogue?: boolean;
+  /** Records changed after this are left alone when the test range is archived (tests move it). */
+  testRangeRetiredAt?: Date;
   /** The TERAN emblem composited onto packshots; null skips image rendering (tests). */
   emblem: Buffer | null;
   now?: Date;
@@ -89,10 +99,35 @@ function perLocale<T>(build: (locale: Locale) => T): (T & { locale: Locale })[] 
   return LOCALES.map((locale) => ({ locale, ...build(locale) }));
 }
 
-async function seedTaxonomies(prisma: PrismaClient): Promise<number> {
+/** Translations an earlier seed wrote and nobody edited since: brought up to the current text. */
+async function refreshEarlierText(
+  update: (locale: Locale, earlier: string, current: string) => Promise<number>,
+  earlier: Localized<string>[] | undefined,
+  current: Localized<string>,
+): Promise<number> {
+  let changes = 0;
+  for (const text of earlier ?? []) {
+    for (const locale of LOCALES) changes += await update(locale, text[locale], current[locale]);
+  }
+  return changes;
+}
+
+async function seedTaxonomies(prisma: PrismaClient, options: CatalogueOptions): Promise<number> {
   let changes = 0;
   // Parents are listed before their subcategories.
   for (const [position, category] of DEMO_CATEGORIES.entries()) {
+    if (category.testOnly && !options.testCatalogue) continue;
+    changes += await refreshEarlierText(
+      async (locale, earlier, current) =>
+        (
+          await prisma.categoryTranslation.updateMany({
+            where: { category: { slug: category.slug }, locale, description: earlier },
+            data: { description: current },
+          })
+        ).count,
+      EARLIER_DEMO_COPY.categories[category.slug],
+      category.description,
+    );
     const parent = category.parent
       ? await prisma.category.findUniqueOrThrow({
           where: { slug: category.parent },
@@ -136,17 +171,18 @@ async function seedTaxonomies(prisma: PrismaClient): Promise<number> {
     });
   }
   for (const [position, collection] of DEMO_COLLECTIONS.entries()) {
-    const earlier = EARLIER_DEMO_COPY.collections[collection.slug];
-    if (earlier) {
-      // Text an earlier version of this seed wrote, never edited since: bring it up to date.
-      for (const locale of LOCALES) {
-        const updated = await prisma.collectionTranslation.updateMany({
-          where: { collection: { slug: collection.slug }, locale, description: earlier[locale] },
-          data: { description: collection.description[locale] },
-        });
-        changes += updated.count;
-      }
-    }
+    if (collection.testOnly && !options.testCatalogue) continue;
+    changes += await refreshEarlierText(
+      async (locale, earlier, current) =>
+        (
+          await prisma.collectionTranslation.updateMany({
+            where: { collection: { slug: collection.slug }, locale, description: earlier },
+            data: { description: current },
+          })
+        ).count,
+      EARLIER_DEMO_COPY.collections[collection.slug],
+      collection.description,
+    );
     await prisma.collection.upsert({
       where: { slug: collection.slug },
       update: {},
@@ -248,6 +284,12 @@ async function assignDemoAttributes(
   return true;
 }
 
+/** True for a contact setting with no channel filled in (what earlier seeds wrote). */
+function isEmptyContact(value: Prisma.JsonValue): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  return Object.keys(EMPTY_CONTACT).every((key) => (value as Record<string, unknown>)[key] == null);
+}
+
 async function seedContent(prisma: PrismaClient, now: Date): Promise<number> {
   for (const method of DEMO_DELIVERY_METHODS) {
     await prisma.deliveryMethod.upsert({
@@ -276,11 +318,13 @@ async function seedContent(prisma: PrismaClient, now: Date): Promise<number> {
     update: {},
     create: { key: 'announcement', value: DEMO_ANNOUNCEMENT },
   });
-  await prisma.siteSetting.upsert({
-    where: { key: 'contact' },
-    update: {},
-    create: { key: 'contact', value: EMPTY_CONTACT },
-  });
+  const contact = await prisma.siteSetting.findUnique({ where: { key: 'contact' } });
+  if (!contact) {
+    await prisma.siteSetting.create({ data: { key: 'contact', value: TERAN_CONTACT } });
+  } else if (isEmptyContact(contact.value)) {
+    // Still as an earlier seed left it (every channel empty): the owner's channels, once.
+    await prisma.siteSetting.update({ where: { key: 'contact' }, data: { value: TERAN_CONTACT } });
+  }
 
   let created = 0;
   for (const article of DEMO_ARTICLES) {
@@ -307,7 +351,32 @@ async function seedContent(prisma: PrismaClient, now: Date): Promise<number> {
     });
     created += 1;
   }
-  return created;
+  return created + (await fixArticleText(prisma));
+}
+
+/** Applies ARTICLE_TEXT_FIXES where an article still carries the earlier words exactly. */
+async function fixArticleText(prisma: PrismaClient): Promise<number> {
+  let fixed = 0;
+  for (const fix of ARTICLE_TEXT_FIXES) {
+    const article = await prisma.article.findUnique({
+      where: { slug: fix.slug },
+      select: { id: true },
+    });
+    if (!article) continue;
+    const key = { articleId_locale: { articleId: article.id, locale: fix.locale } };
+    const translation = await prisma.articleTranslation.findUnique({
+      where: key,
+      select: { body: true, excerpt: true },
+    });
+    const text = translation?.[fix.field];
+    if (!text?.includes(fix.from)) continue;
+    await prisma.articleTranslation.update({
+      where: key,
+      data: { [fix.field]: text.replace(fix.from, fix.to) },
+    });
+    fixed += 1;
+  }
+  return fixed;
 }
 
 async function createDemoVariant(
@@ -327,6 +396,7 @@ async function createDemoVariant(
       compareAtPrice: variant.compareAtPrice ? new Prisma.Decimal(variant.compareAtPrice) : null,
       stockQuantity: variant.stock,
       lowStockThreshold: variant.lowStockThreshold ?? 5,
+      barcode: variant.barcode ?? null,
       position,
     },
   });
@@ -342,6 +412,19 @@ async function createDemoVariant(
       },
     });
   }
+}
+
+/** The product's brewing columns, ranges included. */
+function brewingFields(demo: DemoProduct) {
+  const brewing = demo.brewing;
+  return {
+    brewTempCelsius: brewing?.tempC ?? null,
+    brewTempMaxCelsius: brewing?.tempMaxC ?? null,
+    brewTimeMinSeconds: brewing?.minSeconds ?? null,
+    brewTimeMaxSeconds: brewing?.maxSeconds ?? null,
+    brewAmountGrams: brewing?.grams != null ? new Prisma.Decimal(brewing.grams) : null,
+    brewAmountMaxGrams: brewing?.gramsMax != null ? new Prisma.Decimal(brewing.gramsMax) : null,
+  };
 }
 
 function translationCopy(demo: DemoProduct, locale: Locale) {
@@ -371,11 +454,7 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
         format: demo.format,
         isFeatured: demo.featured,
         illustrationKey: demo.illustrationKey,
-        brewTempCelsius: demo.brewing?.tempC ?? null,
-        brewTimeMinSeconds: demo.brewing?.minSeconds ?? null,
-        brewTimeMaxSeconds: demo.brewing?.maxSeconds ?? null,
-        brewAmountGrams:
-          demo.brewing?.grams != null ? new Prisma.Decimal(demo.brewing.grams) : null,
+        ...brewingFields(demo),
         publishedAt,
         translations: {
           create: perLocale((locale) => {
@@ -398,14 +477,16 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
 }
 
 /**
- * The pack's front and back (and its cut-out, for the home page stage) when the product has
- * packaging, otherwise code-drawn art.
+ * The pouch cut out, its photograph and the back of the pack when the product has packaging,
+ * otherwise code-drawn art.
  */
 async function demoImages(demo: DemoProduct, emblem: Buffer): Promise<Buffer[]> {
   if (demo.packaging) {
+    // The cut-out first: cards and the product page show the whole pouch on white (a portrait
+    // photograph would be cropped by their square frames); the photograph comes up on hover.
     const { front, back, cutout } = demo.packaging;
     return Promise.all(
-      [front, back, ...(cutout ? [cutout] : [])].map((file) =>
+      [...(cutout ? [cutout] : []), front, ...(back ? [back] : [])].map((file) =>
         readFile(resolve(seedDir, 'assets/packaging', file)),
       ),
     );
@@ -444,42 +525,63 @@ async function attachDemoImages(
   }
 }
 
+/** Before this date the test range was loaded everywhere; later changes are someone's choice. */
+const TEST_RANGE_RETIRED = new Date('2026-10-18T00:00:00Z');
+
 /**
- * Databases seeded before TERAN supplied its packs hold invented copy, pack sizes and art for the
- * identifiers that now have packaging. They are replaced once, and only while the product still
- * carries exactly the copy the earlier seed wrote, so nothing edited in the admin area is touched.
- * Earlier pack sizes stay (orders refer to them) but are switched off.
+ * Databases seeded before the owner described the teas (2026-10-17) hold the pack-based demo copy
+ * (or, for 8800, an invented black tea). They get the owner's copy, brewing, a 400 g pack with its
+ * barcode, normal demo stock and the pouch photographs once, and only while the product still
+ * carries exactly what the earlier seed wrote, so nothing edited in the admin area is touched.
+ * A product whose code changed (HET8800 → 8800, STD8009 → 8009) moves to its new address and
+ * keeps a redirect from the old one; its pack keeps its row, so orders still point at it.
  */
-async function upgradeToPackaging(
+async function upgradeToOwnerCopy(
   prisma: PrismaClient,
-  productId: string,
+  existing: { id: string; slug: string },
   demo: DemoProduct,
   options: CatalogueOptions,
   now: Date,
 ): Promise<boolean> {
-  if (!demo.packaging) return false;
+  if (demo.testOnly || !demo.packaging) return false;
+  const productId = existing.id;
   const earlier = await prisma.productTranslation.findUnique({
     where: { productId_locale: { productId, locale: 'uz' } },
     select: { description: true },
   });
-  if (!earlier?.description?.includes(EARLIER_DEMO_COPY.identifierMarker)) return false;
+  const text = earlier?.description ?? '';
+  if (
+    !text.includes(EARLIER_DEMO_COPY.packMarker) &&
+    !text.includes(EARLIER_DEMO_COPY.identifierMarker)
+  ) {
+    return false;
+  }
 
   const category = await prisma.category.findUniqueOrThrow({
     where: { slug: demo.category },
     select: { id: true },
   });
+  const collections = await prisma.collection.findMany({
+    where: { slug: { in: demo.collections } },
+    select: { id: true },
+  });
   const replacedImages = await prisma.$transaction(async (tx) => {
+    if (existing.slug !== demo.slug) {
+      await tx.slugRedirect.upsert({
+        where: { entity_fromSlug: { entity: 'PRODUCT', fromSlug: existing.slug } },
+        update: { toId: productId },
+        create: { entity: 'PRODUCT', fromSlug: existing.slug, toId: productId },
+      });
+    }
     await tx.product.update({
       where: { id: productId },
       data: {
+        slug: demo.slug,
         categoryId: category.id,
+        format: demo.format,
         isFeatured: demo.featured,
         illustrationKey: demo.illustrationKey,
-        brewTempCelsius: demo.brewing?.tempC ?? null,
-        brewTimeMinSeconds: demo.brewing?.minSeconds ?? null,
-        brewTimeMaxSeconds: demo.brewing?.maxSeconds ?? null,
-        brewAmountGrams:
-          demo.brewing?.grams != null ? new Prisma.Decimal(demo.brewing.grams) : null,
+        ...brewingFields(demo),
       },
     });
     for (const locale of LOCALES) {
@@ -489,16 +591,61 @@ async function upgradeToPackaging(
         data: { ...copy, searchText: productSearchText(copy) },
       });
     }
+    for (const collection of collections) {
+      await tx.productCollection.upsert({
+        where: { collectionId_productId: { collectionId: collection.id, productId } },
+        update: {},
+        create: { collectionId: collection.id, productId },
+      });
+    }
+
     const skus = demo.variants.map((variant) => variant.sku);
+    for (const [position, variant] of demo.variants.entries()) {
+      const found =
+        (await tx.productVariant.findUnique({ where: { sku: variant.sku } })) ??
+        (await tx.productVariant.findFirst({
+          where: { productId, sku: { in: variant.formerSkus ?? [] } },
+        }));
+      if (!found) {
+        await createDemoVariant(tx, productId, variant, position, now);
+        continue;
+      }
+      // The pack the owner describes: 400 g, no invented discount, the demo stock level.
+      await tx.productVariant.update({
+        where: { id: found.id },
+        data: {
+          sku: variant.sku,
+          weightGrams: variant.weightGrams,
+          unitCount: variant.unitCount ?? null,
+          compareAtPrice: null,
+          barcode: variant.barcode ?? null,
+          lowStockThreshold: variant.lowStockThreshold ?? 5,
+          stockQuantity: variant.stock,
+          isActive: true,
+          position,
+        },
+      });
+      const delta = variant.stock - found.stockQuantity;
+      if (delta !== 0) {
+        await tx.inventoryMovement.create({
+          data: {
+            variantId: found.id,
+            delta,
+            quantityAfter: variant.stock,
+            reason: 'MANUAL_ADJUSTMENT',
+            note: "Demo seed: stock level reset with the owner's product data",
+            createdAt: now,
+          },
+        });
+      }
+    }
+    // Pack sizes the owner does not sell are switched off (orders refer to them).
     await tx.productVariant.updateMany({
       where: { productId, sku: { notIn: skus } },
       data: { isActive: false },
     });
-    for (const [position, variant] of demo.variants.entries()) {
-      const exists = await tx.productVariant.findUnique({ where: { sku: variant.sku } });
-      if (!exists) await createDemoVariant(tx, productId, variant, position, now);
-    }
     await refreshMinPrice(tx, productId);
+
     const images = await tx.productImage.findMany({
       where: { productId },
       select: { storageKey: true },
@@ -513,6 +660,58 @@ async function upgradeToPackaging(
     await attachDemoImages(prisma, productId, demo, options.emblem, options.uploadsDir);
   }
   return true;
+}
+
+/**
+ * Without the test catalogue the generic range is archived where an earlier seed loaded it (once:
+ * a product, category or collection changed after the retirement date is left as it is), and its
+ * categories and collections are switched off when no product of the shop is left in them.
+ * Archived products keep their orders; staff can bring any of them back from the admin area.
+ */
+async function retireTestCatalogue(prisma: PrismaClient, retiredAt: Date): Promise<number> {
+  let changes = 0;
+  const archived = await prisma.product.updateMany({
+    where: {
+      slug: {
+        in: DEMO_PRODUCTS.filter((product) => product.testOnly).map((product) => product.slug),
+      },
+      status: { not: 'ARCHIVED' },
+      updatedAt: { lt: retiredAt },
+    },
+    data: { status: 'ARCHIVED' },
+  });
+  changes += archived.count;
+
+  const live = { status: { not: 'ARCHIVED' as const } };
+  for (const category of DEMO_CATEGORIES.filter((entry) => entry.testOnly)) {
+    const found = await prisma.category.findUnique({
+      where: { slug: category.slug },
+      select: {
+        id: true,
+        isActive: true,
+        updatedAt: true,
+        _count: { select: { products: { where: live } } },
+      },
+    });
+    if (!found?.isActive || found.updatedAt >= retiredAt || found._count.products > 0) continue;
+    await prisma.category.update({ where: { id: found.id }, data: { isActive: false } });
+    changes += 1;
+  }
+  for (const collection of DEMO_COLLECTIONS.filter((entry) => entry.testOnly)) {
+    const found = await prisma.collection.findUnique({
+      where: { slug: collection.slug },
+      select: {
+        id: true,
+        isActive: true,
+        updatedAt: true,
+        _count: { select: { products: { where: { product: live } } } },
+      },
+    });
+    if (!found?.isActive || found.updatedAt >= retiredAt || found._count.products > 0) continue;
+    await prisma.collection.update({ where: { id: found.id }, data: { isActive: false } });
+    changes += 1;
+  }
+  return changes;
 }
 
 /**
@@ -553,6 +752,41 @@ async function attachDemoCutout(
   return true;
 }
 
+/**
+ * A pack whose barcode the owner supplied after the product was loaded (XC2025, 8830 and 8009 on
+ * 2026-10-18) gets it, once: only where the pack has none, so a barcode entered in the admin area
+ * stays, and never one another pack already carries (barcodes are unique).
+ */
+async function fillMissingBarcodes(prisma: PrismaClient): Promise<number> {
+  let filled = 0;
+  for (const demo of DEMO_PRODUCTS) {
+    if (demo.testOnly) continue;
+    for (const variant of demo.variants) {
+      if (!variant.barcode) continue;
+      const taken = await prisma.productVariant.findUnique({
+        where: { barcode: variant.barcode },
+        select: { id: true },
+      });
+      if (taken) continue;
+      const { count } = await prisma.productVariant.updateMany({
+        where: { sku: variant.sku, barcode: null },
+        data: { barcode: variant.barcode },
+      });
+      filled += count;
+    }
+  }
+  return filled;
+}
+
+/** A product of the catalogue by its slug, or by a slug it had before. */
+function findDemoProduct(prisma: PrismaClient, demo: DemoProduct) {
+  return prisma.product.findFirst({
+    where: { slug: { in: [demo.slug, ...(demo.formerSlugs ?? [])] } },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, slug: true, productTypeId: true },
+  });
+}
+
 export async function seedCatalogue(
   prisma: PrismaClient,
   options: CatalogueOptions,
@@ -560,15 +794,13 @@ export async function seedCatalogue(
   const now = options.now ?? new Date();
   // Types first: a new demo category starts with its default product type.
   let structure = await seedProductTypes(prisma);
-  structure += await seedTaxonomies(prisma);
+  structure += await seedTaxonomies(prisma, options);
   const articles = await seedContent(prisma, now);
 
   let products = 0;
   for (const demo of DEMO_PRODUCTS) {
-    const existing = await prisma.product.findUnique({
-      where: { slug: demo.slug },
-      select: { id: true, productTypeId: true },
-    });
+    if (demo.testOnly && !options.testCatalogue) continue;
+    const existing = await findDemoProduct(prisma, demo);
     if (existing) {
       if (existing.productTypeId === null) {
         const typed = await prisma.$transaction(
@@ -577,7 +809,7 @@ export async function seedCatalogue(
         );
         if (typed) structure += 1;
       }
-      if (await upgradeToPackaging(prisma, existing.id, demo, options, now)) structure += 1;
+      if (await upgradeToOwnerCopy(prisma, existing, demo, options, now)) structure += 1;
       if (await attachDemoCutout(prisma, existing.id, demo, options)) structure += 1;
       continue;
     }
@@ -586,6 +818,13 @@ export async function seedCatalogue(
       await attachDemoImages(prisma, productId, demo, options.emblem, options.uploadsDir);
     }
     products += 1;
+  }
+  structure += await fillMissingBarcodes(prisma);
+  if (!options.testCatalogue) {
+    structure += await retireTestCatalogue(
+      prisma,
+      options.testRangeRetiredAt ?? TEST_RANGE_RETIRED,
+    );
   }
   return { products, articles, structure };
 }

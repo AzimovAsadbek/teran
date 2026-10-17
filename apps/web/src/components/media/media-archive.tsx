@@ -113,7 +113,7 @@ export async function MediaTabs({
                   className={cn(
                     'inline-flex h-10 items-center gap-2 rounded-full px-4 text-body-sm font-semibold whitespace-nowrap transition-colors duration-150 sm:px-5',
                     active
-                      ? 'bg-gold-300 text-forest-950'
+                      ? 'bg-gold-300 text-fg'
                       : 'text-ivory-100/80 hover:bg-ivory-50/10 hover:text-ivory-50',
                   )}
                 >
@@ -122,7 +122,7 @@ export async function MediaTabs({
                   <span
                     className={cn(
                       'text-caption tabular-nums',
-                      active ? 'text-forest-950/70' : 'text-ivory-100/50',
+                      active ? 'text-fg' : 'text-ivory-100/75',
                     )}
                   >
                     {tab.count}

@@ -4,14 +4,18 @@ import { Price } from '@/components/ui/price';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatMoney, packLabel } from '@/lib/format';
+import { showPrices } from '@/lib/site';
 import { ProductImage } from './product-image';
+import { OrderAction } from './order-action';
 import { QuickAdd } from './quick-add';
 
 /** Four columns from 1024 px, three from 768 px, two on phones (between the 1.5 rem gutters). */
 export const PRODUCT_CARD_SIZES =
   '(min-width: 1024px) 22vw, (min-width: 768px) 30vw, calc(50vw - 1.75rem)';
 
-const PILL = 'rounded-full px-2.5 py-1 text-[0.8125rem] leading-none font-medium';
+/** The reference's badge: 14 px words in a 12 px-cornered outline (11 px on phones). */
+const PILL =
+  'rounded-[0.625rem] border-[0.75px] px-1.5 py-[3px] text-[0.6875rem] leading-4 font-medium min-[46.875rem]:rounded-[0.75rem] min-[46.875rem]:px-2 min-[46.875rem]:py-[4.5px] min-[46.875rem]:text-[0.875rem] min-[46.875rem]:leading-[1.3125rem]';
 
 /** "-25 %" from the lowest price and the price it replaces (only when both are real numbers). */
 function discountPercent(price: string, compareAt: string | null): number | null {
@@ -24,12 +28,15 @@ function discountPercent(price: string, compareAt: string | null): number | null
 }
 
 /**
- * Product card on the reference's model: a white card lifted off the page, the picture on white,
- * an outlined "new" pill top-left and the discount top-right, then the tea type in italics, the
- * name and price · pack size. With a mouse the card rises a little when pointed at, the picture
- * changes to the product's second one and an "Add to bag · price" pill comes up over its foot;
- * touch screens show the round bag button instead (quick-add.tsx). The name is a stretched link
- * (one tab stop per card). No rating row: TERAN has no reviews, and none is invented.
+ * Product card on the reference's model: a white card (8 px corners) lifted off the page by a
+ * soft shadow, the picture on white, an outlined "new" pill top-left and the discount top-right,
+ * then the tea type in italics, the name and price · pack size. As on the reference the picture and
+ * the name lead to the product (the name, underlined while pointed at, is the keyboard's stop),
+ * the card itself does not move and the second picture fades in while the pointer is on the
+ * picture. While the card is pointed at, the "Add to bag · price" pill shows over the picture's
+ * foot (a round bag button on touch screens, quick-add.tsx); without prices, an "Order" pill to
+ * the product page's ordering block (order-action.tsx). No rating row: TERAN has no reviews, and
+ * none is invented.
  */
 export function ProductCard({
   product,
@@ -47,32 +54,29 @@ export function ProductCard({
   const locale = useLocale();
   const Heading = headingLevel;
   const soldOut = product.stockLevel === 'out_of_stock';
-  const discount = soldOut ? null : discountPercent(product.priceFrom, product.compareAtPriceFrom);
+  const discount =
+    soldOut || !showPrices ? null : discountPercent(product.priceFrom, product.compareAtPriceFrom);
   const pack = product.defaultVariant
     ? packLabel(product.defaultVariant, product.format, locale, (key, values) =>
         t(`units.${key}`, values),
       )
     : null;
 
+  const href = `/products/${product.slug}`;
   const hoverImage = soldOut ? null : product.hoverImage;
   const packPrice = product.defaultVariant
     ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
     : null;
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-sm bg-surface shadow-card transition-[translate,box-shadow] duration-250 ease-out hover:shadow-lift pointer-fine:hover:-translate-y-1">
-      <div className="relative aspect-square overflow-hidden bg-surface">
+    <article className="group/card relative flex h-full flex-col overflow-hidden rounded-[0.5rem] bg-surface shadow-card">
+      <div className="group/gallery relative aspect-square overflow-hidden rounded-t-[0.75rem] bg-surface">
         <ProductImage
           image={product.image}
           name={product.name}
           sizes={sizes}
           priority={priority}
-          className={cn(
-            hoverImage
-              ? 'transition-opacity duration-300 ease-out pointer-fine:group-hover:opacity-0'
-              : 'transition-transform duration-500 ease-[var(--ease-soft)] group-hover:scale-[1.03]',
-            soldOut && 'opacity-60',
-          )}
+          className={cn(soldOut && 'opacity-60')}
         />
         {hoverImage ? (
           // Not displayed on touch screens, so it is never downloaded there.
@@ -81,58 +85,67 @@ export function ProductCard({
             name={product.name}
             sizes={sizes}
             decorative
-            className="absolute inset-0 hidden opacity-0 transition-opacity duration-300 ease-out pointer-fine:block pointer-fine:group-hover:opacity-100"
+            className="absolute inset-0 hidden opacity-0 transition-opacity duration-200 ease-[ease] pointer-fine:block pointer-fine:group-hover/gallery:opacity-100"
           />
         ) : null}
-        <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2 sm:inset-x-4 sm:top-4">
+        <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 z-[1]" />
+        <div className="pointer-events-none absolute inset-x-2 top-2 z-[2] flex items-start justify-between gap-2 min-[46.875rem]:inset-x-4 min-[46.875rem]:top-4">
           <div className="flex flex-wrap gap-1.5">
             {soldOut ? (
-              <span className={cn(PILL, 'bg-ink-700 text-ivory-50')}>{t('badgeSoldOut')}</span>
+              <span className={cn(PILL, 'border-ink-700 bg-ink-700 text-ivory-50')}>
+                {t('badgeSoldOut')}
+              </span>
             ) : null}
             {!soldOut && product.isNew ? (
-              <span className={cn(PILL, 'border border-forest-700 bg-surface text-forest-800')}>
+              <span className={cn(PILL, 'border-forest-700 bg-surface text-forest-700')}>
                 {t('badgeNew')}
               </span>
             ) : null}
             {product.stockLevel === 'low_stock' ? (
-              <span className={cn(PILL, 'border border-gold-600 bg-surface text-gold-800')}>
+              <span className={cn(PILL, 'border-gold-700 bg-surface text-gold-800')}>
                 {t('lowStock')}
               </span>
             ) : null}
           </div>
           {discount ? (
-            <span className={cn(PILL, 'shrink-0 bg-forest-900 text-ivory-50')}>−{discount}%</span>
-          ) : !soldOut && product.onSale ? (
-            <span className={cn(PILL, 'shrink-0 bg-forest-900 text-ivory-50')}>
+            <span className={cn(PILL, 'shrink-0 border-forest-700 bg-forest-700 text-ivory-50')}>
+              −{discount}%
+            </span>
+          ) : !soldOut && showPrices && product.onSale ? (
+            <span className={cn(PILL, 'shrink-0 border-forest-700 bg-forest-700 text-ivory-50')}>
               {t('badgeSale')}
             </span>
           ) : null}
         </div>
-        <QuickAdd variant={product.defaultVariant} productName={product.name} price={packPrice} />
+        {/* Without prices there is no bag: the pill leads to the product page's ordering block. */}
+        {showPrices ? (
+          <QuickAdd variant={product.defaultVariant} productName={product.name} price={packPrice} />
+        ) : soldOut ? null : (
+          <OrderAction href={href} productName={product.name} />
+        )}
       </div>
 
-      <div className="flex flex-1 flex-col px-2 pt-3 pb-4 sm:px-2.5">
-        <p className="truncate text-[0.875rem] text-fg-muted italic">{product.category.name}</p>
-        <Heading className="mt-1 text-[0.9375rem] leading-snug font-bold text-fg sm:text-[1rem]">
-          <Link
-            href={`/products/${product.slug}`}
-            className={cn(
-              'decoration-brand/35 decoration-1 underline-offset-[0.2em] group-hover:underline',
-              'after:absolute after:inset-0 focus-visible:outline-none',
-              'focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-focus focus-visible:after:outline-solid',
-            )}
-          >
+      <div className="flex flex-1 flex-col gap-1 px-2 pt-2 pb-2">
+        <p className="h-6 truncate text-[0.875rem] leading-6 font-medium text-fg italic">
+          {product.category.name}
+        </p>
+        <Heading className="line-clamp-2 min-h-8 text-[1rem] leading-4 font-bold text-fg">
+          <Link href={href} className="relative z-[1] hover:underline">
             {product.name}
           </Link>
         </Heading>
-        <p className="mt-auto flex flex-wrap items-baseline gap-x-1.5 pt-3 text-[0.9375rem] sm:text-[1rem]">
-          <Price
-            amount={product.priceFrom}
-            compareAt={product.compareAtPriceFrom}
-            from={product.variantCount > 1}
-          />
-          {pack ? <span className="text-[0.875rem] text-fg-muted">· {pack}</span> : null}
-        </p>
+        {showPrices ? (
+          <p className="mt-auto flex min-h-6 flex-wrap items-baseline gap-x-1.5 text-[1rem] leading-6 font-medium">
+            <Price
+              amount={product.priceFrom}
+              compareAt={product.compareAtPriceFrom}
+              from={product.variantCount > 1}
+            />
+            {pack ? <span className="text-[0.875rem] text-fg-muted">· {pack}</span> : null}
+          </p>
+        ) : pack ? (
+          <p className="mt-auto min-h-6 text-[1rem] leading-6 font-medium text-fg">{pack}</p>
+        ) : null}
       </div>
     </article>
   );

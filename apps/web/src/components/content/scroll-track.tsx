@@ -103,7 +103,7 @@ export function ScrollTrackHint({ label }: { label: string }) {
         const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         row.scrollBy({ left: row.clientWidth * 0.7, behavior: reduce ? 'auto' : 'smooth' });
       }}
-      className="inline-flex h-[3.125rem] -rotate-2 items-center gap-1 rounded-[0.875rem] bg-jade-100 px-7 text-[1.25rem] text-jade-700 transition-[filter] duration-200 hover:brightness-[0.97]"
+      className="inline-flex h-[3.125rem] -rotate-2 items-center gap-1 rounded-[0.875rem] bg-jade-100 px-7 text-[1.25rem] text-forest-800 transition-[filter] duration-200 hover:brightness-[0.97]"
     >
       {label}
       <ChevronRight aria-hidden className="h-5 w-5" />

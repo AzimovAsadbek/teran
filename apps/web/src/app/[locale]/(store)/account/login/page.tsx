@@ -44,7 +44,7 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
             <p>
               <Link
                 href="/account/forgot-password"
-                className="font-semibold text-forest-900 underline-offset-4 hover:underline"
+                className="font-semibold text-fg underline-offset-4 hover:underline"
               >
                 {t('forgotPassword')}
               </Link>
@@ -55,7 +55,7 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
               {t('noAccount')}{' '}
               <Link
                 href={registerHref}
-                className="font-semibold text-forest-900 underline-offset-4 hover:underline"
+                className="font-semibold text-fg underline-offset-4 hover:underline"
               >
                 {t('register')}
               </Link>

@@ -29,7 +29,7 @@ export async function PremiumCollectionBand({ locale }: { locale: Locale }) {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
         <div className="min-w-0">
           <p className="text-eyebrow text-accent-fg">{t('featuredEyebrow')}</p>
-          <h2 id="premium-collection-title" className="mt-3 text-display-md text-forest-900">
+          <h2 id="premium-collection-title" className="mt-3 text-display-md text-fg">
             {copy.collection.heading}
           </h2>
           <p className="mt-2 text-body-lg text-fg-muted">{copy.collection.text}</p>

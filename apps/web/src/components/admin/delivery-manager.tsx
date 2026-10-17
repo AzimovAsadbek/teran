@@ -135,9 +135,7 @@ function MethodForm({
         onChange={(event) => setRequiresAddress(event.target.checked)}
       />
       <fieldset>
-        <legend className="text-body-sm font-semibold text-forest-900">
-          {t('delivery.regions')}
-        </legend>
+        <legend className="text-body-sm font-semibold text-fg">{t('delivery.regions')}</legend>
         <p className="mb-2 text-body-sm text-fg-subtle">{t('delivery.regionsHint')}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {REGIONS.map((region) => (

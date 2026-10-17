@@ -9,21 +9,35 @@ import { Emblem } from '@/components/brand/logo';
 import { ValueIcon } from '@/components/brand/ornaments';
 import { Stamp } from '@/components/brand/stamp';
 import { Blocks } from '@/components/content/long-form';
+import { VisualPicture } from '@/components/content/visual-picture';
 import { ScrollTrack, ScrollTrackHint } from '@/components/content/scroll-track';
 import { Sparkles } from '@/components/home/sparkles';
-import { BRAND, BRAND_VALUES, brandCopy, brandValueLabels, PACKAGING } from '@/content/brand';
+import {
+  BRAND,
+  BRAND_VALUES,
+  brandCopy,
+  brandValueLabels,
+  PACKAGING,
+  teaHref,
+  type TeaCode,
+} from '@/content/brand';
 import { aboutPage } from '@/content/pages/about';
 import type { Block } from '@/content/types';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories } from '@/lib/data/catalog';
+import { NETWORK_NAMES, SocialIcon } from '@/components/social/social-icon';
+import { socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
 import { categoryTree } from '@/lib/navigation';
 import { pageMetadata } from '@/lib/seo';
+import { showAdvisor, showGallery } from '@/lib/site';
+import { visualFor } from '@/lib/visuals';
 import lake from '../../../../../public/brand/art/lake.webp';
 import sprig from '../../../../../public/brand/art/sprig-1.webp';
 import terraces from '../../../../../public/brand/art/terraces.webp';
 import pack8009 from '../../../../../public/brand/packs/8009.webp';
+import pack8800 from '../../../../../public/brand/packs/8800.webp';
 import pack8830 from '../../../../../public/brand/packs/8830.webp';
 import packG8810 from '../../../../../public/brand/packs/g8810.webp';
 import packXc2025 from '../../../../../public/brand/packs/xc2025.webp';
@@ -31,12 +45,17 @@ import packXc2025 from '../../../../../public/brand/packs/xc2025.webp';
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
   const page = aboutPage[locale];
-  return pageMetadata({ title: page.title, description: page.description, href: '/about', locale });
+  return pageMetadata({
+    title: page.metaTitle ? { absolute: page.metaTitle } : page.title,
+    description: page.description,
+    href: '/about',
+    locale,
+  });
 }
 
-/** The reference's pill: 50 px high, brightening a little when pointed at. */
+/** The reference's pill: 50 px high, brighter on a soft shadow when pointed at. */
 const PILL =
-  'inline-flex h-[3.125rem] items-center justify-center rounded-full px-8 text-[0.95625rem] font-medium transition-[filter,box-shadow] duration-200 ease-out hover:shadow-[0_6px_18px_-6px_rgb(0_0_0_/_0.35)] hover:brightness-[1.04]';
+  'pill-hover inline-flex h-[3.125rem] items-center justify-center rounded-full px-8 text-[0.95625rem] font-medium';
 
 /** Outlined capitals, as the reference's hand-set stickers ("we think outside the cup"). */
 const OUTLINED =
@@ -47,7 +66,9 @@ const CARD_TURNS = [-2.5, 2, -1.5, 2.5];
 
 /**
  * About TERAN on the reference's About template, with TERAN's own words (content/brand.ts) and
- * artwork: a photographic welcome with a sticker, the story and the pack's values as tilted cards,
+ * pictures (the pack's artwork, or the photographs set in Admin → Settings for the welcome, the
+ * ideas and the framed picture): a photographic welcome with a sticker, the story and the pack's
+ * values as tilted cards,
  * the three ideas as a sideways timeline, a framed picture, the "difference" band, the range with
  * the catalogue's categories around the packs, the partnership band, the brand's world in three
  * tiles and, once TERAN has entered them, its social profiles. Nothing is invented: no figures,
@@ -72,16 +93,15 @@ export default async function AboutPage() {
     <>
       {/* 1. Welcome: the lake painted on the packs, the title and a tilted sticker. */}
       <header className="on-dark relative isolate flex h-[18rem] items-center justify-center overflow-hidden bg-forest-950 text-center sm:h-[26.125rem]">
-        <Image
-          src={lake}
-          alt=""
-          fill
-          loading="eager"
-          fetchPriority="high"
-          quality={60}
-          sizes="(max-width: 767px) 75vw, 100vw"
-          className="-z-20 object-cover"
-        />
+        <Suspense fallback={null}>
+          <PagePicture
+            slot="about.hero"
+            art={lake}
+            sizes="(max-width: 767px) 75vw, 100vw"
+            priority
+            className="-z-20"
+          />
+        </Suspense>
         <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/35" />
         <p
           lang="uz"
@@ -128,6 +148,43 @@ export default async function AboutPage() {
         </div>
       </section>
 
+      {/* 2b. Our history, from the facts TERAN supplied, beside its five pouches. */}
+      {history ? (
+        <section aria-labelledby="history-title" className="bg-ivory-100 py-14 sm:py-16">
+          <div className="container-page grid items-center gap-12 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:gap-16">
+            <div>
+              <h2
+                id="history-title"
+                className="font-headline text-[2.5rem] text-balance text-jade-700 sm:text-[3.25rem]"
+              >
+                {history.heading}
+              </h2>
+              <div className="mt-5 max-w-[40rem] space-y-4 text-[1.0625rem] leading-relaxed text-fg">
+                <Blocks blocks={history.blocks} />
+              </div>
+            </div>
+            <div aria-hidden className="mx-auto flex w-full max-w-[30rem] items-end justify-center">
+              {POUCHES.map((pouch, index) => (
+                <Link
+                  key={pouch.code}
+                  href={teaHref(pouch.code)}
+                  tabIndex={-1}
+                  style={POUCH_FAN[index]}
+                  className="relative -ml-[9%] w-[27%] transition-[translate] duration-200 ease-[ease] first:ml-0 hover:-translate-y-2"
+                >
+                  <Image
+                    src={pouch.image}
+                    alt=""
+                    sizes="(min-width: 1024px) 9rem, 28vw"
+                    className="h-auto w-full drop-shadow-[0_18px_18px_rgb(0_0_0_/_0.22)]"
+                  />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {/* 3. The three ideas, as the reference's sideways timeline. */}
       <section
         aria-labelledby="ideas-title"
@@ -155,16 +212,6 @@ export default async function AboutPage() {
                 picture={IDEA_PICTURES[index]}
               />
             ))}
-            {history ? (
-              <div className="w-[17rem] shrink-0 snap-start rounded-[1.25rem] border-2 border-dashed border-jade-300 p-6 sm:w-[20rem]">
-                <p className="font-headline text-[2rem] text-jade-700 [--heading-case:none] [--headline-weight:600]">
-                  {history.heading}
-                </p>
-                <div className="mt-3 text-[1rem] text-fg-muted">
-                  <Blocks blocks={history.blocks} />
-                </div>
-              </div>
-            ) : null}
           </div>
         </ScrollTrack>
       </section>
@@ -172,13 +219,14 @@ export default async function AboutPage() {
       {/* 4. A framed picture with the tagline, as the reference's showcase. */}
       <section aria-labelledby="showcase-title" className="bg-jade-100 px-gutter pb-10 sm:pb-12">
         <div className="relative isolate mx-auto flex h-[15rem] max-w-[61rem] items-center justify-center overflow-hidden rounded-banner px-6 text-center sm:h-[20rem]">
-          <Image
-            src={terraces}
-            alt=""
-            fill
-            sizes="(min-width: 1024px) 976px, 100vw"
-            className="-z-20 object-cover"
-          />
+          <Suspense fallback={null}>
+            <PagePicture
+              slot="about.showcase"
+              art={terraces}
+              sizes="(min-width: 1024px) 976px, 100vw"
+              className="-z-20"
+            />
+          </Suspense>
           <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/45" />
           <h2
             id="showcase-title"
@@ -237,18 +285,20 @@ export default async function AboutPage() {
         </Suspense>
       ) : null}
 
-      {/* 7. Partnership, as the reference's innovation band. */}
+      {/* 7. Partnership, as the reference's innovation band: its pink, with the deeper pink step
+          rising across the lower right, and its white stamp. */}
       <section
         aria-labelledby="partnership-title"
-        className="relative isolate overflow-hidden bg-gold-100"
+        className="relative isolate overflow-hidden bg-[#ff97b8]"
       >
         <span
           aria-hidden
-          className="absolute -right-[10%] -bottom-[40%] -z-10 h-[90%] w-[85%] -rotate-12 bg-gold-50"
+          className="absolute -right-[10%] -bottom-[40%] -z-10 h-[90%] w-[85%] -rotate-12 bg-[#fc85ab]"
         />
         <div className="container-page grid min-h-[30rem] grid-cols-1 items-center gap-10 py-14 lg:grid-cols-[minmax(0,4fr)_minmax(0,3fr)_minmax(0,5fr)] lg:gap-8">
           <div className="flex flex-col items-start">
-            <Stamp top={BRAND.name} word={values.taste} className="text-jade-700" />
+            {/* The reference's stamp is white; on this pink only a deep teal keeps AA contrast. */}
+            <Stamp top={BRAND.name} word={values.taste} className="text-[#08494c]" />
             <h2
               id="partnership-title"
               className={cn(OUTLINED, 'mt-6 text-[3rem] leading-[0.9] sm:text-[4rem]')}
@@ -268,20 +318,29 @@ export default async function AboutPage() {
                 { x: '20%', y: '6%', size: 56 },
                 { x: '84%', y: '22%', size: 28 },
               ]}
-              className="text-gold-400"
+              // The reference's lime sparkle on its pink.
+              className="text-[#d8e377]"
             />
-            <Image
-              src={packG8810}
-              alt=""
-              sizes="11rem"
-              className="relative h-auto w-[55%] -rotate-6 drop-shadow-[0_24px_24px_rgb(0_0_0_/_0.25)]"
-            />
-            <Image
-              src={packXc2025}
-              alt=""
-              sizes="11rem"
-              className="relative -ml-[18%] h-auto w-[55%] rotate-6 drop-shadow-[0_24px_24px_rgb(0_0_0_/_0.25)]"
-            />
+            <Link href={teaHref('G8810')} tabIndex={-1} className="relative w-[55%] -rotate-6">
+              <Image
+                src={packG8810}
+                alt=""
+                sizes="11rem"
+                className="h-auto w-full drop-shadow-[0_24px_24px_rgb(0_0_0_/_0.25)]"
+              />
+            </Link>
+            <Link
+              href={teaHref('XC2025')}
+              tabIndex={-1}
+              className="relative -ml-[18%] w-[55%] rotate-6"
+            >
+              <Image
+                src={packXc2025}
+                alt=""
+                sizes="11rem"
+                className="h-auto w-full drop-shadow-[0_24px_24px_rgb(0_0_0_/_0.25)]"
+              />
+            </Link>
           </div>
           <p className="rounded-[1rem] bg-ivory-50 px-7 py-6 text-[1.25rem] leading-snug text-jade-700 shadow-[0_8px_24px_-12px_rgb(0_0_0_/_0.2)] sm:text-[1.5rem]">
             {copy.partnership.text} {copy.collection.text}
@@ -305,11 +364,21 @@ export default async function AboutPage() {
           >
             {PACKAGING.slogan[1]}
           </p>
-          <ul className="mx-auto mt-8 grid max-w-[53.5rem] gap-3 sm:grid-cols-3">
+          <ul
+            className={cn(
+              'mx-auto mt-8 grid gap-3',
+              showAdvisor || showGallery
+                ? 'max-w-[53.5rem] sm:grid-cols-3'
+                : 'max-w-[36rem] sm:grid-cols-2',
+            )}
+          >
             {[
               { href: '/journal', label: tn('journal'), image: terraces },
-              { href: '/media', label: tn('media'), image: lake },
-              { href: '/assistant', label: tn('assistant'), image: sprig },
+              { href: '/tea-101', label: tn('tea101'), image: lake },
+              ...(showGallery ? [{ href: '/media', label: tn('media'), image: lake }] : []),
+              ...(showAdvisor
+                ? [{ href: '/assistant', label: tn('assistant'), image: sprig }]
+                : []),
             ].map((tile) => (
               <li key={tile.href}>
                 <Link
@@ -321,7 +390,8 @@ export default async function AboutPage() {
                     alt=""
                     fill
                     sizes="(min-width: 640px) 18rem, 100vw"
-                    className="-z-20 object-cover transition-transform duration-[350ms] ease-out group-hover:scale-105"
+                    // As the reference's community tiles: the picture brightens when pointed at.
+                    className="picture-hover -z-20 object-cover"
                   />
                   <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/40" />
                   <span className="font-heading text-[1.75rem] leading-[1.1] text-ivory-50 sm:text-[2rem]">
@@ -345,11 +415,68 @@ export default async function AboutPage() {
   );
 }
 
-const IDEA_PICTURES: { image: StaticImageData; shape: 'card' | 'circle' }[] = [
-  { image: lake, shape: 'card' },
-  { image: terraces, shape: 'circle' },
-  { image: sprig, shape: 'card' },
+/** The five pouches fanned out, the middle one in front; each opens its tea. */
+const POUCHES: { code: TeaCode; image: StaticImageData }[] = [
+  { code: 'XC2025', image: packXc2025 },
+  { code: 'G8810', image: packG8810 },
+  { code: '8800', image: pack8800 },
+  { code: '8830', image: pack8830 },
+  { code: '8009', image: pack8009 },
 ];
+const POUCH_FAN: CSSProperties[] = [-10, -5, 0, 5, 10].map((turn, index) => ({
+  rotate: `${turn}deg`,
+  translate: `0 ${Math.abs(turn) * 0.8}%`,
+  zIndex: 3 - Math.abs(index - 2),
+}));
+
+/** Each idea's picture: its place in Admin → Settings and the artwork shown until one is set. */
+const IDEA_PICTURES: { slot: string; art: StaticImageData; shape: 'card' | 'circle' }[] = [
+  { slot: 'about.idea.1', art: lake, shape: 'card' },
+  { slot: 'about.idea.2', art: terraces, shape: 'circle' },
+  { slot: 'about.idea.3', art: sprig, shape: 'card' },
+];
+
+/**
+ * One of this page's pictures that Admin → Settings can replace: the uploaded photograph when its
+ * place has one, else TERAN's artwork. Read at request time, so it streams in; the frame around
+ * it is sized by the page, so nothing moves when it arrives.
+ */
+async function PagePicture({
+  slot,
+  art,
+  sizes,
+  priority = false,
+  className,
+}: {
+  slot: string;
+  art: StaticImageData;
+  sizes: string;
+  priority?: boolean;
+  className?: string;
+}) {
+  await connection();
+  const locale = await getLocale();
+  const visual = visualFor(await getPublicSettings(locale).catch(() => null), slot);
+  if (visual) {
+    return (
+      <div className={cn('absolute inset-0', className)}>
+        <VisualPicture visual={visual} sizes={sizes} priority={priority} />
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={art}
+      alt=""
+      fill
+      sizes={sizes}
+      quality={60}
+      loading={priority ? 'eager' : undefined}
+      fetchPriority={priority ? 'high' : undefined}
+      className={cn('object-cover', className)}
+    />
+  );
+}
 
 /** One step of the timeline: a large number, the idea and its line, then its picture. */
 function IdeaStep({
@@ -363,7 +490,7 @@ function IdeaStep({
   title: string;
   text: string;
   hint: ReactNode;
-  picture?: { image: StaticImageData; shape: 'card' | 'circle' };
+  picture?: { slot: string; art: StaticImageData; shape: 'card' | 'circle' };
 }) {
   return (
     <>
@@ -384,13 +511,15 @@ function IdeaStep({
         <div
           aria-hidden
           className={cn(
-            'relative shrink-0 overflow-hidden shadow-[0_18px_40px_-18px_rgb(0_0_0_/_0.35)]',
+            'relative shrink-0 overflow-hidden bg-jade-100 shadow-[0_18px_40px_-18px_rgb(0_0_0_/_0.35)]',
             picture.shape === 'circle'
               ? 'aspect-square w-[13rem] rounded-full sm:w-[16rem]'
               : 'aspect-[320/336] w-[15rem] rotate-[-4deg] rounded-[1.25rem] sm:w-[20rem]',
           )}
         >
-          <Image src={picture.image} alt="" fill sizes="20rem" className="object-cover" />
+          <Suspense fallback={null}>
+            <PagePicture slot={picture.slot} art={picture.art} sizes="20rem" />
+          </Suspense>
         </div>
       ) : null}
     </>
@@ -398,15 +527,16 @@ function IdeaStep({
 }
 
 const RANGE_PACKS: {
+  code: TeaCode;
   pack: StaticImageData;
   side: 'left' | 'right';
   at: [string, string];
   turn: number;
 }[] = [
-  { pack: packXc2025, side: 'left', at: ['30%', '2%'], turn: -10 },
-  { pack: pack8830, side: 'left', at: ['46%', '52%'], turn: 8 },
-  { pack: packG8810, side: 'right', at: ['18%', '8%'], turn: 12 },
-  { pack: pack8009, side: 'right', at: ['44%', '50%'], turn: -8 },
+  { code: 'XC2025', pack: packXc2025, side: 'left', at: ['30%', '2%'], turn: -10 },
+  { code: '8830', pack: pack8830, side: 'left', at: ['46%', '52%'], turn: 8 },
+  { code: 'G8810', pack: packG8810, side: 'right', at: ['18%', '8%'], turn: 12 },
+  { code: '8009', pack: pack8009, side: 'right', at: ['44%', '50%'], turn: -8 },
 ];
 
 /** Where the category labels sit around the packs (left/top, % of each side's area). */
@@ -450,14 +580,22 @@ function RangeSection({
       className="relative hidden h-[28rem] lg:block"
     >
       {RANGE_PACKS.filter((item) => item.side === which).map((item) => (
-        <Image
-          key={item.pack.src}
-          src={item.pack}
-          alt=""
-          sizes="9rem"
-          className="absolute h-auto w-[9rem] drop-shadow-[0_18px_18px_rgb(0_0_0_/_0.2)]"
+        // Each pack opens its tea (pointer only: the labels beside them are the links to tab to).
+        <Link
+          key={item.code}
+          href={teaHref(item.code)}
+          tabIndex={-1}
+          aria-hidden
+          className="absolute w-[9rem] transition-[scale] duration-200 ease-[ease] hover:scale-[1.04]"
           style={{ left: item.at[0], top: item.at[1], rotate: `${item.turn}deg` } as CSSProperties}
-        />
+        >
+          <Image
+            src={item.pack}
+            alt=""
+            sizes="9rem"
+            className="h-auto w-full drop-shadow-[0_18px_18px_rgb(0_0_0_/_0.2)]"
+          />
+        </Link>
       ))}
       {labels.map((label, index) => {
         const spot = LABEL_SPOTS[index];
@@ -466,7 +604,8 @@ function RangeSection({
           <Link
             key={label.href}
             href={label.href}
-            className="absolute inline-flex min-h-12 items-center rounded-[0.75rem] bg-ivory-50 px-6 text-[1.25rem] whitespace-nowrap text-jade-700 shadow-[0_6px_18px_-8px_rgb(0_0_0_/_0.3)] transition-transform duration-200 hover:scale-105"
+            // The reference's variety labels grow a little (6 %, 200 ms) when pointed at.
+            className="absolute inline-flex min-h-12 items-center rounded-[0.75rem] bg-ivory-50 px-6 text-[1.25rem] whitespace-nowrap text-jade-700 shadow-[0_6px_18px_-8px_rgb(0_0_0_/_0.3)] transition-[scale] duration-200 ease-[ease] hover:scale-[1.06] focus-visible:scale-[1.06]"
             style={
               { left: spot.at[0], top: spot.at[1], rotate: `${spot.turn}deg` } as CSSProperties
             }
@@ -524,47 +663,43 @@ function RangeSection({
 async function FollowBand() {
   await connection();
   const locale = await getLocale();
-  const t = await getTranslations('Footer');
+  const [t, tc] = await Promise.all([getTranslations('Footer'), getTranslations('Common')]);
   const contact = (await getPublicSettings(locale).catch(() => null))?.contact;
-  const links = [
-    contact?.telegram
-      ? { href: `https://t.me/${contact.telegram}`, label: `Telegram @${contact.telegram}` }
-      : null,
-    contact?.instagram
-      ? {
-          href: `https://instagram.com/${contact.instagram}`,
-          label: `Instagram @${contact.instagram}`,
-        }
-      : null,
-  ].filter((link) => link !== null);
+  const links = socialLinks(contact);
   if (links.length === 0) return null;
   return (
     <section aria-labelledby="follow-title" className="on-dark bg-jade-600 text-ivory-50">
       <div className="container-page flex flex-col items-center gap-8 py-12 sm:flex-row sm:justify-center sm:gap-14">
-        <div className="flex items-center gap-6">
-          <span className="flex h-24 w-24 items-center justify-center rounded-full bg-ivory-50">
-            <Emblem className="w-14" sizes="56px" />
+        {/* Stacked on phones: "Социальные сети" in 48 px would not fit beside the emblem. */}
+        <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-6 sm:text-left">
+          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-ivory-50 sm:h-24 sm:w-24">
+            <Emblem className="w-12 sm:w-14" sizes="56px" />
           </span>
           <h2
             id="follow-title"
             className={cn(
               OUTLINED,
-              'text-[3rem] leading-[0.9] [--sticker-color:var(--color-forest-800)]',
+              'text-[2.25rem] leading-[0.95] [overflow-wrap:anywhere] [--sticker-color:var(--color-forest-800)] sm:text-[3rem]',
             )}
           >
             {t('followUs')}
           </h2>
         </div>
-        <ul className="flex flex-wrap items-center justify-center gap-4">
+        {/* The reference's row of 50 px white marks, 8 px apart. */}
+        <ul className="flex flex-wrap items-center justify-center gap-2">
           {links.map((link) => (
             <li key={link.href}>
               <a
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center rounded-full border border-ivory-50 px-6 text-[1rem] transition-colors duration-200 hover:bg-ivory-50 hover:text-jade-700"
+                title={NETWORK_NAMES[link.network]}
+                className="flex h-[3.125rem] w-[3.125rem] items-center justify-center text-ivory-50"
               >
-                {link.label}
+                <SocialIcon network={link.network} mono className="h-[3.125rem] w-[3.125rem]" />
+                <span className="sr-only">
+                  {link.label} ({tc('opensInNewTab')})
+                </span>
               </a>
             </li>
           ))}

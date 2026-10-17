@@ -25,7 +25,7 @@ test.describe('phone', () => {
     await expect(page).toHaveURL(/\/en\/catalog$/);
     await expect(menu).toBeHidden();
     await expect(
-      visible(page.getByRole('note').filter({ hasText: 'Demonstration catalogue' })),
+      visible(page.getByRole('note').filter({ hasText: 'Demonstration mode' })),
     ).toBeVisible();
     await expectNoSidewaysScroll(page);
 

@@ -59,7 +59,7 @@ async function Register({
           {t('haveAccount')}{' '}
           <Link
             href={loginHref}
-            className="font-semibold text-forest-900 underline-offset-4 hover:underline"
+            className="font-semibold text-fg underline-offset-4 hover:underline"
           >
             {t('login')}
           </Link>

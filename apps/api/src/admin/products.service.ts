@@ -767,12 +767,17 @@ export class AdminProductsService {
       isFeatured: input.isFeatured,
       caffeineLevel: input.caffeineLevel,
       brewTempCelsius: input.brewTempCelsius,
+      brewTempMaxCelsius: input.brewTempMaxCelsius,
       brewTimeMinSeconds: input.brewTimeMinSeconds,
       brewTimeMaxSeconds: input.brewTimeMaxSeconds,
       brewAmountGrams:
         input.brewAmountGrams === null
           ? null
           : new Prisma.Decimal(input.brewAmountGrams.toFixed(1)),
+      brewAmountMaxGrams:
+        input.brewAmountMaxGrams === null
+          ? null
+          : new Prisma.Decimal(input.brewAmountMaxGrams.toFixed(1)),
       illustrationKey: input.illustrationKey,
       announceOnTelegram: input.announceOnTelegram,
     };
@@ -849,9 +854,12 @@ export class AdminProductsService {
       isFeatured: row.isFeatured,
       caffeineLevel: row.caffeineLevel,
       brewTempCelsius: row.brewTempCelsius,
+      brewTempMaxCelsius: row.brewTempMaxCelsius,
       brewTimeMinSeconds: row.brewTimeMinSeconds,
       brewTimeMaxSeconds: row.brewTimeMaxSeconds,
       brewAmountGrams: row.brewAmountGrams === null ? null : row.brewAmountGrams.toNumber(),
+      brewAmountMaxGrams:
+        row.brewAmountMaxGrams === null ? null : row.brewAmountMaxGrams.toNumber(),
       illustrationKey: asIllustrationKey(row.illustrationKey),
       collectionIds: row.collections.map((collection) => collection.collectionId),
       translations: toAdminTranslation(row.translations, (translation) => ({

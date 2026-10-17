@@ -14,12 +14,13 @@ import type { HeaderAccount } from '@/lib/session';
  * does not shift when the account state arrives. Below 1280 px the drawer offers the same links.
  */
 const SLOT = 'hidden items-center xl:flex';
+/** The reference's account button: a person and a teal caret, unchanged when pointed at. */
 const SUMMARY =
-  'inline-flex h-11 cursor-pointer list-none items-center gap-1 rounded-full px-2.5 text-fg transition-colors duration-150 hover:bg-brand/[0.06] hover:text-brand [&::-webkit-details-marker]:hidden';
+  'inline-flex h-11 cursor-pointer list-none items-center gap-0 rounded-full px-1 text-fg [&::-webkit-details-marker]:hidden';
 const PANEL =
   'absolute top-full right-0 z-40 mt-2 w-64 rounded-card border border-line bg-surface p-2 shadow-overlay motion-safe:animate-pop-in';
 const ITEM =
-  'flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-body-sm font-medium text-fg transition-colors hover:bg-surface-muted hover:text-brand';
+  'flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-body-sm font-medium text-fg transition-colors hover:bg-surface-muted';
 
 /** Esc closes an open <details> menu and returns focus to its button; a click outside closes it. */
 function useDetailsDismiss() {
@@ -56,7 +57,8 @@ function AccountSummary({ label }: { label: string }) {
       <UserRound aria-hidden className="h-6 w-6" />
       <ChevronDown
         aria-hidden
-        className="h-4 w-4 text-forest-700 transition-transform duration-150 group-open:rotate-180"
+        strokeWidth={2.25}
+        className="ml-0.5 h-4 w-4 text-[#2d8f93] transition-transform duration-150 group-open:rotate-180"
       />
     </summary>
   );

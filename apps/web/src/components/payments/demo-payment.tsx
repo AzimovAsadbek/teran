@@ -53,11 +53,11 @@ export function DemoPayment({ token, initial }: { token: string; initial: DemoPa
 
   return (
     <div className="mx-auto max-w-xl rounded-panel border border-line bg-surface p-6 shadow-soft sm:p-9">
-      <p className="inline-flex items-center gap-2 rounded-full bg-gold-100 px-3 py-1 text-caption font-bold tracking-wide text-forest-900 uppercase">
+      <p className="inline-flex items-center gap-2 rounded-full bg-gold-100 px-3 py-1 text-caption font-bold tracking-wide text-fg uppercase">
         <FlaskConical aria-hidden className="h-4 w-4" />
         {tc('demoBadge')}
       </p>
-      <h1 className="mt-4 text-display-md text-forest-900">{t('demoTitle')}</h1>
+      <h1 className="mt-4 text-display-md text-fg">{t('demoTitle')}</h1>
       <p className="mt-2 text-body text-fg-muted">{t('demoIntro')}</p>
 
       <dl className="mt-6 divide-y divide-line rounded-card border border-line">

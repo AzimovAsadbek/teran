@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import { BlobNotFoundError, del, head, list, put } from '@vercel/blob';
@@ -10,6 +10,12 @@ import sharp, { type Metadata } from 'sharp';
  * serves product cards on phones (about 240 CSS px at 2× density) without falling back to 640.
  */
 export const IMAGE_WIDTHS = [320, 480, 640, 960, 1280, 1600] as const;
+
+/**
+ * Widths for page pictures that span the whole page (the About hero, listing banners): up to 2560,
+ * so a 1312 px banner stays sharp on 2× screens.
+ */
+export const WIDE_IMAGE_WIDTHS = [...IMAGE_WIDTHS, 1920, 2560] as const;
 
 const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp']);
 const MIN_DIMENSION = 200;
@@ -236,7 +242,17 @@ export async function storeImage(
   input: Buffer,
   store: ImageStore,
   prefix: string,
+  options: {
+    /** Rendition widths to make (those wider than the picture are skipped). */
+    widths?: readonly number[];
+    /**
+     * Also keep the picture at its own width when it falls between two rendition widths, so a
+     * full-width page picture is never shown from a much narrower file (1272 px → up to 1272).
+     */
+    fullWidth?: boolean;
+  } = {},
 ): Promise<StoredImage> {
+  const targetWidths = options.widths ?? IMAGE_WIDTHS;
   let metadata: Metadata;
   try {
     metadata = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
@@ -253,8 +269,15 @@ export async function storeImage(
     throw new ImageRejectedError('too_small');
   }
 
-  const candidateWidths = IMAGE_WIDTHS.filter((candidate) => candidate <= width);
+  const candidateWidths = targetWidths.filter((candidate) => candidate <= width);
   const widths = candidateWidths.length > 0 ? [...candidateWidths] : [width];
+  if (
+    options.fullWidth &&
+    width > widths.at(-1)! &&
+    targetWidths.some((target) => target > width)
+  ) {
+    widths.push(width);
+  }
   const pipeline = sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
 
   // Everything is decoded and encoded before anything is stored: a file whose header reads but
@@ -327,6 +350,11 @@ export function productImagePrefix(productId: string): string {
 /** Storage prefix of a category's or collection's cover picture. */
 export function taxonomyImagePrefix(kind: 'category' | 'collection', id: string): string {
   return `${kind === 'category' ? 'categories' : 'collections'}/${id}`;
+}
+
+/** Storage prefix of a page picture (Admin → Settings): a fresh folder for each upload. */
+export function visualImagePrefix(): string {
+  return `visuals/${randomUUID()}`;
 }
 
 /** Storage prefix of an article's cover picture. */

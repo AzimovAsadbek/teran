@@ -1,10 +1,12 @@
 /**
  * Short demonstration films for the gallery, made only from TERAN's own packaging artwork: slow
  * camera moves over the two paintings printed on the packs (the lake and the tea terraces) and the
- * four packs shown one after another. Nothing is filmed or invented; the films say so in their
- * titles (apps/api/prisma/seed/media.ts) and are replaced by real films through the admin area.
+ * five zip pouches (the owner's photographs, cut out) shown one after another. Nothing is filmed
+ * or invented; the films say so in their titles (apps/api/prisma/seed/media.ts) and are replaced
+ * by real films through the admin area.
  *
- *   FFMPEG=<path to ffmpeg> node scripts/films/generate-films.mjs   (run from apps/web)
+ *   FFMPEG=<path to ffmpeg> node scripts/films/generate-films.mjs [lake|terraces|packs ...]
+ *   (run from apps/web; without names, every film is made)
  *
  * Needs an ffmpeg with the libvpx (VP8) encoder and the MJPEG decoder; Playwright's own build
  * (`npx playwright install ffmpeg`, then ~/Library/Caches/ms-playwright/ffmpeg-<version>/ffmpeg-mac) has
@@ -27,6 +29,8 @@ const OUT = resolve(root, '../api/prisma/seed/assets/films');
 mkdirSync(OUT, { recursive: true });
 
 const FFMPEG = process.env.FFMPEG ?? 'ffmpeg';
+const wanted = new Set(process.argv.slice(2));
+const make = (name) => wanted.size === 0 || wanted.has(name);
 const WIDTH = 1280;
 const HEIGHT = 720;
 const FPS = 25;
@@ -191,7 +195,7 @@ async function packScene(background, packFile) {
   return { data, width: info.width, height: info.height, scale: 1 };
 }
 
-/** The four packs one after another, each with a slow push-in, joined by cross-fades. */
+/** The packs one after another, each with a slow push-in, joined by cross-fades. */
 async function* packShow(scenes, seconds, fade) {
   const per = Math.round(seconds * FPS);
   const overlap = Math.round(fade * FPS);
@@ -226,27 +230,34 @@ async function* packShow(scenes, seconds, fade) {
 }
 
 // 1. The lake on the front of every pack (1536 × 1024): a slow push towards the far shore.
-const lake = await rawSource(art('lake.webp'));
-await encode(
-  'lake',
-  cameraMove(lake, { cx: 768, cy: 500, w: 1536 }, { cx: 860, cy: 468, w: 1290 }, 12),
-);
+if (make('lake')) {
+  const lake = await rawSource(art('lake.webp'));
+  await encode(
+    'lake',
+    cameraMove(lake, { cx: 768, cy: 500, w: 1536 }, { cx: 860, cy: 468, w: 1290 }, 12),
+  );
+}
 
 // 2. The tea terraces on the back (2400 × 1357): along the terraces to the pavilion.
-const terraces = await rawSource(art('terraces.webp'));
-await encode(
-  'terraces',
-  cameraMove(terraces, { cx: 900, cy: 800, w: 1700 }, { cx: 1440, cy: 600, w: 1900 }, 12),
-);
-
-// 3. The four packs, each on one of the paintings.
-const scenes = [];
-for (const [file, background] of [
-  ['xc2025.webp', 'lake.webp'],
-  ['8009.webp', 'terraces.webp'],
-  ['8830.webp', 'lake.webp'],
-  ['g8810.webp', 'terraces.webp'],
-]) {
-  scenes.push(await packScene(art(background), pack(file)));
+if (make('terraces')) {
+  const terraces = await rawSource(art('terraces.webp'));
+  await encode(
+    'terraces',
+    cameraMove(terraces, { cx: 900, cy: 800, w: 1700 }, { cx: 1440, cy: 600, w: 1900 }, 12),
+  );
 }
-await encode('packs', packShow(scenes, 3.6, 0.8));
+
+// 3. The five zip pouches, each on one of the paintings.
+if (make('packs')) {
+  const scenes = [];
+  for (const [file, background] of [
+    ['xc2025.webp', 'lake.webp'],
+    ['g8810.webp', 'terraces.webp'],
+    ['8800.webp', 'lake.webp'],
+    ['8830.webp', 'terraces.webp'],
+    ['8009.webp', 'lake.webp'],
+  ]) {
+    scenes.push(await packScene(art(background), pack(file)));
+  }
+  await encode('packs', packShow(scenes, 3.6, 0.8));
+}

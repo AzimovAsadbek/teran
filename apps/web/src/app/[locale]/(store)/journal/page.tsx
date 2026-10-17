@@ -28,7 +28,7 @@ export async function generateMetadata({
   const page = pageNumber((await searchParams).page);
   return pageMetadata({
     title: t('journalTitle'),
-    description: t('journalDescription'),
+    description: t('journalMetaDescription'),
     href: '/journal',
     locale,
     query: page > 1 ? `page=${page}` : '',
@@ -48,7 +48,7 @@ async function ArticleList({ searchParams }: Pick<PageProps<'/[locale]/journal'>
   if (!articles || articles.items.length === 0) {
     return (
       <div className="flex flex-col items-center py-16 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-forest-900">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-fg">
           <BookOpen aria-hidden className="h-7 w-7" />
         </span>
         <p className="mt-5 text-body-lg text-fg-muted">{t('journalEmpty')}</p>
@@ -84,12 +84,13 @@ export default async function JournalPage({ searchParams }: PageProps<'/[locale]
         intro={t('journalDescription')}
         image={terraces}
       />
-      <div className="container-page py-10 sm:py-11">
+      {/* The reference's 1440 px frame; its topic pills are left out (TERAN's articles have none). */}
+      <div className="container-frame pt-7 pb-12">
         <Suspense
           fallback={
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-hidden>
               {[0, 1, 2, 3].map((index) => (
-                <Skeleton key={index} className="aspect-[321/364] rounded-[1rem]" />
+                <Skeleton key={index} className="aspect-[345/472] rounded-[1rem]" />
               ))}
             </div>
           }

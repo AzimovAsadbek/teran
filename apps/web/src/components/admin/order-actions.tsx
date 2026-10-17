@@ -83,7 +83,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
       aria-labelledby="order-actions"
       className="rounded-card border border-line bg-surface p-5 sm:p-6"
     >
-      <h2 id="order-actions" className="mb-4 text-body-lg font-semibold text-forest-900">
+      <h2 id="order-actions" className="mb-4 text-body-lg font-semibold text-fg">
         {t('orders.actionsSection')}
       </h2>
       {nothingToDo ? (

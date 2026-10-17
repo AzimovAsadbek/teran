@@ -3,24 +3,18 @@
  *
  *   node scripts/packaging/build-packaging-assets.mjs <extract dir>     (run from apps/web)
  *
- * Nothing is redrawn: logos, landscapes, leaves and packs are the owner's packaging artwork. Two
- * things are added, both by code:
- *   - The front of each pack has a window printed as "This part will have a transparent coating".
- *     For the pack shots it is filled with an illustration of dry rolled green tea behind clear
- *     film (the real pack shows its tea there).
- *   - Pack shots are placed on the storefront's seamless ivory background with a soft shadow, as
- *     the art direction asks of product photography (docs/design/design-system.md).
+ * Nothing is redrawn: logos, landscapes, leaves and the backs of the packs are the owner's
+ * packaging artwork. The backs are placed on the storefront's seamless ivory background with a
+ * soft shadow, as the art direction asks of product photography (docs/design/design-system.md).
+ * The fronts come from the owner's photographs of the zip pouches (build-pouch-assets.mjs).
  *
  * Outputs:
  *   public/brand/teran-{logo,emblem,wordmark,lockup}.{png,webp}   logo set (transparent)
  *   public/brand/art/{lake,terraces,sprig-1}.webp                artwork from the packaging (the
  *                                                                terraces cropped to the part that
  *                                                                is fully painted)
- *   public/brand/packs/<code>.webp                               pack fronts, cut out
  *   public/brand/ornaments/*.svg                                 the pack's four icons, 绿茶, seal
- *   ../api/prisma/seed/assets/packaging/<code>-{front,back}.webp  square pack shots for the seed
- *   ../api/prisma/seed/assets/packaging/<code>-cutout.webp        the cut-out front, for the seed
- *                                                                (the home page stage)
+ *   ../api/prisma/seed/assets/packaging/<code>-back.webp          square shots of the backs
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -34,10 +28,9 @@ if (!source)
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const brandDir = resolve(root, 'public/brand');
 const artDir = resolve(brandDir, 'art');
-const packsDir = resolve(brandDir, 'packs');
 const ornamentsDir = resolve(brandDir, 'ornaments');
 const seedDir = resolve(root, '../api/prisma/seed/assets/packaging');
-for (const dir of [brandDir, artDir, packsDir, ornamentsDir, seedDir]) {
+for (const dir of [brandDir, artDir, ornamentsDir, seedDir]) {
   mkdirSync(dir, { recursive: true });
 }
 
@@ -278,93 +271,6 @@ writeSvg('tea-seal', '23.5 123.8 34 49.6', [seal, sealCharacters]);
 
 // ── Packs ─────────────────────────────────────────────────────────────────────────────────────
 
-/** Small deterministic PRNG (mulberry32), so the illustration is identical on every run. */
-function createRandom(seedText) {
-  let seed = 0;
-  for (const char of seedText) seed = (Math.imul(31, seed) + char.charCodeAt(0)) | 0;
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const LEAF_COLOURS = ['#33401d', '#3d4b22', '#475828', '#52632d', '#5d6e33', '#68783a', '#3a4520'];
-const LEAF_LIGHTS = ['#8f9b5c', '#a0aa6c', '#7f8b4f'];
-
-/**
- * Dry, tightly rolled green tea seen through clear film: thousands of short twisted strips with a
- * dark edge and the occasional pale highlight, then a film reflection. Drawn in the window's own
- * pixel space and clipped to its outline.
- */
-function windowSvg(width, height, outline, offsetX, offsetY, seed) {
-  const random = createRandom(seed);
-  const pick = (items) => items[Math.floor(random() * items.length)];
-  const strips = [];
-  const count = Math.round((width * height) / 240);
-  for (let index = 0; index < count; index++) {
-    const x = (random() * (width + 80) - 40).toFixed(1);
-    const y = (random() * (height + 80) - 40).toFixed(1);
-    const length = 24 + random() * 44;
-    const thickness = 5 + random() * 7;
-    const bend = ((random() - 0.5) * length * 0.6).toFixed(1);
-    const half = (length / 2).toFixed(1);
-    const rotation = Math.round(random() * 360);
-    const curve = `M${-half} 0 Q0 ${bend} ${half} 0`;
-    const light =
-      random() < 0.3
-        ? `<path d="${curve}" stroke="${pick(LEAF_LIGHTS)}" stroke-opacity="0.55" stroke-width="${(thickness * 0.28).toFixed(1)}" stroke-linecap="round" fill="none" transform="translate(0 ${(-thickness * 0.22).toFixed(1)})"/>`
-        : '';
-    strips.push(
-      `<g transform="translate(${x} ${y}) rotate(${rotation})">` +
-        `<path d="${curve}" stroke="#1d2510" stroke-width="${(thickness + 2.4).toFixed(1)}" stroke-linecap="round" fill="none"/>` +
-        `<path d="${curve}" stroke="${pick(LEAF_COLOURS)}" stroke-width="${thickness.toFixed(1)}" stroke-linecap="round" fill="none"/>` +
-        light +
-        `</g>`,
-    );
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs>
-      <clipPath id="window"><path d="${outline}" transform="translate(${-offsetX} ${-offsetY})"/></clipPath>
-      <linearGradient id="film" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
-        <stop offset="0.32" stop-color="#ffffff" stop-opacity="0.06"/>
-        <stop offset="0.44" stop-color="#ffffff" stop-opacity="0.2"/>
-        <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.03"/>
-        <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-      </linearGradient>
-      <linearGradient id="depth" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#0d1206" stop-opacity="0.55"/>
-        <stop offset="0.16" stop-color="#0d1206" stop-opacity="0"/>
-        <stop offset="0.86" stop-color="#0d1206" stop-opacity="0"/>
-        <stop offset="1" stop-color="#0d1206" stop-opacity="0.35"/>
-      </linearGradient>
-    </defs>
-    <g clip-path="url(#window)">
-      <rect width="${width}" height="${height}" fill="#262f16"/>
-      ${strips.join('')}
-      <rect width="${width}" height="${height}" fill="url(#depth)"/>
-      <rect width="${width}" height="${height}" fill="url(#film)"/>
-    </g>
-  </svg>`;
-}
-
-/** The front render with its window filled. */
-async function frontWithWindow(code) {
-  const window = JSON.parse(readFileSync(input(`${code}-window.json`), 'utf8'));
-  const [x0, y0, x1, y1] = window.rect.map((value) => Math.round(value));
-  const width = x1 - x0;
-  const height = y1 - y0;
-  const layer = await sharp(Buffer.from(windowSvg(width, height, window.d, x0, y0, code)))
-    .png()
-    .toBuffer();
-  return sharp(input(`${code}-front.png`))
-    .composite([{ input: layer, left: x0, top: y0 }])
-    .png()
-    .toBuffer();
-}
-
 /**
  * A flat pack as a pouch: slightly rounded corners and a soft sheen across the film, so it reads
  * as an object rather than a printed sheet.
@@ -429,22 +335,14 @@ async function packShot(pack) {
   return sharp(backdrop).composite([{ input: resized, left, top }]);
 }
 
+// The backs of the packs (brewing, storage, producer): the fronts are the owner's photographs of
+// the zip pouches since 2026-10-17 (build-pouch-assets.mjs).
 for (const code of PACKS) {
-  const front = await pouch(await frontWithWindow(code));
   const back = await pouch(
     await sharp(input(`${code}-back.png`))
       .png()
       .toBuffer(),
   );
-  for (const path of [
-    resolve(packsDir, `${code.toLowerCase()}.webp`),
-    resolve(seedDir, `${code.toLowerCase()}-cutout.webp`),
-  ]) {
-    await writeWebp(sharp(front).resize({ height: 1000 }), path);
-  }
-  await writeWebp(await packShot(front), resolve(seedDir, `${code.toLowerCase()}-front.webp`), {
-    quality: 88,
-  });
   await writeWebp(await packShot(back), resolve(seedDir, `${code.toLowerCase()}-back.webp`), {
     quality: 90,
   });

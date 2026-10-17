@@ -209,6 +209,8 @@ export const variantSchema = z.object({
   stockLevel: stockLevelSchema,
   /** Most a customer may add to the cart right now (capped at MAX_LINE_QUANTITY). */
   maxQuantity: z.number().int(),
+  /** The pack's EAN-13 where TERAN has entered it (structured data for search engines). */
+  barcode: z.string().nullable().default(null),
 });
 export type VariantDto = z.infer<typeof variantSchema>;
 
@@ -243,9 +245,13 @@ export type ProductSummaryDto = z.infer<typeof productSummarySchema>;
 
 export const brewingSchema = z.object({
   temperatureCelsius: z.number().int().nullable(),
+  /** Upper end of a temperature range ("80–90 °C"); null for a single temperature. */
+  temperatureMaxCelsius: z.number().int().nullable().default(null),
   timeMinSeconds: z.number().int().nullable(),
   timeMaxSeconds: z.number().int().nullable(),
   amountGrams: z.string().nullable(),
+  /** Upper end of an amount range ("3–5 g"); null for a single amount. */
+  amountMaxGrams: z.string().nullable().default(null),
 });
 
 /** A product attribute ready for display; only attributes with a value are sent. */

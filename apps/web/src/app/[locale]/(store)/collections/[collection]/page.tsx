@@ -1,4 +1,4 @@
-import type { Locale } from '@teran/contracts';
+import { listingBannerSlot, type Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -9,6 +9,8 @@ import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/cat
 import { ListingHeader, ListingHeaderSkeleton } from '@/components/catalog/listing-header';
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
 import { getCollections, getSlugRedirect } from '@/lib/data/catalog';
+import { getPublicSettings } from '@/lib/data/content';
+import { visualFor } from '@/lib/visuals';
 import { getPathname } from '@/i18n/navigation';
 import { coverShareImage, pageMetadata } from '@/lib/seo';
 
@@ -25,7 +27,12 @@ export async function generateMetadata({
   const { collection: slug } = await params;
   const collection = await findCollection(locale, slug).catch(() => undefined);
   if (collection === undefined) return {}; // API unavailable: the error UI sets noindex itself
-  if (!collection) return { robots: { index: false } };
+  if (!collection) {
+    // Settled before the page streams: a real 404, or a 308 to a renamed collection.
+    const current = await getSlugRedirect('collections', slug).catch(() => null);
+    if (current) permanentRedirect(getPathname({ href: `/collections/${current}`, locale }));
+    notFound();
+  }
   const filters = parseCatalogFilters(await searchParams);
   return pageMetadata({
     title: collection.seoTitle ?? collection.name,
@@ -47,7 +54,10 @@ async function CollectionListing({
     getLocale(),
     getTranslations('Nav'),
   ]);
-  const collection = await findCollection(locale, slug);
+  const [collection, settings] = await Promise.all([
+    findCollection(locale, slug),
+    getPublicSettings(locale).catch(() => null),
+  ]);
   if (!collection) {
     // A renamed collection keeps its old links working.
     const current = await getSlugRedirect('collections', slug).catch(() => null);
@@ -67,6 +77,7 @@ async function CollectionListing({
         description={collection.description}
         illustrationKey={collection.illustrationKey}
         image={collection.image}
+        banner={visualFor(settings, listingBannerSlot('collection', collection.id))}
       />
       <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults

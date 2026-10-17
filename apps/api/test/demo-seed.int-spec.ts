@@ -10,13 +10,20 @@ import {
   DEMO_SUBSCRIBERS,
   DEMO_WHOLESALE_INQUIRIES,
 } from '../prisma/seed/demo-activity.js';
-import { DEMO_COLLECTIONS, DEMO_PRODUCTS, EARLIER_DEMO_COPY } from '../prisma/seed/demo-catalog.js';
+import {
+  DEMO_CATEGORIES,
+  DEMO_COLLECTIONS,
+  DEMO_PRODUCTS,
+  EARLIER_DEMO_COPY,
+} from '../prisma/seed/demo-catalog.js';
 import { removeDemoData } from '../prisma/seed/remove.js';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { createProduct, createUser, resetDatabase } from './helpers/fixtures.js';
 
 const API = '/api/v1';
 const uploadsDir = join(tmpdir(), 'teran-demo-seed-test');
+/** As the end-to-end stack seeds: TERAN's teas and the generic test range. */
+const withTests = { uploadsDir, emblem: null, testCatalogue: true } as const;
 
 describe('demo seed', () => {
   let ctx: TestApp;
@@ -25,7 +32,7 @@ describe('demo seed', () => {
     ctx = await createTestApp();
     await resetDatabase(ctx.prisma);
     // Images are skipped (emblem: null): rendering is covered by running the seed itself.
-    await seedCatalogue(ctx.prisma, { uploadsDir, emblem: null });
+    await seedCatalogue(ctx.prisma, withTests);
     const activity = await seedActivity(ctx.prisma);
     expect(activity.skipped).toEqual([]);
   });
@@ -47,7 +54,7 @@ describe('demo seed', () => {
   });
 
   it('is idempotent: a second run adds nothing', async () => {
-    const catalogue = await seedCatalogue(ctx.prisma, { uploadsDir, emblem: null });
+    const catalogue = await seedCatalogue(ctx.prisma, withTests);
     const activity = await seedActivity(ctx.prisma);
     expect(catalogue).toEqual({ products: 0, articles: 0, structure: 0 });
     expect(activity).toEqual({
@@ -60,29 +67,40 @@ describe('demo seed', () => {
     });
   });
 
-  it('updates identifier products seeded before the packs once, and leaves edited ones alone', async () => {
+  it('brings TERAN products seeded before the owner described them up to date once, and leaves edited ones alone', async () => {
     const prisma = ctx.prisma;
-    const oolong = await prisma.category.findUniqueOrThrow({ where: { slug: 'oolong' } });
+    const black = await prisma.category.findUniqueOrThrow({ where: { slug: 'black-tea' } });
     const premium = await prisma.collection.findUniqueOrThrow({ where: { slug: 'teran-premium' } });
-    const earlier = EARLIER_DEMO_COPY.collections['teran-premium']!;
+    const earlier = EARLIER_DEMO_COPY.collections['teran-premium']!.at(-1)!;
 
-    // XC2025 as an earlier seed wrote it: an oolong with invented copy and a 100 g pack.
-    const xc = await prisma.product.findUniqueOrThrow({ where: { slug: 'teran-xc2025' } });
+    // 8800 as an earlier seed wrote it: "HET8800", an invented black tea in 100 g packs.
+    const het = await prisma.product.findUniqueOrThrow({ where: { slug: 'teran-8800' } });
     await prisma.product.update({
-      where: { id: xc.id },
-      data: { categoryId: oolong.id, isFeatured: false, brewTempCelsius: 85 },
+      where: { id: het.id },
+      data: { slug: 'teran-het8800', categoryId: black.id, brewTempCelsius: 95 },
     });
     await prisma.productTranslation.update({
-      where: { productId_locale: { productId: xc.id, locale: 'uz' } },
-      data: { description: `XC2025. ${EARLIER_DEMO_COPY.identifierMarker} ulun choyi sifatida.` },
+      where: { productId_locale: { productId: het.id, locale: 'uz' } },
+      data: { description: `HET8800. ${EARLIER_DEMO_COPY.identifierMarker} qora choy sifatida.` },
     });
     await prisma.productVariant.update({
-      where: { sku: 'TRN-XC2025-400' },
-      data: { sku: 'TRN-XC2025-100', weightGrams: 100 },
+      where: { sku: 'TRN-8800-400' },
+      data: { sku: 'TRN-HET8800-100', weightGrams: 100, barcode: null },
+    });
+    // 8009 with the pack-based demo copy, its old SKU, a discount and low stock.
+    const pack = await prisma.product.findUniqueOrThrow({ where: { slug: 'teran-8009' } });
+    await prisma.product.update({ where: { id: pack.id }, data: { slug: 'teran-std8009' } });
+    await prisma.productTranslation.update({
+      where: { productId_locale: { productId: pack.id, locale: 'uz' } },
+      data: { description: `8009. ${EARLIER_DEMO_COPY.packMarker}; narx va qoldiq taxminiy.` },
+    });
+    await prisma.productVariant.update({
+      where: { sku: 'TRN-8009-400' },
+      data: { sku: 'TRN-STD8009-400', compareAtPrice: 199000 },
     });
     // G8810 edited in the admin since (no earlier demo copy): must stay as it is.
     const g = await prisma.product.findUniqueOrThrow({ where: { slug: 'teran-g8810' } });
-    await prisma.product.update({ where: { id: g.id }, data: { categoryId: oolong.id } });
+    await prisma.product.update({ where: { id: g.id }, data: { categoryId: black.id } });
     await prisma.productTranslation.update({
       where: { productId_locale: { productId: g.id, locale: 'uz' } },
       data: { description: 'Admin yozgan tavsif.' },
@@ -97,34 +115,50 @@ describe('demo seed', () => {
       data: { description: 'Текст владельца.' },
     });
 
-    const report = await seedCatalogue(prisma, { uploadsDir, emblem: null });
-    expect(report).toEqual({ products: 0, articles: 0, structure: 2 });
+    const report = await seedCatalogue(prisma, withTests);
+    expect(report).toEqual({ products: 0, articles: 0, structure: 3 });
 
-    const updated = await prisma.product.findUniqueOrThrow({
-      where: { id: xc.id },
+    const eight = await prisma.product.findUniqueOrThrow({
+      where: { id: het.id },
       include: { category: true, variants: true, translations: true },
     });
-    expect(updated.category.slug).toBe('green-tea');
-    expect(updated.isFeatured).toBe(true);
-    expect(updated.brewTempCelsius).toBe(90);
+    expect(eight.slug).toBe('teran-8800');
+    expect(eight.category.slug).toBe('green-tea');
+    expect([eight.brewTempCelsius, eight.brewTempMaxCelsius]).toEqual([85, 90]);
+    expect([Number(eight.brewAmountGrams), Number(eight.brewAmountMaxGrams)]).toEqual([3, 5]);
     expect(
-      updated.variants.map((variant) => [variant.sku, variant.weightGrams, variant.isActive]),
+      eight.variants.map((variant) => [variant.sku, variant.weightGrams, variant.isActive]),
     ).toEqual(
       expect.arrayContaining([
-        ['TRN-XC2025-100', 100, false],
-        ['TRN-XC2025-400', 400, true],
+        ['TRN-HET8800-100', 100, false],
+        ['TRN-8800-400', 400, true],
       ]),
     );
-    const uz = updated.translations.find((translation) => translation.locale === 'uz')!;
-    expect(uz.description).toMatch(/400 g qadoqda/);
-    expect(uz.origin).toBe('Xitoy');
-    expect(Number(updated.minPrice)).toBe(189000);
+    expect(eight.variants.find((variant) => variant.isActive)?.barcode).toBe('4780179230045');
+    const uz = eight.translations.find((translation) => translation.locale === 'uz')!;
+    expect(uz.name).toBe('TERAN 8800');
+    expect(uz.description).toMatch(/400 g zip-paketda/);
+    expect(uz.origin).toBe('Xitoy, Hunan');
+    expect(
+      await prisma.slugRedirect.findUnique({
+        where: { entity_fromSlug: { entity: 'PRODUCT', fromSlug: 'teran-het8800' } },
+      }),
+    ).toMatchObject({ toId: het.id });
+
+    // The same pack row, renamed: orders keep pointing at it; the discount is gone.
+    const renamed = await prisma.productVariant.findUniqueOrThrow({
+      where: { sku: 'TRN-8009-400' },
+      include: { product: true },
+    });
+    expect(renamed.product.slug).toBe('teran-8009');
+    expect(renamed.compareAtPrice).toBeNull();
+    expect(renamed.stockQuantity).toBe(50);
 
     const untouched = await prisma.product.findUniqueOrThrow({
       where: { id: g.id },
       include: { category: true, translations: { where: { locale: 'uz' } } },
     });
-    expect(untouched.category.slug).toBe('oolong');
+    expect(untouched.category.slug).toBe('black-tea');
     expect(untouched.translations[0]!.description).toBe('Admin yozgan tavsif.');
 
     const texts = await prisma.collectionTranslation.findMany({
@@ -136,7 +170,47 @@ describe('demo seed', () => {
     expect(text('ru')).toBe('Текст владельца.');
 
     // Once only.
-    expect(await seedCatalogue(prisma, { uploadsDir, emblem: null })).toEqual({
+    expect(await seedCatalogue(prisma, withTests)).toEqual({
+      products: 0,
+      articles: 0,
+      structure: 0,
+    });
+  });
+
+  it('archives the generic test range where the shop sells only its own teas', async () => {
+    const prisma = ctx.prisma;
+    // The previous test left G8810 in Black tea (an admin edit); the shop sells green tea only.
+    const green = await prisma.category.findUniqueOrThrow({ where: { slug: 'green-tea' } });
+    await prisma.product.update({
+      where: { slug: 'teran-g8810' },
+      data: { categoryId: green.id },
+    });
+    const later = { uploadsDir, emblem: null, testRangeRetiredAt: new Date(Date.now() + 60_000) };
+    const report = await seedCatalogue(prisma, later);
+    const testProducts = DEMO_PRODUCTS.filter((product) => product.testOnly);
+    const testCategories = DEMO_CATEGORIES.filter((category) => category.testOnly);
+    const testCollections = DEMO_COLLECTIONS.filter((collection) => collection.testOnly);
+    expect(report.structure).toBe(
+      testProducts.length + testCategories.length + testCollections.length,
+    );
+    const live = await prisma.product.findMany({
+      where: { status: { not: 'ARCHIVED' } },
+      select: { slug: true },
+      orderBy: { slug: 'asc' },
+    });
+    expect(live.map((product) => product.slug)).toEqual(
+      DEMO_PRODUCTS.filter((product) => !product.testOnly)
+        .map((product) => product.slug)
+        .sort(),
+    );
+    expect(
+      await prisma.category.count({
+        where: { slug: { in: testCategories.map((category) => category.slug) }, isActive: true },
+      }),
+    ).toBe(0);
+    // Archived, not deleted: the demo orders still point at their packs.
+    expect(await prisma.product.count()).toBe(DEMO_PRODUCTS.length);
+    expect(await seedCatalogue(prisma, later)).toEqual({
       products: 0,
       articles: 0,
       structure: 0,
@@ -214,7 +288,7 @@ describe('demo seed', () => {
     expect(await prisma.contactInquiry.count()).toBe(0);
     expect(await prisma.newsletterSubscriber.count()).toBe(0);
 
-    await seedCatalogue(prisma, { uploadsDir, emblem: null });
+    await seedCatalogue(prisma, withTests);
     const activity = await seedActivity(prisma);
     expect(activity.orders).toBe(DEMO_ORDERS.length);
     expect(activity.skipped).toEqual([]);

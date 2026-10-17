@@ -16,6 +16,7 @@ import { MediaGallery } from '@/components/media/media-gallery';
 import { mediaLabels } from '@/components/media/media-labels';
 import { getMedia } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
+import { showGallery } from '@/lib/site';
 
 /** The overview shows the latest of each kind; the kind pages hold everything. */
 const PHOTOS_SHOWN = 10;
@@ -29,6 +30,8 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t('metaDescription'),
     href: '/media',
     locale,
+    // Unlisted while the storefront does not link to the gallery (lib/site showGallery).
+    noIndex: !showGallery,
   });
 }
 

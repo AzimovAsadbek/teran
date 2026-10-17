@@ -45,16 +45,24 @@ request (locale, message ≤ 500 chars, ≤ 8 earlier turns)
   → rule-based mode:
         request read with the catalogue vocabulary: prices ("100 000 gacha", "до 150 тысяч",
         "under 100000", ranges), category and product type names in uz/ru/en, pack formats,
-        attribute options and yes/no attributes (with negation), gift intent, a descriptive word
+        attribute options and yes/no attributes (with negation), a place of origin, gift intent,
+        a descriptive word
         → search; if nothing matches, criteria are relaxed one at a time (word → attributes →
-          formats → same category over budget, cheapest first → category) and the answer says
+          formats → origin → same category over budget, cheapest first → category) and the answer says
           which was dropped
   → answer: message, what was understood (criteria), up to 4 products with reasons, notes,
     and a short follow-up question when the request was vague or nothing matched exactly
 ```
 
 New categories and product types (coffee, sweets…) work without code changes: the vocabulary and
-the attribute filters come from the catalogue data.
+the attribute filters come from the catalogue data. Places of origin do too: each comma-separated
+part of a product's recorded origin ("Xitoy, Yunnan" / "Китай, Юньнань" / "China, Yunnan") is a
+place, named in each language by the part at the same position; a place every product shares
+cannot narrow a choice and is ignored.
+
+While the storefront hides prices ([ADR-027](./decisions.md)) it asks with `prices: false`:
+answers then name no price or budget, a budget in the request is ignored, and in AI mode the model
+neither sees prices nor may mention them (an answer that does falls back to rule-based mode).
 
 ## Safety
 

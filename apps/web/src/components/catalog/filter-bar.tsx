@@ -22,6 +22,7 @@ import { MobileFilters } from './mobile-filters';
 import { PriceFilter } from './price-filter';
 import { RangeFilter } from './range-filter';
 import { SortSelect } from './sort-select';
+import { showPrices } from '@/lib/site';
 
 const CHIP = FILTER_POPOVER_BUTTON;
 
@@ -125,7 +126,7 @@ export async function FilterBar({
           },
         ]
       : []),
-    ...(priceLabel
+    ...(showPrices && priceLabel
       ? [
           {
             key: 'price',
@@ -191,21 +192,23 @@ export async function FilterBar({
               applied={t('filterApplied')}
             />
           ))}
-          <PriceFilter
-            basePath={basePath}
-            formAction={formAction}
-            filters={filters}
-            summary={priceLabel ?? t('price')}
-            placeholders={{
-              min: facets.priceRange
-                ? String(Math.floor(Number(facets.priceRange.min)))
-                : t('minPrice'),
-              max: facets.priceRange
-                ? String(Math.ceil(Number(facets.priceRange.max)))
-                : t('maxPrice'),
-            }}
-            chipClassName={CHIP}
-          />
+          {showPrices ? (
+            <PriceFilter
+              basePath={basePath}
+              formAction={formAction}
+              filters={filters}
+              summary={priceLabel ?? t('price')}
+              placeholders={{
+                min: facets.priceRange
+                  ? String(Math.floor(Number(facets.priceRange.min)))
+                  : t('minPrice'),
+                max: facets.priceRange
+                  ? String(Math.ceil(Number(facets.priceRange.max)))
+                  : t('maxPrice'),
+              }}
+              chipClassName={CHIP}
+            />
+          ) : null}
           <Link
             href={href({ ...filters, inStock: !filters.inStock, page: 1 })}
             rel="nofollow"
@@ -247,7 +250,7 @@ export async function FilterBar({
                   rel="nofollow"
                   scroll={false}
                   aria-label={t('removeFilter', { label: filter.label })}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-soft pr-2 pl-3 text-body-sm font-medium text-forest-900 transition-colors hover:bg-sage-200"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-brand-soft pr-2 pl-3 text-body-sm font-medium text-fg transition-colors hover:bg-sage-200"
                 >
                   {filter.label}
                   <X aria-hidden className="h-3.5 w-3.5" />

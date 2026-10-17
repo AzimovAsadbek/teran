@@ -1,7 +1,6 @@
 'use client';
 
 import type { FacetsDto } from '@teran/contracts';
-import { PRODUCT_SORTS } from '@teran/contracts/constants';
 import { SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState, type FormEvent, type ReactNode } from 'react';
@@ -15,6 +14,8 @@ import {
   type RawSearchParams,
 } from '@/features/catalog/query';
 import { useRouter } from '@/i18n/navigation';
+import { VISIBLE_SORTS } from '@/features/catalog/sorts';
+import { showPrices } from '@/lib/site';
 
 /**
  * Filter drawer for phones and tablets: one GET form, so several choices are applied together with
@@ -97,7 +98,7 @@ export function MobileFilters({
           className="divide-y divide-line-subtle px-5 sm:px-6"
         >
           <Group legend={t('sort')}>
-            {PRODUCT_SORTS.map((sort) => (
+            {VISIBLE_SORTS.map((sort) => (
               <label
                 key={sort}
                 className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
@@ -134,40 +135,44 @@ export function MobileFilters({
             </Group>
           ) : null}
 
-          <Group legend={t('price')}>
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <label className="text-helper text-fg-muted">
-                {t('priceMinLabel')}
-                <input
-                  name="minPrice"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="off"
-                  defaultValue={filters.minPrice}
-                  placeholder={
-                    facets.priceRange
-                      ? String(Math.floor(Number(facets.priceRange.min)))
-                      : undefined
-                  }
-                  className={inputClasses({ className: 'mt-1.5' })}
-                />
-              </label>
-              <label className="text-helper text-fg-muted">
-                {t('priceMaxLabel')}
-                <input
-                  name="maxPrice"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="off"
-                  defaultValue={filters.maxPrice}
-                  placeholder={
-                    facets.priceRange ? String(Math.ceil(Number(facets.priceRange.max))) : undefined
-                  }
-                  className={inputClasses({ className: 'mt-1.5' })}
-                />
-              </label>
-            </div>
-          </Group>
+          {showPrices ? (
+            <Group legend={t('price')}>
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <label className="text-helper text-fg-muted">
+                  {t('priceMinLabel')}
+                  <input
+                    name="minPrice"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    defaultValue={filters.minPrice}
+                    placeholder={
+                      facets.priceRange
+                        ? String(Math.floor(Number(facets.priceRange.min)))
+                        : undefined
+                    }
+                    className={inputClasses({ className: 'mt-1.5' })}
+                  />
+                </label>
+                <label className="text-helper text-fg-muted">
+                  {t('priceMaxLabel')}
+                  <input
+                    name="maxPrice"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    defaultValue={filters.maxPrice}
+                    placeholder={
+                      facets.priceRange
+                        ? String(Math.ceil(Number(facets.priceRange.max)))
+                        : undefined
+                    }
+                    className={inputClasses({ className: 'mt-1.5' })}
+                  />
+                </label>
+              </div>
+            </Group>
+          ) : null}
 
           {facets.attributes.map((facet) => {
             const selected = filters.attributes[facet.key] ?? [];

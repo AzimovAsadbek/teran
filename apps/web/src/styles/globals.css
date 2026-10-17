@@ -12,54 +12,83 @@
  */
 @theme {
   /* ── Brand palette ──────────────────────────────────────────────────────────────────────── */
-  /* Greens: the logo's #1a5317 is forest-700; deeper shades for dark bands and type. */
-  --color-forest-950: #082b0d;
-  --color-forest-900: #0e3d12;
-  --color-forest-800: #154a17;
-  --color-forest-700: #1a5317;
-  --color-forest-600: #236b23;
+  /*
+   * The reference's colours (owner, 2026-10-17: "ranglar hamma hammasi bir xil"), measured on
+   * davidstea.com and kept under TERAN's token names so components did not change: forest = the
+   * teals of fills and buttons (#107e84) with the #121212 of dark bands; jade = the same teal for
+   * accents, with pale tints; gold = the aqua, lime and dark-teal accents; ivory and sage = white
+   * and the light greys; ink = the near-black text. TERAN's own greens were forest/leaf/gold from
+   * the packaging (git history), the logo keeps them.
+   */
+  --color-forest-950: #121212;
+  --color-forest-900: #107e84;
+  --color-forest-800: #0b6b70;
+  --color-forest-700: #08737a;
+  --color-forest-600: #13949b;
 
-  /* The leaves' brighter greens. */
-  --color-leaf-700: #24601f;
-  --color-leaf-600: #2b7a26;
-  --color-leaf-500: #2f9431;
-  --color-leaf-300: #8fc46f;
-  --color-leaf-100: #e3f0d8;
+  /* Success greens (status messages), with the reference's bright green for its banner. */
+  --color-leaf-700: #1f6b3d;
+  --color-leaf-600: #24804a;
+  --color-leaf-500: #3dbd72;
+  --color-leaf-300: #9fdcb7;
+  --color-leaf-100: #e2f5ea;
 
-  /* The packaging gold (#b87800 to #e8c820); 700 and darker are safe for text on light. */
-  --color-gold-800: #6b4a00;
-  --color-gold-700: #855c00;
-  --color-gold-600: #b07c00;
-  --color-gold-500: #d0a20a;
-  --color-gold-400: #e2b918;
-  --color-gold-300: #efcf4a;
-  --color-gold-100: #f8edc6;
-  --color-gold-50: #fdf8e8;
+  /* Accents: aqua (promo button, 2.6:1 on white: never small white text on it), the lime and
+     cream of banners and the menu, dark teals that are safe for text on light. */
+  --color-gold-800: #055e5e;
+  --color-gold-700: #08737a;
+  --color-gold-600: #00a6aa;
+  --color-gold-500: #00b1b0;
+  --color-gold-400: #4eaeaf;
+  --color-gold-300: #00b1b0;
+  --color-gold-100: #ecfa85;
+  --color-gold-50: #f2f1e9;
 
-  /* The red of the ® and the 茶叶 seal; ornament only, never text. */
+  /* The red of the logo's ® and seal; ornament only, never text. */
   --color-seal: #e3000f;
 
-  --color-ivory-50: #fcfaf4;
-  --color-ivory-100: #f6f0e3;
-  --color-ivory-200: #ece3d0;
-  --color-ivory-300: #e0d3b8;
+  --color-ivory-50: #ffffff;
+  --color-ivory-100: #f2f2f2;
+  --color-ivory-200: #ecebe9;
+  --color-ivory-300: #dcdad5;
 
-  --color-sage-100: #eef1e8;
-  --color-sage-200: #d6ddcb;
-  --color-sage-300: #b9c3ad;
-  --color-sage-500: #7e8975;
+  --color-sage-100: #f2f2f2;
+  --color-sage-200: #e2e2e2;
+  --color-sage-300: #c6c6c6;
+  --color-sage-500: #858585;
 
-  /* Muted jade: the hero's garden green (#2f6b5a) and its tints, for menus, bands and tiles. */
-  --color-jade-50: #f2f7f3;
-  --color-jade-100: #e3efe7;
-  --color-jade-200: #cbe0d3;
-  --color-jade-300: #a7c9b5;
-  --color-jade-600: #3e7a66;
-  --color-jade-700: #2f6b5a;
+  /* Teal and its pale tints, for menus, bands and tiles. */
+  --color-jade-50: #f4f4f6;
+  --color-jade-100: #e7f3f3;
+  --color-jade-200: #cfe9e9;
+  --color-jade-300: #9fd3d4;
+  --color-jade-600: #2e8e93;
+  --color-jade-700: #107e84;
 
-  --color-ink-900: #1c211d;
-  --color-ink-700: #3a423c;
-  --color-ink-500: #5d665f;
+  /* The reference's campaign colours (its home page on 2026-10-17), by role. */
+  --color-lavender: #c9c2ec;
+  --color-cherry: #cf1f32;
+  --color-wine: #710631;
+  --color-blush: #ffa6a1;
+  --color-tangerine: #ee5219;
+  --color-navy: #002f6c;
+  --color-sky: #a9cbf2;
+  --color-ocean: #003764;
+  --color-matcha: #207e4c;
+  --color-cream: #fcefd2;
+  --color-sun: #ffc664;
+  --color-reef: #21a3a8;
+  /* Where the reference's text colour fails WCAG AA on its own background, the nearest one that
+     passes (contrast with that background in brackets). */
+  --color-tangerine-ink: #b83c0d; /* on lavender, 3.3:1 for large type */
+  --color-matcha-ink: #1a6b40; /* on lavender, 3.8:1 for large type */
+  --color-blush-light: #ffc4c1; /* on teal, 3.2:1 for large type */
+  --color-lavender-light: #efedfc; /* on tangerine, 3.1:1 for large type */
+  --color-teal-ink: #034a4a; /* on blush, 5.4:1 */
+
+  --color-ink-900: #121212;
+  --color-ink-700: #3d3d3d;
+  --color-ink-500: #6c6c6c;
 
   --color-danger-700: #a8261d;
   --color-danger-100: #f9e3e0;
@@ -78,22 +107,22 @@
   --color-fg-inverse: var(--color-ivory-50);
 
   --color-brand: var(--color-forest-900);
-  --color-brand-hover: var(--color-forest-800);
+  --color-brand-hover: var(--color-forest-600);
   --color-brand-soft: var(--color-sage-100);
 
   --color-accent: var(--color-gold-500);
   --color-accent-hover: var(--color-gold-400);
   --color-accent-fg: var(--color-gold-700);
-  --color-accent-on-inverse: var(--color-gold-300);
+  --color-accent-on-inverse: var(--color-gold-100);
   --color-accent-soft: var(--color-gold-50);
 
-  --color-line: #e7dece;
-  --color-line-subtle: #f0eadc;
+  --color-line: #e6e6e6;
+  --color-line-subtle: #f2f2f2;
   --color-line-strong: var(--color-sage-500);
-  --color-line-inverse: rgb(252 250 244 / 0.18);
+  --color-line-inverse: rgb(255 255 255 / 0.22);
 
   --color-focus: var(--color-forest-700);
-  --color-focus-inverse: var(--color-gold-300);
+  --color-focus-inverse: #ffffff;
 
   --color-success: var(--color-leaf-700);
   --color-success-soft: var(--color-leaf-100);
@@ -150,8 +179,11 @@
   --text-lead--line-height: 1.55;
 
   /* ── Layout ─────────────────────────────────────────────────────────────────────────────── */
-  /* Page margins: 24 px on phones growing to 64 px at 1440 px (the reference's content edges). */
-  --spacing-gutter: clamp(1.5rem, 4.45vw, 4rem);
+  /* Page margins, as the reference's: 24 px on phones, 32 px from 750 px, 64 px from 1200 px
+     (stepped in the base layer below). */
+  --spacing-gutter: 1.5rem;
+  /* The 1440 px frame's margins (container-frame): 16 px on phones, 40 px from 750 px. */
+  --spacing-frame: 1rem;
   --spacing-section: clamp(3.5rem, 2.25rem + 4.5vw, 7rem);
   --spacing-section-sm: clamp(2.5rem, 1.75rem + 3vw, 4.5rem);
   --spacing-header: 4rem;
@@ -164,8 +196,8 @@
   --radius-panel: 1.25rem;
   /* Text buttons are pills on the storefront (the admin area keeps 10 px, see admin layout). */
   --radius-button: 9999px;
-  /* Editorial banners, bento tiles and menu cards (reference: 24 px and 16 px). */
-  --radius-banner: 1.5rem;
+  /* Campaign banners and bento tiles (the reference's 32 px), menu cards (16 px). */
+  --radius-banner: 2rem;
   --radius-tile: 1rem;
 
   /* ── Elevation ──────────────────────────────────────────────────────────────────────────── */
@@ -356,6 +388,30 @@
   [hidden] {
     display: none !important;
   }
+
+  /* The reference's page margins and its pointer feedback (davidstea.com theme, 2026-10-17). */
+  :root {
+    --hover-duration: 0.2s;
+    --hover-ease: ease;
+    --hover-lighten: 1.08;
+    --hover-shadow: 0 2px 10px rgb(0 0 0 / 18%);
+    --hover-picture-duration: 0.35s;
+    --hover-rule: 2px;
+    --panel-duration: 0.22s;
+    --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --panel-travel: 6px;
+  }
+  @media (min-width: 750px) {
+    :root {
+      --spacing-gutter: 2rem;
+      --spacing-frame: 2.5rem;
+    }
+  }
+  @media (min-width: 1200px) {
+    :root {
+      --spacing-gutter: 4rem;
+    }
+  }
 }
 
 /* ── Display type (docs/design/reference-map.md) ─────────────────────────────────────────────────
@@ -484,22 +540,97 @@
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Page container: max 90rem (1440 px) with fluid gutters, so content spans 1312 px at 1440. */
+/* Page container, as the reference's: max 1920 px with its gutters (content 1792 px wide). */
 @utility container-page {
   width: 100%;
-  max-width: 90rem;
+  max-width: 120rem;
   margin-inline: auto;
   padding-inline: var(--spacing-gutter);
 }
 
+/*
+ * The reference's 1440 px frame (its product, bag, contact, store locator and help pages): the
+ * content never wider than 1440 px, between 16 px margins on phones and 40 px from 750 px.
+ */
+@utility container-frame {
+  width: 100%;
+  max-width: 95rem;
+  margin-inline: auto;
+  padding-inline: var(--spacing-frame);
+}
+
+/* The footer's narrower frame (the reference's 1600 px). */
+@utility container-footer {
+  width: 100%;
+  max-width: 100rem;
+  margin-inline: auto;
+  padding-inline: var(--spacing-gutter);
+}
+
+/*
+ * The reference's pointer feedback, one utility per kind of control:
+ * - pill-hover: filled pills brighten a little and lift on a soft shadow;
+ * - outline-hover: outlined pills brighten what shows through them;
+ * - rule-hover: underlined text links thicken their rule;
+ * - underline-reveal: a link's underline fades in (ribbon words, announcement, language);
+ * - picture-hover: a picture inside a hovered link brightens, a little slower.
+ */
+@utility pill-hover {
+  transition:
+    filter var(--hover-duration) var(--hover-ease),
+    box-shadow var(--hover-duration) var(--hover-ease);
+  &:hover {
+    filter: brightness(var(--hover-lighten));
+    box-shadow: var(--hover-shadow);
+  }
+}
+@utility outline-hover {
+  transition:
+    backdrop-filter var(--hover-duration) var(--hover-ease),
+    background-color var(--hover-duration) var(--hover-ease),
+    box-shadow var(--hover-duration) var(--hover-ease);
+  &:hover {
+    backdrop-filter: brightness(var(--hover-lighten));
+    box-shadow: var(--hover-shadow);
+  }
+}
+@utility rule-hover {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-thickness var(--hover-duration) var(--hover-ease);
+  &:hover,
+  &:focus-visible {
+    text-decoration-thickness: var(--hover-rule);
+  }
+}
+@utility underline-reveal {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color var(--hover-duration) var(--hover-ease);
+  &:hover,
+  &:focus-visible {
+    text-decoration-color: currentcolor;
+  }
+}
+@utility picture-hover {
+  transition: filter var(--hover-picture-duration) var(--hover-ease);
+  :is(a, button):hover > &,
+  :is(a, button):focus-visible > &,
+  .group:hover &,
+  .group:focus-visible & {
+    filter: brightness(var(--hover-lighten));
+  }
+}
+
 @layer components {
   /* Home page ribbons (components/home/marquee.tsx): the track holds two copies of the words and
-     moves by one copy, so the loop is seamless. Paused on hover and off screen; still with reduced
+     moves by one copy, so the loop is seamless. As the reference's, it keeps moving under the
+     pointer; it stops off screen, while a keyboard user is on one of its links, and with reduced
      motion. */
   .marquee-track {
     animation: marquee var(--marquee-duration, 48s) linear infinite;
   }
-  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track,
   .marquee[data-offscreen] .marquee-track {
     animation-play-state: paused;
   }
@@ -507,6 +638,31 @@
     .marquee-track {
       animation: none;
     }
+  }
+
+  /* Home product rows (components/home/product-rail.tsx): after a tab is chosen its cards come
+     in one after another and the pill fades in after them, as the reference's featured tabs. */
+  .rail-grid[data-entering] > li {
+    animation: rail-card-in calc(var(--panel-duration) * 1.5) var(--panel-ease) both;
+    animation-delay: calc(45ms * var(--i, 0));
+  }
+  .rail-view-all[data-entering] {
+    animation: rail-fade-in calc(var(--panel-duration) * 1.5) var(--panel-ease) both;
+    animation-delay: 225ms;
+  }
+
+  /* The corner widgets come up as the reference's: fading in while rising into place. */
+  .chat-window:not([hidden]) {
+    animation: widget-in 0.28s var(--panel-ease) both;
+  }
+  .promo-popup {
+    animation: widget-in var(--panel-duration) var(--panel-ease) both;
+  }
+  /* TERAN's networks above the chat (components/social/social-launcher.tsx) rise one after
+     another, the nearest to the disc first. */
+  .social-launcher-item {
+    animation: widget-in var(--panel-duration) var(--panel-ease) both;
+    animation-delay: calc(40ms * var(--i, 0));
   }
 
   /* Home gallery band: the card in the middle of the row grows a little (scroll-driven, where
@@ -567,6 +723,37 @@
   [data-reveal='pending'] {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes widget-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--panel-travel);
+  }
+  to {
+    opacity: 1;
+    translate: none;
+  }
+}
+
+@keyframes rail-card-in {
+  from {
+    opacity: 0;
+    translate: 0 9px;
+  }
+  to {
+    opacity: 1;
+    translate: none;
+  }
+}
+
+@keyframes rail-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 

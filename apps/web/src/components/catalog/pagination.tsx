@@ -79,7 +79,7 @@ export async function Pagination({
                   item,
                   entry === page
                     ? dark
-                      ? 'bg-gold-300 text-forest-950'
+                      ? 'bg-gold-300 text-fg'
                       : 'bg-brand text-fg-inverse'
                     : dark
                       ? 'text-ivory-50 hover:bg-ivory-50/10'

@@ -68,10 +68,10 @@ export async function CatalogResults({
       )}
       {awaitingProducts ? (
         <div className="flex flex-col items-center py-16 text-center sm:py-20">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-forest-900">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-fg">
             <Leaf aria-hidden className="h-7 w-7" />
           </span>
-          <h2 className="mt-5 text-display-sm text-forest-900">{t('comingSoonTitle')}</h2>
+          <h2 className="mt-5 text-display-sm text-fg">{t('comingSoonTitle')}</h2>
           <p className="mt-2 max-w-md text-body text-fg-muted">{t('comingSoonText')}</p>
           <ButtonLink href="/catalog" variant="secondary" className="mt-6">
             {t('shopAllTitle')}
@@ -79,10 +79,10 @@ export async function CatalogResults({
         </div>
       ) : list.items.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-center sm:py-20">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-forest-900">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-fg">
             <SearchX aria-hidden className="h-7 w-7" />
           </span>
-          <h2 className="mt-5 text-display-sm text-forest-900">{t('emptyTitle')}</h2>
+          <h2 className="mt-5 text-display-sm text-fg">{t('emptyTitle')}</h2>
           <p className="mt-2 max-w-md text-body text-fg-muted">{t('emptyText')}</p>
           <ButtonLink href="/catalog" variant="secondary" className="mt-6">
             {t('title')}

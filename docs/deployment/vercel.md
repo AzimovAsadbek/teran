@@ -68,32 +68,36 @@ a post that waits for a retry is processed by the daily cron on the Hobby plan.
 
 API (`teran-api`, Production):
 
-| Variable                                                             | Value                                                                                   |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, …                           | Added by the Neon integration                                                           |
-| `BLOB_READ_WRITE_TOKEN`                                              | Added by connecting the Blob store                                                      |
-| `NODE_ENV`                                                           | `production` (set by Vercel)                                                            |
-| `WEB_ORIGIN`                                                         | The storefront's address, e.g. `https://teran-web.vercel.app`                           |
-| `WEB_REVALIDATE_URL`                                                 | `<storefront>/api/revalidate`                                                           |
-| `APP_SECRET`, `INTERNAL_API_KEY`, `REVALIDATE_SECRET`, `CRON_SECRET` | Random, at least 32 characters each, generated for this deployment                      |
-| `COOKIE_SECURE`                                                      | `true`                                                                                  |
-| `DATABASE_POOL_MAX`                                                  | `3`                                                                                     |
-| `UPLOADS_DIR`                                                        | `/tmp/teran-uploads` (the only writable place; images go to Blob)                       |
-| `PAYMENT_PROVIDER_MODE`, `ALLOW_DEMO_PAYMENTS`                       | `demo`, `true` — simulated payments, an explicit decision for this site                 |
-| `PAYMENT_METHODS_ENABLED`                                            | `CASH_ON_DELIVERY,CLICK,PAYME,CARD`                                                     |
-| `TELEGRAM_MODE`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`         | **Not configured.** `disabled` by default; see ../architecture/telegram.md              |
-| `ANTHROPIC_API_KEY`                                                  | **Not configured.** The advisor runs rule-based; see ../architecture/product-advisor.md |
+| Variable                                                             | Value                                                                                                                                                                |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, …                           | Added by the Neon integration                                                                                                                                        |
+| `BLOB_READ_WRITE_TOKEN`                                              | Added by connecting the Blob store                                                                                                                                   |
+| `NODE_ENV`                                                           | `production` (set by Vercel)                                                                                                                                         |
+| `WEB_ORIGIN`                                                         | The storefront's address, e.g. `https://teran-web.vercel.app`                                                                                                        |
+| `WEB_REVALIDATE_URL`                                                 | `<storefront>/api/revalidate`                                                                                                                                        |
+| `APP_SECRET`, `INTERNAL_API_KEY`, `REVALIDATE_SECRET`, `CRON_SECRET` | Random, at least 32 characters each, generated for this deployment                                                                                                   |
+| `COOKIE_SECURE`                                                      | `true`                                                                                                                                                               |
+| `DATABASE_POOL_MAX`                                                  | `3`                                                                                                                                                                  |
+| `UPLOADS_DIR`                                                        | `/tmp/teran-uploads` (the only writable place; images go to Blob)                                                                                                    |
+| `CHECKOUT_ENABLED`                                                   | Not set: online ordering is closed (carts, orders, payments refused) while the storefront takes orders by phone; `true` together with `NEXT_PUBLIC_SHOW_PRICES=true` |
+| `PAYMENT_PROVIDER_MODE`, `ALLOW_DEMO_PAYMENTS`                       | `demo`, `true` — simulated payments, an explicit decision for this site                                                                                              |
+| `PAYMENT_METHODS_ENABLED`                                            | `CASH_ON_DELIVERY,CLICK,PAYME,CARD`                                                                                                                                  |
+| `TELEGRAM_MODE`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`         | **Not configured.** `disabled` by default; see ../architecture/telegram.md                                                                                           |
+| `ANTHROPIC_API_KEY`                                                  | **Not configured.** The advisor runs rule-based; see ../architecture/product-advisor.md                                                                              |
 
 Storefront (`teran-web`, Production):
 
-| Variable                                | Value                                                                   |
-| --------------------------------------- | ----------------------------------------------------------------------- |
-| `API_INTERNAL_URL`                      | The API's address, e.g. `https://teran-api.vercel.app`                  |
-| `API_INTERNAL_KEY`, `REVALIDATE_SECRET` | The same values as the API's `INTERNAL_API_KEY` and `REVALIDATE_SECRET` |
-| `UPLOADS_ORIGIN`                        | The Blob store's public address                                         |
-| `NEXT_PUBLIC_SITE_URL`                  | The storefront's address                                                |
-| `NEXT_PUBLIC_DEMO_CONTENT`              | `true` (demonstration notices, `noindex`)                               |
-| `NEXT_PUBLIC_ENABLED_LOCALES`           | `uz,ru,en`                                                              |
+| Variable                                | Value                                                                                                             |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `API_INTERNAL_URL`                      | The API's address, e.g. `https://teran-api.vercel.app`                                                            |
+| `API_INTERNAL_KEY`, `REVALIDATE_SECRET` | The same values as the API's `INTERNAL_API_KEY` and `REVALIDATE_SECRET`                                           |
+| `UPLOADS_ORIGIN`                        | The Blob store's public address                                                                                   |
+| `NEXT_PUBLIC_SITE_URL`                  | The storefront's address                                                                                          |
+| `NEXT_PUBLIC_DEMO_CONTENT`              | `false` since 2026-10-18 (TERAN's own teas and texts: indexable). `true` adds demonstration notices and `noindex` |
+| `NEXT_PUBLIC_SHOW_PRICES`               | Not set: prices hidden, orders by phone and messengers (ADR-027)                                                  |
+| `NEXT_PUBLIC_SHOW_ADVISOR`              | Not set: no links to the product advisor (ADR-029)                                                                |
+| `NEXT_PUBLIC_SHOW_GALLERY`              | Not set: no links to the photo and video gallery (ADR-033)                                                        |
+| `NEXT_PUBLIC_ENABLED_LOCALES`           | `uz,ru,en`                                                                                                        |
 
 Secrets live only in the Vercel projects; nothing is committed.
 
@@ -127,10 +131,13 @@ ALLOW_DEMO_SEED=true DATABASE_URL="<DATABASE_URL_UNPOOLED>" BLOB_READ_WRITE_TOKE
   corepack pnpm db:seed:demo
 ```
 
-The administrator is created by the owner, who chooses the password (it is never printed):
+The administrator is created by the owner, who chooses the password (it is never printed). The
+password is read without echo, so it never reaches the screen or the shell history:
 
 ```bash
 cd apps/api
-ADMIN_EMAIL=<e-mail> ADMIN_PASSWORD='<password>' DATABASE_URL="<DATABASE_URL_UNPOOLED>" \
+read -rs ADMIN_PASSWORD && export ADMIN_PASSWORD
+ADMIN_EMAIL=<e-mail> DATABASE_URL="<DATABASE_URL_UNPOOLED>" \
   corepack pnpm admin:create --first-name <name>
+unset ADMIN_PASSWORD
 ```

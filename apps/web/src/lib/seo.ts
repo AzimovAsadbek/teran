@@ -87,13 +87,16 @@ export function pageMetadata({
   query?: string;
 }): Metadata {
   const url = `${localizedUrl(href, locale)}${query ? `?${query}` : ''}`;
+  // Without a description of its own a page keeps the layout's (an explicit undefined would
+  // remove it).
+  const described = description ? { description } : {};
   return {
     title,
-    description,
+    ...described,
     alternates: noIndex ? undefined : alternates(href, locale, query),
     openGraph: {
       title: typeof title === 'string' ? title : title.absolute,
-      description,
+      ...described,
       url,
       siteName: 'TERAN',
       locale: ogLocales[locale],

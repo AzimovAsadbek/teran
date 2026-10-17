@@ -7,6 +7,7 @@ import { Pagination } from '@/components/catalog/pagination';
 import { Link } from '@/i18n/navigation';
 import { getMedia } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
+import { showGallery } from '@/lib/site';
 import {
   KIND_OF_PAGE,
   MEDIA_PATHS,
@@ -43,6 +44,8 @@ export async function mediaKindMetadata(
     href: MEDIA_PATHS[key],
     locale,
     query: page > 1 ? `page=${page}` : '',
+    // Unlisted while the storefront does not link to the gallery (lib/site showGallery).
+    noIndex: !showGallery,
   });
 }
 

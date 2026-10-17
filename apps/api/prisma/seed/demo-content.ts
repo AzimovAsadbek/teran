@@ -67,13 +67,31 @@ export const DEMO_ANNOUNCEMENT = {
   href: '/catalog',
 };
 
-/** Every contact channel stays empty until TERAN provides verified details through the admin. */
+/** The contact setting as earlier versions of this seed wrote it: every channel empty. */
 export const EMPTY_CONTACT = {
   phone: null,
   email: null,
   telegram: null,
   instagram: null,
   address: null,
+  workingHours: null,
+};
+
+/**
+ * TERAN’s contact channels as the owner supplied them (2026-10-17): two phones, two e-mail
+ * addresses, the Telegram account, the WhatsApp link from the WhatsApp Business QR code and the
+ * company's city. Instagram and working hours were not supplied, so they stay empty.
+ */
+export const TERAN_CONTACT = {
+  phone: '+998975707007',
+  phone2: '+998951101326',
+  email: 'terantradellc@gmail.com',
+  email2: 'teran.trade@mail.ru',
+  telegram: 'TeranTrade',
+  instagram: null,
+  whatsapp: 'https://wa.me/qr/2RXZMFXXX5DXA1',
+  youtube: null,
+  address: { uz: 'Namangan, Oʻzbekiston', ru: 'Наманган, Узбекистан', en: 'Namangan, Uzbekistan' },
   workingHours: null,
 };
 
@@ -100,9 +118,9 @@ export const DEMO_ARTICLES: DemoArticle[] = [
       en: 'Simple habits that help tea keep its taste and aroma for longer.',
     },
     body: {
-      uz: 'Choy atrofdagi muhitga sezgir: yorugʻlik, issiqlik, namlik va begona hidlar uning taʼmini tezroq oʻzgartiradi.\n\n## Asosiy qoidalar\n- Choyni zich yopiladigan, yorugʻlik oʻtkazmaydigan idishda saqlang.\n- Uni pechka, quyosh nuri va issiq jihozlardan uzoqroq joyga qoʻying.\n- Ziravorlar, qahva va kuchli hidli mahsulotlar yonida saqlamang.\n- Choyni faqat quruq qoshiq bilan oling.\n\n## Qancha muddat?\nQadoqdagi yaroqlilik muddatiga amal qiling. Ochilgan qadoqni oqilona muddat ichida ishlatib tugatgan maʼqul — shuning uchun koʻpincha kichikroq qadoq qulayroq.',
-      ru: 'Чай чувствителен к окружающей среде: свет, тепло, влага и посторонние запахи быстрее меняют его вкус.\n\n## Основные правила\n- Храните чай в плотно закрывающейся непрозрачной ёмкости.\n- Держите его подальше от плиты, солнечного света и горячих приборов.\n- Не храните рядом со специями, кофе и продуктами с сильным запахом.\n- Набирайте чай только сухой ложкой.\n\n## Как долго?\nОриентируйтесь на срок годности на упаковке. Открытую упаковку лучше использовать в разумный срок — поэтому небольшая упаковка часто удобнее.',
-      en: 'Tea is sensitive to its surroundings: light, heat, moisture and strong odours change its taste more quickly.\n\n## The basics\n- Keep tea in an airtight, opaque container.\n- Store it away from the stove, direct sunlight and warm appliances.\n- Keep it apart from spices, coffee and other strong-smelling foods.\n- Always use a dry spoon.\n\n## How long?\nFollow the best-before date on the pack. Use an opened pack within a reasonable time, which is why a smaller pack is often the better choice.',
+      uz: 'Choy atrofdagi muhitga sezgir: yorugʻlik, issiqlik, namlik va begona hidlar uning taʼmini tezroq oʻzgartiradi.\n\n## Asosiy qoidalar\n- Choyni zich yopiladigan, yorugʻlik oʻtkazmaydigan idishda saqlang.\n- Uni pechka, quyosh nuri va issiq jihozlardan uzoqroq joyga qoʻying.\n- Ziravorlar, qahva va kuchli hidli mahsulotlar yonida saqlamang.\n- Choyni faqat quruq qoshiq bilan oling.\n\n## Qancha muddat?\nQadoqdagi yaroqlilik muddatiga amal qiling. Ochilgan qadoqni oqilona muddat ichida ishlatib tugatgan maʼqul va har safar mahkam yopib qoʻyish kerak: TERAN zip-paketi har gal qayta yopiladi.',
+      ru: 'Чай чувствителен к окружающей среде: свет, тепло, влага и посторонние запахи быстрее меняют его вкус.\n\n## Основные правила\n- Храните чай в плотно закрывающейся непрозрачной ёмкости.\n- Держите его подальше от плиты, солнечного света и горячих приборов.\n- Не храните рядом со специями, кофе и продуктами с сильным запахом.\n- Набирайте чай только сухой ложкой.\n\n## Как долго?\nОриентируйтесь на срок годности на упаковке. Открытую упаковку лучше использовать в разумный срок и плотно закрывать после каждого раза: зип-пакет TERAN снова закрывается после каждого открытия.',
+      en: 'Tea is sensitive to its surroundings: light, heat, moisture and strong odours change its taste more quickly.\n\n## The basics\n- Keep tea in an airtight, opaque container.\n- Store it away from the stove, direct sunlight and warm appliances.\n- Keep it apart from spices, coffee and other strong-smelling foods.\n- Always use a dry spoon.\n\n## How long?\nFollow the best-before date on the pack. Use an opened pack within a reasonable time and close it tightly after each use: TERAN’s zip pouch closes again after every opening.',
     },
   },
   {
@@ -116,9 +134,9 @@ export const DEMO_ARTICLES: DemoArticle[] = [
       en: 'Water temperature, time and amount — the three foundations of a good cup.',
     },
     body: {
-      uz: 'Bir xil choy turli usulda damlansa, butunlay boshqacha taʼm berishi mumkin. Uchta omilga eʼtibor bering.\n\n## Suv harorati\nYashil va oq choylar odatda qaynab turgan suvni yoqtirmaydi — biroz sovutilgan suv yumshoqroq taʼm beradi. Qora choy va giyohli damlamalar uchun qaynoq suv mos keladi.\n\n## Vaqt\nUzoq damlangan choy achchiqroq boʻladi. Qisqa vaqtdan boshlang va taʼmga qarab uzaytiring.\n\n## Miqdor\nOdatda 250 ml suvga 2–3 g choy olinadi. Aniq tavsiya har bir mahsulot sahifasida va qadoqda koʻrsatiladi.',
-      ru: 'Один и тот же чай при разном заваривании может раскрыться совершенно по-разному. Обратите внимание на три фактора.\n\n## Температура воды\nЗелёный и белый чай обычно не любят крутой кипяток — слегка остывшая вода даёт более мягкий вкус. Для чёрного чая и травяных сборов подходит кипяток.\n\n## Время\nЧем дольше заваривается чай, тем он терпче. Начните с короткого времени и увеличивайте его по вкусу.\n\n## Количество\nОбычно берут 2–3 г чая на 250 мл воды. Точная рекомендация указана на странице каждого товара и на упаковке.',
-      en: 'The same tea can taste completely different depending on how it is brewed. Pay attention to three things.\n\n## Water temperature\nGreen and white teas usually dislike boiling water; slightly cooled water gives a softer taste. Black tea and herbal infusions suit freshly boiled water.\n\n## Time\nThe longer tea steeps, the stronger and more astringent it becomes. Start short and extend to taste.\n\n## Amount\nA common starting point is 2–3 g of tea per 250 ml of water. Exact guidance is on each product page and on the pack.',
+      uz: 'Bir xil choy turli usulda damlansa, butunlay boshqacha taʼm berishi mumkin. Uchta omilga eʼtibor bering.\n\n## Suv harorati\nYashil va oq choylar odatda qaynab turgan suvni yoqtirmaydi — biroz sovutilgan suv yumshoqroq taʼm beradi. Qora choy va giyohli damlamalar uchun qaynoq suv mos keladi.\n\n## Vaqt\nUzoq damlangan choy achchiqroq boʻladi. Qisqa vaqtdan boshlang va taʼmga qarab uzaytiring.\n\n## Miqdor\nTERAN yashil choylari uchun odatda 250 ml suvga 3–5 g choy olinadi. Har bir choy uchun aniq miqdor uning mahsulot sahifasida va qadoqda koʻrsatilgan.',
+      ru: 'Один и тот же чай при разном заваривании может раскрыться совершенно по-разному. Обратите внимание на три фактора.\n\n## Температура воды\nЗелёный и белый чай обычно не любят крутой кипяток — слегка остывшая вода даёт более мягкий вкус. Для чёрного чая и травяных сборов подходит кипяток.\n\n## Время\nЧем дольше заваривается чай, тем он терпче. Начните с короткого времени и увеличивайте его по вкусу.\n\n## Количество\nДля зелёного чая TERAN обычно берут 3–5 г чая на 250 мл воды. Точное количество для каждого чая указано на странице товара и на упаковке.',
+      en: 'The same tea can taste completely different depending on how it is brewed. Pay attention to three things.\n\n## Water temperature\nGreen and white teas usually dislike boiling water; slightly cooled water gives a softer taste. Black tea and herbal infusions suit freshly boiled water.\n\n## Time\nThe longer tea steeps, the stronger and more astringent it becomes. Start short and extend to taste.\n\n## Amount\nFor TERAN’s green teas, take 3–5 g of tea per 250 ml of water. The exact amount for each tea is on its product page and on the pack.',
     },
   },
   {
@@ -131,12 +149,12 @@ export const DEMO_ARTICLES: DemoArticle[] = [
       en: 'Types of tea: a short guide',
     },
     excerpt: {
-      uz: 'Qora, yashil, oq choy, ulun va pu-erh bir-biridan nimasi bilan farq qiladi?',
+      uz: 'Qora, yashil, oq choy, ulun va puer bir-biridan nimasi bilan farq qiladi?',
       ru: 'Чем отличаются чёрный, зелёный, белый чай, улун и пуэр?',
       en: 'What makes black, green and white tea, oolong and pu-erh different?',
     },
     body: {
-      uz: 'Qora, yashil, oq choy, ulun va pu-erh bir oʻsimlik — choy butasi (Camellia sinensis) barglaridan tayyorlanadi. Ularning farqi asosan barglarga qanday ishlov berilishidan kelib chiqadi.\n\n## Asosiy turlar\n- Yashil choy: barglar oksidlanishdan himoyalanadi, shuning uchun taʼmi yengil va oʻtsimon boʻladi.\n- Oq choy: eng kam ishlov beriladigan choylardan biri, taʼmi nozik.\n- Ulun: qisman oksidlanadi, taʼmi yashil va qora choy oraligʻida.\n- Qora choy: toʻliq oksidlanadi, taʼmi toʻyimli va quyuq.\n- Pu-erh: fermentlangan choy, koʻpincha presslab saqlanadi; taʼmi chuqur va yumshoq.\n\n## Giyohli damlamalar\nGiyohli va mevali damlamalar choy butasidan emas, boshqa oʻsimliklardan tayyorlanadi. Shuning uchun ular alohida guruhga kiradi.',
+      uz: 'Qora, yashil, oq choy, ulun va puer bir oʻsimlik — choy butasi (Camellia sinensis) barglaridan tayyorlanadi. Ularning farqi asosan barglarga qanday ishlov berilishidan kelib chiqadi.\n\n## Asosiy turlar\n- Yashil choy: barglar oksidlanishdan himoyalanadi, shuning uchun taʼmi yengil va oʻtsimon boʻladi.\n- Oq choy: eng kam ishlov beriladigan choylardan biri, taʼmi nozik.\n- Ulun: qisman oksidlanadi, taʼmi yashil va qora choy oraligʻida.\n- Qora choy: toʻliq oksidlanadi, taʼmi toʻyingan va quyuq.\n- Puer: fermentlangan choy, koʻpincha presslab saqlanadi; taʼmi chuqur va yumshoq.\n\n## Giyohli damlamalar\nGiyohli va mevali damlamalar choy butasidan emas, boshqa oʻsimliklardan tayyorlanadi. Shuning uchun ular alohida guruhga kiradi.',
       ru: 'Чёрный, зелёный, белый чай, улун и пуэр делают из листьев одного растения — чайного куста (Camellia sinensis). Различия возникают в основном из-за того, как обрабатывают лист.\n\n## Основные виды\n- Зелёный чай: лист защищают от окисления, поэтому вкус лёгкий и травянистый.\n- Белый чай: один из наименее обработанных, вкус деликатный.\n- Улун: частично окисленный, вкус между зелёным и чёрным.\n- Чёрный чай: полностью окисленный, вкус насыщенный и плотный.\n- Пуэр: ферментированный чай, который часто прессуют; вкус глубокий и мягкий.\n\n## Травяные сборы\nТравяные и фруктовые сборы делают не из чайного куста, а из других растений, поэтому их выделяют в отдельную группу.',
       en: 'Black, green and white tea, oolong and pu-erh are all made from the leaves of the same plant, the tea bush (Camellia sinensis). The differences come mostly from how the leaves are processed.\n\n## The main types\n- Green tea: the leaves are protected from oxidation, giving a light, grassy taste.\n- White tea: among the least processed teas, with a delicate taste.\n- Oolong: partly oxidised, sitting between green and black tea.\n- Black tea: fully oxidised, with a fuller, deeper taste.\n- Pu-erh: a fermented tea, often pressed into cakes, with a deep, smooth taste.\n\n## Herbal infusions\nHerbal and fruit infusions are made from other plants rather than the tea bush, so they form a separate group.',
     },
@@ -176,7 +194,7 @@ export const DEMO_ARTICLES: DemoArticle[] = [
       en: 'More leaf, less water and short steeps: a way to taste how a tea changes from cup to cup.',
     },
     body: {
-      uz: 'Koʻplab Xitoy choylari, ayniqsa ulun va pu-erh, koʻpincha kichik choynakda yoki qopqoqli kosada damlanadi. Gʻoya oddiy: koʻproq barg, kamroq suv va qisqaroq vaqt.\n\n## Qanday boshlash kerak\n- Taxminan 100–150 ml hajmli kichik choynak yoki gayvan oling.\n- Avval uni issiq suv bilan isitib, suvni toʻkib tashlang.\n- Odatdagidan koʻproq barg soling — taxminan 5–7 g.\n- Dastlabki damlashlarni qisqa qiling: 10–20 soniya.\n\n## Bir necha damlama\nHar safar choyni toʻliq quyib oling va yana damlang, har gal biroz uzoqroq. Bir xil barglardan bir necha piyola choy chiqadi va har birining taʼmi biroz farq qiladi.\n\n## Qoida emas\nBu damlash usullaridan biri, xolos. Har bir mahsulot sahifasidagi tavsiya oddiy choynakda ham yaxshi natija beradi.',
+      uz: 'Koʻplab Xitoy choylari, ayniqsa ulun va puer, koʻpincha kichik choynakda yoki qopqoqli kosada damlanadi. Gʻoya oddiy: koʻproq barg, kamroq suv va qisqaroq vaqt.\n\n## Qanday boshlash kerak\n- Taxminan 100–150 ml hajmli kichik choynak yoki gayvan oling.\n- Avval uni issiq suv bilan isitib, suvni toʻkib tashlang.\n- Odatdagidan koʻproq barg soling — taxminan 5–7 g.\n- Dastlabki damlashlarni qisqa qiling: 10–20 soniya.\n\n## Bir necha damlama\nHar safar choyni toʻliq quyib oling va yana damlang, har gal biroz uzoqroq. Bir xil barglardan bir necha piyola choy chiqadi va har birining taʼmi biroz farq qiladi.\n\n## Qoida emas\nBu damlash usullaridan biri, xolos. Har bir mahsulot sahifasidagi tavsiya oddiy choynakda ham yaxshi natija beradi.',
       ru: 'Многие китайские чаи, особенно улуны и пуэры, часто заваривают в маленьком чайнике или гайвани. Идея проста: больше листа, меньше воды, короче настаивание.\n\n## С чего начать\n- Возьмите маленький чайник или гайвань объёмом около 100–150 мл.\n- Сначала прогрейте посуду горячей водой и слейте её.\n- Положите больше листа, чем обычно, — примерно 5–7 г.\n- Первые проливы делайте короткими: 10–20 секунд.\n\n## Несколько настоев\nКаждый раз сливайте весь настой и заваривайте снова, чуть дольше. Один и тот же лист даёт несколько чашек, и вкус каждой немного отличается.\n\n## Не правило\nЭто лишь один из способов заваривания. Рекомендации на странице каждого товара так же хорошо работают в обычном чайнике.',
       en: 'Many Chinese teas, especially oolong and pu-erh, are often brewed in a small teapot or a lidded bowl. The idea is simple: more leaf, less water, shorter steeps.\n\n## How to start\n- Use a small teapot or gaiwan of about 100–150 ml.\n- Warm it with hot water first, then pour that water away.\n- Add more leaf than usual, roughly 5–7 g.\n- Keep the first steeps short: 10–20 seconds.\n\n## Several infusions\nPour off all the tea each time, then steep again, a little longer each round. The same leaves give several cups, and each tastes slightly different.\n\n## Not a rule\nThis is one way of brewing, not the only one. The guidance on each product page works just as well in an ordinary teapot.',
     },
@@ -201,5 +219,97 @@ export const DEMO_ARTICLES: DemoArticle[] = [
       ru: 'Это черновик статьи. Он виден только в админ-панели и показывает, как статью пишут, просматривают и публикуют.\n\nЗамените или удалите его перед запуском.',
       en: 'This is a draft article. It is only visible in the admin area and shows how an article is written, previewed and published.\n\nReplace or delete it before launch.',
     },
+  },
+];
+
+/**
+ * Sentences corrected after the articles were first loaded (2026-10-18): the pack advice now fits
+ * TERAN’s 400 g zip pouch, the amount matches the teas' own guidance (3–5 g per 250 ml), and the
+ * Uzbek follows the site (puer, toʻyingan). The seed applies each once, where an article still has
+ * the earlier words exactly, so an article edited in the admin area keeps the editor's text.
+ */
+export const ARTICLE_TEXT_FIXES: {
+  slug: string;
+  field: 'body' | 'excerpt';
+  locale: 'uz' | 'ru' | 'en';
+  from: string;
+  to: string;
+}[] = [
+  {
+    slug: 'how-to-store-tea',
+    field: 'body',
+    locale: 'uz',
+    from: 'Ochilgan qadoqni oqilona muddat ichida ishlatib tugatgan maʼqul — shuning uchun koʻpincha kichikroq qadoq qulayroq.',
+    to: 'Ochilgan qadoqni oqilona muddat ichida ishlatib tugatgan maʼqul va har safar mahkam yopib qoʻyish kerak: TERAN zip-paketi har gal qayta yopiladi.',
+  },
+  {
+    slug: 'how-to-store-tea',
+    field: 'body',
+    locale: 'ru',
+    from: 'Открытую упаковку лучше использовать в разумный срок — поэтому небольшая упаковка часто удобнее.',
+    to: 'Открытую упаковку лучше использовать в разумный срок и плотно закрывать после каждого раза: зип-пакет TERAN снова закрывается после каждого открытия.',
+  },
+  {
+    slug: 'how-to-store-tea',
+    field: 'body',
+    locale: 'en',
+    from: 'Use an opened pack within a reasonable time, which is why a smaller pack is often the better choice.',
+    to: 'Use an opened pack within a reasonable time and close it tightly after each use: TERAN’s zip pouch closes again after every opening.',
+  },
+  {
+    slug: 'tea-brewing-basics',
+    field: 'body',
+    locale: 'uz',
+    from: 'Odatda 250 ml suvga 2–3 g choy olinadi. Aniq tavsiya har bir mahsulot sahifasida va qadoqda koʻrsatiladi.',
+    to: 'TERAN yashil choylari uchun odatda 250 ml suvga 3–5 g choy olinadi. Har bir choy uchun aniq miqdor uning mahsulot sahifasida va qadoqda koʻrsatilgan.',
+  },
+  {
+    slug: 'tea-brewing-basics',
+    field: 'body',
+    locale: 'ru',
+    from: 'Обычно берут 2–3 г чая на 250 мл воды. Точная рекомендация указана на странице каждого товара и на упаковке.',
+    to: 'Для зелёного чая TERAN обычно берут 3–5 г чая на 250 мл воды. Точное количество для каждого чая указано на странице товара и на упаковке.',
+  },
+  {
+    slug: 'tea-brewing-basics',
+    field: 'body',
+    locale: 'en',
+    from: 'A common starting point is 2–3 g of tea per 250 ml of water. Exact guidance is on each product page and on the pack.',
+    to: 'For TERAN’s green teas, take 3–5 g of tea per 250 ml of water. The exact amount for each tea is on its product page and on the pack.',
+  },
+  {
+    slug: 'types-of-tea',
+    field: 'excerpt',
+    locale: 'uz',
+    from: 'Qora, yashil, oq choy, ulun va pu-erh bir-biridan nimasi bilan farq qiladi?',
+    to: 'Qora, yashil, oq choy, ulun va puer bir-biridan nimasi bilan farq qiladi?',
+  },
+  {
+    slug: 'types-of-tea',
+    field: 'body',
+    locale: 'uz',
+    from: 'Qora, yashil, oq choy, ulun va pu-erh bir oʻsimlik',
+    to: 'Qora, yashil, oq choy, ulun va puer bir oʻsimlik',
+  },
+  {
+    slug: 'types-of-tea',
+    field: 'body',
+    locale: 'uz',
+    from: 'toʻliq oksidlanadi, taʼmi toʻyimli va quyuq.',
+    to: 'toʻliq oksidlanadi, taʼmi toʻyingan va quyuq.',
+  },
+  {
+    slug: 'types-of-tea',
+    field: 'body',
+    locale: 'uz',
+    from: '- Pu-erh: fermentlangan choy',
+    to: '- Puer: fermentlangan choy',
+  },
+  {
+    slug: 'brewing-in-a-small-teapot',
+    field: 'body',
+    locale: 'uz',
+    from: 'ayniqsa ulun va pu-erh,',
+    to: 'ayniqsa ulun va puer,',
   },
 ];

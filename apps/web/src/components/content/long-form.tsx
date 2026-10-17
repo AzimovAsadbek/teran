@@ -1,5 +1,5 @@
 import { Info } from 'lucide-react';
-import { Fragment, type ReactNode } from 'react';
+import { Fragment } from 'react';
 import type { Block, Section } from '@/content/types';
 import { cn } from '@/lib/cn';
 
@@ -34,7 +34,7 @@ export function Blocks({ blocks }: { blocks: readonly Block[] }) {
         }
         if ('list' in block) {
           return (
-            <ul key={index} className="list-disc space-y-1.5 pl-5 marker:text-accent">
+            <ul key={index} className="list-disc pl-6">
               {block.list.map((item, itemIndex) => (
                 <li key={itemIndex}>
                   <RichText text={item} />
@@ -59,64 +59,42 @@ export function Blocks({ blocks }: { blocks: readonly Block[] }) {
   );
 }
 
-/** Policy-style document: optional table of contents beside numbered sections. */
+/**
+ * A policy document on the reference's page template: 16 px text in one column, each section
+ * under either a bold line (`bold`: privacy and terms) or a large teal condensed heading (`teal`:
+ * as the reference's shipping and returns page).
+ */
 export function LongForm({
   sections,
-  tocLabel,
-  numbered = false,
-  aside,
+  headings = 'bold',
 }: {
   sections: readonly Section[];
-  tocLabel?: string;
-  numbered?: boolean;
-  aside?: ReactNode;
+  headings?: 'bold' | 'teal';
 }) {
   return (
-    <div
-      className={cn(
-        'grid grid-cols-1 gap-10',
-        tocLabel && 'lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16',
-      )}
-    >
-      {tocLabel ? (
-        <nav aria-label={tocLabel} className="hidden lg:block">
-          <div className="sticky top-24">
-            <p className="text-eyebrow text-accent-fg">{tocLabel}</p>
-            <ol className="mt-4 space-y-1 border-l border-line text-body-sm">
-              {sections.map((section, index) => (
-                <li key={section.id}>
-                  <a
-                    href={`#${section.id}`}
-                    className="-ml-px block border-l-2 border-transparent py-1.5 pl-4 text-fg-muted transition-colors hover:border-accent hover:text-fg"
-                  >
-                    {numbered ? `${index + 1}. ` : null}
-                    {section.heading}
-                  </a>
-                </li>
-              ))}
-            </ol>
-            {aside}
-          </div>
-        </nav>
-      ) : null}
-      <div className="max-w-3xl space-y-12">
-        {sections.map((section, index) => (
-          <section
-            key={section.id}
-            id={section.id}
-            aria-labelledby={`${section.id}-title`}
-            className="scroll-mt-24"
+    <div className={cn(headings === 'teal' ? 'space-y-10' : 'space-y-4')}>
+      {sections.map((section) => (
+        <section
+          key={section.id}
+          id={section.id}
+          aria-labelledby={`${section.id}-title`}
+          className="scroll-mt-24"
+        >
+          <h2
+            id={`${section.id}-title`}
+            className={
+              headings === 'teal'
+                ? 'mb-2 font-headline text-[2rem] leading-8 text-[#00a6a5] [--heading-case:none]'
+                : 'font-bold'
+            }
           >
-            <h2 id={`${section.id}-title`} className="text-display-md text-jade-700">
-              {numbered ? <span>{index + 1}. </span> : null}
-              {section.heading}
-            </h2>
-            <div className="mt-4 space-y-4 text-body text-fg-muted sm:text-body-lg">
-              <Blocks blocks={section.blocks} />
-            </div>
-          </section>
-        ))}
-      </div>
+            {section.heading}
+          </h2>
+          <div className={cn('space-y-4', headings === 'teal' ? 'mt-10' : 'mt-4')}>
+            <Blocks blocks={section.blocks} />
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

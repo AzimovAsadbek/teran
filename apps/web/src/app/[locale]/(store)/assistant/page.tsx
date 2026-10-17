@@ -10,15 +10,18 @@ import { PageHeader } from '@/components/content/page-header';
 import { pickMessages, STORE_CLIENT_NAMESPACES, type Messages } from '@/i18n/messages';
 import { getAssistantStatus } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
+import { showAdvisor, showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations({ locale, namespace: 'Assistant' });
   return pageMetadata({
     title: t('metaTitle'),
-    description: t('metaDescription'),
+    description: showPrices ? t('metaDescription') : t('metaDescriptionNoPrices'),
     href: '/assistant',
     locale,
+    // Kept out of search results while the storefront links to it nowhere (lib/site showAdvisor).
+    noIndex: !showAdvisor,
   });
 }
 
@@ -47,7 +50,7 @@ export default async function AssistantPage() {
   const t = await getTranslations('Assistant');
   return (
     <>
-      <PageHeader title={t('title')} intro={t('intro')} />
+      <PageHeader title={t('title')} intro={showPrices ? t('intro') : t('introNoPrices')} />
       <div className="container-page pt-10 pb-section">
         {/* The same height as the advisor's first view, so nothing below it moves when it arrives. */}
         <Suspense fallback={<div aria-hidden className="mx-auto min-h-[27rem] max-w-3xl" />}>

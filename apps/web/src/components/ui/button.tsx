@@ -36,16 +36,16 @@ const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-brand text-fg-inverse shadow-xs hover:bg-brand-hover',
   secondary:
     'border border-brand/35 bg-surface/60 text-brand hover:border-brand hover:bg-brand/[0.04]',
-  accent: 'bg-accent text-forest-950 shadow-xs hover:bg-accent-hover',
+  accent: 'bg-accent text-fg shadow-xs hover:bg-accent-hover',
   ghost: 'text-brand hover:bg-brand/[0.06]',
   link: 'h-auto! px-0! text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand',
   danger: 'bg-danger text-white shadow-xs hover:bg-danger/90',
   'danger-ghost': 'text-danger hover:bg-danger-soft',
-  inverse: 'bg-ivory-50 text-forest-900 shadow-xs hover:bg-white',
+  inverse: 'bg-ivory-50 text-fg shadow-xs hover:bg-white',
   'outline-inverse':
     'border border-ivory-50/45 text-ivory-50 hover:border-ivory-50 hover:bg-ivory-50/10',
-  gold: 'bg-accent text-forest-950 shadow-xs hover:bg-accent-hover',
-  light: 'bg-ivory-50 text-forest-900 shadow-xs hover:bg-white',
+  gold: 'bg-accent text-fg shadow-xs hover:bg-accent-hover',
+  light: 'bg-ivory-50 text-fg shadow-xs hover:bg-white',
   'outline-light':
     'border border-ivory-50/45 text-ivory-50 hover:border-ivory-50 hover:bg-ivory-50/10',
 };
@@ -117,7 +117,8 @@ export function ButtonLink({ variant, size, className, ...props }: ButtonLinkPro
   return <Link className={buttonClasses(variant, size, className)} {...props} />;
 }
 
-export type IconButtonVariant = 'ghost' | 'outline' | 'solid' | 'inverse' | 'surface' | 'danger';
+export type IconButtonVariant =
+  'ghost' | 'outline' | 'solid' | 'inverse' | 'surface' | 'danger' | 'plain';
 export type IconButtonSize = 'sm' | 'md' | 'lg';
 
 const ICON_VARIANTS: Record<IconButtonVariant, string> = {
@@ -127,6 +128,8 @@ const ICON_VARIANTS: Record<IconButtonVariant, string> = {
   inverse: 'text-ivory-50 hover:bg-ivory-50/12',
   surface: 'bg-surface text-fg shadow-soft hover:bg-ivory-50',
   danger: 'text-danger hover:bg-danger-soft',
+  /** The reference's header icons: no change when pointed at. */
+  plain: 'text-fg',
 };
 
 const ICON_SIZES: Record<IconButtonSize, string> = {
@@ -197,7 +200,7 @@ export function CountBadge({ children, bump = false }: { children: ReactNode; bu
     <span
       aria-hidden
       className={cn(
-        'absolute -top-0.5 -right-0.5 inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-accent px-1 text-micro leading-none font-bold text-forest-950 figures ring-2 ring-canvas',
+        'absolute -top-0.5 -right-0.5 inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-accent px-1 text-micro leading-none font-bold text-fg figures ring-2 ring-canvas',
         bump && 'motion-safe:animate-badge-pop',
       )}
     >

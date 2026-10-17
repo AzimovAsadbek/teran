@@ -223,7 +223,7 @@ export function InventoryRowActions({ row }: { row: AdminInventoryRow }) {
               {history.items.map((movement) => (
                 <li key={movement.id} className="py-3 text-body-sm">
                   <p className="flex justify-between gap-4">
-                    <span className="font-semibold text-forest-900">
+                    <span className="font-semibold text-fg">
                       {t(`inventoryReasons.${movement.reason as 'RESTOCK'}`)}
                     </span>
                     <span

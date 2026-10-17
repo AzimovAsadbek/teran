@@ -101,10 +101,14 @@ interface Draft {
   isFeatured: boolean;
   caffeineLevel: string;
   brewTempCelsius: string;
+  /** Upper end of a range ("80–90 °C"); empty for one temperature. */
+  brewTempMaxCelsius: string;
   /** Steeping times are typed in minutes (as printed on the packs) and stored in seconds. */
   brewTimeMinMinutes: string;
   brewTimeMaxMinutes: string;
   brewAmountGrams: string;
+  /** Upper end of a range ("3–5 g"); empty for one amount. */
+  brewAmountMaxGrams: string;
   illustrationKey: string;
   collectionIds: string[];
   announceOnTelegram: boolean;
@@ -166,9 +170,11 @@ function toDraft(product: AdminProductDetail | null): Draft {
     isFeatured: product?.isFeatured ?? false,
     caffeineLevel: product?.caffeineLevel ?? '',
     brewTempCelsius: product?.brewTempCelsius?.toString() ?? '',
+    brewTempMaxCelsius: product?.brewTempMaxCelsius?.toString() ?? '',
     brewTimeMinMinutes: toMinutes(product?.brewTimeMinSeconds),
     brewTimeMaxMinutes: toMinutes(product?.brewTimeMaxSeconds),
     brewAmountGrams: product?.brewAmountGrams?.toString() ?? '',
+    brewAmountMaxGrams: product?.brewAmountMaxGrams?.toString() ?? '',
     illustrationKey: product?.illustrationKey ?? '',
     collectionIds: product?.collectionIds ?? [],
     announceOnTelegram: product?.announceOnTelegram ?? false,
@@ -270,9 +276,11 @@ function toPayload(draft: Draft, types: AdminProductType[]) {
     isFeatured: draft.isFeatured,
     caffeineLevel: draft.caffeineLevel || null,
     brewTempCelsius: numberOrNull(draft.brewTempCelsius),
+    brewTempMaxCelsius: numberOrNull(draft.brewTempMaxCelsius),
     brewTimeMinSeconds: toSeconds(draft.brewTimeMinMinutes),
     brewTimeMaxSeconds: toSeconds(draft.brewTimeMaxMinutes),
     brewAmountGrams: numberOrNull(draft.brewAmountGrams),
+    brewAmountMaxGrams: numberOrNull(draft.brewAmountMaxGrams),
     illustrationKey: draft.illustrationKey || null,
     collectionIds: draft.collectionIds,
     announceOnTelegram: draft.announceOnTelegram,
@@ -310,7 +318,7 @@ function Section({
       className="scroll-mt-24 space-y-4 rounded-card border border-line bg-surface p-5 sm:p-6"
     >
       <div>
-        <h2 className="text-body-lg font-semibold text-forest-900">{title}</h2>
+        <h2 className="text-body-lg font-semibold text-fg">{title}</h2>
         {hint ? <p className="mt-1 text-body-sm text-fg-subtle">{hint}</p> : null}
       </div>
       {children}
@@ -382,7 +390,9 @@ export function ProductEditor({
   // without a type, or one that already has such values, keeps the fields.
   const hasBrewing = [
     draft.brewTempCelsius,
+    draft.brewTempMaxCelsius,
     draft.brewAmountGrams,
+    draft.brewAmountMaxGrams,
     draft.brewTimeMinMinutes,
     draft.brewTimeMaxMinutes,
     draft.caffeineLevel,
@@ -764,7 +774,7 @@ export function ProductEditor({
               error={error('translations.uz.origin', uz.origin)}
             />
             <div className="border-t border-line pt-4">
-              <h3 className="mb-3 text-body font-semibold text-forest-900">
+              <h3 className="mb-3 text-body font-semibold text-fg">
                 {t('products.otherLanguages')}
               </h3>
               <TranslationEditor
@@ -856,12 +866,28 @@ export function ProductEditor({
                   error={error('brewTempCelsius', draft.brewTempCelsius)}
                 />
                 <TextField
+                  label={t('products.brewTempMax')}
+                  name="brewTempMax"
+                  inputMode="numeric"
+                  value={draft.brewTempMaxCelsius}
+                  onChange={(event) => set('brewTempMaxCelsius', event.target.value)}
+                  error={error('brewTempMaxCelsius', draft.brewTempMaxCelsius)}
+                />
+                <TextField
                   label={t('products.brewAmount')}
                   name="brewAmount"
                   inputMode="decimal"
                   value={draft.brewAmountGrams}
                   onChange={(event) => set('brewAmountGrams', event.target.value)}
                   error={error('brewAmountGrams', draft.brewAmountGrams)}
+                />
+                <TextField
+                  label={t('products.brewAmountMax')}
+                  name="brewAmountMax"
+                  inputMode="decimal"
+                  value={draft.brewAmountMaxGrams}
+                  onChange={(event) => set('brewAmountMaxGrams', event.target.value)}
+                  error={error('brewAmountMaxGrams', draft.brewAmountMaxGrams)}
                 />
                 <TextField
                   label={t('products.brewTimeMin')}
@@ -953,7 +979,7 @@ export function ProductEditor({
                     case 'MULTI_SELECT':
                       return (
                         <fieldset key={attribute.id}>
-                          <legend className="mb-1.5 text-body-sm font-semibold text-forest-900">
+                          <legend className="mb-1.5 text-body-sm font-semibold text-fg">
                             {title}
                           </legend>
                           <div className="flex flex-wrap gap-x-5 gap-y-1">
@@ -1012,9 +1038,7 @@ export function ProductEditor({
                     case 'TEXT':
                       return (
                         <fieldset key={attribute.id} className="space-y-2">
-                          <legend className="text-body-sm font-semibold text-forest-900">
-                            {title}
-                          </legend>
+                          <legend className="text-body-sm font-semibold text-fg">{title}</legend>
                           {(['uz', 'ru', 'en'] as const).map((textLocale) => (
                             <TextField
                               key={textLocale}
@@ -1154,7 +1178,7 @@ export function ProductEditor({
             <Link
               href={`/admin/products/${product.id}/preview`}
               target="_blank"
-              className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
+              className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-fg hover:underline"
             >
               <Eye aria-hidden className="h-3.5 w-3.5" />
               {t('preview.open')}
@@ -1164,7 +1188,7 @@ export function ProductEditor({
             <Link
               href={`/products/${product.slug}`}
               target="_blank"
-              className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-forest-900 hover:underline"
+              className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-fg hover:underline"
             >
               {t('products.openInStore')}
               <ExternalLink aria-hidden className="h-3.5 w-3.5" />

@@ -114,7 +114,7 @@ export function SessionsPanel({ sessions }: { sessions: AccountSessionDto[] }) {
               <span className="block text-title-sm text-fg">
                 {session.device ?? t('unknownDevice')}
                 {session.current ? (
-                  <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-caption font-semibold text-forest-900">
+                  <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-caption font-semibold text-fg">
                     {t('thisDevice')}
                   </span>
                 ) : null}

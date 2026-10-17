@@ -18,6 +18,8 @@ export interface Section {
 
 export interface LongFormContent {
   title: string;
+  /** Search result title, used as it is (no "— TERAN"): the title with what the page is about. */
+  metaTitle?: string;
   /** Meta description (≤ 160 characters). */
   description: string;
   intro?: string;

@@ -25,6 +25,30 @@ const VALUE_ICONS: Record<BrandValue, typeof iconNatural> = {
   quality: iconQuality,
 };
 
+/**
+ * One of the pack's four ringed icons in the current text colour (drawn through the icon as a
+ * mask), for the reference's teal promise icons.
+ */
+export function ValueMark({ value, className }: { value: BrandValue; className?: string }) {
+  const url = `url(${VALUE_ICONS[value].src})`;
+  return (
+    <span
+      aria-hidden
+      className={cn('inline-block bg-current', className)}
+      style={{
+        maskImage: url,
+        WebkitMaskImage: url,
+        maskSize: 'contain',
+        WebkitMaskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        WebkitMaskRepeat: 'no-repeat',
+        maskPosition: 'center',
+        WebkitMaskPosition: 'center',
+      }}
+    />
+  );
+}
+
 /** One of the pack's four ringed icons, in TERAN green. */
 export function ValueIcon({ value, className }: { value: BrandValue; className?: string }) {
   return <Image src={VALUE_ICONS[value]} alt="" aria-hidden className={cn('h-auto', className)} />;
@@ -72,7 +96,7 @@ export function BrandValues({
           <span
             className={cn(
               'mt-2.5 max-w-[10rem] font-bold tracking-[0.06em] text-balance uppercase',
-              dark ? 'text-ivory-50' : 'text-forest-900',
+              dark ? 'text-ivory-50' : 'text-fg',
               compact ? 'text-[0.625rem] leading-tight' : 'text-micro sm:text-caption',
             )}
           >

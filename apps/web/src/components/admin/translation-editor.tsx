@@ -67,7 +67,7 @@ export function TranslationEditor<K extends string>({
             open={locale === 'uz' || hasError(locale)}
             className="group rounded-card border border-line"
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-forest-900 [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-fg [&::-webkit-details-marker]:hidden">
               <span>
                 {t(`common.locales.${locale}`)}
                 {locale !== 'uz' && current === null ? (
@@ -86,7 +86,7 @@ export function TranslationEditor<K extends string>({
                 <button
                   type="button"
                   onClick={() => onChange({ ...value, [locale]: empty() })}
-                  className="inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 hover:underline"
+                  className="inline-flex items-center gap-2 text-body-sm font-semibold text-fg hover:underline"
                 >
                   <Plus aria-hidden className="h-4 w-4" />
                   {t('common.fillTranslation')}

@@ -152,7 +152,7 @@ export function MediaBand({
                   'relative pb-2 transition-colors duration-150',
                   'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-center after:bg-forest-900 after:transition-transform after:duration-200',
                   index === active
-                    ? 'text-forest-900 after:scale-x-100'
+                    ? 'text-fg after:scale-x-100'
                     : 'text-fg-muted after:scale-x-0 hover:text-forest-800',
                 )}
               >

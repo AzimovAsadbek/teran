@@ -40,10 +40,10 @@ async function OrderView({
   if (!order) {
     return (
       <div className="flex flex-col items-center py-16 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-forest-900">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-fg">
           <SearchX aria-hidden className="h-7 w-7" />
         </span>
-        <h1 className="mt-5 text-display-md text-forest-900">{t('orderNotFound')}</h1>
+        <h1 className="mt-5 text-display-md text-fg">{t('orderNotFound')}</h1>
         <ButtonLink href="/catalog" variant="secondary" className="mt-8">
           {t('continueShopping')}
         </ButtonLink>
@@ -66,19 +66,17 @@ async function OrderView({
           />
           <CircleCheck aria-hidden className="h-10 w-10 text-accent-on-inverse" />
           <h1 className="mt-4 text-display-md">{t('thankYou')}</h1>
-          <p className="mt-3 max-w-2xl text-body-lg text-ivory-100/90">{t('orderPlacedText')}</p>
+          <p className="mt-3 max-w-2xl text-body-lg text-ivory-50">{t('orderPlacedText')}</p>
           <div className="mt-7 inline-flex flex-col rounded-card border border-line-inverse bg-ivory-50/[0.05] px-5 py-3">
-            <span className="text-caption text-ivory-100/75">{t('orderNumber')}</span>
-            <span className="mt-0.5 text-title-lg tracking-wide text-accent-on-inverse">
-              {order.number}
-            </span>
+            <span className="text-caption text-ivory-50">{t('orderNumber')}</span>
+            <span className="mt-0.5 text-title-lg tracking-wide text-ivory-50">{order.number}</span>
           </div>
-          <p className="mt-6 max-w-2xl text-body-sm text-ivory-100/80">{t('saveLinkHint')}</p>
+          <p className="mt-6 max-w-2xl text-body-sm text-ivory-50">{t('saveLinkHint')}</p>
         </div>
       ) : (
         <div>
           <p className="text-eyebrow text-accent-fg">{t('statusTitle')}</p>
-          <h1 className="mt-2 text-display-lg text-forest-900">
+          <h1 className="mt-2 text-display-lg text-fg">
             {t('orderTitle', { number: order.number })}
           </h1>
         </div>

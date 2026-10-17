@@ -1,4 +1,5 @@
-import type { Localized, QuestionGroup } from '../types';
+import type { Locale } from '@teran/contracts';
+import type { Block, Localized, QuestionGroup } from '../types';
 
 /**
  * Help centre answers. They describe how the store works (guest checkout, cash on delivery,
@@ -299,7 +300,7 @@ export const faqGroups: Localized<readonly QuestionGroup[]> = {
         {
           question: 'Barcha choylarda kofein bormi?',
           answer: [
-            'Qora, yashil, oq choy va ulun choy oʻsimligidan tayyorlanadi va tabiiy ravishda kofein saqlaydi. Oʻtli va mevali damlamalarda odatda kofein boʻlmaydi. Kofein haqida maʼlumot mavjud boʻlsa, u mahsulot sahifasida koʻrsatiladi.',
+            'Qora, yashil, oq choy va ulun choy oʻsimligidan tayyorlanadi va tarkibida tabiiy ravishda kofein bor. Giyohli va mevali damlamalarda odatda kofein boʻlmaydi. Kofein haqida maʼlumot mavjud boʻlsa, u mahsulot sahifasida koʻrsatiladi.',
           ],
         },
       ],
@@ -318,3 +319,126 @@ export const faqGroups: Localized<readonly QuestionGroup[]> = {
     },
   ],
 };
+
+/**
+ * The answers about the bag and checkout as they read while the shop shows no prices and takes
+ * orders by phone and messengers (lib/site `showPrices` off): by group id, then by the question's
+ * position in that group. The questions themselves stay.
+ */
+export const faqByContact: Localized<
+  Readonly<Record<string, Readonly<Record<number, readonly Block[]>>>>
+> = {
+  en: {
+    ordering: {
+      0: [
+        'For now we take orders by phone and on social media: call us, or write on Telegram or WhatsApp with the tea and how much you would like. We agree the price, the delivery and the payment there and then.',
+      ],
+      1: ['No. To order, simply call or write to us.'],
+      2: ['Call or write to us and we will tell you where your order is.'],
+    },
+    payment: {
+      0: ['We agree the payment method when you order.'],
+      1: ['No. The website takes no payments.'],
+    },
+    delivery: {
+      0: [
+        'Delivery methods, regions and estimated times are listed on the Delivery page. We agree the delivery fee when you order.',
+      ],
+    },
+  },
+  ru: {
+    ordering: {
+      0: [
+        'Пока заказы принимаются по телефону и в соцсетях: позвоните нам или напишите в Telegram или WhatsApp, назовите чай и количество. Цену, доставку и оплату согласуем сразу.',
+      ],
+      1: ['Нет. Чтобы заказать, достаточно позвонить или написать нам.'],
+      2: ['Позвоните или напишите нам — мы расскажем, где ваш заказ.'],
+    },
+    payment: {
+      0: ['Способ оплаты согласуем при заказе.'],
+      1: ['Нет. Через сайт оплата не принимается.'],
+    },
+    delivery: {
+      0: [
+        'Способы, регионы и ориентировочные сроки доставки указаны на странице «Доставка». Стоимость доставки согласуем при заказе.',
+      ],
+    },
+  },
+  uz: {
+    ordering: {
+      0: [
+        'Hozircha buyurtmalar telefon va ijtimoiy tarmoqlar orqali qabul qilinadi: bizga qoʻngʻiroq qiling yoki Telegram, WhatsApp orqali yozing va choy nomi hamda miqdorini ayting. Narx, yetkazib berish va toʻlovni shu yerning oʻzida kelishib olamiz.',
+      ],
+      1: ['Yoʻq. Buyurtma berish uchun bizga qoʻngʻiroq qilish yoki yozish kifoya.'],
+      2: ['Bizga qoʻngʻiroq qiling yoki yozing — buyurtmangiz qayerdaligini aytib beramiz.'],
+    },
+    payment: {
+      0: ['Toʻlov usulini buyurtma berishda kelishib olamiz.'],
+      1: ['Yoʻq. Sayt orqali toʻlov qabul qilinmaydi.'],
+    },
+    delivery: {
+      0: [
+        'Yetkazib berish usullari, hududlar va taxminiy muddatlar «Yetkazib berish» sahifasida koʻrsatilgan. Yetkazib berish narxini buyurtma berishda kelishib olamiz.',
+      ],
+    },
+  },
+};
+
+/** The FAQ as it applies now: with checkout, or (`byContact`) with ordering by phone and messengers. */
+export function faqFor(locale: Locale, byContact: boolean): readonly QuestionGroup[] {
+  const groups = faqGroups[locale];
+  if (!byContact) return groups;
+  return groups.map((group) => {
+    const answers = faqByContact[locale][group.id];
+    if (!answers) return group;
+    return {
+      ...group,
+      items: group.items.map((item, index) => ({ ...item, answer: answers[index] ?? item.answer })),
+    };
+  });
+}
+
+/** A help-centre article: one question with its answer, addressed by a slug. */
+export interface HelpArticle {
+  slug: string;
+  group: string;
+  question: string;
+  answer: readonly Block[];
+}
+
+/** A help-centre category: one FAQ group and its questions as articles. */
+export interface HelpCategory {
+  id: string;
+  heading: string;
+  articles: readonly HelpArticle[];
+}
+
+/** An address made from an English question ("Do I need an account?" → "do-i-need-an-account"). */
+function slugFrom(question: string): string {
+  return question
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/[\s-]+/g, '-');
+}
+
+/**
+ * The FAQ as the reference's help centre: each group a category, each question an article. An
+ * article keeps one address in every language (made from its English question).
+ */
+export function helpCentre(locale: Locale, byContact: boolean): readonly HelpCategory[] {
+  return faqFor(locale, byContact).map((group) => {
+    const english = faqGroups.en.find((candidate) => candidate.id === group.id);
+    return {
+      id: group.id,
+      heading: group.heading,
+      articles: group.items.map((item, index) => ({
+        slug: slugFrom(english?.items[index]?.question ?? item.question),
+        group: group.id,
+        question: item.question,
+        answer: item.answer,
+      })),
+    };
+  });
+}

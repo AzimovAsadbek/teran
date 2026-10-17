@@ -366,10 +366,14 @@ model Product {
   /// Only set when the value is known for the product; never guessed.
   caffeineLevel      CaffeineLevel?
   brewTempCelsius    Int?
+  /// Upper end when the pack gives a range ("80–90 °C"); null for a single temperature.
+  brewTempMaxCelsius Int?
   brewTimeMinSeconds Int?
   brewTimeMaxSeconds Int?
   /// Grams of tea per 250 ml of water.
   brewAmountGrams    Decimal?       @db.Decimal(4, 1)
+  /// Upper end when the pack gives a range ("3–5 g"); null for a single amount.
+  brewAmountMaxGrams Decimal?       @db.Decimal(4, 1)
   /// Built-in artwork used for demo imagery when no photo is uploaded.
   illustrationKey    String?
   /// Announce the product on the Telegram channel once it is published (one post, ever).

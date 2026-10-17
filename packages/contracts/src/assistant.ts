@@ -19,6 +19,11 @@ export const assistantRequestSchema = z.object({
   message: z.string().trim().min(2).max(500),
   /** Earlier turns of this conversation, oldest first (kept only by the visitor's browser). */
   history: z.array(assistantTurnSchema).max(8).default([]),
+  /**
+   * Whether the storefront shows prices. When it does not, answers name no price or budget and
+   * any budget in the request is left out.
+   */
+  prices: z.boolean().default(true),
 });
 export type AssistantRequest = z.input<typeof assistantRequestSchema>;
 
@@ -31,6 +36,8 @@ export interface AssistantCriteria {
   formats: ProductFormat[];
   /** Recorded attributes the request maps to (e.g. leaf style). */
   attributes: { key: string; label: string; values: { key: string; label: string }[] }[];
+  /** A place of origin asked for, as products record it ("Yunnan"); absent from older answers. */
+  origin?: string | null;
   /** Words looked up in names and descriptions. */
   query: string | null;
   /** The visitor is choosing a gift. */

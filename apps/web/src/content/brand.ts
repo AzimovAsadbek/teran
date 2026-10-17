@@ -3,8 +3,10 @@ import type { Localized } from './types';
 /*
  * Official TERAN brand content, supplied and approved by the owner (2026-10-14).
  *
- * - Uzbek: exactly as supplied, including its apostrophes (’ U+2019 in taʼm, ‘ U+2018 in oʻ/gʻ).
- *   The only change is a no-break space before each dash, so a line never starts with "—".
+ * - Uzbek: exactly as supplied; only its apostrophes follow the rest of the site's Uzbek (ʻ U+02BB in
+ *   oʻ/gʻ, ʼ U+02BC in taʼm, where the supplied text had ‘ and ’), so search and screen readers treat
+ *   the words alike everywhere. A no-break space stands before each dash, so a line never starts
+ *   with "—".
  * - English: the tagline was supplied; every other English and all Russian text are translations
  *   drafted for the website and waiting for the owner's approval
  *   (docs/business-information-required.md).
@@ -22,11 +24,11 @@ export const BRAND = {
 } as const;
 
 /**
- * Product identifiers supplied by TERAN. XC2025, G8810, 8830 and 8009 are printed on their packs
- * (2026-10-14: each "Xitoy yashil choy", 400 g). The owner's first list said "STD8009"; the pack
- * says "8009", which is what customers see. HET8800 has no packaging file yet.
+ * The five TERAN teas, as their packs, barcodes and the owner's descriptions name them
+ * (2026-10-17): each a Chinese green tea in a 400 g zip pouch. The owner's first list said
+ * "HET8800" and "STD8009"; the packs say 8800 and 8009, which is what customers see.
  */
-export const COLLECTION_CODES = ['XC2025', 'G8810', 'HET8800', '8830', '8009'] as const;
+export const COLLECTION_CODES = ['XC2025', 'G8810', '8800', '8830', '8009'] as const;
 
 /**
  * Copy printed on the TERAN packaging (print files supplied by the owner, 2026-10-14). Uzbek is
@@ -35,7 +37,7 @@ export const COLLECTION_CODES = ['XC2025', 'G8810', 'HET8800', '8830', '8009'] a
  */
 export const PACKAGING = {
   /** Under the logo on every pack. */
-  tagline: 'Fikrlang, tabiatning xushta’m lazzati.',
+  tagline: 'Fikrlang, tabiatning xushtaʼm lazzati.',
   /** Along the bottom edge of the back ("SOF TABIAT • YAXSHI KAYFIYAT • TERAN BILAN"). */
   slogan: ['Sof tabiat', 'Yaxshi kayfiyat', 'Teran bilan'],
 } as const;
@@ -47,7 +49,7 @@ export type BrandValue = (typeof BRAND_VALUES)[number];
 export const brandValueLabels: Localized<Record<BrandValue, string>> = {
   uz: {
     natural: 'Tabiiy mahsulot',
-    taste: 'Nafis ta’m',
+    taste: 'Nafis taʼm',
     vigour: 'Har kungi tetiklik',
     quality: 'Sifatli tanlov',
   },
@@ -64,6 +66,18 @@ export const brandValueLabels: Localized<Record<BrandValue, string>> = {
     quality: 'Quality choice',
   },
 };
+
+/** TERAN's five teas by the identifier printed on their packs. */
+export const TEA_CODES = ['XC2025', 'G8810', '8800', '8830', '8009'] as const;
+export type TeaCode = (typeof TEA_CODES)[number];
+
+/**
+ * A tea's product page from the identifier on its pack (the catalogue names them "teran-<code>";
+ * a renamed product redirects), so a picture of a pack opens that tea.
+ */
+export function teaHref(code: TeaCode): string {
+  return `/products/teran-${code.toLowerCase()}`;
+}
 
 /** Slug of the demonstration collection that groups the five identifiers. */
 export const PREMIUM_COLLECTION_SLUG = 'teran-premium';
@@ -86,36 +100,36 @@ export interface BrandCopy {
 
 export const brandCopy: Localized<BrandCopy> = {
   uz: {
-    tagline: 'Teran ta’m. Teran taassurot.',
+    tagline: 'Teran taʼm. Teran taassurot.',
     description:
-      'Har bir piyolada Xitoy choy madaniyatining boy an’analari va o‘zbekona mehmondo‘stlik ruhi uyg‘unlashadi.',
-    location: 'Namangan, O‘zbekiston',
+      'Har bir piyolada Xitoy choy madaniyatining boy anʼanalari va oʻzbekona mehmondoʻstlik ruhi uygʻunlashadi.',
+    location: 'Namangan, Oʻzbekiston',
     story: {
-      heading: 'TERAN — nom emas. Ma’no.',
+      heading: 'TERAN — nom emas. Maʼno.',
       paragraphs: [
-        'TERAN — qadimiy turkiy ildizlarga ega, chuqurlik va mazmunni ifodalovchi o‘zbekcha so‘z.',
-        'Biz bu nomni choyning boy ta’mi, nafis ifori va har bir piyolada qoladigan iliq taassurot timsoli sifatida tanladik.',
+        'TERAN — qadimiy turkiy ildizlarga ega, chuqurlik va mazmunni ifodalovchi oʻzbekcha soʻz.',
+        'Biz bu nomni choyning boy taʼmi, nafis ifori va har bir piyolada qoladigan iliq taassurot timsoli sifatida tanladik.',
       ],
     },
     philosophy: {
       heading: 'Biz qadrlaydigan uch tushuncha.',
       principles: [
-        { title: 'Teran ta’m', text: 'boy ta’m va xushbo‘y ifor.' },
-        { title: 'Tabiatdan ilhom', text: 'tabiat go‘zalligi va uyg‘unligi.' },
+        { title: 'Teran taʼm', text: 'boy taʼm va xushboʻy ifor.' },
+        { title: 'Tabiatdan ilhom', text: 'tabiat goʻzalligi va uygʻunligi.' },
         { title: 'Qadrli lahzalar', text: 'samimiy suhbat va osoyishtalik.' },
       ],
     },
     collection: {
-      heading: 'Har didga o‘ziga xos tanlov.',
+      heading: 'Har didga oʻziga xos tanlov.',
       text: 'TERAN premium choy kolleksiyasi.',
     },
     partnership: {
-      heading: 'TERAN bilan birga o‘sing.',
+      heading: 'TERAN bilan birga oʻsing.',
       text: 'Ulgurji savdo, distribyutorlik va hamkorlik imkoniyatlari.',
     },
     labels: {
       company: 'Kompaniya',
-      location: 'Manzil',
+      location: 'Joylashuv',
       website: 'Veb-sayt',
       codes: 'Kolleksiya identifikatorlari',
     },
@@ -150,7 +164,7 @@ export const brandCopy: Localized<BrandCopy> = {
     },
     labels: {
       company: 'Компания',
-      location: 'Город',
+      location: 'Местоположение',
       website: 'Сайт',
       codes: 'Идентификаторы коллекции',
     },

@@ -199,6 +199,7 @@ export function toVariantDto(variant: VariantRow): VariantDto {
     currency: variant.currency,
     stockLevel: variantStockLevel(variant),
     maxQuantity: Math.max(0, Math.min(variant.stockQuantity, MAX_LINE_QUANTITY)),
+    barcode: variant.barcode ?? null,
   };
 }
 
@@ -272,7 +273,8 @@ export function toProductSummary(
   );
   const purchasable = variants.find((variant) => variant.stockLevel !== 'out_of_stock');
   const firstImage = product.images[0];
-  const secondImage = product.images[1];
+  // A second photograph for the card's hover state; a cut-out is for the home page stage only.
+  const secondImage = product.images[1]?.transparent ? undefined : product.images[1];
 
   return {
     id: product.id,
@@ -335,9 +337,11 @@ export function toProductDetail(
     brewing: hasBrewing
       ? {
           temperatureCelsius: product.brewTempCelsius,
+          temperatureMaxCelsius: product.brewTempMaxCelsius,
           timeMinSeconds: product.brewTimeMinSeconds,
           timeMaxSeconds: product.brewTimeMaxSeconds,
           amountGrams: product.brewAmountGrams?.toString() ?? null,
+          amountMaxGrams: product.brewAmountMaxGrams?.toString() ?? null,
         }
       : null,
     images: product.images.map((image) =>

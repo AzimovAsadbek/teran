@@ -17,7 +17,7 @@ export default function StoreError({
     <div className="container-page flex flex-col items-center py-section text-center" role="alert">
       {/* A streamed error keeps the 200 status, so keep the error UI out of search indexes. */}
       <meta name="robots" content="noindex" />
-      <h1 className="text-display-lg text-forest-900">{t('serverTitle')}</h1>
+      <h1 className="text-display-lg text-fg">{t('serverTitle')}</h1>
       <p className="mt-4 max-w-md text-body-lg text-fg-muted">{t('serverText')}</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button onClick={retry}>

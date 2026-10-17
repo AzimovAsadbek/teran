@@ -7,8 +7,10 @@ import { Suspense } from 'react';
 import { CartView } from '@/components/cart/cart-view';
 import { ProductRail } from '@/components/home/product-rail';
 import { RailFallback } from '@/components/home/rail-sections';
+import { ContactToOrder } from '@/components/social/contact-to-order';
 import { getProductList } from '@/lib/data/catalog';
 import { pageMetadata } from '@/lib/seo';
+import { showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -46,9 +48,18 @@ async function CartSuggestions() {
         next: th('showcaseNext'),
       }}
       heading="condensed"
+      frame="content"
       // With an empty bag the row is what the page shows first.
       priorityCount={2}
     />
+  );
+}
+
+async function OrderByContact() {
+  await connection();
+  const t = await getTranslations('Cart');
+  return (
+    <ContactToOrder title={t('orderByContactTitle')} text={t('orderByContactText')} layout="bag" />
   );
 }
 
@@ -59,9 +70,16 @@ export default async function CartPage() {
     <>
       {/* The same height while the bag loads and once it is known to be empty, and a placeholder of
           the suggestions' size, so nothing below moves as the parts arrive. */}
-      <div className="container-page min-h-[21.75rem] pt-6 sm:pt-8">
+      <div className="container-frame min-h-[21.75rem] pt-6 sm:pt-8">
         <h1 className="sr-only">{t('drawerTitle')}</h1>
-        <CartView />
+        {showPrices ? (
+          <CartView />
+        ) : (
+          // No prices, no bag for now: orders go through TERAN's contact channels.
+          <Suspense fallback={null}>
+            <OrderByContact />
+          </Suspense>
+        )}
       </div>
       <Suspense fallback={<RailFallback />}>
         <CartSuggestions />

@@ -63,7 +63,10 @@ export async function removeDemoData(
   const removedOrders = await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
 
   // Products, with their image files. Real orders keep their purchase-time snapshots.
-  const productSlugs = [...DEMO_PRODUCTS.map((product) => product.slug), ...RETIRED_DEMO.products];
+  const productSlugs = [
+    ...DEMO_PRODUCTS.flatMap((product) => [product.slug, ...(product.formerSlugs ?? [])]),
+    ...RETIRED_DEMO.products,
+  ];
   const products = await prisma.product.findMany({
     where: { slug: { in: productSlugs } },
     select: { id: true, images: { select: { storageKey: true } } },

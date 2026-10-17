@@ -211,7 +211,7 @@ export function ProductImages({
                       </span>
                     ) : null}
                     {image.transparent ? (
-                      <span className="rounded-full bg-surface px-2 py-0.5 text-caption font-semibold text-forest-900 shadow-xs">
+                      <span className="rounded-full bg-surface px-2 py-0.5 text-caption font-semibold text-fg shadow-xs">
                         {t('uploads.cutout')}
                       </span>
                     ) : null}
@@ -237,7 +237,7 @@ export function ProductImages({
                         type="button"
                         onClick={() => void makeMain(index)}
                         disabled={action.pending}
-                        className="min-h-8 rounded-control px-2 text-xs font-semibold text-forest-900 hover:bg-surface-muted"
+                        className="min-h-8 rounded-control px-2 text-xs font-semibold text-fg hover:bg-surface-muted"
                       >
                         {t('products.makeMain')}
                       </button>
@@ -350,7 +350,7 @@ export function ProductImages({
                     />
                     {item.status === 'uploading' || item.status === 'checking' ? (
                       <span className="absolute inset-0 grid place-items-center bg-surface/50">
-                        <Loader2 aria-hidden className="h-5 w-5 animate-spin text-forest-900" />
+                        <Loader2 aria-hidden className="h-5 w-5 animate-spin text-fg" />
                       </span>
                     ) : null}
                   </div>

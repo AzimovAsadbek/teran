@@ -72,11 +72,13 @@ export function RecentlyViewed({
   title,
   cta,
   labels,
+  frame,
 }: {
   current: ProductSummaryDto;
   title: string;
   cta: string;
   labels: RailLabels;
+  frame?: 'page' | 'content';
 }) {
   const stored = useSyncExternalStore(subscribe, getSnapshot, () => EMPTY);
   const items = stored.filter((item) => item.id !== current.id).slice(0, LIMIT);
@@ -92,6 +94,7 @@ export function RecentlyViewed({
       tabs={[{ id: 'recent', label: title, products: items, href: '/catalog', cta }]}
       labels={labels}
       heading="serif"
+      frame={frame}
     />
   );
 }

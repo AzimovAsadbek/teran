@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -22,6 +23,7 @@ import {
 import { z } from 'zod';
 import { OptionalAuth } from '../auth/auth.guard.js';
 import type { RequestAuth } from '../auth/auth.types.js';
+import { CheckoutEnabledGuard } from '../orders/checkout-enabled.guard.js';
 import { PaymentsService } from './payments.service.js';
 
 const orderNumberSchema = z.string().regex(/^TRN-[0-9A-Z]{8}$/);
@@ -32,6 +34,7 @@ export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
   @Post('orders/:number/payments')
+  @UseGuards(CheckoutEnabledGuard)
   @HttpCode(HttpStatus.CREATED)
   @Header('Cache-Control', 'private, no-store')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -73,6 +76,7 @@ export class PaymentsController {
   }
 
   @Post('payments/demo')
+  @UseGuards(CheckoutEnabledGuard)
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'private, no-store')
   @Throttle({ default: { limit: 20, ttl: 60_000 } })

@@ -88,15 +88,21 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
         aria-labelledby="order-items"
         className="rounded-panel border border-line bg-surface p-5 sm:p-7"
       >
-        <h2 id="order-items" className="text-display-sm text-forest-900">
+        <h2 id="order-items" className="text-display-sm text-fg">
           {t('orderDetails')}
         </h2>
         <ul className="mt-3 divide-y divide-line">
           {order.items.map((item) => (
             <li key={item.sku} className="flex gap-4 py-4">
-              <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted">
+              {/* The picture leads where the name does, as in the bag (for a pointer only). */}
+              <Link
+                href={`/products/${item.productSlug}`}
+                tabIndex={-1}
+                aria-hidden
+                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-control bg-surface-muted"
+              >
                 <ProductImage image={item.image} name={item.productName} sizes="80px" />
-              </span>
+              </Link>
               <span className="min-w-0 flex-1">
                 <Link
                   href={`/products/${item.productSlug}`}
@@ -181,7 +187,7 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
                     ? ` · ${t('paidAt', { date: formatDateTime(payment.paidAt, locale) })}`
                     : ''}
                   {payment.demo ? (
-                    <span className="ml-1.5 rounded-full bg-gold-100 px-1.5 py-px text-micro font-bold text-forest-900 uppercase">
+                    <span className="ml-1.5 rounded-full bg-gold-100 px-1.5 py-px text-micro font-bold text-fg uppercase">
                       {t('demoBadge')}
                     </span>
                   ) : null}
@@ -217,7 +223,7 @@ export async function OrderTimeline({ order, locale }: { order: OrderDto; locale
       aria-labelledby="order-timeline"
       className="rounded-panel border border-line bg-surface p-5 sm:p-7"
     >
-      <h2 id="order-timeline" className="text-display-sm text-forest-900">
+      <h2 id="order-timeline" className="text-display-sm text-fg">
         {t('timeline')}
       </h2>
       <ol className="mt-4 space-y-3 border-l border-line pl-5">

@@ -42,7 +42,7 @@ async function Forbidden() {
     <div className="flex min-h-dvh items-center justify-center bg-surface-muted px-4">
       <div className="max-w-md rounded-panel bg-surface p-8 text-center shadow-soft">
         <ShieldAlert aria-hidden className="mx-auto h-10 w-10 text-accent-fg" />
-        <h1 className="mt-4 text-display-sm text-forest-900">{t('access.forbiddenTitle')}</h1>
+        <h1 className="mt-4 text-display-sm text-fg">{t('access.forbiddenTitle')}</h1>
         <p className="mt-2 text-fg-muted">{t('access.forbiddenText')}</p>
         <ButtonLink href="/" variant="secondary" className="mt-6">
           {t('nav.viewStore')}

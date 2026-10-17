@@ -133,8 +133,22 @@ async function seedCatalogue(prisma: PrismaService) {
     }
     return product;
   };
-  await make('green-whole', green.id, '79000', { leaf: 'whole' });
-  await make('green-premium', green.id, '120000', { leaf: 'broken' });
+  const whole = await make('green-whole', green.id, '79000', { leaf: 'whole' });
+  const premium = await make('green-premium', green.id, '120000', { leaf: 'broken' });
+  // Recorded origins: "Xitoy, Yunnan" and "Xitoy, Hunan" (the others have none).
+  for (const [product, uz, en] of [
+    [whole, 'Xitoy, Yunnan', 'China, Yunnan'],
+    [premium, 'Xitoy, Hunan', 'China, Hunan'],
+  ] as const) {
+    await prisma.productTranslation.updateMany({
+      where: { productId: product.id, locale: { in: ['uz', 'ru'] } },
+      data: { origin: uz },
+    });
+    await prisma.productTranslation.updateMany({
+      where: { productId: product.id, locale: 'en' },
+      data: { origin: en },
+    });
+  }
   await make('green-mild', green.id, '95000', { leaf: 'broken', notes: 'Yumshoq va toza taʼm' });
   await make('black-classic', black.id, '60000');
   await make('arabica', coffee.id, '150000', { typeId: coffeeType.id });
@@ -158,11 +172,12 @@ describe('product advisor', () => {
     async function ask(
       message: string,
       history: { role: 'user' | 'assistant'; text: string }[] = [],
+      prices = true,
     ) {
       return (
         await request(ctx.app.getHttpServer())
           .post(`${API}/assistant/recommend`)
-          .send({ locale: 'uz', message, history })
+          .send({ locale: 'uz', message, history, prices })
           .expect(200)
       ).body as AssistantResponse;
     }
@@ -218,6 +233,34 @@ describe('product advisor', () => {
       expect(answer.message).toContain('10 000');
       expect(slugs(answer)).toEqual(['green-whole', 'green-mild', 'green-premium']);
       expect(answer.followUp).toBe('Byudjetni oshirasizmi yoki boshqa turini koʻramizmi?');
+    });
+
+    it('narrows to a place of origin the catalogue records', async () => {
+      const answer = await ask('Yunnan choyi');
+      expect(answer.criteria.origin).toBe('Yunnan');
+      expect(slugs(answer)).toEqual(['green-whole']);
+      expect(answer.recommendations[0]!.reasons).toContain('Kelib chiqishi: Xitoy, Yunnan');
+      // Not every product records the country, so it narrows the choice too.
+      expect(slugs(await ask('Xitoy choyi')).sort()).toEqual(['green-premium', 'green-whole']);
+    });
+
+    it('names no price or budget while the storefront shows none', async () => {
+      const answer = await ask("yashil choy 10 000 so'mgacha", [], false);
+      expect(answer.criteria).toMatchObject({
+        maxPrice: null,
+        minPrice: null,
+        category: { slug: 'green-tea' },
+      });
+      expect(answer.relaxed).toBe(false);
+      expect(answer.message).not.toContain('10 000');
+      expect(slugs(answer)).toHaveLength(3);
+      for (const pick of answer.recommendations) {
+        expect(pick.reasons.join(' ')).not.toMatch(/soʻm|Narxi|byudjet/);
+      }
+      expect(answer.followUp).toBeNull();
+      expect((await ask('salom', [], false)).message).toBe(
+        'Qanday mahsulot qidiryapsiz? Turini yoki kimga moʻljallanganini yozing.',
+      );
     });
 
     it('works for other product types the catalogue has (no tea-only logic)', async () => {

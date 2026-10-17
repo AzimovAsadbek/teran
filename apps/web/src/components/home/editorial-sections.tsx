@@ -1,29 +1,27 @@
-import type { Locale, ProductSummaryDto } from '@teran/contracts';
+import type { Locale, ProductSummaryDto, PublicVisualDto } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import Image, { type StaticImageData } from 'next/image';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import type { CSSProperties, ReactNode } from 'react';
-import { BrandValues, ValueIcon } from '@/components/brand/ornaments';
-import { ButtonLink } from '@/components/ui/button';
-import {
-  BRAND,
-  BRAND_VALUES,
-  brandCopy,
-  PACKAGING,
-  PREMIUM_COLLECTION_SLUG,
-} from '@/content/brand';
+import { TeaTypeArt } from '@/components/brand/illustrations';
+import { BrandValues } from '@/components/brand/ornaments';
+import { RIBBON_STICKERS, StickerDefs } from '@/components/brand/stickers';
+import { VisualPicture } from '@/components/content/visual-picture';
+import { BRAND, brandCopy, PACKAGING, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories, getCollections, getProductList } from '@/lib/data/catalog';
-import { getArticles, getMedia } from '@/lib/data/content';
+import { getArticles, getMedia, getPublicSettings } from '@/lib/data/content';
+import { fitWidth } from '@/lib/fit';
+import { showGallery } from '@/lib/site';
+import { visualFor } from '@/lib/visuals';
 import {
   browsableCategories,
   categoryTree,
   imageSources,
   type NavCategory,
 } from '@/lib/navigation';
-import lake from '../../../public/brand/art/lake.webp';
 import terraces from '../../../public/brand/art/terraces.webp';
 import pack8009 from '../../../public/brand/packs/8009.webp';
 import pack8830 from '../../../public/brand/packs/8830.webp';
@@ -41,9 +39,26 @@ import { Sparkles, SPARKLES_HIGH, type SparklePoint } from './sparkles';
  * nothing real to show is left out.
  */
 
-/** The reference's pill: 50 px high, 15.3 px text, brightening a little when pointed at. */
+/** The reference's pill: 50 px high, 15.3 px text, brighter on a soft shadow when pointed at. */
 const PILL =
-  'inline-flex h-[3.125rem] items-center justify-center rounded-full px-8 text-[0.95625rem] font-medium transition-[filter,box-shadow] duration-200 ease-out hover:shadow-[0_6px_18px_-6px_rgb(0_0_0_/_0.35)] hover:brightness-[1.04]';
+  'pill-hover inline-flex h-[3.125rem] items-center justify-center rounded-full px-8 text-[0.95625rem] font-medium';
+
+/**
+ * A banner's whole surface as a link, under its words, as the reference's: a pointer anywhere on
+ * the picture follows it (the words' column stops it, apart from the title and the pill, which
+ * are links themselves), while the keyboard and screen readers use the banner's own pill.
+ */
+function SurfaceLink({ href }: { href: string }) {
+  return <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 -z-[5]" />;
+}
+
+/**
+ * The promo strip's surface link, over its words as the reference's: a pointer anywhere on the
+ * strip, the words included, follows it (the tilted sticker stays above it, unlinked).
+ */
+function StripLink({ href }: { href: string }) {
+  return <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0" />;
+}
 
 /**
  * A campaign headline's size by its length, so TERAN's longer lines keep the reference's two or
@@ -55,48 +70,88 @@ function bannerHeadline(title: string): string {
   return 'text-[2.5rem] lg:text-[4.5rem]';
 }
 
+/**
+ * A home-page picture set in Admin → Settings (see FIXED_VISUAL_SLOTS), read at request time; null
+ * keeps the section's own artwork.
+ */
+async function homeVisual(slot: string): Promise<PublicVisualDto | null> {
+  await connection();
+  const locale = await getLocale();
+  return visualFor(await getPublicSettings(locale).catch(() => null), slot);
+}
+
+/**
+ * A full-width band's picture proportions: as the reference's bands, it is as tall as its
+ * photograph at the window's width, never under 560 px.
+ */
+function bandRatio(photo: PublicVisualDto | null): CSSProperties | undefined {
+  if (!photo) return undefined;
+  return { '--band-ratio': (photo.image.width / photo.image.height).toFixed(4) } as CSSProperties;
+}
+
+/** A photograph filling its frame from behind (the frame sets the size, so nothing moves). */
+function PhotoFill({
+  photo,
+  sizes,
+  className,
+}: {
+  photo: PublicVisualDto;
+  sizes: string;
+  className?: string;
+}) {
+  return (
+    <div aria-hidden className={cn('absolute inset-0 -z-20', className)}>
+      <VisualPicture visual={photo} sizes={sizes} />
+    </div>
+  );
+}
+
 /* ── 1. Promo strip ──────────────────────────────────────────────────────────────────────── */
 
 /**
- * The reference's dark promotional strip under the header (80 px; 121 px on phones), carrying
- * TERAN's own collection instead of an offer: the descriptor in gold, the collection's name with
- * its line, the pack's slogan as a tilted sticker and a pill. Phones keep the name and the pill.
- * Hidden when no collection has products.
+ * The reference's dark promotional strip under the header (80 px), carrying TERAN's own collection
+ * instead of an offer: the descriptor in teal, the collection's name and its line, the pack's
+ * slogan as a tilted sticker (from 1200 px) and the shop pill. As on the reference the whole strip
+ * leads to the collection. Phones keep the name and the pill. Hidden when no collection has
+ * products.
  */
 export async function PromoStrip() {
   await connection();
   const locale = (await getLocale()) as Locale;
-  const t = await getTranslations('Home');
-  const collections = (await getCollections(locale).catch(() => [])).filter(
-    (collection) => collection.productCount > 0,
-  );
+  const [t, collectionList] = await Promise.all([
+    getTranslations('Home'),
+    getCollections(locale).catch(() => []),
+  ]);
+  const collections = collectionList.filter((collection) => collection.productCount > 0);
   const collection =
     collections.find((candidate) => candidate.slug === PREMIUM_COLLECTION_SLUG) ?? collections[0];
   if (!collection) return null;
   const copy = brandCopy[locale];
+  const href = `/collections/${collection.slug}`;
   return (
     <section aria-label={collection.name} className="on-dark bg-forest-950 text-ivory-50">
-      <div className="container-page flex min-h-[7.5625rem] items-center justify-between gap-5 py-4 lg:min-h-20 lg:justify-evenly lg:gap-8 lg:py-2">
-        <p className="hidden font-headline text-[2rem] leading-[1.05] whitespace-nowrap text-gold-300 xl:block">
+      <div className="relative isolate mx-auto flex min-h-20 max-w-[120rem] items-center justify-between gap-3 px-[1.375rem] py-4 min-[46.875rem]:gap-5 min-[46.875rem]:px-12 min-[90rem]:gap-6 min-[90rem]:px-[7.5rem] min-[160rem]:px-16">
+        <StripLink href={href} />
+        <p className="hidden font-headline text-[1.75rem] leading-[1.05] whitespace-nowrap text-gold-300 min-[46.875rem]:block min-[90rem]:text-[2rem]">
           {BRAND.descriptor}
         </p>
-        <p className="min-w-0 lg:flex lg:items-baseline lg:gap-2.5">
-          <span className="block font-headline text-[1.75rem] leading-[1.05] [--headline-weight:600] [overflow-wrap:anywhere] sm:text-[2rem] lg:whitespace-nowrap">
+        <p className="min-w-0">
+          <span className="block font-headline text-[2rem] leading-[1.05] [--headline-weight:600] [overflow-wrap:anywhere] min-[46.875rem]:inline min-[46.875rem]:text-[1.75rem] min-[90rem]:text-[2rem]">
             {collection.name}
           </span>
-          <span className="mt-1 block font-condensed text-[1rem] leading-tight lg:mt-0">
+          <span className="block font-condensed text-[1rem] leading-[1.34] min-[46.875rem]:ml-2 min-[46.875rem]:inline min-[46.875rem]:leading-[2.1]">
             {copy.collection.heading}
           </span>
         </p>
         <p
           lang="uz"
-          className="text-sticker hidden -rotate-6 text-[1.575rem] leading-none font-semibold whitespace-nowrap text-ivory-50 uppercase min-[90rem]:block"
+          className="text-sticker hidden -rotate-6 text-[1.575rem] leading-none font-semibold whitespace-nowrap text-ivory-50 uppercase min-[75rem]:block"
         >
           {PACKAGING.slogan[2]}
         </p>
         <Link
-          href={`/collections/${collection.slug}`}
-          className={cn(PILL, 'h-12 shrink-0 bg-gold-300 px-6 text-forest-950 sm:px-8')}
+          href={href}
+          className={cn(PILL, 'relative z-[1] h-12 shrink-0 bg-gold-300 px-6 text-fg sm:px-8')}
         >
           {t('promoCta')}
         </Link>
@@ -107,47 +162,81 @@ export async function PromoStrip() {
 
 /* ── 3. Category marquee ─────────────────────────────────────────────────────────────────── */
 
-/** The reference's ribbon: the catalogue's categories and the pack's slogan, the pack's value icons between. */
+/**
+ * The reference's ribbon: the catalogue's categories and the pack's slogan, colour stickers of
+ * TERAN's tea things between, in the reference's sticker style. Every word is a link, as the reference's: a category to its page, the slogan to TERAN's
+ * story.
+ */
 export async function CategoryMarquee() {
   await connection();
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations('Home');
   const tree = categoryTree(await getCategories(locale).catch(() => []));
-  const words = [
-    ...tree.flatMap((top) => [top.name, ...top.children.map((child) => child.name)]),
-    ...PACKAGING.slogan,
+  const items = [
+    ...tree.flatMap((top) =>
+      [top, ...top.children].map((category) => ({
+        label: category.name,
+        href: `/${category.path}`,
+      })),
+    ),
+    ...PACKAGING.slogan.map((label) => ({ label, href: '/about' })),
   ];
-  if (words.length === 0) return null;
+  if (items.length === 0) return null;
   return (
-    <Marquee
-      label={t('marqueeLabel')}
-      words={words}
-      tone="jade"
-      marks={BRAND_VALUES.map((value) => (
-        <ValueIcon key={value} value={value} className="h-full w-auto" />
-      ))}
-    />
+    <>
+      <StickerDefs />
+      <Marquee
+        label={t('marqueeLabel')}
+        items={items}
+        tone="lavender"
+        marks={RIBBON_STICKERS.map((Sticker, index) => (
+          <Sticker key={index} />
+        ))}
+      />
+    </>
   );
 }
 
 /* ── 5, 7, 9. Campaign banners ───────────────────────────────────────────────────────────── */
 
 /**
- * The frame of the reference's campaign banners: inset with a 24 px radius from 640 px, full
- * width on phones; 438 px high and more on wide screens, 538 px on phones.
+ * The frame of the reference's campaign banners: inset with a 32 px radius from 640 px, full
+ * width on phones; 438 px high from 1440 px (380 px below, 538 px on phones), or `tall` (500 px).
+ * The whole surface leads to `href`.
  */
-function BannerFrame({ className, children }: { className: string; children: ReactNode }) {
+function BannerFrame({
+  className,
+  href,
+  tall = false,
+  children,
+}: {
+  className: string;
+  href: string;
+  tall?: boolean;
+  children: ReactNode;
+}) {
   return (
     <section className="sm:container-page sm:py-6">
       <div
         className={cn(
-          'relative isolate flex min-h-[33.625rem] overflow-hidden sm:min-h-[27.375rem] sm:rounded-banner',
+          'relative isolate flex min-h-[33.625rem] overflow-hidden sm:min-h-[23.75rem] sm:rounded-banner',
+          tall ? 'min-[90rem]:min-h-[31.25rem]' : 'min-[90rem]:min-h-[27.375rem]',
           className,
         )}
       >
+        <SurfaceLink href={href} />
         {children}
       </div>
     </section>
+  );
+}
+
+/** A banner's title as a link too (pointer only: the pill is the keyboard's way there). */
+function TitleLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} tabIndex={-1} className="block">
+      {children}
+    </Link>
   );
 }
 
@@ -174,13 +263,19 @@ const SCATTER: {
  * Section 5, the reference's gift-guide banner: a pastel field with products scattered around a
  * large soft-serif title and a pill. Here the TERAN packs around the brand's story heading.
  */
-export async function StoryBanner() {
+export async function StoryBanner({ withPhoto = false }: { withPhoto?: boolean }) {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
   const copy = brandCopy[locale];
+  // A campaign photograph (Admin → Settings) replaces the scattered packs, as the reference's.
+  const photo = withPhoto ? await homeVisual('home.banner.1') : null;
   return (
-    <BannerFrame className="items-center justify-center bg-jade-100 px-6 py-16 text-center">
-      {SCATTER.map((item, index) => (
+    <BannerFrame
+      href="/about"
+      className="items-center justify-center bg-lavender px-6 py-16 text-center"
+    >
+      {photo ? <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" /> : null}
+      {(photo ? [] : SCATTER).map((item, index) => (
         <Image
           key={`${item.pack.src}-${index}`}
           src={item.pack}
@@ -204,10 +299,10 @@ export async function StoryBanner() {
         />
       ))}
       <div className="flex max-w-[34rem] flex-col items-center">
-        <h2 className="font-heading text-[2.75rem] leading-[0.95] text-balance text-forest-900 uppercase sm:text-[4rem] lg:text-[4.5rem]">
-          {copy.story.heading}
+        <h2 className="font-heading text-[2.75rem] leading-[0.95] text-balance text-cherry uppercase sm:text-[4rem] lg:text-[4.5rem]">
+          <TitleLink href="/about">{copy.story.heading}</TitleLink>
         </h2>
-        <Link href="/about" className={cn(PILL, 'mt-8 bg-ivory-50 text-forest-900 lg:mt-10')}>
+        <Link href="/about" className={cn(PILL, 'mt-8 bg-ivory-200 text-wine lg:mt-10')}>
           {t('storyCta')}
         </Link>
       </div>
@@ -229,46 +324,57 @@ const PHOTO_SPARKLES: SparklePoint[] = [
  */
 function PhotoBanner({
   image,
+  photo,
   title,
   text,
   cta,
   href,
 }: {
   image: StaticImageData;
+  /** A campaign photograph from Admin → Settings, shown as the reference shows its: no veil. */
+  photo?: PublicVisualDto | null;
   title: string;
   text?: string;
   cta: string;
   href: string;
 }) {
   return (
-    <BannerFrame className="on-dark bg-forest-950 text-ivory-50">
-      <Image
-        src={image}
-        alt=""
-        fill
-        sizes="(min-width: 1440px) 1312px, 100vw"
-        className="-z-20 object-cover object-bottom lg:object-center"
-      />
-      <span
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-linear-to-b from-forest-950/85 via-forest-950/45 to-forest-950/0 lg:bg-linear-to-r lg:from-forest-950/80 lg:via-forest-950/35"
-      />
-      <Sparkles points={PHOTO_SPARKLES} className="-z-10 hidden text-gold-300 lg:block" />
-      <div className="flex w-full flex-col items-center px-6 pt-10 text-center lg:items-start lg:justify-center lg:px-16 lg:pt-0 lg:text-left">
+    <BannerFrame href={href} className="on-dark bg-forest-950 text-ivory-50">
+      {photo ? (
+        <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" />
+      ) : (
+        <>
+          <Image
+            src={image}
+            alt=""
+            fill
+            sizes="(min-width: 1920px) 1792px, 100vw"
+            className="-z-20 object-cover object-bottom lg:object-center"
+          />
+          <span
+            aria-hidden
+            className="absolute inset-0 -z-10 bg-linear-to-b from-forest-950/85 via-forest-950/45 to-forest-950/0 lg:bg-linear-to-r lg:from-forest-950/80 lg:via-forest-950/35"
+          />
+        </>
+      )}
+      <Sparkles points={PHOTO_SPARKLES} className="-z-10 hidden text-sun lg:block" />
+      {/* The words' column takes the banner's left 48 % from 1024 px, as the reference's, so the
+          picture beside it stays part of the surface link. */}
+      <div className="flex w-full flex-col items-center px-6 pt-10 text-center lg:w-[48%] lg:shrink-0 lg:items-start lg:justify-center lg:px-16 lg:pt-0 lg:text-left">
         <h2
-          className={cn(
-            'max-w-[46rem] font-headline text-balance text-gold-300',
-            bannerHeadline(title),
-          )}
+          className={cn('max-w-[46rem] font-headline text-balance text-sun', bannerHeadline(title))}
         >
-          {title}
+          <TitleLink href={href}>{title}</TitleLink>
         </h2>
         {text ? (
           <p className="mt-5 max-w-[30rem] text-[0.9375rem] leading-[1.4] lg:mt-8 lg:text-[1.125rem] lg:leading-normal">
             {text}
           </p>
         ) : null}
-        <Link href={href} className={cn(PILL, 'mt-6 bg-ivory-50 text-forest-900 lg:mt-9')}>
+        <Link
+          href={href}
+          className={cn(PILL, 'mt-6 lg:mt-9', photo ? 'bg-ivory-50 text-fg' : 'bg-cream text-fg')}
+        >
           {cta}
         </Link>
       </div>
@@ -277,18 +383,23 @@ function PhotoBanner({
 }
 
 /**
- * Section 7: the gallery when photographs or films are published; otherwise the premium
- * collection over the tea terraces from the back of the pack.
+ * Section 7: the gallery when photographs or films are published and the gallery is shown
+ * (lib/site showGallery); otherwise the premium collection over the tea terraces from the back of
+ * the pack.
  */
 export async function GalleryBanner() {
   await connection();
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations('Home');
-  const media = await getMedia(locale, { pageSize: 1 }).catch(() => null);
-  if (media && media.total > 0) {
+  const [media, photo] = await Promise.all([
+    getMedia(locale, { pageSize: 1 }).catch(() => null),
+    homeVisual('home.banner.2'),
+  ]);
+  if (showGallery && media && media.total > 0) {
     return (
       <PhotoBanner
         image={terraces}
+        photo={photo}
         title={t('galleryTitle')}
         text={t('galleryText')}
         cta={t('galleryCta')}
@@ -300,6 +411,7 @@ export async function GalleryBanner() {
   return (
     <PhotoBanner
       image={terraces}
+      photo={photo}
       title={copy.collection.heading}
       text={copy.collection.text}
       cta={t('featuredCta')}
@@ -324,11 +436,15 @@ const ADVISOR_SPARKLES: SparklePoint[] = [
 export async function AdvisorBanner() {
   const t = await getTranslations('Home');
   return (
-    <BannerFrame className="flex-col bg-gold-100 text-jade-700 lg:flex-row lg:items-center">
+    <BannerFrame
+      href="/assistant"
+      tall
+      className="flex-col bg-gold-100 text-jade-700 lg:flex-row lg:items-center"
+    >
       <Sparkles points={ADVISOR_SPARKLES} className="-z-10 hidden text-jade-600 lg:block" />
       <div className="flex flex-col items-center px-6 pt-10 text-center lg:w-[46%] lg:items-start lg:py-12 lg:pr-0 lg:pl-16 lg:text-left">
         <h2 className={cn('font-headline text-balance', bannerHeadline(t('advisorTitle')))}>
-          {t('advisorTitle')}
+          <TitleLink href="/assistant">{t('advisorTitle')}</TitleLink>
         </h2>
         <p className="mt-5 max-w-[22rem] text-[0.9375rem] leading-[1.4] lg:mt-8 lg:text-[1.125rem] lg:leading-normal">
           {t('advisorText')}
@@ -337,24 +453,70 @@ export async function AdvisorBanner() {
           {t('advisorCta')}
         </Link>
       </div>
-      <div
-        aria-hidden
-        className="relative mt-auto flex h-64 items-end justify-center px-4 sm:h-72 lg:mt-0 lg:h-[27rem] lg:flex-1 lg:pr-12"
-      >
-        <span className="absolute inset-x-[10%] bottom-0 h-[55%] rounded-[50%] bg-ivory-50/70 blur-3xl" />
-        {PACKS.map((pack, index) => (
-          <Image
-            key={pack.src}
-            src={pack}
-            alt=""
-            sizes="(min-width: 1024px) 14vw, 28vw"
-            className={cn(
-              'relative h-auto w-[25%] max-w-[11.5rem] drop-shadow-[0_24px_24px_rgb(0_0_0_/_0.25)]',
-              index % 2 === 1 ? '-mx-[2%] mb-0' : 'mb-[7%]',
-            )}
-          />
-        ))}
+      <PackRow />
+    </BannerFrame>
+  );
+}
+
+/** The four packs side by side on a soft light, the banner's right half (its bottom on phones). */
+function PackRow() {
+  return (
+    <div
+      aria-hidden
+      className="relative mt-auto flex h-64 items-end justify-center px-4 sm:h-72 lg:mt-0 lg:h-[27rem] lg:flex-1 lg:pr-12"
+    >
+      <span className="absolute inset-x-[10%] bottom-0 h-[55%] rounded-[50%] bg-ivory-50/70 blur-3xl" />
+      {PACKS.map((pack, index) => (
+        <Image
+          key={pack.src}
+          src={pack}
+          alt=""
+          sizes="(min-width: 1024px) 14vw, 28vw"
+          className={cn(
+            'relative h-auto w-[25%] max-w-[11.5rem] drop-shadow-[0_24px_24px_rgb(0_0_0_/_0.25)]',
+            index % 2 === 1 ? '-mx-[2%] mb-0' : 'mb-[7%]',
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * In the advisor banner's place while the advisor is hidden (lib/site showAdvisor): how to order,
+ * with one pill to the contact page (its phones, Telegram and WhatsApp), as the reference's banner
+ * has one pill, and the packs beside the words. 500 px high, as the reference's third banner.
+ */
+export async function OrderBanner() {
+  await connection();
+  const locale = await getLocale();
+  const [t, tn, settings] = await Promise.all([
+    getTranslations('Product'),
+    getTranslations('Nav'),
+    getPublicSettings(locale).catch(() => null),
+  ]);
+  // A campaign photograph (Admin → Settings) behind the words, instead of the packs.
+  const photo = visualFor(settings, 'home.banner.3');
+  return (
+    <BannerFrame
+      href="/contact"
+      tall
+      className="on-dark flex-col bg-matcha text-ivory-50 lg:flex-row lg:items-center"
+    >
+      {photo ? <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" /> : null}
+      <Sparkles points={ADVISOR_SPARKLES} className="-z-10 hidden text-gold-100 lg:block" />
+      <div className="flex flex-col items-center px-6 pt-10 text-center lg:w-[46%] lg:items-start lg:py-12 lg:pr-0 lg:pl-16 lg:text-left">
+        <h2 className={cn('font-headline text-balance', bannerHeadline(t('orderByContactTitle')))}>
+          <TitleLink href="/contact">{t('orderByContactTitle')}</TitleLink>
+        </h2>
+        <p className="mt-5 max-w-[24rem] text-[0.9375rem] leading-[1.4] lg:mt-8 lg:text-[1.125rem] lg:leading-normal">
+          {t('orderByContactText')}
+        </p>
+        <Link href="/contact" className={cn(PILL, 'mt-6 bg-ivory-50 text-jade-700 lg:mt-9')}>
+          {tn('contact')}
+        </Link>
       </div>
+      {photo ? null : <PackRow />}
     </BannerFrame>
   );
 }
@@ -363,11 +525,11 @@ export async function AdvisorBanner() {
 
 /** The reference's tiles share one pastel; each name has its own colour. */
 const SHORTCUT_COLOURS = [
-  'text-forest-900',
-  'text-gold-700',
-  'text-jade-700',
-  'text-forest-600',
-  'text-gold-800',
+  'text-wine',
+  'text-cherry',
+  'text-matcha-ink',
+  'text-navy',
+  'text-tangerine-ink',
 ];
 
 /** Five pastel tiles (210 × 193 px) with category names in coloured capitals, centred. */
@@ -386,7 +548,7 @@ export async function CategoryShortcuts() {
   }
   if (items.length === 0) return null;
   return (
-    <nav aria-label={t('categoriesTitle')} className="container-page py-4 sm:py-6">
+    <nav aria-label={t('categoriesTitle')} className="container-page">
       {/* Phones scroll the tiles sideways; from 640 px they share the row, at most 210 px each. */}
       <ul className="-mx-gutter flex snap-x snap-mandatory scroll-px-gutter gap-3 overflow-x-auto px-gutter py-1 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:overflow-visible sm:px-0 lg:gap-4">
         {items.map((category, index) => (
@@ -397,7 +559,7 @@ export async function CategoryShortcuts() {
             <Link
               href={`/${category.path}`}
               className={cn(
-                'flex aspect-[210/193] items-center justify-center rounded-[0.75rem] bg-jade-100 px-3 text-center transition-transform duration-[350ms] ease-out hover:scale-[1.03]',
+                'relative flex aspect-[210/193] items-center justify-center rounded-[0.75rem] bg-jade-100 px-3 text-center transition-transform duration-[350ms] ease-[ease] hover:z-[1] hover:scale-[1.02] focus-visible:z-[1] focus-visible:scale-[1.02]',
                 SHORTCUT_COLOURS[index % SHORTCUT_COLOURS.length],
               )}
             >
@@ -414,30 +576,34 @@ export async function CategoryShortcuts() {
 
 /* ── 11. Bento ───────────────────────────────────────────────────────────────────────────── */
 
+/** The reference's four bento tiles: tangerine, wine, navy and lavender, each with its own ink. */
 const BENTO_TONES = [
   {
-    tile: 'bg-forest-900',
-    title: 'text-gold-300',
-    button: 'bg-gold-300 text-forest-950',
-    spark: 'text-gold-300',
+    tile: 'bg-tangerine',
+    // The reference's lavender is 2.1:1 on tangerine; its palest tint passes for large type.
+    title: 'text-lavender-light',
+    button: 'bg-lavender text-fg',
+    spark: 'text-lavender',
   },
   {
-    tile: 'bg-gold-100',
-    title: 'text-jade-700',
-    button: 'bg-jade-700 text-ivory-50',
-    spark: 'text-jade-600',
+    tile: 'bg-wine',
+    title: 'text-blush',
+    button: 'bg-blush text-wine',
+    spark: 'text-blush',
   },
   {
-    tile: 'bg-jade-700',
-    title: 'text-jade-100',
-    button: 'bg-jade-100 text-jade-700',
-    spark: 'text-jade-100',
+    // The reference's third tile: a softer navy, and its photograph deepened.
+    tile: 'bg-[#1b4578]',
+    title: 'text-[#a6ceeb]',
+    button: 'bg-[#a6ceeb] text-[#1b4578]',
+    spark: 'text-[#a6ceeb]',
+    photo: '[filter:contrast(1.25)_brightness(0.8)_saturate(1.1)]',
   },
   {
-    tile: 'bg-sage-200',
-    title: 'text-forest-800',
-    button: 'bg-forest-800 text-ivory-50',
-    spark: 'text-forest-700',
+    tile: 'bg-lavender',
+    title: 'text-cherry',
+    button: 'bg-cherry text-ivory-50',
+    spark: 'text-cherry',
   },
 ];
 
@@ -450,10 +616,15 @@ export async function BentoSection() {
   await connection();
   const locale = await getLocale();
   const t = await getTranslations('Home');
-  const [categories, collections] = await Promise.all([
+  const [categories, collections, settings] = await Promise.all([
     getCategories(locale).catch(() => []),
     getCollections(locale).catch(() => []),
+    getPublicSettings(locale).catch(() => null),
   ]);
+  // Campaign photographs (Admin → Settings) fill the tiles, as the reference's; with all four set
+  // the bento shows four tiles even when fewer categories have products (empty ones last).
+  const photos = [1, 2, 3, 4].map((number) => visualFor(settings, `home.bento.${number}`));
+  const fourPhotos = photos.every((photo) => photo !== null);
   const tree = categoryTree(categories);
   const candidates = [
     ...browsableCategories(tree).map((category) => ({
@@ -470,6 +641,17 @@ export async function BentoSection() {
         href: `/collections/${collection.slug}`,
         query: `collection=${collection.slug}`,
       })),
+    ...(fourPhotos
+      ? tree
+          .flatMap((category) => [category, ...category.children])
+          .filter((category) => category.productCount === 0)
+          .map((category) => ({
+            key: `e-${category.path}`,
+            name: category.name,
+            href: `/${category.path}`,
+            query: `category=${category.slug}`,
+          }))
+      : []),
   ].slice(0, 4);
   if (candidates.length < 2) return null;
   const products = await Promise.all(
@@ -485,36 +667,48 @@ export async function BentoSection() {
       <ul className="grid grid-cols-1 gap-8 sm:gap-6 lg:grid-cols-2">
         {tiles.map((tile, index) => {
           const tone = BENTO_TONES[index % BENTO_TONES.length]!;
-          const product = products[index];
+          const photo = photos[index] ?? null;
+          const product = photo ? null : products[index];
           const image = product?.stageImage ?? product?.image ?? null;
           const sources = image ? imageSources(image, 640) : null;
           return (
             <li key={tile.key}>
-              <Link
-                href={tile.href}
+              {/* The whole tile leads where its pill does, for a pointer; the pill is the keyboard's and
+                  screen readers' way there. */}
+              <div
                 className={cn(
-                  'group relative isolate flex aspect-[336/326] items-center overflow-hidden rounded-banner px-6 py-8 sm:aspect-auto sm:min-h-[24rem] sm:px-[3.75rem]',
+                  'relative isolate flex aspect-[342/332] items-center overflow-hidden rounded-banner px-6 py-8 sm:aspect-auto sm:min-h-[21.25rem] sm:px-9 min-[90rem]:min-h-[24rem] min-[90rem]:px-[3.75rem]',
                   tone.tile,
                 )}
               >
-                <Sparkles points={SPARKLES_HIGH} className={cn('-z-10', tone.spark)} />
-                <span className="relative z-10 max-w-[55%]">
+                {photo ? (
+                  <PhotoFill
+                    photo={photo}
+                    sizes="(min-width: 1024px) 644px, 100vw"
+                    className={'photo' in tone ? tone.photo : undefined}
+                  />
+                ) : (
+                  <Sparkles points={SPARKLES_HIGH} className={cn('-z-10', tone.spark)} />
+                )}
+                <SurfaceLink href={tile.href} />
+                <span className="@container pointer-events-none relative z-10 w-[55%]">
                   <span
                     className={cn(
-                      'block font-headline text-[3rem] [overflow-wrap:anywhere] sm:text-[5rem]',
+                      'block font-headline text-[length:min(3rem,var(--fit))] [overflow-wrap:anywhere] sm:text-[length:min(5rem,var(--fit))]',
                       tone.title,
                     )}
+                    // Short names keep the reference's 80 px; a long word gets smaller instead.
+                    style={{ '--fit': fitWidth(tile.name, 0.55) } as CSSProperties}
                   >
                     {tile.name}
                   </span>
-                  <span
-                    className={cn(
-                      'mt-6 inline-flex h-[3.125rem] items-center rounded-full px-8 text-[0.95625rem] font-medium transition-[filter] duration-200 ease-out group-hover:brightness-[1.06]',
-                      tone.button,
-                    )}
+                  <Link
+                    href={tile.href}
+                    className={cn(PILL, 'pointer-events-auto mt-4 h-12 sm:mt-8', tone.button)}
                   >
                     {t('viewCategory')}
-                  </span>
+                    <span className="sr-only">: {tile.name}</span>
+                  </Link>
                 </span>
                 {image && sources ? (
                   // eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009)
@@ -526,12 +720,12 @@ export async function BentoSection() {
                     loading="lazy"
                     decoding="async"
                     className={cn(
-                      'absolute right-[4%] bottom-[6%] h-[82%] w-[44%] object-contain drop-shadow-[0_28px_28px_rgb(0_0_0_/_0.28)] transition-transform duration-500 ease-[var(--ease-soft)] group-hover:-translate-y-1 group-hover:rotate-[-2deg]',
+                      'pointer-events-none absolute right-[4%] bottom-[6%] h-[82%] w-[44%] object-contain drop-shadow-[0_28px_28px_rgb(0_0_0_/_0.28)]',
                       !image.transparent && 'rounded-tile object-cover',
                     )}
                   />
                 ) : null}
-              </Link>
+              </div>
             </li>
           );
         })}
@@ -558,36 +752,53 @@ const BREWING_SPARKLES: SparklePoint[] = [
  * The reference's full-width feature band (560 px): a tag in a box, 80 px capitals, a line of
  * text and a pill on the left, with sparkles; the pack's brewing guide stands on the right.
  */
-export async function BrewingBanner() {
+export async function BrewingBanner({ withPhoto = false }: { withPhoto?: boolean }) {
   const t = await getTranslations('Home');
+  // A campaign photograph (Admin → Settings) fills the band; the guide card then steps aside.
+  const photo = withPhoto ? await homeVisual('home.feature') : null;
   return (
     <section
       aria-labelledby="brewing-title"
       className="on-dark relative isolate overflow-hidden bg-jade-700 text-ivory-50"
+      style={bandRatio(photo)}
     >
-      <Sparkles points={BREWING_SPARKLES} className="-z-10 hidden text-gold-300 lg:block" />
-      <div className="container-page grid min-h-[33.625rem] grid-cols-1 items-center gap-10 py-12 lg:min-h-[35rem] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:py-14">
-        <div>
-          <p className="inline-flex bg-gold-300 px-2.5 py-0.5 font-headline text-[1.375rem] leading-[1.1] text-forest-950 lg:text-[1.75rem]">
+      {photo ? <PhotoFill photo={photo} sizes="100vw" /> : null}
+      <Sparkles points={BREWING_SPARKLES} className="-z-10 hidden text-blush lg:block" />
+      <SurfaceLink href="/journal" />
+      <div className="pointer-events-none container-page grid min-h-[33.625rem] grid-cols-1 items-center gap-10 py-12 lg:min-h-[max(35rem,calc(100vw/var(--band-ratio,100)))] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:py-14">
+        {/* Over a photograph, phones get the words centred at the top, clear of its subject below
+            (as the reference's), and the text drops its mention of the guide card. */}
+        <div
+          className={cn(
+            'pointer-events-auto',
+            photo &&
+              'max-lg:flex max-lg:flex-col max-lg:items-center max-lg:self-start max-lg:text-center',
+          )}
+        >
+          <p className="inline-flex bg-blush px-2.5 py-0.5 font-headline text-[1.375rem] leading-[1.1] text-teal-ink lg:text-[1.75rem]">
             {t('brewingEyebrow')}
           </p>
           <h2
             id="brewing-title"
-            className="mt-3 font-headline text-[2.25rem] text-balance text-gold-100 sm:text-[3.5rem] lg:text-[5rem]"
+            className="mt-3 font-headline text-[2.25rem] text-balance text-blush-light sm:text-[3.5rem] lg:text-[5rem]"
           >
             {t('brewingTitle')}
           </h2>
           <p className="mt-6 max-w-md text-[1rem] leading-normal text-ivory-50">
-            {t('brewingText')}
+            {photo ? t('brewingTextPhoto') : t('brewingText')}
           </p>
-          <p className="mt-2 max-w-md text-helper text-ivory-100">{t('brewingNote')}</p>
-          <Link href="/journal" className={cn(PILL, 'mt-8 bg-gold-100 text-forest-900')}>
+          {photo ? null : (
+            <p className="mt-2 max-w-md text-helper text-ivory-50">{t('brewingNote')}</p>
+          )}
+          <Link href="/journal" className={cn(PILL, 'mt-8 bg-blush text-teal-ink')}>
             {t('journalCta')}
           </Link>
         </div>
-        <div className="rounded-banner bg-ivory-50 p-2 text-fg shadow-overlay sm:p-3">
-          <BrewingGuide />
-        </div>
+        {photo ? null : (
+          <div className="pointer-events-auto rounded-banner bg-ivory-50 p-2 text-fg shadow-overlay sm:p-3">
+            <BrewingGuide />
+          </div>
+        )}
       </div>
     </section>
   );
@@ -600,26 +811,43 @@ export async function BrewingBanner() {
  * row of marks and a white pill. Here the tea terraces, the pack's tagline and its four values
  * (where the reference shows certifications — none is claimed).
  */
-export async function ValuesBanner() {
+export async function ValuesBanner({ withPhoto = false }: { withPhoto?: boolean }) {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
   const copy = brandCopy[locale];
+  const photo = withPhoto ? await homeVisual('home.values') : null;
   return (
     <section
       aria-labelledby="values-banner-title"
-      className="on-dark relative isolate overflow-hidden text-ivory-50"
+      className="on-dark relative isolate overflow-hidden bg-forest-900 text-ivory-50"
+      style={bandRatio(photo)}
     >
-      <Image src={terraces} alt="" fill sizes="100vw" className="-z-20 object-cover" />
-      <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/55" />
-      <div className="container-page flex min-h-[33.625rem] flex-col items-center justify-center py-14 text-center lg:min-h-[35rem]">
+      {photo ? (
+        <>
+          <PhotoFill photo={photo} sizes="100vw" />
+          {/* A light veil keeps the small labels readable over a bright illustration. */}
+          <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/20" />
+        </>
+      ) : (
+        <>
+          <Image src={terraces} alt="" fill sizes="100vw" className="-z-20 object-cover" />
+          <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/55" />
+        </>
+      )}
+      <SurfaceLink href="/about" />
+      <div className="pointer-events-none container-page flex min-h-[33.625rem] flex-col items-center justify-center py-14 text-center lg:min-h-[max(35rem,calc(100vw/var(--band-ratio,100)))]">
         <h2
           id="values-banner-title"
-          className="max-w-[31rem] font-headline text-[2.75rem] text-balance sm:text-[4rem] lg:max-w-[50rem] lg:text-[5rem]"
+          className="pointer-events-auto max-w-[31rem] font-headline text-[2.75rem] text-balance sm:text-[4rem] lg:max-w-[50rem] lg:text-[5rem]"
         >
           {copy.tagline}
         </h2>
-        <BrandValues locale={locale} tone="dark" className="mt-8 w-full max-w-2xl" />
-        <Link href="/about" className={cn(PILL, 'mt-9 bg-ivory-50 text-forest-900')}>
+        <BrandValues
+          locale={locale}
+          tone="dark"
+          className="pointer-events-auto mt-8 w-full max-w-2xl"
+        />
+        <Link href="/about" className={cn(PILL, 'pointer-events-auto mt-9 bg-ivory-50 text-fg')}>
           {t('storyCta')}
         </Link>
       </div>
@@ -629,14 +857,27 @@ export async function ValuesBanner() {
 
 /* ── 16. Pair ────────────────────────────────────────────────────────────────────────────── */
 
-/** Two columns, picture over words: the journal's featured article and the business page. */
+/**
+ * Two columns, picture over words: a journal article and the business page. The article card
+ * shows the article's own cover (the newest article that has one, featured first), so the page it
+ * opens starts with the same picture; an article without a cover shows its illustration, as its
+ * page does. Each picture leads where its pill does.
+ */
 export async function PairSection() {
   await connection();
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations('Home');
   const copy = brandCopy[locale];
-  const article = (await getArticles(locale, 1, 1, true).catch(() => null))?.items[0] ?? null;
+  const [articles, settings] = await Promise.all([
+    getArticles(locale, 1, 6, true).catch(() => null),
+    getPublicSettings(locale).catch(() => null),
+  ]);
+  const items = articles?.items ?? [];
+  const article = items.find((item) => item.cover) ?? items[0] ?? null;
   const cover = article?.cover ? imageSources(article.cover, 960) : null;
+  // The business card's campaign photograph (Admin → Settings), as the reference's pair.
+  const businessPhoto = visualFor(settings, 'home.pair.2');
+  const pairSizes = '(min-width: 1024px) 45vw, 100vw';
 
   const cards = [
     article
@@ -652,20 +893,18 @@ export async function PairSection() {
               <img
                 src={cover.src}
                 srcSet={cover.srcSet}
-                sizes="(min-width: 1024px) 45vw, 100vw"
+                sizes={pairSizes}
                 alt=""
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover"
               />
             ) : (
-              <Image
-                src={lake}
-                alt=""
-                fill
-                sizes="(min-width: 1024px) 45vw, 100vw"
-                className="object-cover"
-              />
+              <span className="flex h-full w-full items-center justify-center bg-ivory-200">
+                <span className="h-32 w-32 sm:h-40 sm:w-40">
+                  <TeaTypeArt kind={article.illustrationKey} />
+                </span>
+              </span>
             ),
         }
       : null,
@@ -675,7 +914,9 @@ export async function PairSection() {
       title: copy.partnership.heading,
       text: copy.partnership.text,
       cta: t('businessCta'),
-      picture: (
+      picture: businessPhoto ? (
+        <VisualPicture visual={businessPhoto} sizes={pairSizes} />
+      ) : (
         <Image
           src={terraces}
           alt=""
@@ -688,8 +929,15 @@ export async function PairSection() {
   ].filter((card) => card !== null);
 
   return (
-    <section className="container-page py-12">
-      <ul className={cn('grid gap-12 sm:gap-4', cards.length > 1 && 'lg:grid-cols-2')}>
+    <section className="container-page pt-8 pb-8 sm:pt-12 sm:pb-16">
+      {/* The pills are the links for assistive technology; each picture leads to the same place
+          for a pointer (hidden from screen readers and the tab order, so nothing is said twice). */}
+      <ul
+        className={cn(
+          'grid gap-x-4 gap-y-10 sm:gap-y-[3.125rem]',
+          cards.length > 1 && 'lg:grid-cols-2',
+        )}
+      >
         {cards.map((card) => (
           <li key={card.key} className="flex flex-col">
             <Link
@@ -698,13 +946,16 @@ export async function PairSection() {
               aria-hidden
               className="relative block aspect-[648/364] overflow-hidden rounded-[0.75rem] bg-surface-muted"
             >
-              {card.picture}
+              <span className="picture-hover absolute inset-0 block">{card.picture}</span>
             </Link>
-            <h2 className="mt-5 font-heading text-[1.5rem] leading-[1.2] text-fg">{card.title}</h2>
-            <p className="mt-1.5 line-clamp-3 text-[1rem] leading-normal text-fg">{card.text}</p>
-            <div className="mt-5">
-              <ButtonLink href={card.href}>{card.cta}</ButtonLink>
-            </div>
+            <h2 className="mt-4 font-heading text-[1.5rem] leading-[1.2] text-fg">{card.title}</h2>
+            <p className="mt-2 line-clamp-3 text-[1rem] leading-normal text-fg">{card.text}</p>
+            <Link
+              href={card.href}
+              className={cn(PILL, 'mt-4 h-12 self-start bg-forest-900 text-[1rem] text-ivory-50')}
+            >
+              {card.cta}
+            </Link>
           </li>
         ))}
       </ul>
@@ -720,37 +971,37 @@ export async function PairSection() {
  */
 export async function SloganBand() {
   const t = await getTranslations('Home');
+  // The reference's band above the footer: a line, the moving figures, a line and a link that is
+  // underlined while the pointer is anywhere on the band.
   return (
     <section
       aria-label={PACKAGING.slogan.join(' · ')}
-      className="on-dark bg-jade-700 py-8 text-center text-ivory-50"
+      className="group bg-gold-400 pt-7 pb-6 text-center text-fg min-[46.875rem]:pt-8 min-[46.875rem]:pb-4"
     >
-      <p className="container-page text-[0.9375rem] leading-[1.45] font-medium uppercase lg:text-[1.125rem]">
+      <p className="px-6 text-[0.9375rem] leading-[1.375rem] font-medium tracking-[0.02em] uppercase min-[46.875rem]:text-[1.125rem] min-[46.875rem]:leading-[1.6875rem]">
         {BRAND.name}® · {BRAND.descriptor}
       </p>
-      <div className="mt-3">
+      <div className="mt-6 min-[46.875rem]:mt-9">
         <Marquee
           label={PACKAGING.slogan.join(' · ')}
-          words={PACKAGING.slogan}
-          tone="jade-deep"
+          items={PACKAGING.slogan.map((label) => ({ label }))}
+          tone="surf"
           size="lg"
           marks={[]}
         />
       </div>
-      <div className="container-page mt-3">
-        <p
-          lang="uz"
-          className="text-[0.9375rem] leading-[1.45] font-medium uppercase lg:text-[1.125rem]"
-        >
-          {PACKAGING.tagline}
-        </p>
-        <Link
-          href="/about"
-          className="mt-1 inline-flex min-h-8 items-center text-[1rem] font-semibold tracking-[0.04em] uppercase underline decoration-1 underline-offset-[5px] hover:decoration-2"
-        >
-          {t('storyCta')}
-        </Link>
-      </div>
+      <p
+        lang="uz"
+        className="mt-7 px-6 text-[0.9375rem] leading-[1.375rem] font-medium tracking-[0.02em] uppercase min-[46.875rem]:mt-10 min-[46.875rem]:text-[1.125rem] min-[46.875rem]:leading-[1.6875rem]"
+      >
+        {PACKAGING.tagline}
+      </p>
+      <Link
+        href="/about"
+        className="inline-flex text-[1rem] leading-6 font-semibold tracking-[0.06em] uppercase underline decoration-transparent decoration-1 underline-offset-[3px] transition-[text-decoration-color] duration-200 group-focus-within:decoration-current group-hover:decoration-current"
+      >
+        {t('storyCta')}
+      </Link>
     </section>
   );
 }

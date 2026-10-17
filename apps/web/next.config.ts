@@ -16,15 +16,17 @@ const uploadsOrigin = (process.env.UPLOADS_ORIGIN ?? `${apiInternalUrl}/uploads`
 );
 
 /**
- * Header-based CSP (no nonces) so pages keep static prerendering. It allows no third-party
- * origins at all; inline scripts are permitted because Next.js inlines its hydration data.
+ * Header-based CSP (no nonces) so pages keep static prerendering. It allows one third-party
+ * origin, for images only: the OpenStreetMap tiles of the store locator's map. It has to be
+ * allowed site-wide because a page reached by an in-app link keeps the first page's policy.
+ * Inline scripts are permitted because Next.js inlines its hydration data.
  * See docs/architecture/security.md for the trade-off.
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://tile.openstreetmap.org",
   // Films play from /uploads; blob: lets the admin area play a chosen file before uploading it.
   "media-src 'self' blob:",
   "font-src 'self'",
@@ -51,15 +53,27 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  // Geolocation for this origin only: the store locator's "use my location" (the browser still
+  // asks the visitor first). Site-wide for the same reason as the map tiles above.
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+    value: 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()',
   },
 ];
+
+/**
+ * Crawlers that get the page only once its metadata is settled (Next.js's own list, from
+ * next/dist/shared/lib/router/utils/html-bots.js, plus Googlebot). For them an unknown product,
+ * article, category or collection answers 404 and a renamed one 308, instead of a streamed page
+ * that can only say so in its markup; visitors keep the streamed page.
+ */
+const HTML_LIMITED_BOTS =
+  /Googlebot|[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight/i;
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  htmlLimitedBots: HTML_LIMITED_BOTS,
   // Self-hosted images run the standalone server; Vercel builds its own output.
   output: process.env.VERCEL ? undefined : 'standalone',
   poweredByHeader: false,
@@ -101,6 +115,23 @@ const nextConfig: NextConfig = {
           ]
         : []),
     ];
+  },
+  async redirects() {
+    // The two TERAN codes renamed to what their packs say (2026-10-17). The page itself also
+    // follows any renamed slug through the API's redirects; answering these before rendering
+    // spares a function call for links printed or shared under the old names.
+    const renamed = [
+      ['teran-het8800', 'teran-8800'],
+      ['teran-std8009', 'teran-8009'],
+    ];
+    return renamed.flatMap(([from, to]) => [
+      { source: `/products/${from}`, destination: `/products/${to}`, permanent: true },
+      {
+        source: `/:locale(ru|en)/products/${from}`,
+        destination: `/:locale/products/${to}`,
+        permanent: true,
+      },
+    ]);
   },
   async rewrites() {
     // Browser requests stay same-origin (first-party cookies, no CORS). In production a reverse

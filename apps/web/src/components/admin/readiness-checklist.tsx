@@ -65,7 +65,7 @@ export function ReadinessChecklist({
           <button
             type="button"
             onClick={() => jump(item)}
-            className="shrink-0 rounded-control px-1.5 text-caption font-semibold text-forest-900 underline-offset-2 hover:underline"
+            className="shrink-0 rounded-control px-1.5 text-caption font-semibold text-fg underline-offset-2 hover:underline"
           >
             {t('readiness.goTo')}
           </button>
@@ -79,7 +79,7 @@ export function ReadinessChecklist({
       aria-labelledby="readiness-title"
       className={cn('rounded-card border border-line bg-surface p-5', className)}
     >
-      <h2 id="readiness-title" className="text-body-lg font-semibold text-forest-900">
+      <h2 id="readiness-title" className="text-body-lg font-semibold text-fg">
         {t('readiness.title')}
       </h2>
       <p

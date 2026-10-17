@@ -48,7 +48,10 @@ export async function NewArrivalsRail() {
   return <ProductRail tabs={tabs} labels={await railLabels()} />;
 }
 
-/** Section 8: one tab per collection with products (the premium collection first), up to three. */
+/**
+ * Section 8: the premium collection (or the first collection with products), as the reference's
+ * row: no visible heading, no pill.
+ */
 export async function CollectionsRail() {
   await connection();
   const locale = await getLocale();
@@ -75,10 +78,10 @@ export async function CollectionsRail() {
     href: `/collections/${collection.slug}`,
     cta: t('featuredCta'),
   }));
-  return <ProductRail tabs={tabs} labels={await railLabels()} tone="tinted" />;
+  return <ProductRail tabs={tabs} labels={await railLabels()} heading="hidden" cta={false} />;
 }
 
-/** Section 10: one tab per top-level category with products, up to three. */
+/** Section 10: the first top-level category with products, headed only for screen readers. */
 export async function CategoriesRail() {
   await connection();
   const locale = await getLocale();
@@ -99,26 +102,35 @@ export async function CategoriesRail() {
     href: `/${category.path}`,
     cta: t('shopIn', { name: category.name }),
   }));
-  return <ProductRail tabs={tabs} labels={await railLabels()} />;
+  return <ProductRail tabs={tabs} labels={await railLabels()} heading="hidden" />;
 }
 
-/** The footprint of a rail while it streams: headings, four cards (two on phones), the pill. */
-export function RailFallback({ tinted = false }: { tinted?: boolean }) {
+/**
+ * The footprint of a rail while it streams: headings, four cards (two on phones), the pill; a
+ * `compact` row (no visible heading) has no heading, and no pill without `cta`.
+ */
+export function RailFallback({
+  compact = false,
+  cta = true,
+}: {
+  compact?: boolean;
+  cta?: boolean;
+}) {
   return (
     <div
       aria-hidden
-      className={tinted ? 'bg-ivory-100 py-12 sm:py-14 lg:py-16' : 'py-12 sm:py-14 lg:py-16'}
+      className={compact ? 'py-10 min-[46.875rem]:pt-0' : 'py-10 min-[46.875rem]:pt-16'}
     >
       <div className="container-page">
-        <Skeleton className="mx-auto h-10 w-72 max-w-full" />
-        <div className="mt-8 grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4 lg:mt-9 lg:grid-cols-4">
+        {compact ? null : (
+          <Skeleton className="mx-auto mb-[1.125rem] h-[2.625rem] w-72 max-w-full min-[46.875rem]:mb-8" />
+        )}
+        <div className="grid grid-cols-2 gap-2 min-[46.875rem]:gap-4 min-[75rem]:grid-cols-4">
           {Array.from({ length: 4 }, (_, index) => (
-            <div key={index} className={index === 3 ? 'md:max-lg:hidden' : undefined}>
-              <ProductCardSkeleton />
-            </div>
+            <ProductCardSkeleton key={index} />
           ))}
         </div>
-        <Skeleton className="mx-auto mt-8 h-13 w-44 rounded-full lg:mt-9" />
+        {cta ? <Skeleton className="mx-auto mt-8 h-12 w-44 rounded-full" /> : null}
       </div>
     </div>
   );

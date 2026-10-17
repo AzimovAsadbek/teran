@@ -1,16 +1,13 @@
 import type { ArticleDetailDto, Locale } from '@teran/contracts';
-import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getLocale } from 'next-intl/server';
 import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
-import { ArticleCard } from '@/components/content/article-card';
 import { ArticleContent } from '@/components/content/article-content';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getPathname, Link } from '@/i18n/navigation';
-import { getArticle, getArticleRedirect, getArticles } from '@/lib/data/content';
+import { getPathname } from '@/i18n/navigation';
+import { getArticle, getArticleRedirect } from '@/lib/data/content';
 import { imageSources } from '@/lib/navigation';
 import { coverShareImage, jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { siteUrl } from '@/lib/site';
@@ -26,7 +23,12 @@ export async function generateMetadata({
   } catch {
     return {}; // API unavailable: the error UI sets noindex itself
   }
-  if (!article) return { robots: { index: false } };
+  if (!article) {
+    // Settled before the page streams: a real 404, or a 308 to a renamed article.
+    const current = await getArticleRedirect(slug).catch(() => null);
+    if (current) permanentRedirect(getPathname({ href: `/journal/${current}`, locale }));
+    notFound();
+  }
   return pageMetadata({
     title: article.seoTitle ?? article.title,
     description: article.seoDescription ?? article.excerpt ?? undefined,
@@ -38,7 +40,7 @@ export async function generateMetadata({
 }
 
 async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'>, 'params'>) {
-  const [{ slug }, locale, t] = await Promise.all([params, getLocale(), getTranslations('Pages')]);
+  const [{ slug }, locale] = await Promise.all([params, getLocale()]);
   const article = await getArticle(locale, slug);
   if (!article) {
     // A renamed article's old address keeps working.
@@ -69,65 +71,37 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
 
   return (
     <>
-      <Breadcrumbs
-        locale={locale}
-        items={[{ label: t('journalTitle'), href: '/journal' }, { label: article.title }]}
-      />
-      <article className="mt-4 sm:mt-6">
+      {/* As the reference's article: the hero and the text, nothing after it. */}
+      <article>
         <ArticleContent article={article} locale={locale} />
-        <div className="mx-auto max-w-[46rem]">
-          <Link
-            href="/journal"
-            className="mt-12 inline-flex items-center gap-2 text-button text-brand underline-offset-4 hover:underline"
-          >
-            <ArrowLeft aria-hidden className="h-4 w-4" />
-            {t('backToJournal')}
-          </Link>
-        </div>
       </article>
-      <Suspense fallback={null}>
-        <MoreArticles currentSlug={article.slug} />
-      </Suspense>
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
     </>
   );
 }
 
-async function MoreArticles({ currentSlug }: { currentSlug: string }) {
-  const locale = await getLocale();
-  const t = await getTranslations('Pages');
-  const articles = await getArticles(locale, 1, 4).catch(() => null);
-  const others =
-    articles?.items.filter((article) => article.slug !== currentSlug).slice(0, 3) ?? [];
-  if (others.length === 0) return null;
-  return (
-    <section
-      aria-labelledby="more-articles"
-      className="mt-section border-t border-line-subtle pt-section-sm"
-    >
-      <h2 id="more-articles" className="text-display-md text-forest-900">
-        {t('moreArticles')}
-      </h2>
-      <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-        {others.map((article) => (
-          <li key={article.slug}>
-            <ArticleCard article={article} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 export default function ArticlePage({ params }: PageProps<'/[locale]/journal/[slug]'>) {
   return (
-    <div className="container-page pt-4 pb-section sm:pt-6">
+    // No width limit: the article's hero spans the window at any size, as the reference's does.
+    <div className="px-gutter pb-16 sm:pb-24">
       <Suspense
         fallback={
-          <div className="mx-auto mt-14 max-w-3xl space-y-4" aria-hidden>
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-64 w-full rounded-panel" />
+          // The article's own frame (the split hero, then the text column), so nothing moves when
+          // the article arrives: a placeholder of another shape shifted the page by 0.29 (CLS).
+          <div aria-hidden>
+            <div className="-mx-gutter grid grid-cols-1 bg-white lg:min-h-[25rem] lg:grid-cols-[minmax(0,704fr)_minmax(0,736fr)]">
+              <div className="aspect-[16/10] bg-ivory-200 lg:aspect-auto" />
+              <div className="flex flex-col items-center justify-center gap-4 px-6 py-10 sm:px-12 lg:px-16">
+                <Skeleton className="h-7 w-44 rounded-full" />
+                <Skeleton className="h-11 w-4/5 sm:h-[3.75rem]" />
+                <Skeleton className="h-5 w-3/5" />
+              </div>
+            </div>
+            <div className="mx-auto mt-12 max-w-[46rem] space-y-4">
+              {Array.from({ length: 10 }, (_, line) => (
+                <Skeleton key={line} className="h-5 w-full" />
+              ))}
+            </div>
           </div>
         }
       >

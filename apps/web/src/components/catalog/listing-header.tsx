@@ -1,8 +1,9 @@
-import type { CategoryDto, IllustrationKey, ImageDto } from '@teran/contracts';
+import type { CategoryDto, IllustrationKey, ImageDto, PublicVisualDto } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 import { CoverImage } from '@/components/content/cover-image';
+import { VisualPicture } from '@/components/content/visual-picture';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
@@ -11,10 +12,11 @@ import { CategoryArt } from './category-art';
 
 /**
  * Listing header on the reference's model: a rounded banner (196 px on wide screens) with the
- * title and one or two lines of description on the left and the category's picture on the right —
- * its own cover when one is assigned, otherwise its botanical art (never a product's picture).
- * Under it: optional navigation (category chips) and the demo note. Kept short so products start
- * on the first screen of a phone.
+ * title and one or two lines of description on the left. A wide banner set in Admin → Settings
+ * fills the whole header, as the reference's collection banners do (with its taller crop on
+ * phones); otherwise the category's picture sits on the right — its own cover when one is
+ * assigned, else its botanical art (never a product's picture). Under it: optional navigation
+ * (category chips) and the demo note. Kept short so products start on the first screen of a phone.
  */
 export function ListingHeader({
   eyebrow,
@@ -22,6 +24,7 @@ export function ListingHeader({
   description,
   illustrationKey,
   image,
+  banner,
   children,
 }: {
   eyebrow?: string;
@@ -30,33 +33,47 @@ export function ListingHeader({
   illustrationKey?: IllustrationKey | null;
   /** The category's or collection's assigned cover; never a product's picture. */
   image?: ImageDto | null;
+  /** A wide banner from Admin → Settings, filling the header; replaces `image` when set. */
+  banner?: PublicVisualDto | null;
   /** Rendered under the banner, e.g. <CategoryChips />. */
   children?: ReactNode;
 }) {
   return (
     <header className="mt-3 sm:mt-5">
       <div className="on-dark relative isolate flex min-h-[11rem] items-center overflow-hidden rounded-tile bg-forest-900 text-ivory-50 sm:min-h-[12.25rem]">
-        <div
-          aria-hidden
-          className="cat-card absolute inset-y-0 right-0 -z-10 w-[62%] opacity-60 sm:w-[52%] sm:opacity-100"
-        >
-          {image ? (
-            <CoverImage
-              image={image}
-              sizes="(min-width: 1024px) 40vw, 60vw"
+        {banner ? (
+          <div aria-hidden className="absolute inset-0 -z-10">
+            <VisualPicture
+              visual={banner}
+              sizes="(min-width: 1440px) 1312px, calc(100vw - 2rem)"
               priority
-              cutoutInset="p-4"
             />
-          ) : (
-            <CategoryArt
-              category={{ image: null, illustrationKey: illustrationKey ?? null }}
-              sizes="20rem"
-            />
-          )}
-          <span className="absolute inset-0 bg-linear-to-r from-forest-900 via-forest-900/40 to-transparent sm:via-forest-900/10" />
-        </div>
+            {/* Keeps the white title readable over a light picture. */}
+            <span className="absolute inset-0 bg-linear-to-r from-forest-950/60 via-forest-950/20 to-transparent" />
+          </div>
+        ) : (
+          <div
+            aria-hidden
+            className="cat-card absolute inset-y-0 right-0 -z-10 w-[62%] opacity-60 sm:w-[52%] sm:opacity-100"
+          >
+            {image ? (
+              <CoverImage
+                image={image}
+                sizes="(min-width: 1024px) 40vw, 60vw"
+                priority
+                cutoutInset="p-4"
+              />
+            ) : (
+              <CategoryArt
+                category={{ image: null, illustrationKey: illustrationKey ?? null }}
+                sizes="20rem"
+              />
+            )}
+            <span className="absolute inset-0 bg-linear-to-r from-forest-900 via-forest-900/40 to-transparent sm:via-forest-900/10" />
+          </div>
+        )}
         <div className="max-w-[min(36rem,80%)] px-6 py-8 sm:px-10 lg:max-w-[48%]">
-          {eyebrow ? <p className="mb-2 text-eyebrow text-gold-300">{eyebrow}</p> : null}
+          {eyebrow ? <p className="mb-2 text-eyebrow text-ivory-50">{eyebrow}</p> : null}
           <h1 className="font-headline text-[2.5rem] leading-[1.2] break-words text-ivory-50 [--heading-case:none] [--headline-weight:600] [hyphens:auto] sm:text-[3.125rem]">
             {title}
           </h1>

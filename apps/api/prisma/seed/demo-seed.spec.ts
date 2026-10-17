@@ -9,11 +9,15 @@ import {
 } from './demo-activity.js';
 import { DEMO_CATEGORIES, DEMO_COLLECTIONS, DEMO_PRODUCTS } from './demo-catalog.js';
 import { DEMO_DELIVERY_METHODS } from './demo-content.js';
-import { assertResetAllowed, assertSeedAllowed, databaseTarget, describeTarget } from './guard.js';
+import {
+  assertLocalOnly,
+  assertResetAllowed,
+  assertSeedAllowed,
+  databaseTarget,
+  describeTarget,
+} from './guard.js';
 
-const IDENTIFIERS = ['XC2025', 'G8810', 'HET8800', '8830', '8009'];
-/** Identifiers with packaging: described from their packs (2026-10-14). */
-const PACKAGED = ['XC2025', 'G8810', '8830', '8009'];
+const IDENTIFIERS = ['XC2025', 'G8810', '8800', '8830', '8009'];
 const LOCAL_URL = 'postgresql://teran:not-a-real-password@127.0.0.1:5434/teran_demo?schema=public';
 const REMOTE_URL = 'postgresql://teran:not-a-real-password@db.example.net:5432/teran_demo';
 
@@ -36,6 +40,25 @@ describe('demo seed guards', () => {
       }).database,
     ).toBe('teran_demo');
     expect(() => assertSeedAllowed({ NODE_ENV: 'development' })).toThrow(/DATABASE_URL/);
+  });
+
+  it('keeps local-only material on this machine: no production, remote database or Blob', () => {
+    expect(assertLocalOnly({ NODE_ENV: 'development', DATABASE_URL: LOCAL_URL }).host).toBe(
+      '127.0.0.1',
+    );
+    expect(() => assertLocalOnly({ NODE_ENV: 'production', DATABASE_URL: LOCAL_URL })).toThrow(
+      /production/,
+    );
+    expect(() => assertLocalOnly({ NODE_ENV: 'development', DATABASE_URL: REMOTE_URL })).toThrow(
+      /not on this machine/,
+    );
+    expect(() =>
+      assertLocalOnly({
+        NODE_ENV: 'development',
+        DATABASE_URL: LOCAL_URL,
+        BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_not_a_real_token',
+      }),
+    ).toThrow(/Vercel Blob/);
   });
 
   it('describes the target without credentials', () => {
@@ -79,9 +102,9 @@ describe('demo seed guards', () => {
 });
 
 describe('demo catalogue fixtures', () => {
-  it('is a coherent range of 15–25 products with unique slugs and SKUs', () => {
-    expect(DEMO_PRODUCTS.length).toBeGreaterThanOrEqual(15);
-    expect(DEMO_PRODUCTS.length).toBeLessThanOrEqual(25);
+  it('is a coherent range with unique slugs and SKUs: five TERAN teas and a test range', () => {
+    expect(DEMO_PRODUCTS.filter((product) => !product.testOnly)).toHaveLength(5);
+    expect(DEMO_PRODUCTS.filter((product) => product.testOnly).length).toBeGreaterThanOrEqual(10);
     expect(new Set(DEMO_PRODUCTS.map((product) => product.slug)).size).toBe(DEMO_PRODUCTS.length);
     expect(variants.size).toBe(DEMO_PRODUCTS.flatMap((product) => product.variants).length);
     const categories = new Set(DEMO_CATEGORIES.map((category) => category.slug));
@@ -94,35 +117,58 @@ describe('demo catalogue fixtures', () => {
     }
   });
 
-  it('lists each TERAN identifier once, in the premium collection, labelled as a demo', () => {
-    const premium = DEMO_PRODUCTS.filter((product) =>
-      product.collections.includes('teran-premium'),
-    );
-    expect(premium.map((product) => product.name.en).sort()).toEqual(
+  it('holds the five TERAN teas as the owner described them', () => {
+    const teran = DEMO_PRODUCTS.filter((product) => !product.testOnly);
+    expect(teran.map((product) => product.name.en).sort()).toEqual(
       IDENTIFIERS.map((code) => `TERAN ${code}`).sort(),
     );
-    for (const product of premium) {
-      const packaged = PACKAGED.some((code) => product.name.en === `TERAN ${code}`);
-      expect(Boolean(product.packaging)).toBe(packaged);
-      if (packaged) {
-        // From the pack: green tea, 400 g, the pack's brewing; only price and stock are invented.
-        expect(product.category).toBe('green-tea');
-        expect(product.variants.map((variant) => variant.weightGrams)).toEqual([400]);
-        expect(product.brewing).toEqual({ tempC: 90, minSeconds: 120, maxSeconds: 180, grams: 5 });
-        expect(product.description.en).toMatch(/taken from the TERAN pack; the price and stock/);
-      } else {
-        expect(product.description.en).toMatch(/placeholders, not information about the actual/);
+    for (const product of teran) {
+      expect(product.collections).toEqual(['teran-premium']);
+      // Every one a Chinese green tea in one 400 g zip pouch, with its photograph and cut-out.
+      expect(product.category).toBe('green-tea');
+      expect(product.variants.map((variant) => variant.weightGrams)).toEqual([400]);
+      expect(product.variants.every((variant) => !variant.compareAtPrice)).toBe(true);
+      expect(product.packaging?.front).toMatch(/-pack\.webp$/);
+      expect(product.packaging?.cutout).toMatch(/-pack-cutout\.webp$/);
+      // The owner's sections, in every language.
+      expect(product.description.uz).toMatch(/Damlanishi: .*Saqlash: .*Yaroqlilik muddati:/s);
+      expect(product.description.ru).toMatch(/Заваривание: .*Хранение: .*Срок годности:/s);
+      expect(product.description.en).toMatch(/Brewing: .*Storage: .*Shelf life:/s);
+      expect(product.origin?.en).toMatch(/^China, (Hunan|Yunnan)$/);
+      expect(product.tastingNotes?.uz).toBeTruthy();
+      // A range is a range: its upper end lies above the lower one.
+      if (product.brewing?.tempMaxC) {
+        expect(product.brewing.tempMaxC).toBeGreaterThan(product.brewing.tempC);
       }
-      expect(product.description.ru).toMatch(/условные/);
-      expect(product.description.uz).toMatch(/taxminiy/);
+      if (product.brewing?.gramsMax) {
+        expect(product.brewing.gramsMax).toBeGreaterThan(product.brewing.grams ?? 0);
+      }
+    }
+    // The barcodes printed on the five packs (supplied by the owner), each a valid EAN-13.
+    const barcodes = teran.flatMap((product) => product.variants.map((variant) => variant.barcode));
+    expect(barcodes).toEqual([
+      '4780179230021',
+      '4780179230014',
+      '4780179230045',
+      '4780179230038',
+      '4780179230052',
+    ]);
+    for (const code of barcodes) {
+      const digits = [...code!].map(Number);
+      const sum = digits
+        .slice(0, 12)
+        .reduce((total, digit, i) => total + digit * (i % 2 ? 3 : 1), 0);
+      expect((10 - (sum % 10)) % 10).toBe(digits[12]);
     }
   });
 
-  it('says on every product that it is a demonstration and makes no unverified claims', () => {
+  it('says on every test product that it is a demonstration; nothing makes unverified claims', () => {
     for (const product of DEMO_PRODUCTS) {
-      expect(product.description.en).toMatch(/demonstration/i);
-      expect(product.description.ru).toMatch(/демонстрац/i);
-      expect(product.description.uz).toMatch(/namoyish/i);
+      if (product.testOnly) {
+        expect(product.description.en).toMatch(/demonstration/i);
+        expect(product.description.ru).toMatch(/демонстрац/i);
+        expect(product.description.uz).toMatch(/namoyish/i);
+      }
       const copy = [
         product.name.en,
         product.shortDescription.en,
@@ -134,13 +180,15 @@ describe('demo catalogue fixtures', () => {
       expect(copy).not.toMatch(
         /certif|organic|health|antioxid|immun|stress|caffeine|award|review|harvest/i,
       );
-      // Regions only where the pack itself names them.
-      if (!product.packaging) expect(copy).not.toMatch(/hunan|yunnan|fujian|anhui|zhejiang/i);
+      // Regions only where the owner names them.
+      if (product.testOnly) expect(copy).not.toMatch(/hunan|yunnan|fujian|anhui|zhejiang/i);
     }
   });
 
-  it('demonstrates the out-of-stock, low-stock, sale and draft states', () => {
-    const all = DEMO_PRODUCTS.flatMap((product) => product.variants);
+  it('gives the tests the out-of-stock, low-stock, sale and draft states', () => {
+    const all = DEMO_PRODUCTS.filter((product) => product.testOnly).flatMap(
+      (product) => product.variants,
+    );
     expect(all.some((variant) => variant.stock === 0)).toBe(true);
     expect(
       all.some((variant) => variant.stock > 0 && variant.stock <= (variant.lowStockThreshold ?? 5)),

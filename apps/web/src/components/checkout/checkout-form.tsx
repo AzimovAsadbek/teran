@@ -703,7 +703,7 @@ export function CheckoutForm({
         aria-labelledby="checkout-summary"
         className="hidden rounded-panel border border-line bg-surface p-6 shadow-soft lg:sticky lg:top-6 lg:block"
       >
-        <h2 id="checkout-summary" className="text-display-sm text-forest-900">
+        <h2 id="checkout-summary" className="text-display-sm text-fg">
           {t('summary')}
         </h2>
         <div className="mt-4">
@@ -718,7 +718,7 @@ export function CheckoutForm({
 function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
   return (
     <section className="rounded-panel border border-line bg-surface p-5 sm:p-7">
-      <h2 className="flex items-center gap-3 text-display-sm text-forest-900">
+      <h2 className="flex items-center gap-3 text-display-sm text-fg">
         <span
           aria-hidden
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand font-sans text-helper font-semibold text-fg-inverse"

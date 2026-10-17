@@ -9,9 +9,10 @@ import {
   Put,
   Query,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   adminSimpleListQuerySchema,
@@ -21,6 +22,8 @@ import {
   deliveryMethodUpsertSchema,
   idSchema,
   localeQuerySchema,
+  storesSettingSchema,
+  visualSlotSchema,
   type AdminArticle,
   type ArticleDetailDto,
   type AdminDeliveryMethod,
@@ -28,6 +31,7 @@ import {
   type ContactSetting,
   type LocaleQuery,
   type Paginated,
+  type StoresSetting,
 } from '@teran/contracts';
 import type { z } from 'zod';
 import { RequireStaff } from '../auth/auth.guard.js';
@@ -51,7 +55,7 @@ export class AdminContentController {
 
   @Get('settings')
   @Header('Cache-Control', 'private, no-store')
-  @ApiOkResponse({ description: '{ announcement, contact }' })
+  @ApiOkResponse({ description: '{ announcement, contact, visuals }' })
   settings(): Promise<SettingValues> {
     return this.content.getSettings();
   }
@@ -76,6 +80,82 @@ export class AdminContentController {
     @CurrentActor() actor: Actor,
   ): Promise<SettingValues> {
     return this.content.updateSetting('contact', body, actor);
+  }
+
+  @Put('settings/stores')
+  @RequireStaff(['ADMIN'])
+  @ApiOperation({
+    summary: 'Points of sale on the store locator (administrators only; active ones are shown)',
+  })
+  updateStores(
+    @Body({ schema: storesSettingSchema }) body: StoresSetting,
+    @CurrentActor() actor: Actor,
+  ): Promise<SettingValues> {
+    return this.content.updateSetting('stores', body, actor);
+  }
+
+  @Post('settings/visuals/:slot')
+  @RequireStaff(['ADMIN'])
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'file', maxCount: 1 },
+      { name: 'mobile', maxCount: 1 },
+    ]),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary:
+      'Set the picture of a place on the storefront ("file"; optional taller "mobile" crop and "source")',
+  })
+  setVisual(
+    @Param('slot') slot: string,
+    @UploadedFiles() files: { file?: { buffer: Buffer }[]; mobile?: { buffer: Buffer }[] },
+    @Body() body: { source?: unknown },
+    @CurrentActor() actor: Actor,
+  ): Promise<SettingValues> {
+    const image = files?.file?.[0]?.buffer;
+    if (!image) throw ApiException.badRequest('BAD_REQUEST', 'Attach an image in the "file" field');
+    const source =
+      typeof body?.source === 'string' && body.source.trim()
+        ? body.source.trim().slice(0, 500)
+        : null;
+    return this.content.setVisual(
+      visualSlot(slot),
+      { image, mobile: files?.mobile?.[0]?.buffer ?? null },
+      source,
+      actor,
+    );
+  }
+
+  @Post('settings/visuals/:slot/mobile')
+  @RequireStaff(['ADMIN'])
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Set the taller phone crop of a place that has a picture ("file")' })
+  setVisualMobile(
+    @Param('slot') slot: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @CurrentActor() actor: Actor,
+  ): Promise<SettingValues> {
+    if (!file) throw ApiException.badRequest('BAD_REQUEST', 'Attach an image in the "file" field');
+    return this.content.setVisualMobile(visualSlot(slot), file.buffer, actor);
+  }
+
+  @Delete('settings/visuals/:slot/mobile')
+  @RequireStaff(['ADMIN'])
+  @ApiOperation({ summary: 'Remove the phone crop of a place (the main picture is used)' })
+  removeVisualMobile(
+    @Param('slot') slot: string,
+    @CurrentActor() actor: Actor,
+  ): Promise<SettingValues> {
+    return this.content.setVisualMobile(visualSlot(slot), null, actor);
+  }
+
+  @Delete('settings/visuals/:slot')
+  @RequireStaff(['ADMIN'])
+  @ApiOperation({ summary: 'Remove the picture of a place (TERAN artwork is shown again)' })
+  removeVisual(@Param('slot') slot: string, @CurrentActor() actor: Actor): Promise<SettingValues> {
+    return this.content.removeVisual(visualSlot(slot), actor);
   }
 
   @Get('delivery-methods')
@@ -176,4 +256,15 @@ export class AdminContentController {
   ): Promise<AdminArticle> {
     return this.content.removeArticleCover(id, actor);
   }
+}
+
+/** A page-picture place from the address, or a 400 for an unknown one. */
+function visualSlot(slot: string): string {
+  const place = visualSlotSchema.safeParse(slot);
+  if (!place.success) {
+    throw ApiException.badRequest('BAD_REQUEST', 'Unknown picture place', {
+      reason: 'invalid_visual_slot',
+    });
+  }
+  return place.data;
 }

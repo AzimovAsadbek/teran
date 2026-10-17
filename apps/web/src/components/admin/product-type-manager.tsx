@@ -289,9 +289,7 @@ function ProductTypeForm({ type, onDone }: { type: AdminProductType | null; onDo
       </div>
 
       <fieldset className="space-y-4">
-        <legend className="mb-1 text-title-sm text-forest-900">
-          {t('productTypes.attributes')}
-        </legend>
+        <legend className="mb-1 text-title-sm text-fg">{t('productTypes.attributes')}</legend>
         {error('attributes') ? (
           <p className="text-helper font-medium text-danger">{error('attributes')}</p>
         ) : null}
@@ -305,7 +303,7 @@ function ProductTypeForm({ type, onDone }: { type: AdminProductType | null; onDo
               className="space-y-4 rounded-card border border-line bg-surface-muted/30 p-4 sm:p-5"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-body font-semibold text-forest-900">
+                <p className="text-body font-semibold text-fg">
                   {attribute.labels.uz.trim() ||
                     t('productTypes.attributeNumber', { index: index + 1 })}
                 </p>

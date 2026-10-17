@@ -33,7 +33,7 @@ async function DemoPaymentLoader({
   if (!payment) {
     return (
       <div className="mx-auto max-w-xl py-10 text-center">
-        <h1 className="text-display-md text-forest-900">{t('linkInvalid')}</h1>
+        <h1 className="text-display-md text-fg">{t('linkInvalid')}</h1>
         <ButtonLink href="/" variant="secondary" className="mt-6">
           {tc('continueShopping')}
         </ButtonLink>

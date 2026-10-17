@@ -1,4 +1,4 @@
-import type { Locale } from '@teran/contracts';
+import { listingBannerSlot, type Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -11,6 +11,8 @@ import {
   type RawSearchParams,
 } from '@/features/catalog/query';
 import { getCategoryPage } from '@/lib/data/catalog';
+import { getPublicSettings } from '@/lib/data/content';
+import { visualFor } from '@/lib/visuals';
 import { coverShareImage, pageMetadata } from '@/lib/seo';
 import { Breadcrumbs } from './breadcrumbs';
 import { CatalogResults, CatalogResultsSkeleton } from './catalog-results';
@@ -27,9 +29,17 @@ export async function categoryMetadata(
 ): Promise<Metadata> {
   const page = await getCategoryPage(locale, path).catch(() => undefined);
   if (page === undefined) return {}; // API unavailable: the error UI sets noindex itself
-  if (!page || page.type === 'redirect') return { robots: { index: false } };
-  const { category } = page;
+  // Settled before the page streams: a real 404 for an unknown address (every one-segment path
+  // reaches this template), a 308 for a moved category.
+  if (!page) notFound();
   const filters = parseCatalogFilters(searchParams);
+  if (page.type === 'redirect') {
+    const query = toSearchParams(filters);
+    permanentRedirect(
+      getPathname({ href: query ? `/${page.path}?${query}` : `/${page.path}`, locale }),
+    );
+  }
+  const { category } = page;
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const title = category.seoTitle ?? category.name;
   return pageMetadata({
@@ -55,7 +65,10 @@ async function CategoryListing({
     getTranslations('Catalog'),
     searchParams,
   ]);
-  const page = await getCategoryPage(locale, path);
+  const [page, settings] = await Promise.all([
+    getCategoryPage(locale, path),
+    getPublicSettings(locale).catch(() => null),
+  ]);
   if (!page) notFound();
   if (page.type === 'redirect') {
     // Renamed or moved: the old address leads permanently to the current one, filters included.
@@ -95,6 +108,7 @@ async function CategoryListing({
         description={category.description}
         illustrationKey={category.illustrationKey}
         image={category.image}
+        banner={visualFor(settings, listingBannerSlot('category', category.id))}
       >
         {chips.length > 1 ? <CategoryChipRow label={t('subcategories')} items={chips} /> : null}
       </ListingHeader>

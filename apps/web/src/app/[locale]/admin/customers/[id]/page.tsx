@@ -44,7 +44,7 @@ export default async function AdminCustomerPage({
     <>
       <Link
         href="/admin/customers"
-        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 hover:underline"
+        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-fg hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {t('customers.title')}

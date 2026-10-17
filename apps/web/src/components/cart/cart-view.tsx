@@ -58,7 +58,7 @@ export function CartView() {
   return (
     <>
       {/* The page's h1 names the bag for assistive technology; this is its visible title. */}
-      <p aria-hidden className="font-headline text-[2.5rem] text-forest-900 sm:text-[3.125rem]">
+      <p aria-hidden className="font-headline text-[2.5rem] text-fg sm:text-[3.125rem]">
         {t('drawerTitle')}
       </p>
       <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-12 lg:items-start lg:gap-10">
@@ -74,7 +74,7 @@ export function CartView() {
           className="space-y-4 lg:sticky lg:top-24 lg:col-span-5 xl:col-span-4"
         >
           <div className="rounded-panel border border-line bg-surface p-6 shadow-soft">
-            <h2 id="cart-summary" className="text-display-sm text-forest-900">
+            <h2 id="cart-summary" className="text-display-sm text-fg">
               {t('summary')}
             </h2>
             <p className="mt-1 text-body-sm text-fg-subtle">

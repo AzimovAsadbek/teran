@@ -45,7 +45,7 @@ function Task({
         className={cn(
           'group flex min-h-14 items-center gap-3 rounded-control border px-4 py-3 text-body-sm font-semibold transition-colors',
           count > 0
-            ? 'border-gold-600/30 bg-gold-100/60 text-forest-900 hover:bg-gold-100'
+            ? 'border-gold-600/30 bg-gold-100/60 text-fg hover:bg-gold-100'
             : 'border-line bg-surface text-fg-subtle hover:bg-surface-muted',
         )}
       >

@@ -9,7 +9,7 @@ export function formatSum(amount: number, locale: Locale): string {
   return String(Math.round(amount)).replace(/\B(?=(\d{3})+(?!\d))/g, locale === 'en' ? ',' : ' ');
 }
 
-export type DroppedCriterion = 'text' | 'attributes' | 'formats' | 'category' | 'budget';
+export type DroppedCriterion = 'text' | 'attributes' | 'formats' | 'origin' | 'category' | 'budget';
 
 interface Texts {
   found: (count: number) => string;
@@ -27,9 +27,9 @@ interface Texts {
   yes: string;
   no: string;
   brewing: (parts: string[]) => string;
-  temperature: (celsius: number) => string;
+  temperature: (celsius: number, max: number | null) => string;
   minutes: (from: number, to: number | null) => string;
-  amount: (grams: string) => string;
+  amount: (grams: string, max: string | null) => string;
   origin: (origin: string) => string;
   textMatch: (word: string) => string;
   inStock: string;
@@ -39,9 +39,14 @@ interface Texts {
   askCategory: (names: string) => string;
   askBudget: string;
   askAlternative: string;
+  /** Wording for a storefront that shows no prices (the request's `prices: false`). */
+  noPrices: { ask: string; quality: string; askAlternative: string };
 }
 
 const so = (amount: string) => `${amount} soʻm`;
+/** "85–90" for a range, "85" for one value (or a range whose ends are equal). */
+const range = (from: number | string, to: number | string | null) =>
+  to !== null && String(to) !== String(from) ? `${from}–${to}` : String(from);
 
 export const TEXTS: Record<Locale, Texts> = {
   uz: {
@@ -56,6 +61,7 @@ export const TEXTS: Record<Locale, Texts> = {
       text: 'tavsifdagi soʻz',
       attributes: 'xususiyat',
       formats: 'qadoq turi',
+      origin: 'kelib chiqish joyi',
       category: 'turkum',
       budget: 'narx chegarasi',
     },
@@ -75,9 +81,9 @@ export const TEXTS: Record<Locale, Texts> = {
     yes: 'ha',
     no: 'yoʻq',
     brewing: (parts) => `Damlash: ${parts.join(', ')}`,
-    temperature: (celsius) => `${celsius} °C`,
+    temperature: (celsius, max) => `${range(celsius, max)} °C`,
     minutes: (from, to) => (to && to !== from ? `${from}–${to} daqiqa` : `${from} daqiqa`),
-    amount: (grams) => `250 ml ga ${grams} g`,
+    amount: (grams, max) => `250 ml ga ${range(grams, max)} g`,
     origin: (origin) => `Kelib chiqishi: ${origin}`,
     textMatch: (word) => `Tavsifida «${word}» deb yozilgan`,
     inStock: 'Sotuvda bor',
@@ -95,6 +101,12 @@ export const TEXTS: Record<Locale, Texts> = {
     askCategory: (names) => `Qaysi biri qiziqtiradi: ${names}?`,
     askBudget: 'Byudjetingiz qancha?',
     askAlternative: 'Byudjetni oshirasizmi yoki boshqa turini koʻramizmi?',
+    noPrices: {
+      ask: 'Qanday mahsulot qidiryapsiz? Turini yoki kimga moʻljallanganini yozing.',
+      quality:
+        'Sifat darajasi (sort) katalogda qayd etilmagan, shuning uchun biror mahsulotni “eng sifatli” deb baholay olmayman. Tanlov tur va qayd etilgan maʼlumotlarga asoslangan.',
+      askAlternative: 'Boshqa turini koʻramizmi?',
+    },
   },
   ru: {
     found: (count) => `Подобрал товары по вашему запросу (${count}):`,
@@ -106,6 +118,7 @@ export const TEXTS: Record<Locale, Texts> = {
       text: 'слово из описания',
       attributes: 'характеристику',
       formats: 'вид упаковки',
+      origin: 'происхождение',
       category: 'категорию',
       budget: 'ограничение по цене',
     },
@@ -125,9 +138,9 @@ export const TEXTS: Record<Locale, Texts> = {
     yes: 'да',
     no: 'нет',
     brewing: (parts) => `Заваривание: ${parts.join(', ')}`,
-    temperature: (celsius) => `${celsius} °C`,
+    temperature: (celsius, max) => `${range(celsius, max)} °C`,
     minutes: (from, to) => (to && to !== from ? `${from}–${to} мин` : `${from} мин`),
-    amount: (grams) => `${grams} г на 250 мл`,
+    amount: (grams, max) => `${range(grams, max)} г на 250 мл`,
     origin: (origin) => `Происхождение: ${origin}`,
     textMatch: (word) => `В описании есть «${word}»`,
     inStock: 'В наличии',
@@ -145,6 +158,12 @@ export const TEXTS: Record<Locale, Texts> = {
     askCategory: (names) => `Что вам интереснее: ${names}?`,
     askBudget: 'Какой у вас бюджет?',
     askAlternative: 'Увеличим бюджет или посмотрим другой вид?',
+    noPrices: {
+      ask: 'Что вы ищете? Напишите вид товара или для кого он.',
+      quality:
+        'Сорт или класс качества в каталоге не указан, поэтому я не могу назвать товар «самым качественным». Подбор основан на виде и указанных данных.',
+      askAlternative: 'Посмотрим другой вид?',
+    },
   },
   en: {
     found: (count) => `Here ${count === 1 ? 'is 1 product' : `are ${count} products`} that match:`,
@@ -157,6 +176,7 @@ export const TEXTS: Record<Locale, Texts> = {
       text: 'descriptive word',
       attributes: 'characteristic',
       formats: 'pack type',
+      origin: 'origin',
       category: 'category',
       budget: 'price limit',
     },
@@ -176,9 +196,9 @@ export const TEXTS: Record<Locale, Texts> = {
     yes: 'yes',
     no: 'no',
     brewing: (parts) => `Brewing: ${parts.join(', ')}`,
-    temperature: (celsius) => `${celsius} °C`,
+    temperature: (celsius, max) => `${range(celsius, max)} °C`,
     minutes: (from, to) => (to && to !== from ? `${from}–${to} min` : `${from} min`),
-    amount: (grams) => `${grams} g per 250 ml`,
+    amount: (grams, max) => `${range(grams, max)} g per 250 ml`,
     origin: (origin) => `Origin: ${origin}`,
     textMatch: (word) => `Its description says “${word}”`,
     inStock: 'In stock',
@@ -195,5 +215,11 @@ export const TEXTS: Record<Locale, Texts> = {
     askCategory: (names) => `Which would you like: ${names}?`,
     askBudget: 'What is your budget?',
     askAlternative: 'Shall we raise the budget or look at another kind?',
+    noPrices: {
+      ask: 'What are you looking for? Tell me the kind of product or who it is for.',
+      quality:
+        'A quality grade is not recorded in the catalogue, so I cannot call any product “the best”. The choice is based on the kind and the recorded facts.',
+      askAlternative: 'Shall we look at another kind?',
+    },
   },
 };

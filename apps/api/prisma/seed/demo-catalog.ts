@@ -1,22 +1,14 @@
 /**
- * DEMONSTRATION CATALOGUE — NOT VERIFIED TERAN PRODUCT DATA.
+ * The catalogue the seed loads: TERAN's five teas, and a generic test catalogue.
  *
- * A coherent range of Chinese tea styles with neutral copy and placeholder prices, so the
- * storefront and the admin area can be demonstrated end to end.
- *
- * - The five collection identifiers (XC2025, G8810, HET8800, 8830, 8009) were supplied by TERAN.
- *   Four of them have packaging (print files supplied 2026-10-14): their tea type, pack size,
- *   brewing, descriptions, storage, shelf life and producer are taken from the pack, and their
- *   images are renders of the pack. Their prices and stock are still placeholders. HET8800 has no
- *   packaging yet: its tea type, description, price and pack sizes are invented and say so.
- *   Deliberately not taken from the packs: the health benefits list and the nutrition table
- *   (claims that need the owner's confirmation before they are published online).
- * - Tasting notes describe what is typical of a tea style, not a verified product.
- * - Deliberately absent: origins, ingredients, caffeine levels, certifications, health claims
- *   and reviews. Those must come from TERAN.
- * - Brewing values are general guidance for each tea type.
- *
- * Replace everything here with verified data before launch (docs/demo-mode.md).
+ * - The five TERAN teas (XC2025, G8810, 8800, 8830, 8009) carry the owner's own descriptions
+ *   (2026-10-17): description, taste and aroma, brewing, origin, storage and shelf life, a 400 g zip
+ *   pouch each, the pouch photographs and the barcode (the last three on 2026-10-18). Prices are
+ *   placeholders until the owner confirms them.
+ * - Everything marked `testOnly` is a generic, invented range of tea styles (other tea types, pack
+ *   sizes, a sale price, low and no stock, a draft) that the end-to-end tests need. It is loaded only
+ *   with SEED_TEST_CATALOGUE=true; elsewhere the seed archives it (docs/development/demo-mode.md).
+ * - Deliberately absent: ingredients, caffeine levels, certifications, health claims and reviews.
  */
 import type { ArtAccent, ArtStyle, PackShape } from './demo-art.js';
 
@@ -28,6 +20,8 @@ export interface Localized<T> {
 
 export interface DemoCategory {
   slug: string;
+  /** Part of the generic test catalogue (see the file comment). */
+  testOnly?: boolean;
   /** Top-level category this one belongs to (categories have two levels). */
   parent?: string;
   /** Product type new products start with (top-level categories; subcategories use the parent's). */
@@ -39,16 +33,24 @@ export interface DemoCategory {
 
 export interface DemoVariant {
   sku: string;
+  /** Earlier SKUs of the same pack: renamed in place, so orders keep pointing at it. */
+  formerSkus?: string[];
   weightGrams: number | null;
   unitCount?: number;
   price: string;
   compareAtPrice?: string;
   stock: number;
   lowStockThreshold?: number;
+  /** The EAN-13 printed on the pack, only where the owner supplied it. */
+  barcode?: string;
 }
 
 export interface DemoProduct {
   slug: string;
+  /** Earlier slugs: the product keeps a redirect from each. */
+  formerSlugs?: string[];
+  /** Part of the generic test catalogue (see the file comment). */
+  testOnly?: boolean;
   /** DRAFT products exist only in the admin area (e.g. to demonstrate publishing). */
   status?: 'ACTIVE' | 'DRAFT';
   category: string;
@@ -57,14 +59,22 @@ export interface DemoProduct {
   featured: boolean;
   illustrationKey: string;
   publishedDaysAgo: number;
-  brewing: { tempC: number; minSeconds: number; maxSeconds: number; grams: number | null } | null;
+  /** `tempMaxC` and `gramsMax` close a range ("80–90 °C", "3–5 g"); absent for one value. */
+  brewing: {
+    tempC: number;
+    tempMaxC?: number;
+    minSeconds: number;
+    maxSeconds: number;
+    grams: number | null;
+    gramsMax?: number;
+  } | null;
   art: { style: ArtStyle; shape: PackShape; accent?: ArtAccent };
   /**
-   * Images rendered from the real pack (assets/packaging, made by
-   * apps/web/scripts/packaging); used instead of the code-drawn art. `cutout` is the front on a
-   * transparent background, for the home page stage.
+   * Images of the real pack (assets/packaging, made by apps/web/scripts/packaging), used instead
+   * of the code-drawn art: the pouch photograph, the back of the pack where a print file exists,
+   * and the pouch cut out on a transparent background (the home page stage).
    */
-  packaging?: { front: string; back: string; cutout?: string };
+  packaging?: { front: string; back: string | null; cutout?: string };
   name: Localized<string>;
   shortDescription: Localized<string>;
   description: Localized<string>;
@@ -73,9 +83,6 @@ export interface DemoProduct {
   origin?: Localized<string>;
   variants: DemoVariant[];
 }
-
-/** As printed on TERAN's green tea packs: 5 g per 250 ml (1:50), 90 °C, 2–3 minutes. */
-const PACK_BREW = { tempC: 90, minSeconds: 120, maxSeconds: 180, grams: 5 };
 
 const BREW = {
   black: { tempC: 95, minSeconds: 180, maxSeconds: 300, grams: 2.5 },
@@ -134,115 +141,249 @@ const NOTES = {
   },
 } satisfies Record<string, Localized<string>>;
 
-type ProposedStyle = 'black';
-
 /**
- * How an identifier without packaging (HET8800) is presented in the demo: a proposed tea type and
- * general advice for it.
+ * The five TERAN teas as the owner described them (2026-10-17): Uzbek and Russian exactly as
+ * supplied (only the apostrophes follow the site's Uzbek: ʻ in oʻ/gʻ, ʼ in taʼm), English translated.
+ * Every one is a Chinese green tea in a 400 g zip pouch; the photographs are of those pouches.
  */
-const PROPOSED: Record<ProposedStyle, { label: Localized<string>; advice: Localized<string> }> = {
-  black: {
-    label: { uz: 'qora choy', ru: 'чёрный чай', en: 'a black tea' },
-    advice: {
-      uz: 'Qora choy uchun yangi qaynagan suv mos keladi; uni sof holda yoki sut bilan ichish mumkin. Bu sahifadagi damlash tavsiyasi choy turi uchun umumiy maslahat.',
-      ru: 'Чёрному чаю подходит свежий кипяток; его пьют в чистом виде или с молоком. Рекомендации по завариванию на этой странице — общие советы для этого вида чая.',
-      en: 'Black tea suits freshly boiled water and can be enjoyed plain or with milk. The brewing guidance on this page is general advice for the tea type.',
+interface TeranTea {
+  code: string;
+  description: Localized<string>;
+  taste: Localized<string>;
+  origin: Localized<string>;
+  brewing: Localized<string>;
+  storage: Localized<string>;
+  shelfLife: Localized<string>;
+  /** Producer and importer, as printed on the packs that have a print file (not yet 8800). */
+  printed: boolean;
+}
+
+const STORAGE: Localized<string> = {
+  uz: 'Salqin, quruq, yorugʻlik tushmaydigan joyda, mahkam yopilgan holda saqlang.',
+  ru: 'Хранить в плотно закрытой упаковке в прохладном, сухом, защищённом от света месте.',
+  en: 'Keep tightly closed in a cool, dry place away from light.',
+};
+const SHELF_LIFE: Localized<string> = { uz: '24 oy.', ru: '24 месяца.', en: '24 months.' };
+const HUNAN: Localized<string> = { uz: 'Xitoy, Hunan', ru: 'Китай, Хунань', en: 'China, Hunan' };
+const BREW_3_5: Localized<string> = {
+  uz: '3–5 g choyga 250 ml, 85–90°C suv. 2 daqiqa damlang.',
+  ru: '3–5 г чая на 250 мл воды при 85–90°C. Настаивать 2 минуты.',
+  en: '3–5 g of tea per 250 ml of water at 85–90 °C. Steep for 2 minutes.',
+};
+
+const TERAN_TEAS: Record<string, TeranTea> = {
+  XC2025: {
+    code: 'XC2025',
+    description: {
+      uz: 'Xitoyning Hunan viloyatidagi tumanli togʻlarda yetishtirilgan, ingichka va zich buralgan bargli yashil choy.',
+      ru: 'Зелёный чай с тонкими, плотно скрученными листьями, выращенный в туманных горах провинции Хунань, Китай.',
+      en: 'A green tea with thin, tightly rolled leaves, grown in the misty mountains of Hunan province, China.',
     },
+    taste: {
+      uz: 'Mayin, tetiklantiruvchi taʼm, yengil shirinlik va biroz taxir taʼm qoldigʻi. Qovurilgan kashtanni eslatuvchi uzoq saqlanadigan yoqimli ifor.',
+      ru: 'Мягкий, освежающий вкус с лёгкой сладостью и слегка терпким послевкусием. Стойкий приятный аромат с нотами жареного каштана.',
+      en: 'A smooth, refreshing taste with a light sweetness and a slightly brisk finish. A long-lasting, pleasant aroma with notes of roasted chestnut.',
+    },
+    origin: HUNAN,
+    brewing: {
+      uz: '5 g choyga 250 ml, 80–90°C suv. 2–3 daqiqa damlang.',
+      ru: '5 г чая на 250 мл воды при 80–90°C. Настаивать 2–3 минуты.',
+      en: '5 g of tea per 250 ml of water at 80–90 °C. Steep for 2–3 minutes.',
+    },
+    storage: STORAGE,
+    shelfLife: SHELF_LIFE,
+    printed: true,
+  },
+  G8810: {
+    code: 'G8810',
+    description: {
+      uz: 'Xitoyning Yunnan viloyatidagi baland togʻli choy plantatsiyalarida yetishtirilgan, nafis bargli yashil choy.',
+      ru: 'Зелёный чай с нежными листьями, выращенный на высокогорных чайных плантациях провинции Юньнань, Китай.',
+      en: 'A green tea with delicate leaves, grown on high-mountain tea plantations in Yunnan province, China.',
+    },
+    taste: {
+      uz: 'Mayin, tetiklantiruvchi taʼm, yoqimli shirin taʼm qoldigʻi va yengil, yangi choy ifori.',
+      ru: 'Мягкий, освежающий вкус с приятным сладковатым послевкусием и лёгким свежим ароматом.',
+      en: 'A smooth, refreshing taste with a pleasant sweet finish and a light, fresh tea aroma.',
+    },
+    origin: { uz: 'Xitoy, Yunnan', ru: 'Китай, Юньнань', en: 'China, Yunnan' },
+    brewing: {
+      uz: '5 g choyga 250 ml, 90°C suv. 2–3 daqiqa damlang.',
+      ru: '5 г чая на 250 мл воды при 90°C. Настаивать 2–3 минуты.',
+      en: '5 g of tea per 250 ml of water at 90 °C. Steep for 2–3 minutes.',
+    },
+    storage: STORAGE,
+    shelfLife: SHELF_LIFE,
+    printed: true,
+  },
+  '8800': {
+    code: '8800',
+    description: {
+      uz: 'Xitoyning Hunan viloyatidagi togʻli hududlarda joylashgan ekologik choy plantatsiyalarida yetishtirilgan yashil choy. Barglari yirik, butun va tabiiy buralgan shaklga ega.',
+      ru: 'Зелёный чай, выращенный на экологических чайных плантациях в горных районах провинции Хунань, Китай. Отличается крупными, цельными, естественно скрученными листьями.',
+      en: 'A green tea grown on ecological tea plantations in the mountains of Hunan province, China. Its leaves are large, whole and naturally rolled.',
+    },
+    taste: {
+      uz: 'Taʼmi: toʻyingan, tetiklantiruvchi, uzoq saqlanadigan yoqimli shirin taʼmga ega.\nHidi: sof, tabiiy choy ifori.',
+      ru: 'Вкус: насыщенный, освежающий, с приятным длительным сладковатым послевкусием.\nАромат: чистый, натуральный чайный аромат.',
+      en: 'Taste: full and refreshing, with a pleasant, long-lasting sweet finish.\nAroma: a clean, natural tea aroma.',
+    },
+    origin: HUNAN,
+    brewing: {
+      uz: '250 ml suvga 3–5 g choy soling. 85–90°C haroratdagi suvda 2 daqiqa damlang.',
+      ru: 'Добавьте 3–5 г чая на 250 мл воды. Заваривайте 2 минуты при температуре 85–90°C.',
+      en: 'Add 3–5 g of tea to 250 ml of water. Steep for 2 minutes at 85–90 °C.',
+    },
+    storage: {
+      uz: 'Salqin, quruq joyda, quyosh nuri, namlik va kuchli hidlardan uzoqda, mahkam yopilgan holda saqlang.',
+      ru: 'Хранить в плотно закрытой упаковке в прохладном, сухом месте, вдали от солнечного света, влаги и сильных запахов.',
+      en: 'Keep tightly closed in a cool, dry place, away from sunlight, moisture and strong odours.',
+    },
+    shelfLife: {
+      uz: 'Tavsiya etilgan sharoitda 24 oy.',
+      ru: '24 месяца при соблюдении условий хранения.',
+      en: '24 months when stored as recommended.',
+    },
+    printed: false,
+  },
+  '8830': {
+    code: '8830',
+    description: {
+      uz: 'Xitoyning Hunan viloyatidagi ekologik choy plantatsiyalarida yetishtirilgan, tabiiy iforini saqlab qolgan yashil choy.',
+      ru: 'Зелёный чай, выращенный на экологических чайных плантациях провинции Хунань, Китай, сохранивший естественный аромат свежих чайных листьев.',
+      en: 'A green tea grown on ecological tea plantations in Hunan province, China, that keeps the natural aroma of fresh tea leaves.',
+    },
+    taste: {
+      uz: 'Mayin, yumshoq va yoqimli taʼm, yangi choy barglariga xos tabiiy ifor.',
+      ru: 'Мягкий, нежный, приятный вкус и свежий натуральный чайный аромат.',
+      en: 'A smooth, gentle and pleasant taste with the fresh, natural aroma of tea leaves.',
+    },
+    origin: HUNAN,
+    brewing: BREW_3_5,
+    storage: STORAGE,
+    shelfLife: SHELF_LIFE,
+    printed: true,
+  },
+  '8009': {
+    code: '8009',
+    description: {
+      uz: 'Xitoyning Hunan viloyatida yetishtirilgan, oʻziga xos qovurilgan iforga ega yashil choy.',
+      ru: 'Зелёный чай из провинции Хунань, Китай, с характерным ароматом обжарки.',
+      en: 'A green tea from Hunan province, China, with a distinctive roasted aroma.',
+    },
+    taste: {
+      uz: 'Toʻyingan, kuchli taʼm, yoqimli shirin taʼm qoldigʻi va qahvani eslatuvchi qovurilgan ifor.',
+      ru: 'Насыщенный, выразительный вкус с приятным сладковатым послевкусием и нотами обжарки, напоминающими кофе.',
+      en: 'A full, bold taste with a pleasant sweet finish and roasted notes reminiscent of coffee.',
+    },
+    origin: HUNAN,
+    brewing: BREW_3_5,
+    storage: STORAGE,
+    shelfLife: SHELF_LIFE,
+    printed: true,
   },
 };
 
-/** Name and copy for an identifier whose real tea type is not known yet. */
-function identifierCopy(
+/** Section labels of the description, as in the owner's texts. */
+const LABELS: Localized<{ brewing: string; storage: string; shelfLife: string; pack: string }> = {
+  uz: {
+    brewing: 'Damlanishi',
+    storage: 'Saqlash',
+    shelfLife: 'Yaroqlilik muddati',
+    pack: 'Xitoy yashil choyi, 400 g zip-paketda',
+  },
+  ru: {
+    brewing: 'Заваривание',
+    storage: 'Хранение',
+    shelfLife: 'Срок годности',
+    pack: 'китайский зелёный чай в зип-пакете 400 г',
+  },
+  en: {
+    brewing: 'Brewing',
+    storage: 'Storage',
+    shelfLife: 'Shelf life',
+    pack: 'a Chinese green tea in a 400 g zip pouch',
+  },
+};
+
+/** Producer and importer, as printed on the packs (print files of 2026-10-14). */
+const PRINTED_BY: Localized<string> = {
+  uz: 'Ishlab chiqaruvchi: HUNAN EAST LAND TEA CO., LTD (Yiyang, Hunan viloyati, Xitoy). Import qiluvchi va qadoqlovchi: TERAN TRADE MChJ (Namangan, Oʻzbekiston).',
+  ru: 'Производитель: HUNAN EAST LAND TEA CO., LTD (Иян, провинция Хунань, Китай). Импортёр и упаковщик: TERAN TRADE MChJ (Наманган, Узбекистан).',
+  en: 'Producer: HUNAN EAST LAND TEA CO., LTD (Yiyang, Hunan province, China). Imported and packed by TERAN TRADE MChJ (Namangan, Uzbekistan).',
+};
+
+/** Name, texts and origin of a TERAN tea, built from the owner's description. */
+function teranCopy(
   code: string,
-  style: ProposedStyle,
-): Pick<DemoProduct, 'name' | 'shortDescription' | 'description'> {
-  const { label, advice } = PROPOSED[style];
+): Pick<DemoProduct, 'name' | 'shortDescription' | 'description' | 'tastingNotes' | 'origin'> {
+  const tea = TERAN_TEAS[code];
+  if (!tea) throw new Error(`No description for TERAN ${code}`);
+  const describe = (locale: keyof Localized<string>) => {
+    const label = LABELS[locale];
+    return [
+      `TERAN ${code} — ${label.pack}.`,
+      `${label.brewing}: ${tea.brewing[locale]}`,
+      `${label.storage}: ${tea.storage[locale]}`,
+      `${label.shelfLife}: ${tea.shelfLife[locale]}`,
+      ...(tea.printed ? [PRINTED_BY[locale]] : []),
+    ].join('\n\n');
+  };
   return {
     name: { uz: `TERAN ${code}`, ru: `TERAN ${code}`, en: `TERAN ${code}` },
-    shortDescription: {
-      uz: `Namoyish: ${label.uz} sifatida koʻrsatilgan.`,
-      ru: `Демо: показан как ${label.ru}.`,
-      en: `Demo listing, shown as ${label.en}.`,
-    },
-    description: {
-      uz: `${code} — TERAN premium kolleksiyasining identifikatorlaridan biri. Ushbu namoyish saytida u ${label.uz} sifatida koʻrsatilgan: choy turi, tavsif, narx va qadoq hajmlari taxminiy boʻlib, haqiqiy TERAN mahsuloti haqidagi maʼlumot emas.\n\n${advice.uz}`,
-      ru: `${code} — один из идентификаторов премиальной коллекции TERAN. На этом демонстрационном сайте он показан как ${label.ru}: вид чая, описание, цена и фасовка условные и не являются сведениями о настоящем продукте TERAN.\n\n${advice.ru}`,
-      en: `${code} is one of the identifiers of the TERAN premium collection. On this demonstration site it is shown as ${label.en}: the tea type, this description, the price and the pack sizes are placeholders, not information about the actual TERAN product.\n\n${advice.en}`,
-    },
+    shortDescription: tea.description,
+    description: { uz: describe('uz'), ru: describe('ru'), en: describe('en') },
+    tastingNotes: tea.taste,
+    origin: tea.origin,
   };
 }
 
-/** The TERAN pack's product sentence for each identifier (Uzbek as printed; ru/en translated). */
-const PACK_SENTENCES: Record<string, Localized<string>> = {
-  XC2025: {
-    uz: 'Xitoyning Hunan viloyatidagi tumanli togʻlarda yetishtirilgan, ingichka va zich buralgan bargli yashil choy.',
-    ru: 'Зелёный чай из тонких, плотно скрученных листьев, выращенный в туманных горах провинции Хунань (Китай).',
-    en: 'A green tea of thin, tightly rolled leaves, grown in the misty mountains of Hunan province, China.',
-  },
-  '8009': {
-    uz: 'Xitoyning Hunan viloyatida yetishtirilgan, oʻziga xos qovurilgan iforga ega yashil choy.',
-    ru: 'Зелёный чай с характерным обжаренным ароматом, выращенный в провинции Хунань (Китай).',
-    en: 'A green tea with a distinctive roasted aroma, grown in Hunan province, China.',
-  },
-  G8810: {
-    uz: 'Xitoyning Yunnan viloyatidagi baland togʻli choy plantatsiyalarida yetishtirilgan, nafis bargli yashil choy.',
-    ru: 'Зелёный чай из нежного листа, выращенный на высокогорных чайных плантациях провинции Юньнань (Китай).',
-    en: 'A delicate-leaf green tea, grown on high-mountain tea plantations in Yunnan province, China.',
-  },
-  '8830': {
-    uz: 'Xitoyning Hunan viloyatidagi ekologik choy plantatsiyalarida yetishtirilgan, tabiiy iforini saqlab qolgan yashil choy.',
-    ru: 'Зелёный чай, сохранивший естественный аромат, выращенный на экологических чайных плантациях провинции Хунань (Китай).',
-    en: 'A green tea that keeps its natural aroma, grown on ecological tea plantations in Hunan province, China.',
-  },
-};
-
-/** "Taʼmi, hidi va oʻziga xos xususiyatlari" — the same on every pack (its first two sentences). */
-const PACK_TASTE: Localized<string> = {
-  uz: 'Mayin va tetiklantiruvchi taʼmi, har bir chashkadan keyin uzoq saqlanadigan yoqimli shirin taʼm. Yengil va tabiiy hidli.',
-  ru: 'Мягкий, бодрящий вкус с приятной сладостью, которая долго остаётся после каждой чашки. Лёгкий естественный аромат.',
-  en: 'A smooth, refreshing taste with a pleasant sweetness that lingers after every cup. A light, natural aroma.',
-};
-
-const CHINA: Localized<string> = { uz: 'Xitoy', ru: 'Китай', en: 'China' };
-
-/**
- * Copy for an identifier that has packaging: everything from the pack (storage, shelf life,
- * producer and importer included), plus one line saying what is still a placeholder.
- */
-function packagedCopy(
-  code: string,
-): Pick<DemoProduct, 'name' | 'shortDescription' | 'description' | 'tastingNotes' | 'origin'> {
-  const sentence = PACK_SENTENCES[code];
-  if (!sentence) throw new Error(`No packaging copy for ${code}`);
+/** The pouch photograph, the back of the pack (where a print file exists) and the cut-out. */
+function pouch(code: string, back: boolean): NonNullable<DemoProduct['packaging']> {
+  const file = code.toLowerCase();
   return {
-    name: { uz: `TERAN ${code}`, ru: `TERAN ${code}`, en: `TERAN ${code}` },
-    shortDescription: sentence,
-    description: {
-      uz: `${code} — Xitoy yashil choyi, 400 g qadoqda.\n\nSaqlash: quruq, salqin va quyosh nurlaridan himoyalangan joyda, mahkam yopilgan holda saqlang. Yaroqlilik muddati: 24 oy.\n\nIshlab chiqaruvchi: HUNAN EAST LAND TEA CO., LTD (Yiyang, Hunan viloyati, Xitoy). Import qiluvchi va qadoqlovchi: TERAN TRADE MChJ (Namangan, Oʻzbekiston).\n\nNamoyish rejimi: tavsif TERAN qadogʻidan olingan; narx va qoldiq taxminiy.`,
-      ru: `${code} — китайский зелёный чай в упаковке 400 г.\n\nХранение: в сухом прохладном месте, защищённом от солнечных лучей, в плотно закрытой упаковке. Срок годности: 24 месяца.\n\nПроизводитель: HUNAN EAST LAND TEA CO., LTD (Иян, провинция Хунань, Китай). Импортёр и упаковщик: TERAN TRADE MChJ (Наманган, Узбекистан).\n\nДемонстрационный режим: описание взято с упаковки TERAN; цена и остаток условные.`,
-      en: `${code} is a Chinese green tea in a 400 g pack.\n\nStorage: keep tightly closed in a dry, cool place away from sunlight. Shelf life: 24 months.\n\nProducer: HUNAN EAST LAND TEA CO., LTD (Yiyang, Hunan province, China). Imported and packed by TERAN TRADE MChJ (Namangan, Uzbekistan).\n\nDemonstration mode: this description is taken from the TERAN pack; the price and stock are placeholders.`,
-    },
-    tastingNotes: PACK_TASTE,
-    origin: CHINA,
+    front: `${file}-pack.webp`,
+    back: back ? `${file}-back.webp` : null,
+    cutout: `${file}-pack-cutout.webp`,
   };
 }
 
 /**
  * Exact text written by earlier versions of this seed, so a one-time upgrade can recognise records
- * nobody has edited since (see upgradeToPackaging in catalogue.ts).
+ * nobody has edited since (see catalogue.ts).
  */
 export const EARLIER_DEMO_COPY: {
+  /** In the Uzbek description of the identifier products before the packs were supplied. */
   identifierMarker: string;
-  collections: Record<string, Localized<string>>;
+  /** In the Uzbek description of the pack products before the owner described the teas. */
+  packMarker: string;
+  categories: Record<string, Localized<string>[]>;
+  collections: Record<string, Localized<string>[]>;
 } = {
-  /** In the Uzbek description of every identifier product before the packs were supplied. */
   identifierMarker: 'Ushbu namoyish saytida u',
+  packMarker: 'Namoyish rejimi: tavsif TERAN qadogʻidan olingan',
+  categories: {
+    tea: [
+      {
+        uz: 'Qora, yashil, oq choy, ulun va pu-erh — barcha choylar bir joyda.',
+        ru: 'Чёрный, зелёный, белый чай, улун и пуэр — все чаи в одном месте.',
+        en: 'Black, green and white tea, oolong and pu-erh — every tea in one place.',
+      },
+    ],
+  },
   collections: {
-    'teran-premium': {
-      uz: 'Har didga oʻziga xos tanlov: XC2025 · G8810 · HET8800 · 8830 · STD8009. Namoyish rejimida choy turlari taxminiy.',
-      ru: 'Свой выбор для каждого вкуса: XC2025 · G8810 · HET8800 · 8830 · STD8009. В демо-версии виды чая условные.',
-      en: 'A choice for every taste: XC2025 · G8810 · HET8800 · 8830 · STD8009. Tea types in this demo are provisional.',
-    },
+    'teran-premium': [
+      {
+        uz: 'Har didga oʻziga xos tanlov: XC2025 · G8810 · HET8800 · 8830 · STD8009. Namoyish rejimida choy turlari taxminiy.',
+        ru: 'Свой выбор для каждого вкуса: XC2025 · G8810 · HET8800 · 8830 · STD8009. В демо-версии виды чая условные.',
+        en: 'A choice for every taste: XC2025 · G8810 · HET8800 · 8830 · STD8009. Tea types in this demo are provisional.',
+      },
+      {
+        uz: 'Har didga oʻziga xos tanlov: XC2025 · G8810 · HET8800 · 8830 · 8009. XC2025, G8810, 8830 va 8009 maʼlumotlari qadoqdan olingan; HET8800 choy turi va barcha narxlar namoyish uchun taxminiy.',
+        ru: 'Свой выбор для каждого вкуса: XC2025 · G8810 · HET8800 · 8830 · 8009. Данные XC2025, G8810, 8830 и 8009 взяты с упаковки; вид чая HET8800 и все цены в демо-версии условные.',
+        en: 'A choice for every taste: XC2025 · G8810 · HET8800 · 8830 · 8009. XC2025, G8810, 8830 and 8009 are described from their packs; the tea type of HET8800 and all prices are demo placeholders.',
+      },
+    ],
   },
 };
 
@@ -253,13 +394,14 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
     illustrationKey: 'green',
     name: { uz: 'Choy', ru: 'Чай', en: 'Tea' },
     description: {
-      uz: 'Qora, yashil, oq choy, ulun va pu-erh — barcha choylar bir joyda.',
-      ru: 'Чёрный, зелёный, белый чай, улун и пуэр — все чаи в одном месте.',
-      en: 'Black, green and white tea, oolong and pu-erh — every tea in one place.',
+      uz: 'TERAN premium Xitoy yashil choylari: Hunan va Yunnan togʻlaridan, 400 g zip-paketlarda.',
+      ru: 'Премиальные китайские зелёные чаи TERAN: из гор Хунани и Юньнани, в зип-пакетах по 400 г.',
+      en: 'TERAN premium Chinese green teas from the mountains of Hunan and Yunnan, in 400 g zip pouches.',
     },
   },
   {
     slug: 'black-tea',
+    testOnly: true,
     parent: 'tea',
     illustrationKey: 'black',
     name: { uz: 'Qora choy', ru: 'Чёрный чай', en: 'Black tea' },
@@ -282,6 +424,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'white-tea',
+    testOnly: true,
     parent: 'tea',
     illustrationKey: 'white',
     name: { uz: 'Oq choy', ru: 'Белый чай', en: 'White tea' },
@@ -293,6 +436,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'oolong',
+    testOnly: true,
     parent: 'tea',
     illustrationKey: 'oolong',
     name: { uz: 'Ulun', ru: 'Улун', en: 'Oolong' },
@@ -304,6 +448,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'pu-erh',
+    testOnly: true,
     parent: 'tea',
     // No dedicated pu-erh illustration exists yet; the black-tea artwork is the closest match.
     illustrationKey: 'black',
@@ -316,6 +461,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
   },
   {
     slug: 'gift-sets',
+    testOnly: true,
     productType: 'gift-set',
     illustrationKey: 'gift',
     name: { uz: 'Sovgʻa toʻplamlari', ru: 'Подарочные наборы', en: 'Gift sets' },
@@ -337,13 +483,14 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
       en: 'TERAN premium collection',
     },
     description: {
-      uz: 'Har didga oʻziga xos tanlov: XC2025 · G8810 · HET8800 · 8830 · 8009. XC2025, G8810, 8830 va 8009 maʼlumotlari qadoqdan olingan; HET8800 choy turi va barcha narxlar namoyish uchun taxminiy.',
-      ru: 'Свой выбор для каждого вкуса: XC2025 · G8810 · HET8800 · 8830 · 8009. Данные XC2025, G8810, 8830 и 8009 взяты с упаковки; вид чая HET8800 и все цены в демо-версии условные.',
-      en: 'A choice for every taste: XC2025 · G8810 · HET8800 · 8830 · 8009. XC2025, G8810, 8830 and 8009 are described from their packs; the tea type of HET8800 and all prices are demo placeholders.',
+      uz: 'Har didga oʻziga xos tanlov: XC2025 · G8810 · 8800 · 8830 · 8009.',
+      ru: 'Свой выбор для каждого вкуса: XC2025 · G8810 · 8800 · 8830 · 8009.',
+      en: 'A choice for every taste: XC2025 · G8810 · 8800 · 8830 · 8009.',
     },
   },
   {
     slug: 'everyday-classics',
+    testOnly: true,
     illustrationKey: 'black',
     name: { uz: 'Kundalik klassika', ru: 'Повседневная классика', en: 'Everyday classics' },
     description: {
@@ -354,6 +501,7 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
   },
   {
     slug: 'evening-calm',
+    testOnly: true,
     illustrationKey: 'white',
     name: { uz: 'Kechki osoyishtalik', ru: 'Вечерний покой', en: 'Evening calm' },
     description: {
@@ -364,6 +512,7 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
   },
   {
     slug: 'gift-ideas',
+    testOnly: true,
     illustrationKey: 'gift',
     name: { uz: 'Sovgʻa gʻoyalari', ru: 'Идеи для подарка', en: 'Gift ideas' },
     description: {
@@ -375,7 +524,7 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
 ];
 
 export const DEMO_PRODUCTS: DemoProduct[] = [
-  // ─── TERAN premium collection: four identifiers described from their packs, HET8800 a demo ───
+  // ─── The five TERAN teas (the owner's descriptions and pouch photographs, 2026-10-17) ───
   {
     slug: 'teran-xc2025',
     category: 'green-tea',
@@ -383,16 +532,20 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     format: 'LOOSE_LEAF',
     featured: true,
     illustrationKey: 'green',
-    publishedDaysAgo: 30,
-    brewing: PACK_BREW,
+    publishedDaysAgo: 60,
+    brewing: { tempC: 80, tempMaxC: 90, minSeconds: 120, maxSeconds: 180, grams: 5 },
     art: { style: 'green', shape: 'box' },
-    packaging: {
-      front: 'xc2025-front.webp',
-      back: 'xc2025-back.webp',
-      cutout: 'xc2025-cutout.webp',
-    },
-    ...packagedCopy('XC2025'),
-    variants: [{ sku: 'TRN-XC2025-400', weightGrams: 400, price: '189000', stock: 24 }],
+    packaging: pouch('XC2025', true),
+    ...teranCopy('XC2025'),
+    variants: [
+      {
+        sku: 'TRN-XC2025-400',
+        weightGrams: 400,
+        price: '189000',
+        stock: 50,
+        barcode: '4780179230021',
+      },
+    ],
   },
   {
     slug: 'teran-g8810',
@@ -401,31 +554,43 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     format: 'LOOSE_LEAF',
     featured: true,
     illustrationKey: 'green',
-    publishedDaysAgo: 36,
-    brewing: PACK_BREW,
+    publishedDaysAgo: 58,
+    brewing: { tempC: 90, minSeconds: 120, maxSeconds: 180, grams: 5 },
     art: { style: 'green', shape: 'box' },
-    packaging: {
-      front: 'g8810-front.webp',
-      back: 'g8810-back.webp',
-      cutout: 'g8810-cutout.webp',
-    },
-    ...packagedCopy('G8810'),
-    variants: [{ sku: 'TRN-G8810-400', weightGrams: 400, price: '179000', stock: 30 }],
+    packaging: pouch('G8810', true),
+    ...teranCopy('G8810'),
+    variants: [
+      {
+        sku: 'TRN-G8810-400',
+        weightGrams: 400,
+        price: '179000',
+        stock: 50,
+        barcode: '4780179230014',
+      },
+    ],
   },
   {
-    slug: 'teran-het8800',
-    category: 'black-tea',
+    // The owner's first list said "HET8800"; the pack, its barcode and description say 8800.
+    slug: 'teran-8800',
+    formerSlugs: ['teran-het8800'],
+    category: 'green-tea',
     collections: ['teran-premium'],
     format: 'LOOSE_LEAF',
-    featured: false,
-    illustrationKey: 'black',
-    publishedDaysAgo: 34,
-    brewing: BREW.black,
-    art: { style: 'black', shape: 'box' },
-    ...identifierCopy('HET8800', 'black'),
+    featured: true,
+    illustrationKey: 'green',
+    publishedDaysAgo: 56,
+    brewing: { tempC: 85, tempMaxC: 90, minSeconds: 120, maxSeconds: 120, grams: 3, gramsMax: 5 },
+    art: { style: 'green', shape: 'box' },
+    packaging: pouch('8800', false),
+    ...teranCopy('8800'),
     variants: [
-      { sku: 'TRN-HET8800-100', weightGrams: 100, price: '89000', stock: 40 },
-      { sku: 'TRN-HET8800-250', weightGrams: 250, price: '198000', stock: 18 },
+      {
+        sku: 'TRN-8800-400',
+        weightGrams: 400,
+        price: '179000',
+        stock: 50,
+        barcode: '4780179230045',
+      },
     ],
   },
   {
@@ -435,41 +600,43 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     format: 'LOOSE_LEAF',
     featured: true,
     illustrationKey: 'green',
-    publishedDaysAgo: 28,
-    brewing: PACK_BREW,
+    publishedDaysAgo: 54,
+    brewing: { tempC: 85, tempMaxC: 90, minSeconds: 120, maxSeconds: 120, grams: 3, gramsMax: 5 },
     art: { style: 'green', shape: 'box' },
-    packaging: {
-      front: '8830-front.webp',
-      back: '8830-back.webp',
-      cutout: '8830-cutout.webp',
-    },
-    ...packagedCopy('8830'),
-    variants: [{ sku: 'TRN-8830-400', weightGrams: 400, price: '199000', stock: 12 }],
+    packaging: pouch('8830', true),
+    ...teranCopy('8830'),
+    variants: [
+      {
+        sku: 'TRN-8830-400',
+        weightGrams: 400,
+        price: '199000',
+        stock: 50,
+        barcode: '4780179230038',
+      },
+    ],
   },
   {
-    // The slug and SKUs keep "std8009" from the first list of identifiers; the pack says 8009.
-    slug: 'teran-std8009',
+    // The owner's first list said "STD8009"; the pack says 8009.
+    slug: 'teran-8009',
+    formerSlugs: ['teran-std8009'],
     category: 'green-tea',
     collections: ['teran-premium'],
     format: 'LOOSE_LEAF',
     featured: true,
     illustrationKey: 'green',
-    publishedDaysAgo: 26,
-    brewing: PACK_BREW,
+    publishedDaysAgo: 52,
+    brewing: { tempC: 85, tempMaxC: 90, minSeconds: 120, maxSeconds: 120, grams: 3, gramsMax: 5 },
     art: { style: 'green', shape: 'box' },
-    packaging: {
-      front: '8009-front.webp',
-      back: '8009-back.webp',
-      cutout: '8009-cutout.webp',
-    },
-    ...packagedCopy('8009'),
+    packaging: pouch('8009', true),
+    ...teranCopy('8009'),
     variants: [
       {
-        sku: 'TRN-STD8009-400',
+        sku: 'TRN-8009-400',
+        formerSkus: ['TRN-STD8009-400'],
         weightGrams: 400,
         price: '159000',
-        stock: 7,
-        lowStockThreshold: 5,
+        stock: 50,
+        barcode: '4780179230052',
       },
     ],
   },
@@ -477,6 +644,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   // ─── Black tea ───
   {
     slug: 'classic-black-tea',
+    testOnly: true,
     category: 'black-tea',
     collections: ['everyday-classics'],
     format: 'LOOSE_LEAF',
@@ -504,6 +672,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'black-tea-bags',
+    testOnly: true,
     category: 'black-tea',
     collections: ['everyday-classics'],
     format: 'TEA_BAGS',
@@ -531,6 +700,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'earl-grey',
+    testOnly: true,
     category: 'black-tea',
     collections: [],
     format: 'LOOSE_LEAF',
@@ -560,6 +730,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   // ─── Green tea ───
   {
     slug: 'classic-green-tea',
+    testOnly: true,
     category: 'green-tea',
     collections: ['everyday-classics'],
     format: 'LOOSE_LEAF',
@@ -587,6 +758,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'jasmine-green-tea',
+    testOnly: true,
     category: 'green-tea',
     collections: ['gift-ideas'],
     format: 'LOOSE_LEAF',
@@ -613,6 +785,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'green-tea-pyramids',
+    testOnly: true,
     category: 'green-tea',
     collections: [],
     format: 'PYRAMIDS',
@@ -643,6 +816,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'mint-green-tea',
+    testOnly: true,
     category: 'green-tea',
     collections: ['everyday-classics'],
     format: 'LOOSE_LEAF',
@@ -667,6 +841,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'spring-green-tea',
+    testOnly: true,
     status: 'DRAFT',
     category: 'green-tea',
     collections: [],
@@ -694,6 +869,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   // ─── White tea ───
   {
     slug: 'white-tea',
+    testOnly: true,
     category: 'white-tea',
     collections: ['gift-ideas', 'evening-calm'],
     format: 'LOOSE_LEAF',
@@ -723,6 +899,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   // ─── Oolong ───
   {
     slug: 'oolong-tea',
+    testOnly: true,
     category: 'oolong',
     collections: ['gift-ideas'],
     format: 'LOOSE_LEAF',
@@ -747,6 +924,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'roasted-oolong',
+    testOnly: true,
     category: 'oolong',
     collections: ['evening-calm'],
     format: 'LOOSE_LEAF',
@@ -776,6 +954,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   // ─── Pu-erh ───
   {
     slug: 'pu-erh-tea',
+    testOnly: true,
     category: 'pu-erh',
     collections: ['evening-calm', 'everyday-classics'],
     format: 'LOOSE_LEAF',
@@ -803,6 +982,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'mini-pu-erh',
+    testOnly: true,
     category: 'pu-erh',
     collections: [],
     format: 'LOOSE_LEAF',
@@ -831,6 +1011,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   // ─── Gift sets ───
   {
     slug: 'gift-set-trio',
+    testOnly: true,
     category: 'gift-sets',
     collections: ['gift-ideas'],
     format: 'GIFT_SET',
@@ -867,6 +1048,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'gift-set-duo',
+    testOnly: true,
     category: 'gift-sets',
     collections: ['gift-ideas'],
     format: 'GIFT_SET',
@@ -894,6 +1076,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
   },
   {
     slug: 'teran-premium-gift-box',
+    testOnly: true,
     category: 'gift-sets',
     collections: ['gift-ideas'],
     format: 'GIFT_SET',

@@ -9,5 +9,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  return <LegalPage content={returnsPolicy} locale={(await rootParams.locale()) as Locale} />;
+  return (
+    <LegalPage
+      content={returnsPolicy}
+      locale={(await rootParams.locale()) as Locale}
+      headings="teal"
+    />
+  );
 }

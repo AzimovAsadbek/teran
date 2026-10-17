@@ -15,6 +15,7 @@ import {
 } from '@teran/contracts';
 import { z } from 'zod';
 import { CatalogService } from '../catalog/catalog.service.js';
+import { visibleProductWhere } from '../catalog/product-visibility.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -47,6 +48,8 @@ interface SearchFilters {
   minPrice: number | null;
   maxPrice: number | null;
   attributes: Record<string, string[]>;
+  /** A place of origin (a Vocabulary `places` key). */
+  origin: string | null;
   text: string | null;
   inStockOnly: boolean;
   sort: 'featured' | 'price_asc';
@@ -64,11 +67,16 @@ interface Vocabulary extends CatalogVocabulary {
   >;
   /** Top-level categories with visible products, for clarifying questions. */
   topLevel: { slug: string; names: Partial<Record<Locale, string>> }[];
+  /** The `origins` places with their names per language and the visible products from there. */
+  places: Map<string, { names: Partial<Record<Locale, string>>; productIds: Set<string> }>;
 }
 
 /** Words that must never reach a shopper as a product claim (health and medical promises). */
 const CLAIM_WORDS =
   /davola|shifo|sog'liq|sogʻliq|foydali|лечит|лечеб|полезн|здоров|cure|heal|health|medic/i;
+
+/** An amount of money ("159 000 soʻm", "от 95 000 сум", "120,000 UZS"). */
+const MONEY = /\d[\d\s\u00a0.,]*\s*(?:so['ʻ‘’]?m|сум|uzs)/i;
 
 /**
  * The product advisor (docs/architecture/product-advisor.md). It reads a shopper's request,
@@ -76,7 +84,8 @@ const CLAIM_WORDS =
  * recorded facts that make them match. With an AI provider configured, a model reads the request
  * and calls the same search tool; its picks are kept only when they came back from that tool, so
  * it can never invent a product, price or link. Without a provider (or when it fails), rule-based
- * reading of the request does the same job ("basic" mode).
+ * reading of the request does the same job ("basic" mode). While the storefront shows no prices
+ * (the request's `prices: false`), neither mode names a price or a budget.
  */
 @Injectable()
 export class AssistantService {
@@ -128,14 +137,18 @@ export class AssistantService {
   // ─── Rule-based answers ────────────────────────────────────────────────────
 
   private async basic(request: AssistantInput, vocabulary: Vocabulary): Promise<AssistantResponse> {
-    const { locale } = request;
+    const { locale, prices } = request;
     const texts = TEXTS[locale];
     const earlier = request.history
       .filter((turn) => turn.role === 'user')
       .map((turn) => parseRequest(turn.text, vocabulary));
-    const parsed = mergeRequests([...earlier, parseRequest(request.message, vocabulary)]);
+    const merged = mergeRequests([...earlier, parseRequest(request.message, vocabulary)]);
+    // Without prices on the storefront a budget cannot be honoured, so it is left out.
+    const parsed = prices ? merged : { ...merged, maxPrice: null, minPrice: null };
     const filters = filtersFrom(parsed);
-    const notes = parsed.unrecorded.map((quality) => texts.notes[quality]);
+    const notes = parsed.unrecorded.map((quality) =>
+      !prices && quality === 'quality' ? texts.noPrices.quality : texts.notes[quality],
+    );
 
     const nothingAsked =
       !filters.category &&
@@ -144,16 +157,17 @@ export class AssistantService {
       filters.minPrice === null &&
       filters.formats.length === 0 &&
       Object.keys(filters.attributes).length === 0 &&
+      !filters.origin &&
       !filters.text &&
       !parsed.gift;
     if (nothingAsked) {
       return {
         mode: 'basic',
-        message: texts.ask,
+        message: prices ? texts.ask : texts.noPrices.ask,
         criteria: this.criteria(filters, parsed.gift, locale, vocabulary),
         recommendations: [],
         notes,
-        followUp: this.askCategory(locale, vocabulary),
+        followUp: this.askCategory(locale, vocabulary, prices),
         relaxed: false,
       };
     }
@@ -182,6 +196,11 @@ export class AssistantService {
       dropped.push('formats');
       attempts.push({ filters: current, dropped: [...dropped] });
     }
+    if (current.origin) {
+      current = { ...current, origin: null };
+      dropped.push('origin');
+      attempts.push({ filters: current, dropped: [...dropped] });
+    }
     if (current.maxPrice !== null && (current.category || current.type)) {
       attempts.push({
         filters: { ...current, maxPrice: null, minPrice: null, sort: 'price_asc' },
@@ -200,12 +219,18 @@ export class AssistantService {
     }
 
     for (const attempt of attempts) {
-      const products = await this.search(attempt.filters, locale, MAX_PICKS);
+      const products = await this.search(attempt.filters, locale, MAX_PICKS, vocabulary);
       if (products.length === 0) continue;
       const details = await this.details(products, locale);
       const recommendations = products.map((product) => ({
         product,
-        reasons: this.reasons(product, details.get(product.id) ?? null, attempt.filters, locale),
+        reasons: this.reasons(
+          product,
+          details.get(product.id) ?? null,
+          attempt.filters,
+          locale,
+          prices,
+        ),
       }));
       const relaxed = attempt.dropped.length > 0;
       let message = texts.found(products.length);
@@ -225,8 +250,8 @@ export class AssistantService {
         followUp: attempt.overBudget
           ? texts.askAlternative
           : !filters.category && !filters.type
-            ? this.askCategory(locale, vocabulary)
-            : filters.maxPrice === null && filters.minPrice === null
+            ? this.askCategory(locale, vocabulary, prices)
+            : prices && filters.maxPrice === null && filters.minPrice === null
               ? texts.askBudget
               : null,
         relaxed,
@@ -238,28 +263,30 @@ export class AssistantService {
       criteria: this.criteria(filters, parsed.gift, locale, vocabulary),
       recommendations: [],
       notes,
-      followUp: texts.askAlternative,
+      followUp: prices ? texts.askAlternative : texts.noPrices.askAlternative,
       relaxed: true,
     };
   }
 
-  /** Why a product matches, from recorded facts only. */
+  /** Why a product matches, from recorded facts only (its price only when the store shows prices). */
   private reasons(
     product: ProductSummaryDto,
     detail: ProductDetailDto | null,
     filters: SearchFilters,
     locale: Locale,
+    prices: boolean,
   ): string[] {
     const texts = TEXTS[locale];
-    const price = formatSum(Number(product.priceFrom), locale);
-    const single = product.variantCount <= 1;
     const reasons: string[] = [];
-    if (filters.maxPrice !== null) {
-      reasons.push(texts.withinBudget(price, formatSum(filters.maxPrice, locale)));
-    } else if (filters.minPrice !== null) {
-      reasons.push(texts.aboveFloor(price, formatSum(filters.minPrice, locale)));
-    } else {
-      reasons.push(texts.price(price, single));
+    if (prices) {
+      const price = formatSum(Number(product.priceFrom), locale);
+      if (filters.maxPrice !== null) {
+        reasons.push(texts.withinBudget(price, formatSum(filters.maxPrice, locale)));
+      } else if (filters.minPrice !== null) {
+        reasons.push(texts.aboveFloor(price, formatSum(filters.minPrice, locale)));
+      } else {
+        reasons.push(texts.price(price, product.variantCount <= 1));
+      }
     }
     reasons.push(texts.inCategory(product.category.name));
     if (product.format !== 'OTHER') reasons.push(texts.format[product.format]);
@@ -277,7 +304,12 @@ export class AssistantService {
     if (detail?.brewing) {
       const parts: string[] = [];
       if (detail.brewing.temperatureCelsius)
-        parts.push(texts.temperature(detail.brewing.temperatureCelsius));
+        parts.push(
+          texts.temperature(
+            detail.brewing.temperatureCelsius,
+            detail.brewing.temperatureMaxCelsius,
+          ),
+        );
       if (detail.brewing.timeMinSeconds) {
         parts.push(
           texts.minutes(
@@ -287,7 +319,12 @@ export class AssistantService {
         );
       }
       if (detail.brewing.amountGrams)
-        parts.push(texts.amount(Number(detail.brewing.amountGrams).toString()));
+        parts.push(
+          texts.amount(
+            Number(detail.brewing.amountGrams).toString(),
+            detail.brewing.amountMaxGrams ? Number(detail.brewing.amountMaxGrams).toString() : null,
+          ),
+        );
       if (parts.length > 0) reasons.push(texts.brewing(parts));
     }
     if (detail?.origin) reasons.push(texts.origin(detail.origin));
@@ -297,12 +334,13 @@ export class AssistantService {
     return reasons.slice(0, 6);
   }
 
-  private askCategory(locale: Locale, vocabulary: Vocabulary): string | null {
+  private askCategory(locale: Locale, vocabulary: Vocabulary, prices: boolean): string | null {
     const names = vocabulary.topLevel
       .map((category) => category.names[locale] ?? category.names.uz)
       .filter((name): name is string => Boolean(name))
       .slice(0, 5);
-    return names.length > 0 ? TEXTS[locale].askCategory(names.join(', ')) : TEXTS[locale].askBudget;
+    if (names.length > 0) return TEXTS[locale].askCategory(names.join(', '));
+    return prices ? TEXTS[locale].askBudget : null;
   }
 
   private criteria(
@@ -312,6 +350,7 @@ export class AssistantService {
     vocabulary: Vocabulary,
   ): AssistantCriteria {
     const category = filters.category ? vocabulary.categoryLabels.get(filters.category) : undefined;
+    const place = filters.origin ? vocabulary.places.get(filters.origin) : undefined;
     return {
       maxPrice: filters.maxPrice,
       minPrice: filters.minPrice,
@@ -346,6 +385,7 @@ export class AssistantService {
           },
         ];
       }),
+      origin: place ? (place.names[locale] ?? place.names.uz ?? filters.origin) : null,
       query: filters.text,
       gift,
       inStockOnly: filters.inStockOnly,
@@ -358,7 +398,9 @@ export class AssistantService {
     filters: SearchFilters,
     locale: Locale,
     limit: number,
+    vocabulary: Vocabulary,
   ): Promise<ProductSummaryDto[]> {
+    const place = filters.origin ? vocabulary.places.get(filters.origin) : undefined;
     const query = productListQuerySchema.parse({
       locale,
       ...(filters.category ? { category: filters.category } : {}),
@@ -370,9 +412,11 @@ export class AssistantService {
       ...(Object.keys(filters.attributes).length > 0 ? { attributes: filters.attributes } : {}),
       ...(filters.text ? { q: filters.text } : {}),
       sort: filters.sort,
-      pageSize: limit,
+      // The catalogue has no origin filter: a place's products are picked from a full page.
+      pageSize: place ? 48 : limit,
     });
-    return (await this.catalog.listProducts(query)).items;
+    const items = (await this.catalog.listProducts(query)).items;
+    return place ? items.filter((item) => place.productIds.has(item.id)).slice(0, limit) : items;
   }
 
   private async details(
@@ -396,7 +440,7 @@ export class AssistantService {
     const now = Date.now();
     if (this.vocabularyCache && this.vocabularyCache.expires > now)
       return this.vocabularyCache.value;
-    const [categories, uzCategories, types, attributes] = await Promise.all([
+    const [categories, uzCategories, types, attributes, origins, productCount] = await Promise.all([
       this.prisma.category.findMany({
         where: { isActive: true, OR: [{ parentId: null }, { parent: { isActive: true } }] },
         orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
@@ -426,7 +470,13 @@ export class AssistantService {
           },
         },
       }),
+      this.prisma.productTranslation.findMany({
+        where: { origin: { not: null }, product: visibleProductWhere() },
+        select: { productId: true, locale: true, origin: true },
+      }),
+      this.prisma.product.count({ where: visibleProductWhere() }),
     ]);
+    const places = originPlaces(origins, productCount);
     const withProducts = new Set(
       uzCategories.filter((category) => category.productCount > 0).map((category) => category.slug),
     );
@@ -479,6 +529,11 @@ export class AssistantService {
       topLevel: categories
         .filter((category) => !category.parent && withProducts.has(category.slug))
         .map((category) => ({ slug: category.slug, names: names(category.translations) })),
+      origins: [...places].map(([key, place]) => ({
+        key,
+        names: Object.values(place.names).filter((name): name is string => Boolean(name)),
+      })),
+      places,
     };
     this.vocabularyCache = { value, expires: now + VOCABULARY_TTL_MS };
     return value;
@@ -491,9 +546,9 @@ export class AssistantService {
     request: AssistantInput,
     vocabulary: Vocabulary,
   ): Promise<AssistantResponse | null> {
-    const { locale } = request;
+    const { locale, prices } = request;
     const signal = AbortSignal.timeout(AI_TIMEOUT_MS);
-    const tools = this.tools(vocabulary, locale);
+    const tools = this.tools(vocabulary, locale, prices);
     const messages: ChatMessage[] = [
       ...request.history.map((turn) => ({ role: turn.role, content: turn.text })),
       { role: 'user', content: request.message },
@@ -503,7 +558,7 @@ export class AssistantService {
 
     for (let turn = 0; turn < AI_TURNS; turn += 1) {
       const reply = await client.create({
-        system: systemPrompt(locale),
+        system: systemPrompt(locale, prices),
         messages,
         tools,
         maxTokens: 1200,
@@ -513,7 +568,9 @@ export class AssistantService {
         (block): block is Extract<ContentBlock, { type: 'tool_use' }> => block.type === 'tool_use',
       );
       const final = uses.find((use) => use.name === 'recommend');
-      if (final) return this.fromAiAnswer(final.input, seen, lastFilters, locale, vocabulary);
+      if (final) {
+        return this.fromAiAnswer(final.input, seen, lastFilters, locale, vocabulary, prices);
+      }
       if (uses.length === 0) {
         const text = reply.content
           .filter(
@@ -522,7 +579,8 @@ export class AssistantService {
           .map((block) => block.text)
           .join('\n')
           .trim();
-        if (!text) return null;
+        // An answer naming a price the store does not show gives way to the rule-based one.
+        if (!text || (!prices && MONEY.test(text))) return null;
         return {
           mode: 'ai',
           message: clean(text, 700),
@@ -536,7 +594,8 @@ export class AssistantService {
       messages.push({ role: 'assistant', content: reply.content });
       const results: ContentBlock[] = [];
       for (const use of uses) {
-        const filters = use.name === 'search_catalog' ? toolFilters(use.input, vocabulary) : null;
+        const filters =
+          use.name === 'search_catalog' ? toolFilters(use.input, vocabulary, prices) : null;
         if (!filters) {
           results.push({
             type: 'tool_result',
@@ -548,7 +607,7 @@ export class AssistantService {
           continue;
         }
         lastFilters = filters;
-        const products = await this.search(filters, locale, 8);
+        const products = await this.search(filters, locale, 8, vocabulary);
         const details = await this.details(products, locale);
         for (const product of products) seen.set(product.id, product);
         results.push({
@@ -556,7 +615,9 @@ export class AssistantService {
           tool_use_id: use.id,
           content: JSON.stringify({
             count: products.length,
-            products: products.map((product) => compactProduct(product, details.get(product.id))),
+            products: products.map((product) =>
+              compactProduct(product, details.get(product.id), prices),
+            ),
           }),
         });
       }
@@ -572,33 +633,42 @@ export class AssistantService {
     filters: SearchFilters | null,
     locale: Locale,
     vocabulary: Vocabulary,
+    prices: boolean,
   ): AssistantResponse | null {
     const parsed = aiAnswerSchema.safeParse(input);
     if (!parsed.success) return null;
+    const { message, notes, followUp } = parsed.data;
+    // An answer naming a price the store does not show gives way to the rule-based one.
+    if (!prices && [message, followUp ?? '', ...notes].some((text) => MONEY.test(text))) {
+      return null;
+    }
     const recommendations: AssistantRecommendation[] = [];
     for (const pick of parsed.data.picks) {
       const product = seen.get(pick.productId);
       if (!product || recommendations.some((entry) => entry.product.id === product.id)) continue;
-      const factual = this.reasons(product, null, filters ?? emptyFilters(), locale).slice(0, 2);
+      const factual = this.reasons(product, null, filters ?? emptyFilters(), locale, prices).slice(
+        0,
+        2,
+      );
       const explained = pick.reasons
         .map((reason) => clean(reason, 200))
-        .filter((reason) => reason && !CLAIM_WORDS.test(reason))
+        .filter((reason) => reason && !CLAIM_WORDS.test(reason) && (prices || !MONEY.test(reason)))
         .slice(0, 3);
       recommendations.push({ product, reasons: [...factual, ...explained] });
       if (recommendations.length >= MAX_PICKS) break;
     }
     return {
       mode: 'ai',
-      message: clean(parsed.data.message, 700),
+      message: clean(message, 700),
       criteria: this.criteria(filters ?? emptyFilters(), false, locale, vocabulary),
       recommendations,
-      notes: parsed.data.notes.map((note) => clean(note, 300)).filter(Boolean),
-      followUp: parsed.data.followUp ? clean(parsed.data.followUp, 300) : null,
+      notes: notes.map((note) => clean(note, 300)).filter(Boolean),
+      followUp: followUp ? clean(followUp, 300) : null,
       relaxed: false,
     };
   }
 
-  private tools(vocabulary: Vocabulary, locale: Locale): ToolDefinition[] {
+  private tools(vocabulary: Vocabulary, locale: Locale, prices: boolean): ToolDefinition[] {
     const label = (names: Partial<Record<Locale, string>>, fallback: string) =>
       names[locale] ?? names.uz ?? fallback;
     const categoryList = vocabulary.categories
@@ -627,7 +697,9 @@ export class AssistantService {
         name: 'search_catalog',
         description:
           'Search the TERAN store’s current catalogue. Returns only published, purchasable products ' +
-          'with real prices in UZS and their recorded facts. ' +
+          (prices
+            ? 'with real prices in UZS and their recorded facts. '
+            : 'and their recorded facts. ') +
           `Categories: ${categoryList || 'none'}. ` +
           `Product types: ${vocabulary.productTypes.map((type) => type.key).join(', ') || 'none'}. ` +
           `Filterable attributes (key: option keys): ${attributeList || 'none'}.`,
@@ -639,8 +711,12 @@ export class AssistantService {
               enum: vocabulary.categories.map((category) => category.slug),
             },
             productType: { type: 'string', enum: vocabulary.productTypes.map((type) => type.key) },
-            maxPrice: { type: 'integer', minimum: 0, description: 'Budget ceiling in UZS' },
-            minPrice: { type: 'integer', minimum: 0 },
+            ...(prices
+              ? {
+                  maxPrice: { type: 'integer', minimum: 0, description: 'Budget ceiling in UZS' },
+                  minPrice: { type: 'integer', minimum: 0 },
+                }
+              : {}),
             formats: { type: 'array', items: { type: 'string', enum: [...PRODUCT_FORMATS] } },
             attributes: {
               type: 'object',
@@ -711,8 +787,15 @@ const toolInputSchema = z
   })
   .strict();
 
-/** The model's search request, accepted only with filters the catalogue really has. */
-function toolFilters(input: unknown, vocabulary: Vocabulary): SearchFilters | null {
+/**
+ * The model's search request, accepted only with filters the catalogue really has (and without a
+ * budget while the store shows no prices).
+ */
+function toolFilters(
+  input: unknown,
+  vocabulary: Vocabulary,
+  prices: boolean,
+): SearchFilters | null {
   const parsed = toolInputSchema.safeParse(input);
   if (!parsed.success) return null;
   const value = parsed.data;
@@ -743,9 +826,10 @@ function toolFilters(input: unknown, vocabulary: Vocabulary): SearchFilters | nu
     category: value.category ?? null,
     type: value.productType ?? null,
     formats: value.formats ?? [],
-    minPrice: value.minPrice ?? null,
-    maxPrice: value.maxPrice ?? null,
+    minPrice: prices ? (value.minPrice ?? null) : null,
+    maxPrice: prices ? (value.maxPrice ?? null) : null,
     attributes,
+    origin: null,
     text: value.text ? normalize(value.text) : null,
     inStockOnly: value.inStockOnly ?? true,
     sort: 'featured',
@@ -760,6 +844,7 @@ function emptyFilters(): SearchFilters {
     minPrice: null,
     maxPrice: null,
     attributes: {},
+    origin: null,
     text: null,
     inStockOnly: true,
     sort: 'featured',
@@ -777,6 +862,7 @@ function filtersFrom(parsed: ParsedRequest): SearchFilters {
     minPrice: parsed.minPrice,
     maxPrice: parsed.maxPrice,
     attributes: parsed.attributes,
+    origin: parsed.origin,
     text: parsed.textQuery,
     inStockOnly: true,
     sort: 'featured',
@@ -793,6 +879,7 @@ function mergeRequests(requests: ParsedRequest[]): ParsedRequest {
     formats: [],
     gift: false,
     attributes: {},
+    origin: null,
     textQuery: null,
     unrecorded: [],
   };
@@ -810,20 +897,66 @@ function mergeRequests(requests: ParsedRequest[]): ParsedRequest {
     if (request.formats.length > 0) merged.formats = request.formats;
     merged.gift = merged.gift || request.gift;
     merged.attributes = { ...merged.attributes, ...request.attributes };
+    if (request.origin) merged.origin = request.origin;
     if (request.textQuery) merged.textQuery = request.textQuery;
     merged.unrecorded = [...new Set([...merged.unrecorded, ...request.unrecorded])];
   }
   return merged;
 }
 
-/** What the model sees of a product: facts only, compact. */
-function compactProduct(product: ProductSummaryDto, detail: ProductDetailDto | undefined) {
+/**
+ * Places products come from, from their recorded origin ("Xitoy, Yunnan" / "Китай, Юньнань"):
+ * each comma-separated part is a place, named in each language by the part at the same position.
+ * A place every visible product shares (the country, in a one-country catalogue) cannot narrow a
+ * choice and is left out.
+ */
+function originPlaces(
+  rows: readonly { productId: string; locale: string; origin: string | null }[],
+  productCount: number,
+): Vocabulary['places'] {
+  const parts = new Map<string, Map<string, string[]>>();
+  for (const row of rows) {
+    if (!row.origin) continue;
+    const byLocale = parts.get(row.productId) ?? new Map<string, string[]>();
+    byLocale.set(
+      row.locale,
+      row.origin
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean),
+    );
+    parts.set(row.productId, byLocale);
+  }
+  const places: Vocabulary['places'] = new Map();
+  for (const [productId, byLocale] of parts) {
+    const reference = byLocale.get('uz') ?? [...byLocale.values()][0] ?? [];
+    reference.forEach((part, index) => {
+      const key = normalize(part);
+      const place = places.get(key) ?? { names: {}, productIds: new Set<string>() };
+      for (const [locale, names] of byLocale) {
+        const name = names[index];
+        if (name) place.names[locale as Locale] ??= name;
+      }
+      place.productIds.add(productId);
+      places.set(key, place);
+    });
+  }
+  for (const [key, place] of places) if (place.productIds.size >= productCount) places.delete(key);
+  return places;
+}
+
+/** What the model sees of a product: facts only, compact (no price while the store shows none). */
+function compactProduct(
+  product: ProductSummaryDto,
+  detail: ProductDetailDto | undefined,
+  prices: boolean,
+) {
   return {
     productId: product.id,
     name: product.name,
     category: product.category.name,
     format: product.format,
-    priceFromUzs: Math.round(Number(product.priceFrom)),
+    ...(prices ? { priceFromUzs: Math.round(Number(product.priceFrom)) } : {}),
     packCount: product.variantCount,
     stock: product.stockLevel,
     shortDescription: product.shortDescription?.slice(0, 240) ?? null,
@@ -850,17 +983,20 @@ function clean(text: string, max: number): string {
   return plain.length > max ? `${plain.slice(0, max - 1).trimEnd()}…` : plain;
 }
 
-function systemPrompt(locale: Locale): string {
+function systemPrompt(locale: Locale, prices: boolean): string {
   const language =
     locale === 'ru' ? 'Russian' : locale === 'en' ? 'English' : 'Uzbek (Latin script)';
+  const facts = `${prices ? 'price, ' : ''}category, format, attributes, brewing guide, origin, tasting notes`;
   return [
     "You are the product advisor of TERAN's online store (Premium Chinese Tea, Uzbekistan).",
     "Help the shopper choose from the store's current catalogue. Rules:",
     '1. Always find products with search_catalog. Never mention a product, price, pack size or stock level the tool did not return.',
     '2. Finish with the recommend tool: at most 4 picks, only by productId from search results.',
-    '3. Explain picks only with facts from the results (price, category, format, attributes, brewing guide, origin, tasting notes). Never claim a quality grade, certification, health or medical benefit, or any property the results do not state.',
+    `3. Explain picks only with facts from the results (${facts}). Never claim a quality grade, certification, health or medical benefit, or any property the results do not state.`,
     '4. If the shopper asks for something the catalogue does not record (e.g. how mild a tea is, a quality grade), say so briefly in notes and use the facts that exist.',
-    "5. Prices are in Uzbek so'm (UZS). A budget is a maxPrice.",
+    prices
+      ? "5. Prices are in Uzbek so'm (UZS). A budget is a maxPrice."
+      : '5. The store shows no prices at the moment: never mention a price, budget or cost. If the shopper asks about one, say TERAN tells it when they order by phone or message.',
     '6. If the request is unclear or nothing matches, ask one short follow-up question.',
     '7. You only recommend; you never take orders or ask for personal data.',
     `8. Write to the shopper in ${language}, briefly and warmly.`,

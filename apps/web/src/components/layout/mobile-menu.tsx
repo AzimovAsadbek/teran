@@ -27,9 +27,9 @@ const TILE =
 const TILE_LABEL =
   'absolute inset-x-0 bottom-0 line-clamp-3 bg-linear-to-t from-forest-950/90 via-forest-950/55 to-transparent px-3 pt-12 pb-3 font-headline text-[1.375rem] [overflow-wrap:anywhere]';
 const ROW =
-  'flex min-h-14 w-full items-center justify-between gap-3 rounded-tile bg-surface-muted px-5 text-[1.0625rem] font-medium text-fg transition-colors hover:bg-surface-sunken hover:text-brand';
+  'flex min-h-14 w-full items-center justify-between gap-3 rounded-tile bg-surface-muted px-5 text-[1.0625rem] font-medium text-fg transition-colors hover:bg-surface-sunken';
 const LINK_ROW =
-  'flex min-h-12 items-center justify-between gap-3 border-b border-line-subtle py-3 text-body transition-colors hover:text-brand';
+  'flex min-h-12 items-center justify-between gap-3 border-b border-line-subtle py-3 text-body hover:underline hover:underline-offset-4';
 
 /**
  * Drawer navigation below 1280 px, on the reference's model: picture tiles for the catalogue (its
@@ -91,7 +91,7 @@ export function MobileMenu({
               <Suspense fallback={<AccountLink user={null} onDone={close} />}>
                 <StreamedAccountLink account={account} onDone={close} />
               </Suspense>
-              <LanguageSwitcherSlot tone="light" />
+              <LanguageSwitcherSlot tone="light" placement="up" />
             </div>
           ) : null
         }
@@ -104,7 +104,7 @@ export function MobileMenu({
                   ref={backRef}
                   type="button"
                   onClick={() => setLevel(null)}
-                  className="-ml-1 inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-body font-semibold text-forest-900"
+                  className="-ml-1 inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-body font-semibold text-fg"
                 >
                   <ArrowLeft aria-hidden className="h-5 w-5" />
                   {t('backTo')}
@@ -268,7 +268,7 @@ function CategoryLinks({ navigation }: { navigation: Promise<Navigation> }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <nav aria-label={title} className="mt-6">
-      <h3 className="font-heading text-[1.5rem] leading-tight text-forest-900">{title}</h3>
+      <h3 className="font-heading text-[1.5rem] leading-tight text-fg">{title}</h3>
       <ul className="mt-2">{children}</ul>
     </nav>
   );
@@ -290,7 +290,7 @@ function Row({
     <li>
       <Link
         href={href}
-        className={cn(LINK_ROW, strong ? 'font-semibold text-forest-900' : 'font-medium text-fg')}
+        className={cn(LINK_ROW, strong ? 'font-semibold text-fg' : 'font-medium text-fg')}
       >
         <span className="min-w-0">
           {children}
@@ -319,7 +319,7 @@ function AccountLink({ user, onDone }: { user: HeaderAccount; onDone: () => void
     <Link
       href={user ? '/account' : '/account/login'}
       onClick={onDone}
-      className="inline-flex min-h-11 items-center gap-2 text-title-sm text-fg hover:text-brand"
+      className="inline-flex min-h-11 items-center gap-2 text-title-sm text-fg hover:underline hover:underline-offset-4"
     >
       <UserRound aria-hidden className="h-5 w-5" />
       <span className="max-w-[10rem] truncate">{user ? user.firstName : t('signIn')}</span>

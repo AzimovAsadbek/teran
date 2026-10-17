@@ -23,12 +23,12 @@ export function ArticleCard({
   const locale = useLocale();
   const Heading = headingLevel;
   return (
-    <article className="group relative isolate flex aspect-[321/364] flex-col justify-end overflow-hidden rounded-[1rem] bg-jade-700">
+    <article className="group relative isolate flex aspect-[345/472] flex-col justify-end overflow-hidden rounded-[1rem] bg-jade-700">
       {article.cover ? (
         <CoverImage
           image={article.cover}
-          sizes="(min-width: 1280px) 20rem, (min-width: 640px) 45vw, 92vw"
-          className="absolute inset-0 -z-20 transition-transform duration-[350ms] ease-out group-hover:scale-[1.04]"
+          sizes="(min-width: 95rem) 21.5625rem, (min-width: 1280px) 23vw, (min-width: 640px) 45vw, 92vw"
+          className="absolute inset-0 -z-20 transition-transform duration-[350ms] ease-[ease] group-hover:scale-[1.04]"
         />
       ) : (
         <span className="absolute inset-x-0 top-[14%] -z-20 mx-auto h-28 w-28 transition-transform duration-[350ms] ease-out group-hover:scale-105 sm:h-32 sm:w-32">
@@ -47,7 +47,7 @@ export function ArticleCard({
       </time>
       <span
         aria-hidden
-        className="absolute right-3.5 bottom-3.5 flex h-7 w-7 items-center justify-center rounded-full bg-ivory-50 text-forest-900 transition-transform duration-200 group-hover:translate-x-0.5"
+        className="absolute right-3.5 bottom-3.5 flex h-7 w-7 items-center justify-center rounded-full bg-ivory-50 text-fg transition-transform duration-200 group-hover:translate-x-0.5"
       >
         <ArrowRight className="h-4 w-4" />
       </span>
@@ -56,7 +56,7 @@ export function ArticleCard({
           <Link
             href={`/journal/${article.slug}`}
             className={cn(
-              'decoration-ivory-50/60 decoration-2 underline-offset-[0.15em] group-hover:underline',
+              // As the reference's cards: the picture grows when pointed at; the title stays.
               'after:absolute after:inset-0 after:rounded-[1rem] focus-visible:outline-none',
               'focus-visible:after:outline-2 focus-visible:after:-outline-offset-4 focus-visible:after:outline-ivory-50 focus-visible:after:outline-solid',
             )}

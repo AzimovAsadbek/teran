@@ -96,7 +96,24 @@
     "videosText": "Short films about TERAN",
     "assistant": "Ask the advisor",
     "menuCount": "{count, plural, =0 {Coming soon} one {# product} other {# products}}",
-    "menuSoon": "Coming soon"
+    "menuSoon": "Coming soon",
+    "learn": "Tea school",
+    "media": "Gallery",
+    "returns": "Returns",
+    "terms": "Terms of use",
+    "privacy": "Privacy policy",
+    "browse": "Browse",
+    "newest": "New arrivals",
+    "recommended": "Our picks",
+    "onSale": "On sale",
+    "articles": "Articles",
+    "guides": "Guides",
+    "allArticles": "All articles",
+    "ourStory": "Our story",
+    "featuredArticle": "From the journal",
+    "allCollections": "All collections",
+    "menuOf": "{name} menu",
+    "backTo": "Back"
   },
   "Footer": {
     "shop": "Shop",
@@ -129,14 +146,10 @@
   "Home": {
     "metaTitle": "TERAN — premium tea online store",
     "heroCta": "Shop teas",
-    "heroSecondaryCta": "For business",
     "heroStageLabel": "TERAN products",
     "heroSlide": "{index} / {total}",
-    "heroPrevious": "Previous product",
-    "heroNext": "Next product",
     "heroPause": "Pause rotation",
     "heroPlay": "Resume rotation",
-    "heroGoTo": "Product {index}: {name}",
     "heroDetails": "View details",
     "valuesTitle": "What TERAN stands for",
     "showcaseTitle": "Choose your favourite tea",
@@ -159,7 +172,20 @@
     "journalTitle": "Tea journal",
     "journalCta": "All articles",
     "categoriesEyebrow": "The TERAN catalogue",
-    "viewCategory": "Explore"
+    "viewCategory": "Explore",
+    "railNew": "New arrivals",
+    "railNewCta": "View new arrivals",
+    "railFeaturedCta": "View our picks",
+    "marqueeLabel": "TERAN catalogue categories",
+    "galleryTitle": "Moments from the world of TERAN",
+    "galleryText": "Photographs and short films, from the tea gardens to the cup.",
+    "galleryCta": "View the gallery",
+    "advisorEyebrow": "Tea advisor",
+    "advisorTitle": "Let’s find your tea together",
+    "advisorText": "Tell it about taste, brewing or a gift, and the advisor picks from the TERAN catalogue.",
+    "advisorCta": "Ask the advisor",
+    "pairJournalCta": "Read the article",
+    "promoCta": "Shop now"
   },
   "Brewing": {
     "types": {
@@ -334,7 +360,9 @@
     },
     "characteristics": "Characteristics",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "recentlyViewed": "Recently viewed",
+    "differenceTitle": "The TERAN difference"
   },
   "Cart": {
     "title": "Bag",
@@ -713,8 +741,6 @@
   "Pages": {
     "onThisPage": "On this page",
     "draftNotice": "Draft: this text has not yet been reviewed by TERAN and a lawyer. Highlighted parts are details that still need to be confirmed.",
-    "legalEyebrow": "Legal",
-    "helpEyebrow": "Help",
     "stillQuestions": "Still have questions?",
     "stillQuestionsText": "Get in touch — we are happy to help.",
     "faqTitle": "Help & FAQ",
@@ -1689,7 +1715,6 @@
   "Assistant": {
     "metaTitle": "Product advisor",
     "metaDescription": "Describe what you are looking for — the TERAN advisor finds matching products in the catalogue, with their real prices.",
-    "eyebrow": "TERAN advisor",
     "title": "Let’s find what suits you",
     "intro": "Describe the kind, your budget, the pack or who the gift is for, in your own words. The advisor relies only on products in the catalogue and what is recorded about them.",
     "modeAi": "Answers are prepared with AI; every product, price and link comes from the catalogue.",
@@ -1718,5 +1743,11 @@
     "gift": "As a gift",
     "query": "“{query}”",
     "viewProduct": "View the product"
+  },
+  "About": {
+    "scrollHint": "Scroll to explore",
+    "previous": "Previous",
+    "next": "Next",
+    "ideasLabel": "TERAN’s ideas"
   }
 }

@@ -46,83 +46,95 @@ export function CartView() {
   if (!cart) return <CartSkeleton />;
 
   if (cart.lines.length === 0) {
+    // The reference's empty bag: a centred message and a pill, no frame around it, in the space
+    // the loading placeholder held (cart page).
     return (
-      <div className="mt-8 rounded-panel border border-line bg-surface">
+      <div className="flex min-h-[20.25rem] items-center justify-center sm:min-h-[19.75rem]">
         <EmptyCart />
       </div>
     );
   }
 
   return (
-    <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-12 lg:items-start lg:gap-10">
-      <section
-        aria-label={t('drawerTitle')}
-        className="rounded-panel border border-line bg-surface p-5 sm:p-8 lg:col-span-7 xl:col-span-8"
-      >
-        <CartLines cart={cart} />
-      </section>
-
-      <aside
-        aria-labelledby="cart-summary"
-        className="space-y-4 lg:sticky lg:top-24 lg:col-span-5 xl:col-span-4"
-      >
-        <div className="rounded-panel border border-line bg-surface p-6 shadow-soft">
-          <h2 id="cart-summary" className="text-display-sm text-forest-900">
-            {t('summary')}
-          </h2>
-          <p className="mt-1 text-body-sm text-fg-subtle">
-            {t('itemCount', { count: cart.itemCount })}
-          </p>
-          <div className="mt-5 flex items-baseline justify-between gap-4 border-t border-line pt-4">
-            <span className="text-title text-fg">{t('subtotal')}</span>
-            <Price amount={cart.subtotal} className="text-title-lg" />
-          </div>
-          <p className="mt-1 text-helper text-fg-subtle">{t('deliveryNote')}</p>
-
-          {errorMessage ? (
-            <Notice tone="danger" role="alert" compact className="mt-4">
-              {errorMessage}
-            </Notice>
-          ) : null}
-          {!cart.isCheckoutReady ? (
-            <Notice tone="danger" compact className="mt-4">
-              {t('notReady')}
-            </Notice>
-          ) : null}
-
-          <ButtonLink
-            href="/checkout"
-            size="lg"
-            className="mt-5 w-full"
-            aria-disabled={!cart.isCheckoutReady}
-            onClick={(event) => {
-              if (!cart.isCheckoutReady) event.preventDefault();
-            }}
-          >
-            {t('checkout')}
-            <ArrowRight aria-hidden className="h-4 w-4" />
-          </ButtonLink>
-        </div>
-
-        <FreeDeliveryProgress cart={cart} />
-
-        <Link
-          href="/catalog"
-          className="inline-flex items-center gap-2 text-body-sm font-semibold text-brand underline-offset-4 hover:underline"
+    <>
+      {/* The page's h1 names the bag for assistive technology; this is its visible title. */}
+      <p aria-hidden className="font-headline text-[2.5rem] text-forest-900 sm:text-[3.125rem]">
+        {t('drawerTitle')}
+      </p>
+      <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-12 lg:items-start lg:gap-10">
+        <section
+          aria-label={t('drawerTitle')}
+          className="rounded-panel border border-line bg-surface p-5 sm:p-8 lg:col-span-7 xl:col-span-8"
         >
-          <ArrowLeft aria-hidden className="h-4 w-4" />
-          {t('continueShopping')}
-        </Link>
-      </aside>
-    </div>
+          <CartLines cart={cart} />
+        </section>
+
+        <aside
+          aria-labelledby="cart-summary"
+          className="space-y-4 lg:sticky lg:top-24 lg:col-span-5 xl:col-span-4"
+        >
+          <div className="rounded-panel border border-line bg-surface p-6 shadow-soft">
+            <h2 id="cart-summary" className="text-display-sm text-forest-900">
+              {t('summary')}
+            </h2>
+            <p className="mt-1 text-body-sm text-fg-subtle">
+              {t('itemCount', { count: cart.itemCount })}
+            </p>
+            <div className="mt-5 flex items-baseline justify-between gap-4 border-t border-line pt-4">
+              <span className="text-title text-fg">{t('subtotal')}</span>
+              <Price amount={cart.subtotal} className="text-title-lg" />
+            </div>
+            <p className="mt-1 text-helper text-fg-subtle">{t('deliveryNote')}</p>
+
+            {errorMessage ? (
+              <Notice tone="danger" role="alert" compact className="mt-4">
+                {errorMessage}
+              </Notice>
+            ) : null}
+            {!cart.isCheckoutReady ? (
+              <Notice tone="danger" compact className="mt-4">
+                {t('notReady')}
+              </Notice>
+            ) : null}
+
+            <ButtonLink
+              href="/checkout"
+              size="lg"
+              className="mt-5 w-full"
+              aria-disabled={!cart.isCheckoutReady}
+              onClick={(event) => {
+                if (!cart.isCheckoutReady) event.preventDefault();
+              }}
+            >
+              {t('checkout')}
+              <ArrowRight aria-hidden className="h-4 w-4" />
+            </ButtonLink>
+          </div>
+
+          <FreeDeliveryProgress cart={cart} />
+
+          <Link
+            href="/catalog"
+            className="inline-flex items-center gap-2 text-body-sm font-semibold text-brand underline-offset-4 hover:underline"
+          >
+            <ArrowLeft aria-hidden className="h-4 w-4" />
+            {t('continueShopping')}
+          </Link>
+        </aside>
+      </div>
+    </>
   );
 }
 
+/**
+ * Two placeholder lines, no taller than the bag's empty state (cart page), so nothing below moves
+ * when the bag turns out to be empty, the most common case on a first visit.
+ */
 function CartSkeleton() {
   return (
-    <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-12 lg:gap-10" aria-hidden>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-10" aria-hidden>
       <div className="space-y-6 rounded-panel border border-line bg-surface p-5 sm:p-8 lg:col-span-7 xl:col-span-8">
-        {[0, 1, 2].map((index) => (
+        {[0, 1].map((index) => (
           <div key={index} className="flex gap-4">
             <Skeleton className="h-24 w-24 rounded-control sm:h-28 sm:w-28" />
             <div className="flex-1 space-y-2">
@@ -133,7 +145,7 @@ function CartSkeleton() {
           </div>
         ))}
       </div>
-      <Skeleton className="h-64 rounded-panel lg:col-span-5 xl:col-span-4" />
+      <Skeleton className="hidden h-64 rounded-panel lg:col-span-5 lg:block xl:col-span-4" />
     </div>
   );
 }

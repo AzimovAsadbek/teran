@@ -86,7 +86,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
           <label htmlFor={inputId} className="sr-only">
             {t('label')}
           </label>
-          <div className="flex h-14 min-w-0 flex-1 items-center gap-3 rounded-control border border-line-strong bg-surface px-4 shadow-xs transition-[border-color,box-shadow] focus-within:border-forest-700 focus-within:ring-[3px] focus-within:ring-forest-700/15">
+          <div className="flex h-14 min-w-0 flex-1 items-center gap-3 rounded-full border-2 border-forest-900 bg-surface px-5 transition-[box-shadow] focus-within:ring-[3px] focus-within:ring-forest-700/15">
             {loading ? (
               <Loader2 aria-hidden className="h-5 w-5 shrink-0 animate-spin text-fg-subtle" />
             ) : (

@@ -36,10 +36,8 @@ export async function LegalPage({
   return (
     <>
       <PageHeader
-        eyebrow={t('legalEyebrow')}
         title={page.title}
         intro={page.intro ? <RichText text={page.intro} /> : undefined}
-        illustration="white"
       />
       <div className="container-page py-12 sm:py-16">
         {isDraft ? <DraftNotice>{t('draftNotice')}</DraftNotice> : null}

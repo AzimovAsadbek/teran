@@ -1,8 +1,8 @@
 /**
  * Demonstration "Lavhalar": TERAN's own packaging artwork, presented as what it is (the paintings
  * and pack faces printed on the packs), so the media section and page have something real to show
- * before TERAN supplies photographs and films. No video is invented: video slots stay empty until
- * a real film is uploaded in the admin area.
+ * before TERAN supplies photographs and films. The films are that same artwork set in slow motion
+ * (apps/web/scripts/films/generate-films.mjs) and say so; nothing is filmed or invented.
  *
  * Items have fixed ids, so seeding twice adds nothing and the demo reset removes exactly these.
  */
@@ -11,19 +11,29 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LOCALES, type Locale } from '@teran/contracts';
 import type { PrismaClient } from '../../src/generated/prisma/client.js';
-import { deleteStoredImage, mediaPrefix, storeImage } from '../../src/media/image-processing.js';
+import {
+  deleteStoredImage,
+  mediaPrefix,
+  storeImage,
+  storeVideo,
+  videoDurationSeconds,
+} from '../../src/media/image-processing.js';
 import { seedImageStore } from './catalogue.js';
 
 const seedDir = dirname(fileURLToPath(import.meta.url));
 /** The packaging artwork the storefront already uses (apps/web/scripts/packaging). */
 const brandArt = resolve(seedDir, '../../../web/public/brand/art');
 const packaging = resolve(seedDir, 'assets/packaging');
+const films = resolve(seedDir, 'assets/films');
 
 type Localized = Record<Locale, string>;
 
 interface DemoMedia {
   id: string;
+  /** The photograph, or a film's poster. */
   file: string;
+  /** Films only: the WebM file. */
+  video?: string;
   featured: boolean;
   title: Localized;
   caption: Localized;
@@ -112,7 +122,60 @@ export const DEMO_MEDIA: DemoMedia[] = [
       en: 'The front of the pack.',
     },
   },
+  {
+    id: '019a3c00-7e5a-7000-8000-00000000a011',
+    file: resolve(films, 'lake-poster.webp'),
+    video: resolve(films, 'lake.webm'),
+    featured: true,
+    title: {
+      uz: 'Qadoq rasmi harakatda: koʻl va ayvon',
+      ru: 'Рисунок с упаковки в движении: озеро и беседка',
+      en: 'The pack artwork in motion: the lake and the pavilion',
+    },
+    caption: {
+      uz: 'TERAN qadogʻidagi rasm asosida tayyorlangan qisqa video: tumanli togʻlar, koʻl va ayvon.',
+      ru: 'Короткое видео по рисунку с упаковки TERAN: туманные горы, озеро и беседка.',
+      en: 'A short film made from the artwork on the TERAN pack: misty mountains, a lake and a pavilion.',
+    },
+  },
+  {
+    id: '019a3c00-7e5a-7000-8000-00000000a012',
+    file: resolve(films, 'terraces-poster.webp'),
+    video: resolve(films, 'terraces.webm'),
+    featured: true,
+    title: {
+      uz: 'Qadoq rasmi harakatda: choy plantatsiyalari',
+      ru: 'Рисунок с упаковки в движении: чайные террасы',
+      en: 'The pack artwork in motion: tea terraces',
+    },
+    caption: {
+      uz: 'Qadoqning orqa tomonidagi rasm asosida: togʻ yonbagʻridagi choy plantatsiyalari va ayvon.',
+      ru: 'По рисунку с обратной стороны упаковки: чайные террасы на склоне горы и беседка.',
+      en: 'Made from the painting on the back of the pack: tea terraces on a mountainside and a pavilion.',
+    },
+  },
+  {
+    id: '019a3c00-7e5a-7000-8000-00000000a013',
+    file: resolve(films, 'packs-poster.webp'),
+    video: resolve(films, 'packs.webm'),
+    featured: true,
+    title: { uz: 'TERAN qadoqlari', ru: 'Упаковки TERAN', en: 'The TERAN packs' },
+    caption: {
+      uz: 'TERAN XC2025, 8009, 8830 va G8810 qadoqlari, qadoq rasmlari fonida.',
+      ru: 'Упаковки TERAN XC2025, 8009, 8830 и G8810 на фоне рисунков с упаковки.',
+      en: 'The TERAN XC2025, 8009, 8830 and G8810 packs, on the paintings from the packs.',
+    },
+  },
 ];
+
+/**
+ * Pictures an earlier version of this seed stored, by their size: the tea terraces were stored
+ * faded into white, as printed on the pack. An item still carrying that exact picture is given
+ * the current file; a picture replaced in the admin area is left alone.
+ */
+const EARLIER_IMAGES: Record<string, { width: number; height: number }> = {
+  '019a3c00-7e5a-7000-8000-00000000a002': { width: 2400, height: 1200 },
+};
 
 /**
  * Titles and captions an earlier version of this seed wrote, which read as if the packaging
@@ -168,9 +231,45 @@ async function updateEarlierCopy(prisma: PrismaClient, item: DemoMedia): Promise
   return changed;
 }
 
+async function updateEarlierImage(
+  prisma: PrismaClient,
+  item: DemoMedia,
+  uploadsDir: string,
+): Promise<boolean> {
+  const earlier = EARLIER_IMAGES[item.id];
+  if (!earlier) return false;
+  const row = await prisma.mediaItem.findUnique({
+    where: { id: item.id },
+    select: { imageKey: true, imageWidth: true, imageHeight: true },
+  });
+  if (!row || row.imageWidth !== earlier.width || row.imageHeight !== earlier.height) return false;
+  const store = seedImageStore(uploadsDir);
+  const stored = await storeImage(await readFile(item.file), store, mediaPrefix(item.id));
+  await prisma.mediaItem.update({
+    where: { id: item.id },
+    data: {
+      imageKey: stored.storageKey,
+      imageWidths: stored.widths,
+      imageWidth: stored.width,
+      imageHeight: stored.height,
+    },
+  });
+  if (row.imageKey) await deleteStoredImage(store, row.imageKey);
+  return true;
+}
+
+/** A film's file, kept as it is, with the running time it records. */
+async function storeDemoVideo(item: DemoMedia, uploadsDir: string) {
+  if (!item.video) return null;
+  const file = await readFile(item.video);
+  const stored = await storeVideo(file, seedImageStore(uploadsDir), mediaPrefix(item.id));
+  return { ...stored, durationSeconds: videoDurationSeconds(file, stored.type) };
+}
+
 /**
  * Adds the demonstration items that are missing (published, in the order listed) and brings
- * unedited text from an earlier version up to date. Returns the number of items added or updated.
+ * unedited text and pictures from an earlier version up to date. Returns the number of items
+ * added or updated.
  */
 export async function seedMedia(
   prisma: PrismaClient,
@@ -180,7 +279,9 @@ export async function seedMedia(
   let created = 0;
   for (const [position, item] of DEMO_MEDIA.entries()) {
     if (await prisma.mediaItem.findUnique({ where: { id: item.id }, select: { id: true } })) {
-      if (await updateEarlierCopy(prisma, item)) created += 1;
+      const copy = await updateEarlierCopy(prisma, item);
+      const image = await updateEarlierImage(prisma, item, options.uploadsDir);
+      if (copy || image) created += 1;
       continue;
     }
     const stored = await storeImage(
@@ -188,10 +289,11 @@ export async function seedMedia(
       seedImageStore(options.uploadsDir),
       mediaPrefix(item.id),
     );
+    const video = await storeDemoVideo(item, options.uploadsDir);
     await prisma.mediaItem.create({
       data: {
         id: item.id,
-        kind: 'PHOTO',
+        kind: video ? 'VIDEO' : 'PHOTO',
         status: 'PUBLISHED',
         isFeatured: item.featured,
         position,
@@ -199,6 +301,14 @@ export async function seedMedia(
         imageWidths: stored.widths,
         imageWidth: stored.width,
         imageHeight: stored.height,
+        ...(video
+          ? {
+              videoKey: video.storageKey,
+              videoType: video.type,
+              videoBytes: video.bytes,
+              videoDurationSeconds: video.durationSeconds,
+            }
+          : {}),
         publishedAt: now,
         translations: {
           create: LOCALES.map((locale) => ({

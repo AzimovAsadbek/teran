@@ -235,6 +235,8 @@ export const productSummarySchema = z.object({
    * home page stage). Null when it has none; only product lists fill it in.
    */
   stageImage: imageSchema.nullable().default(null),
+  /** The product's second image, shown when a card is pointed at (null with a single image). */
+  hoverImage: imageSchema.nullable().default(null),
   illustrationKey: illustrationKeySchema.nullable(),
 });
 export type ProductSummaryDto = z.infer<typeof productSummarySchema>;

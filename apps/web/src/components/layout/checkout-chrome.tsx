@@ -24,7 +24,7 @@ export async function CheckoutHeader() {
           aria-label={`TERAN — ${tc('home')}`}
           className="flex justify-center rounded-control py-1"
         >
-          <Wordmark priority />
+          <Wordmark eager />
         </Link>
         <span aria-hidden />
       </div>

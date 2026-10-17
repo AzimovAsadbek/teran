@@ -1,4 +1,10 @@
-import type { CategoryDto, CollectionDto, IllustrationKey, ImageDto } from '@teran/contracts';
+import type {
+  ArticleSummaryDto,
+  CategoryDto,
+  CollectionDto,
+  IllustrationKey,
+  ImageDto,
+} from '@teran/contracts';
 
 /*
  * The catalogue as the menus and category cards show it, built from the API's category and
@@ -35,12 +41,55 @@ export interface NavCollection {
   image: ImageDto | null;
 }
 
+/** A journal article as the "tea school" menu lists it (featured first, then the newest). */
+export interface NavArticle {
+  slug: string;
+  title: string;
+  cover: ImageDto | null;
+}
+
 export interface Navigation {
   categories: NavCategoryTree[];
   collections: NavCollection[];
+  articles: NavArticle[];
 }
 
-export const EMPTY_NAVIGATION: Navigation = { categories: [], collections: [] };
+export const EMPTY_NAVIGATION: Navigation = { categories: [], collections: [], articles: [] };
+
+export function navArticles(articles: ArticleSummaryDto[]): NavArticle[] {
+  return articles.map((article) => ({
+    slug: article.slug,
+    title: article.title,
+    cover: article.cover,
+  }));
+}
+
+/*
+ * The fixed destinations of the "tea school" and "about" menus, shared by the desktop panels and
+ * the drawer (labels are Nav message keys). Everything else in the menus comes from the API.
+ */
+export const LEARN_LINKS = [
+  { href: '/journal', label: 'journal' },
+  { href: '/assistant', label: 'assistant' },
+  { href: '/media/photos', label: 'photos' },
+  { href: '/media/videos', label: 'videos' },
+] as const;
+
+export const ABOUT_LINKS = [
+  { href: '/about', label: 'about' },
+  { href: '/wholesale', label: 'wholesale' },
+  { href: '/journal', label: 'journal' },
+  { href: '/media', label: 'media' },
+] as const;
+
+export const HELP_LINKS = [
+  { href: '/contact', label: 'contact' },
+  { href: '/delivery', label: 'delivery' },
+  { href: '/returns', label: 'returns' },
+  { href: '/faq', label: 'faq' },
+  { href: '/terms', label: 'terms' },
+  { href: '/privacy', label: 'privacy' },
+] as const;
 
 function navCategory(category: CategoryDto): NavCategory {
   return {

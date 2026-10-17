@@ -96,7 +96,24 @@
     "videosText": "Короткие видео о TERAN",
     "assistant": "Спросить консультанта",
     "menuCount": "{count, plural, =0 {Скоро} one {# товар} few {# товара} many {# товаров} other {# товара}}",
-    "menuSoon": "Скоро"
+    "menuSoon": "Скоро",
+    "learn": "Чайная школа",
+    "media": "Галерея",
+    "returns": "Возврат",
+    "terms": "Условия использования",
+    "privacy": "Политика конфиденциальности",
+    "browse": "Подборки",
+    "newest": "Новинки",
+    "recommended": "Рекомендуем",
+    "onSale": "Со скидкой",
+    "articles": "Статьи",
+    "guides": "Путеводитель",
+    "allArticles": "Все статьи",
+    "ourStory": "Наша история",
+    "featuredArticle": "Из журнала",
+    "allCollections": "Все коллекции",
+    "menuOf": "Меню «{name}»",
+    "backTo": "Назад"
   },
   "Footer": {
     "shop": "Магазин",
@@ -129,14 +146,10 @@
   "Home": {
     "metaTitle": "TERAN — интернет-магазин премиального чая",
     "heroCta": "Смотреть чай",
-    "heroSecondaryCta": "Для бизнеса",
     "heroStageLabel": "Продукция TERAN",
     "heroSlide": "{index} / {total}",
-    "heroPrevious": "Предыдущий товар",
-    "heroNext": "Следующий товар",
     "heroPause": "Остановить автопрокрутку",
     "heroPlay": "Возобновить автопрокрутку",
-    "heroGoTo": "Товар {index}: {name}",
     "heroDetails": "Подробнее",
     "valuesTitle": "Ценности TERAN",
     "showcaseTitle": "Выберите свой любимый чай",
@@ -159,7 +172,20 @@
     "journalTitle": "Чайный журнал",
     "journalCta": "Все статьи",
     "categoriesEyebrow": "Каталог TERAN",
-    "viewCategory": "Смотреть"
+    "viewCategory": "Смотреть",
+    "railNew": "Новинки",
+    "railNewCta": "Все новинки",
+    "railFeaturedCta": "Смотреть рекомендации",
+    "marqueeLabel": "Категории каталога TERAN",
+    "galleryTitle": "Моменты из мира TERAN",
+    "galleryText": "Фотографии и короткие видео — от чайных садов до пиалы.",
+    "galleryCta": "Смотреть галерею",
+    "advisorEyebrow": "Помощник",
+    "advisorTitle": "Подберём чай вместе",
+    "advisorText": "Напишите о вкусе, способе заваривания или подарке — помощник подберёт товары из каталога TERAN.",
+    "advisorCta": "Спросить помощника",
+    "pairJournalCta": "Читать статью",
+    "promoCta": "Купить"
   },
   "Brewing": {
     "types": {
@@ -334,7 +360,9 @@
     },
     "characteristics": "Характеристики",
     "yes": "Да",
-    "no": "Нет"
+    "no": "Нет",
+    "recentlyViewed": "Вы недавно смотрели",
+    "differenceTitle": "Почему TERAN"
   },
   "Cart": {
     "title": "Корзина",
@@ -713,8 +741,6 @@
   "Pages": {
     "onThisPage": "На этой странице",
     "draftNotice": "Черновик: этот текст ещё не проверен TERAN и юристом. Выделенные места — сведения, которые нужно подтвердить.",
-    "legalEyebrow": "Правовая информация",
-    "helpEyebrow": "Помощь",
     "stillQuestions": "Остались вопросы?",
     "stillQuestionsText": "Свяжитесь с нами — мы с радостью ответим.",
     "faqTitle": "Вопросы и ответы",
@@ -1689,7 +1715,6 @@
   "Assistant": {
     "metaTitle": "Консультант по товарам",
     "metaDescription": "Опишите, что вы ищете, — консультант TERAN подберёт товары из каталога с реальными ценами.",
-    "eyebrow": "Консультант TERAN",
     "title": "Подберём то, что подходит вам",
     "intro": "Опишите своими словами вид, бюджет, формат упаковки или кому подарок. Консультант опирается только на товары из каталога и записанные о них сведения.",
     "modeAi": "Ответы готовит ИИ; каждый товар, цена и ссылка берутся из каталога.",
@@ -1718,5 +1743,11 @@
     "gift": "В подарок",
     "query": "«{query}»",
     "viewProduct": "Смотреть товар"
+  },
+  "About": {
+    "scrollHint": "Листайте дальше",
+    "previous": "Назад",
+    "next": "Вперёд",
+    "ideasLabel": "Идеи TERAN"
   }
 }

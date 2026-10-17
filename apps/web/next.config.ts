@@ -68,6 +68,11 @@ const nextConfig: NextConfig = {
   experimental: {
     // Branded 404 for URLs outside the [locale] tree (our root layout lives under [locale]).
     globalNotFound: true,
+    // On by default with Cache Components: every page view renders the route a second time and
+    // inlines that copy into the HTML (about 95 KB more on the home page) so the browser can cache
+    // it while hydrating. Visited pages stay mounted and links prefetch their App Shell anyway, so
+    // the copy only cost bytes, server time and main-thread work on phones.
+    cachedNavigations: false,
   },
   turbopack: {
     rules: {
@@ -79,6 +84,8 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ['image/avif', 'image/webp'],
+    // 60 for full-width photographs behind text (page headers), 75 (the default) for the rest.
+    qualities: [60, 75],
     // Only local images are optimised by Next.js; uploaded product photos are pre-sized by the API.
     remotePatterns: [],
   },
@@ -105,6 +112,9 @@ const nextConfig: NextConfig = {
   },
 };
 
+// next-intl's experimental `messages.precompile` stays off: it ships a second copy of the
+// translation runtime in another chunk (both load on every page), for a few kB of savings
+// (docs/testing/qa-report.md).
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 export default withNextIntl(nextConfig);

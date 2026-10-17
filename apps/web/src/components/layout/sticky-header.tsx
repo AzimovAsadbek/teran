@@ -3,8 +3,9 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
 /**
- * Sticky main bar that turns into a frosted glass surface once the page scrolls,
- * so content passing underneath stays legible. Uses a sentinel instead of scroll listeners.
+ * The announcement band and the main bar stay on top together while the page scrolls (as on the
+ * reference). Once the page has scrolled, a soft shadow separates the bar from the content under
+ * it; a sentinel replaces scroll listeners.
  */
 export function StickyHeader({ children }: { children: ReactNode }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -23,11 +24,15 @@ export function StickyHeader({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div ref={sentinelRef} aria-hidden className="h-px" />
+      <div
+        ref={sentinelRef}
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-0 h-px w-px"
+      />
       <div
         ref={headerRef}
         data-scrolled="false"
-        className="group/header sticky top-0 z-40 border-b border-line-subtle bg-canvas transition-[background-color,box-shadow,border-color] duration-300 data-[scrolled=true]:border-line data-[scrolled=true]:shadow-[0_12px_32px_-24px_rgb(14_61_18_/_0.45)] supports-[backdrop-filter]:data-[scrolled=true]:bg-canvas/90 [@media(prefers-reduced-transparency:reduce)]:data-[scrolled=true]:bg-canvas supports-[backdrop-filter]:data-[scrolled=true]:backdrop-blur-xl supports-[backdrop-filter]:data-[scrolled=true]:backdrop-saturate-150"
+        className="group/header sticky top-0 z-40 transition-shadow duration-300 data-[scrolled=true]:shadow-[0_10px_28px_-22px_rgb(14_61_18_/_0.5)]"
       >
         {children}
       </div>

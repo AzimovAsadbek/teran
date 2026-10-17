@@ -6,7 +6,7 @@ import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { AssistantChat } from '@/components/assistant/assistant-chat';
-import { BotanicalLayer } from '@/components/brand/botanical';
+import { PageHeader } from '@/components/content/page-header';
 import { pickMessages, STORE_CLIENT_NAMESPACES, type Messages } from '@/i18n/messages';
 import { getAssistantStatus } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
@@ -46,17 +46,14 @@ async function Chat() {
 export default async function AssistantPage() {
   const t = await getTranslations('Assistant');
   return (
-    <div className="container-page pb-section">
-      <header className="relative isolate mx-auto max-w-3xl pt-10 pb-8 text-center sm:pt-14">
-        <BotanicalLayer scene="listing" className="-z-10" />
-        <p className="text-eyebrow text-accent-fg">{t('eyebrow')}</p>
-        <h1 className="mt-3 text-display-lg text-forest-900">{t('title')}</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-body-lg text-fg-muted">{t('intro')}</p>
-      </header>
-      {/* The same height as the advisor's first view, so nothing below it moves when it arrives. */}
-      <Suspense fallback={<div aria-hidden className="mx-auto min-h-[27rem] max-w-3xl" />}>
-        <Chat />
-      </Suspense>
-    </div>
+    <>
+      <PageHeader title={t('title')} intro={t('intro')} />
+      <div className="container-page pt-10 pb-section">
+        {/* The same height as the advisor's first view, so nothing below it moves when it arrives. */}
+        <Suspense fallback={<div aria-hidden className="mx-auto min-h-[27rem] max-w-3xl" />}>
+          <Chat />
+        </Suspense>
+      </div>
+    </>
   );
 }

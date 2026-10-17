@@ -2,19 +2,19 @@ import type { CategoryDto, IllustrationKey, ImageDto } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import type { ReactNode } from 'react';
-import { BotanicalLayer } from '@/components/brand/botanical';
-import { TeaTypeArt } from '@/components/brand/illustrations';
 import { CoverImage } from '@/components/content/cover-image';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories } from '@/lib/data/catalog';
+import { CategoryArt } from './category-art';
 
 /**
- * Compact listing header: the category's own cover picture in a round frame when one is assigned,
- * otherwise its medallion (a neutral one when it has no illustration), then the title, one line of
- * description, optional navigation (category chips) and the demo note. Kept short so products
- * start on the first screen of a phone.
+ * Listing header on the reference's model: a rounded banner (196 px on wide screens) with the
+ * title and one or two lines of description on the left and the category's picture on the right —
+ * its own cover when one is assigned, otherwise its botanical art (never a product's picture).
+ * Under it: optional navigation (category chips) and the demo note. Kept short so products start
+ * on the first screen of a phone.
  */
 export function ListingHeader({
   eyebrow,
@@ -30,37 +30,43 @@ export function ListingHeader({
   illustrationKey?: IllustrationKey | null;
   /** The category's or collection's assigned cover; never a product's picture. */
   image?: ImageDto | null;
-  /** Rendered under the title, e.g. <CategoryChips />. */
+  /** Rendered under the banner, e.g. <CategoryChips />. */
   children?: ReactNode;
 }) {
   return (
-    <header className="relative isolate mt-4 sm:mt-6">
-      <BotanicalLayer scene="listing" className="-z-10" />
-      <div className="flex items-center gap-4 sm:gap-6">
-        {image ? (
-          <span className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-ivory-50 ring-1 ring-line sm:h-24 sm:w-24">
+    <header className="mt-3 sm:mt-5">
+      <div className="on-dark relative isolate flex min-h-[11rem] items-center overflow-hidden rounded-tile bg-forest-900 text-ivory-50 sm:min-h-[12.25rem]">
+        <div
+          aria-hidden
+          className="cat-card absolute inset-y-0 right-0 -z-10 w-[62%] opacity-60 sm:w-[52%] sm:opacity-100"
+        >
+          {image ? (
             <CoverImage
               image={image}
-              sizes="(min-width: 640px) 96px, 64px"
+              sizes="(min-width: 1024px) 40vw, 60vw"
               priority
-              cutoutInset="p-1.5 sm:p-2"
+              cutoutInset="p-4"
             />
-          </span>
-        ) : (
-          <span aria-hidden className="h-14 w-14 shrink-0 sm:h-20 sm:w-20">
-            <TeaTypeArt kind={illustrationKey ?? null} />
-          </span>
-        )}
-        <div className="min-w-0">
-          {eyebrow ? <p className="mb-1 text-eyebrow text-accent-fg">{eyebrow}</p> : null}
-          <h1 className="text-display-lg break-words text-forest-900 [hyphens:auto]">{title}</h1>
+          ) : (
+            <CategoryArt
+              category={{ image: null, illustrationKey: illustrationKey ?? null }}
+              sizes="20rem"
+            />
+          )}
+          <span className="absolute inset-0 bg-linear-to-r from-forest-900 via-forest-900/40 to-transparent sm:via-forest-900/10" />
+        </div>
+        <div className="max-w-[min(36rem,80%)] px-6 py-8 sm:px-10 lg:max-w-[48%]">
+          {eyebrow ? <p className="mb-2 text-eyebrow text-gold-300">{eyebrow}</p> : null}
+          <h1 className="font-headline text-[2.5rem] leading-[1.2] break-words text-ivory-50 [--heading-case:none] [--headline-weight:600] [hyphens:auto] sm:text-[3.125rem]">
+            {title}
+          </h1>
+          {description ? (
+            <p className="mt-3 line-clamp-3 text-[1rem] leading-normal text-ivory-50">
+              {description}
+            </p>
+          ) : null}
         </div>
       </div>
-      {description ? (
-        <p className="mt-3 line-clamp-3 max-w-3xl text-body text-fg-muted sm:mt-4 sm:text-body-lg">
-          {description}
-        </p>
-      ) : null}
       {children}
       <DemoNotice variant="inline" className="mt-4" />
     </header>
@@ -69,12 +75,8 @@ export function ListingHeader({
 
 export function ListingHeaderSkeleton({ chips = true }: { chips?: boolean }) {
   return (
-    <div aria-hidden className="mt-4 sm:mt-6">
-      <div className="flex items-center gap-4 sm:gap-6">
-        <div className="h-14 w-14 shrink-0 animate-pulse rounded-full bg-surface-sunken/60 motion-reduce:animate-none sm:h-20 sm:w-20" />
-        <div className="h-10 w-56 animate-pulse rounded-sm bg-surface-sunken/60 motion-reduce:animate-none" />
-      </div>
-      <div className="mt-4 h-6 w-full max-w-xl animate-pulse rounded-sm bg-surface-sunken/60 motion-reduce:animate-none" />
+    <div aria-hidden className="mt-3 sm:mt-5">
+      <div className="h-[11rem] animate-pulse rounded-tile bg-forest-900/85 motion-reduce:animate-none sm:h-[12.25rem]" />
       {chips ? <CategoryChipsFallback /> : null}
     </div>
   );

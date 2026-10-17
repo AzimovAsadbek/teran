@@ -193,3 +193,53 @@ index the site. Desktop "best practices" is 96 because of one console error caus
 Not attempted, with reasons: prerendering product pages (needs the API during the build, a
 deployment decision); trimming React or Next.js runtime work (framework); per-page translation
 bundles (the client namespaces are already limited to what storefront components use).
+
+## Performance pass of 2026-10-17 (reference redesign release)
+
+Method: the production build of this release and of the live release (`087eb10`) served in turn
+on the end-to-end stack (fresh seeded database), measured in Chromium with applied throttling
+(Pixel 7, 1.6 Mbit/s, 150 ms latency, CPU 4× slower), three loads per page, median. Lighthouse's
+simulated mode was used only to find problems: on this Mac under load it charged hydration to
+TBT three to four times over (a CPU profile of the same build showed about 70 ms of blocking).
+
+Phone, largest contentful paint (CLS in brackets where it was not 0):
+
+| Page            | Live (`087eb10`) | This release | Change |
+| --------------- | ---------------- | ------------ | ------ |
+| Homepage        | 2.16 s           | 1.55 s       | −28 %  |
+| Category (Tea)  | 1.24 s           | 1.36 s       | +10 %  |
+| Product         | 3.12 s           | 2.47 s       | −21 %  |
+| About           | 1.27 s           | 1.38 s       | +9 %   |
+| Journal         | 1.22 s           | 1.42 s       | +17 %  |
+| Bag             | 2.80 s (0.108)   | 1.27 s (0)   | −55 %  |
+| Photos & videos | 3.36 s           | 1.37 s       | −59 %  |
+
+About and Journal open on a full-width painting, as the reference does (the previous release
+opened on text); the category page is within run-to-run noise. Desktop LCP is 0.18–0.47 s on
+every page. Idle main-thread time on the homepage: phone 106 → 73 ms per 10 s; desktop
+283 → 402 ms (the autoplaying hero and the moving ribbons of the redesign).
+
+### What was changed
+
+| Change                                                                                                                                                                                                                                                      | Effect                                                                                             |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `experimental.cachedNavigations: false`. With Cache Components and Partial Prefetching, Next.js 16.4 renders every page a second time and inlines that copy into the HTML (a Uint8Array row in `self.__next_f`) so the browser can cache it while hydrating | Homepage HTML 80 → 60 kB compressed (550 → 450 kB to parse); one render per request instead of two |
+| The bag drawer, the search dialog and the media viewer load when the page is idle (or when their button is pointed at or focused), not with the page                                                                                                        | 11 kB of JavaScript moves after `load`                                                             |
+| `sizes` that match the boxes: product cards `calc(50vw - 1.75rem)` on phones, the hero pack from its own proportions, media tiles per layout, the product page's infographic                                                                                | Phones fetch 320 px card images instead of 480 px, 640 px posters instead of 960 px                |
+| Search: matching categories and articles reveal together with the products                                                                                                                                                                                  | CLS 0.104 → 0 on phones (the sidebar sits above the grid)                                          |
+| Media tiles are named by their visible title (screen-reader text around it, no `aria-label`); the announcement's "Learn more" link names its message                                                                                                        | Lighthouse accessibility 100; no "link text" warning                                               |
+| The bag page's suggestions fetch their first two images at once (with an empty bag they are the page)                                                                                                                                                       | No lazily loaded LCP image                                                                         |
+
+Measured and rejected:
+
+- next-intl `messages.precompile` again: Turbopack emitted two versions of the translation runtime
+  under the same module id in two chunks, both loaded on every page (49 kB → 58 kB raw).
+- `experimental.inlineCss`: the 26 kB (gzip) stylesheet would travel twice per page (style tag and
+  React payload) and never be cached between pages.
+- Answering Lighthouse's "meta description missing" on product, category and journal pages: the
+  descriptions are there, streamed into the body because the metadata is dynamic. Next.js
+  documents that search engines which render JavaScript read them; forcing blocking metadata
+  (`htmlLimitedBots`) would delay every page.
+
+Correction to the 2026-10-14 notes above: the second copy of the React Server Components payload
+in the HTML came from cached navigations, not from partial prerendering, and is now removed.

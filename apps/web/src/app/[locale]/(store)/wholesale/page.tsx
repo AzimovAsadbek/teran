@@ -59,33 +59,33 @@ export default async function WholesalePage() {
   return (
     <>
       <PageHeader
+        tone="brand"
         eyebrow={tn('wholesale')}
         title={copy.partnership.heading}
         intro={
           <>
-            <p className="text-fg">{copy.partnership.text}</p>
+            <p className="text-ivory-50">{copy.partnership.text}</p>
             <p className="mt-3">{page.intro}</p>
           </>
         }
-        illustration="gift"
       >
-        <dl className="mt-8 grid max-w-2xl gap-x-8 gap-y-4 border-t border-line pt-6 text-body-sm sm:grid-cols-3">
+        <dl className="mx-auto mt-8 grid max-w-2xl gap-x-8 gap-y-4 border-t border-ivory-50/20 pt-6 text-body-sm sm:grid-cols-3">
           <div>
-            <dt className="text-caption text-fg-subtle">{copy.labels.company}</dt>
-            <dd className="mt-1 font-semibold text-fg">{BRAND.company}</dd>
+            <dt className="text-caption text-ivory-100/80">{copy.labels.company}</dt>
+            <dd className="mt-1 font-semibold text-ivory-50">{BRAND.company}</dd>
           </div>
           <div>
-            <dt className="text-caption text-fg-subtle">{copy.labels.location}</dt>
-            <dd className="mt-1 font-semibold text-fg">{copy.location}</dd>
+            <dt className="text-caption text-ivory-100/80">{copy.labels.location}</dt>
+            <dd className="mt-1 font-semibold text-ivory-50">{copy.location}</dd>
           </div>
           <div>
-            <dt className="text-caption text-fg-subtle">{copy.labels.website}</dt>
+            <dt className="text-caption text-ivory-100/80">{copy.labels.website}</dt>
             <dd className="mt-1">
               <a
                 href={BRAND.website.href}
                 target="_blank"
                 rel="noopener"
-                className="inline-flex items-center gap-1 font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
+                className="inline-flex items-center gap-1 font-semibold text-gold-300 underline decoration-gold-300/50 underline-offset-4 hover:decoration-gold-300"
               >
                 {BRAND.website.label}
                 <ExternalLink aria-hidden className="h-3.5 w-3.5" />
@@ -94,7 +94,7 @@ export default async function WholesalePage() {
             </dd>
           </div>
         </dl>
-        <ButtonLink href="#request" size="lg" className="mt-8">
+        <ButtonLink href="#request" variant="accent" size="lg" className="mt-8">
           {page.formTitle}
         </ButtonLink>
       </PageHeader>
@@ -135,7 +135,7 @@ export default async function WholesalePage() {
               <li key={step.title} className="border-t border-gold-300/35 pt-6">
                 <span
                   aria-hidden
-                  className="font-display text-5xl font-medium text-accent-on-inverse"
+                  className="font-headline text-[3.75rem] leading-none text-accent-on-inverse"
                 >
                   {String(index + 1).padStart(2, '0')}
                 </span>

@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/content/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getArticles } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
+import terraces from '../../../../../public/brand/art/terraces.webp';
 
 const PAGE_SIZE = 9;
 
@@ -57,7 +58,7 @@ async function ArticleList({ searchParams }: Pick<PageProps<'/[locale]/journal'>
 
   return (
     <>
-      <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {articles.items.map((article) => (
           <li key={article.slug}>
             <ArticleCard article={article} headingLevel="h2" />
@@ -78,18 +79,17 @@ export default async function JournalPage({ searchParams }: PageProps<'/[locale]
   return (
     <>
       <PageHeader
-        eyebrow="TERAN"
+        tone="brand"
         title={t('journalTitle')}
         intro={t('journalDescription')}
-        illustration="jasmine"
-        atmosphere="editorial"
+        image={terraces}
       />
-      <div className="container-page py-12 sm:py-16">
+      <div className="container-page py-10 sm:py-11">
         <Suspense
           fallback={
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
-              {[0, 1, 2].map((index) => (
-                <Skeleton key={index} className="h-96 rounded-card" />
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-hidden>
+              {[0, 1, 2, 3].map((index) => (
+                <Skeleton key={index} className="aspect-[321/364] rounded-[1rem]" />
               ))}
             </div>
           }

@@ -3,21 +3,29 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { BrewingGuide } from '@/components/home/brewing-guide';
-import { BusinessCta } from '@/components/home/business-cta';
-import { Hero } from '@/components/home/hero';
-import { CategoryCardsFallback, CategoryCardsSection } from '@/components/home/category-cards';
+import { CategoryCollage, CategoryCollageFallback } from '@/components/home/category-collage';
 import {
-  CollectionSection,
-  JournalSection,
-  ShowcaseFallback,
-  ShowcaseSection,
-} from '@/components/home/home-sections';
-import { MediaSection } from '@/components/home/media-section';
-import { StorySection } from '@/components/home/story-section';
-import { BotanicalLayer } from '@/components/brand/botanical';
-import { BrandValues } from '@/components/brand/ornaments';
-import { Reveal } from '@/components/ui/reveal';
+  AdvisorBanner,
+  BentoSection,
+  BrewingBanner,
+  CategoryMarquee,
+  CategoryShortcuts,
+  GalleryBanner,
+  PairSection,
+  PromoStrip,
+  SloganBand,
+  StoryBanner,
+  ValuesBanner,
+} from '@/components/home/editorial-sections';
+import { Hero } from '@/components/home/hero';
+import { MediaBandSection } from '@/components/home/media-band-section';
+import {
+  CategoriesRail,
+  CollectionsRail,
+  NewArrivalsRail,
+  RailFallback,
+} from '@/components/home/rail-sections';
+import { Skeleton } from '@/components/ui/skeleton';
 import { brandCopy } from '@/content/brand';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { siteUrl } from '@/lib/site';
@@ -33,9 +41,29 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
+/** A banner's footprint while it streams (inset, rounded). */
+function BannerFallback({ tall = false }: { tall?: boolean }) {
+  return (
+    <div aria-hidden className="container-page py-6 sm:py-8">
+      <Skeleton
+        className={
+          tall ? 'h-[39rem] rounded-banner sm:h-[50rem]' : 'h-[28rem] rounded-banner sm:h-[27.5rem]'
+        }
+      />
+    </div>
+  );
+}
+
+/**
+ * The home page in the reference's section order (docs/design/reference-map.md), with TERAN's
+ * content: promo strip (a real collection) · hero · category ribbon · new arrivals / our picks ·
+ * story banner · category shortcuts · gallery banner · collections row · advisor banner ·
+ * categories row · bento · brewing band · category collage · values band · gallery band · journal
+ * and business pair · slogan ribbon · footer (layout). Data sections stream at request time, each
+ * in its own Suspense boundary; anything without real content is left out.
+ */
 export default async function HomePage() {
   const locale = (await rootParams.locale()) as Locale;
-  const t = await getTranslations('Home');
 
   // Only facts we know: the brand name, its site and its logo. No invented address or ratings.
   const structuredData = {
@@ -69,46 +97,45 @@ export default async function HomePage() {
 
   return (
     <>
+      <Suspense fallback={<div aria-hidden className="h-[5.5rem] bg-forest-950 lg:h-20" />}>
+        <PromoStrip />
+      </Suspense>
       <Hero />
-      {/* The pack's four values, right under the packs as on the pack itself. */}
-      <section aria-labelledby="values-title" className="container-page pt-6 pb-section-sm sm:pt-8">
-        <h2 id="values-title" className="sr-only">
-          {t('valuesTitle')}
-        </h2>
-        <BrandValues locale={locale} className="mx-auto max-w-3xl" />
-      </section>
-      <Suspense fallback={<CategoryCardsFallback />}>
-        <CategoryCardsSection />
+      <Suspense fallback={<div aria-hidden className="h-12 bg-jade-100 sm:h-[4.1875rem]" />}>
+        <CategoryMarquee />
       </Suspense>
-      <CollectionSection />
-      <StorySection />
+      <Suspense fallback={<RailFallback />}>
+        <NewArrivalsRail />
+      </Suspense>
+      <StoryBanner />
       <Suspense fallback={null}>
-        <MediaSection />
+        <CategoryShortcuts />
       </Suspense>
-      <Suspense fallback={<ShowcaseFallback />}>
-        <ShowcaseSection />
+      <Suspense fallback={<BannerFallback />}>
+        <GalleryBanner />
       </Suspense>
-      <section aria-labelledby="brewing-title" className="relative isolate pt-section">
-        {/* Amber light, a branch's shadow and branches in the corners, beyond the text and card. */}
-        <BotanicalLayer scene="brewing" className="-z-10" />
-        <Reveal className="container-page grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-16">
-          <div className="lg:col-span-5">
-            <p className="text-eyebrow text-accent-fg">{t('brewingEyebrow')}</p>
-            <h2 id="brewing-title" className="mt-4 text-display-lg text-forest-900">
-              {t('brewingTitle')}
-            </h2>
-            <p className="mt-5 text-body-lg text-fg-muted">{t('brewingText')}</p>
-            <p className="mt-4 text-helper text-fg-subtle">{t('brewingNote')}</p>
-          </div>
-          <div className="lg:col-span-7">
-            <BrewingGuide />
-          </div>
-        </Reveal>
-      </section>
-      <BusinessCta />
+      <Suspense fallback={<RailFallback tinted />}>
+        <CollectionsRail />
+      </Suspense>
+      <AdvisorBanner />
+      <Suspense fallback={<RailFallback />}>
+        <CategoriesRail />
+      </Suspense>
+      <Suspense fallback={<BannerFallback tall />}>
+        <BentoSection />
+      </Suspense>
+      <BrewingBanner />
+      <Suspense fallback={<CategoryCollageFallback />}>
+        <CategoryCollage />
+      </Suspense>
+      <ValuesBanner />
       <Suspense fallback={null}>
-        <JournalSection />
+        <MediaBandSection />
       </Suspense>
+      <Suspense fallback={null}>
+        <PairSection />
+      </Suspense>
+      <SloganBand />
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
     </>
   );

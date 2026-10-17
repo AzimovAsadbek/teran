@@ -46,33 +46,37 @@ test.describe('phone', () => {
     await expectNoSidewaysScroll(page);
   });
 
-  test('the hero stage moves gently, and stays still with reduced motion @mobile', async ({
+  test('the hero slides change by themselves and by swiping, and wait with reduced motion @mobile', async ({
     page,
   }) => {
-    const botanicalMotion = () =>
-      page.evaluate(
-        () =>
-          document.getAnimations().filter((animation) => {
-            const target =
-              animation.effect && 'target' in animation.effect ? animation.effect.target : null;
-            return (
-              animation.playState === 'running' &&
-              target instanceof Element &&
-              target.closest('[data-hero-stage] .botanical') !== null
-            );
-          }).length,
-      );
+    const hero = page.getByRole('region', { name: 'TERAN products' });
+    const current = () => hero.locator('button[aria-current="true"]').getAttribute('aria-label');
     await page.goto('/en');
-    // The stage is placed below the words and starts on the first screen.
-    const stage = page.locator('[data-hero-stage]');
-    const box = await stage.boundingBox();
-    expect(box?.y ?? 9999).toBeLessThan(page.viewportSize()!.height);
-    await expect.poll(botanicalMotion).toBeGreaterThan(0);
+    // One page heading, outside the slides, so it stays while they change.
+    await expect(hero.getByRole('heading', { level: 1 })).toHaveCount(1);
+    const first = await current();
+    expect(first).toMatch(/^1 \/ \d+/);
+    // It moves on by itself after about five seconds.
+    await expect.poll(current, { timeout: 9_000 }).not.toBe(first);
 
+    // A swipe to the right brings the previous slide back.
+    const box = (await hero.boundingBox())!;
+    const y = box.y + box.height * 0.6;
+    await page.mouse.move(box.x + box.width * 0.2, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.5, y, { steps: 6 });
+    await page.mouse.move(box.x + box.width * 0.8, y, { steps: 6 });
+    await page.mouse.up();
+    await expect.poll(current).toBe(first);
+    await expectNoSidewaysScroll(page);
+
+    // With reduced motion nothing changes by itself.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.reload();
-    await expect(stage).toBeVisible();
-    expect(await botanicalMotion()).toBe(0);
+    const still = await current();
+    await page.waitForTimeout(6_500);
+    expect(await current()).toBe(still);
+    await expect(hero.getByRole('heading', { level: 1 })).toHaveCount(1);
   });
 
   test('a category with a very long name fits the phone, on its page and in the menu @mobile', async ({
@@ -133,9 +137,14 @@ test.describe('phone', () => {
     }).toPass({ timeout: 20_000 });
     await expectNoSidewaysScroll(page);
 
-    await page.getByRole('button', { name: 'Open menu' }).click();
+    // The menus' category list is cached and refreshed about a second after the change, while
+    // the new category's own page is fresh at once: reload until the menu has it too.
     const menu = page.getByRole('dialog', { name: 'Explore' });
-    await expect(menu.getByText(english).first()).toBeVisible();
+    await expect(async () => {
+      await page.reload();
+      await page.getByRole('button', { name: 'Open menu' }).click();
+      await expect(menu.getByText(english).first()).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
     const fits = await menu.evaluate((element) => element.scrollWidth <= element.clientWidth);
     expect(fits).toBe(true);
     await expectNoSidewaysScroll(page);

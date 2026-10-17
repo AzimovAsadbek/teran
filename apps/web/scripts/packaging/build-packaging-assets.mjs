@@ -13,7 +13,9 @@
  *
  * Outputs:
  *   public/brand/teran-{logo,emblem,wordmark,lockup}.{png,webp}   logo set (transparent)
- *   public/brand/art/{lake,terraces,sprig-1,sprig-2}.webp        artwork from the packaging
+ *   public/brand/art/{lake,terraces,sprig-1}.webp                artwork from the packaging (the
+ *                                                                terraces cropped to the part that
+ *                                                                is fully painted)
  *   public/brand/packs/<code>.webp                               pack fronts, cut out
  *   public/brand/ornaments/*.svg                                 the pack's four icons, 绿茶, seal
  *   ../api/prisma/seed/assets/packaging/<code>-{front,back}.webp  square pack shots for the seed
@@ -145,9 +147,64 @@ await saveLogo(
 );
 
 // ── Artwork ───────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The largest rectangle reaching the image's right and bottom edges in which every pixel is
+ * painted (not the paper's pure white), with a margin clear of the painting's soft edge.
+ */
+async function paintedPart(path, margin = 20) {
+  const { data, info } = await sharp(path)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width, height } = info;
+  const blank = (x, y) => {
+    const i = (y * width + x) * 3;
+    return data[i] >= 253 && data[i + 1] >= 253 && data[i + 2] >= 253;
+  };
+  // Where the painting starts in each row and column: the first run of 40 painted pixels.
+  const RUN = 40;
+  const left = new Int32Array(height).fill(width);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0, run = 0; x < width; x++) {
+      run = blank(x, y) ? 0 : run + 1;
+      if (run >= RUN) {
+        left[y] = x - RUN + 1;
+        break;
+      }
+    }
+  }
+  const top = new Int32Array(width).fill(height);
+  for (let x = 0; x < width; x++) {
+    for (let y = 0, run = 0; y < height; y++) {
+      run = blank(x, y) ? 0 : run + 1;
+      if (run >= RUN) {
+        top[x] = y - RUN + 1;
+        break;
+      }
+    }
+  }
+  let best = null;
+  for (let x0 = 0; x0 < width; x0 += 2) {
+    let y0 = 0;
+    for (let x = x0; x < width; x++) y0 = Math.max(y0, top[x]);
+    if (y0 >= height || left.subarray(y0).some((start) => start > x0)) continue;
+    const area = (width - x0) * (height - y0);
+    if (!best || area > best.area) best = { x0, y0, area };
+  }
+  if (!best) throw new Error(`${path}: no fully painted area found`);
+  const leftEdge = Math.min(width - 1, best.x0 + margin);
+  const topEdge = Math.min(height - 1, best.y0 + margin);
+  return { left: leftEdge, top: topEdge, width: width - leftEdge, height: height - topEdge };
+}
+
 await writeWebp(sharp(input('lake.png')), resolve(artDir, 'lake.webp'), { quality: 84 });
+// The terraces are painted only on the right of the pack's back; the rest is the pack's white
+// (the print fades the painting into it). The website shows the painting whole: the largest part
+// that is painted edge to edge, never a fade.
+const terraces = await paintedPart(input('terraces.png'));
 await writeWebp(
-  sharp(input('terraces.png')).resize({ width: 2400 }),
+  sharp(input('terraces.png')).extract(terraces).resize({ width: 2400 }),
   resolve(artDir, 'terraces.webp'),
   { quality: 82 },
 );

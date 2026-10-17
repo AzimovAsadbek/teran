@@ -327,3 +327,17 @@ go through the API as before (64 MB). Only admin pages may connect to Blob's upl
 
 **Consequences.** Films up to 512 MB on Vercel without a larger function body; the API still
 validates every file. The path depends on Vercel Blob and has to be checked once on the real store.
+
+## ADR-025: No inlined copy of the page for cached navigations
+
+**Context.** With Cache Components, Next.js 16.4 turns `experimental.cachedNavigations` on by
+default. Together with Partial Prefetching (ADR-008) every page view then renders the route a
+second time and inlines that copy into the HTML, so the browser can cache it while hydrating: on
+the homepage about 95 kB of the 550 kB document, plus a second server render per request.
+
+**Decision.** `experimental.cachedNavigations: false` in `apps/web/next.config.ts`. Partial
+Prefetching stays on: links still prefetch one App Shell per route.
+
+**Consequences.** Smaller documents (homepage 80 → 60 kB compressed), one render per request and
+less hydration work on phones. A route opened again by a link is not served from that inlined
+copy; it uses its prefetched App Shell and streams its data, as any other navigation does.

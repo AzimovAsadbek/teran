@@ -12,7 +12,8 @@ Outputs (in <out dir>):
   <code>-front.png / <code>-back.png   page 1 and 2 at 300 dpi
   <code>-window.json                  outline of the front's transparent window (300 dpi pixels)
   logo.png                            the logo lockup alone, at 1200 dpi, on the page's white
-  lake.png, terraces.png, sprig-*.png embedded artworks (landscape, tea-leaf cut-outs)
+  lake.png, terraces.png, sprig-*.png embedded artworks (landscapes without their fades, tea-leaf
+                                      cut-outs)
   calligraphy.svg, icons.svg          vector ornaments (绿茶 with the 茶叶 seal; the four icons)
 """
 import json
@@ -110,14 +111,21 @@ def region_svg(page, rect):
     )
 
 
-def embedded_image(doc, xref, dest):
+def embedded_image(doc, xref, dest, soft_mask=True):
+    """
+    An embedded image as stored in the file. With `soft_mask`, its soft mask becomes the alpha
+    channel (cut-outs); without it, the painting is kept whole, as it was before the designer faded
+    it into the pack's white.
+    """
     pix = fitz.Pixmap(doc, xref)
     if pix.colorspace and pix.colorspace.n != 3:
         pix = fitz.Pixmap(fitz.csRGB, pix)
     smask = doc.extract_image(xref).get('smask', 0)
-    if smask:
+    if smask and soft_mask:
         base = fitz.Pixmap(pix, 0) if pix.alpha else pix
         pix = fitz.Pixmap(base, fitz.Pixmap(doc, smask))
+    elif not soft_mask and pix.alpha:
+        pix = fitz.Pixmap(pix, 0)
     pix.save(dest)
     print(dest, pix.width, pix.height)
 
@@ -178,7 +186,14 @@ def main():
         handle.write(region_svg(front, ICONS_RECT))
     # Embedded artworks: the front's lake landscape, the back's tea terraces and leaf sprigs.
     embedded_image(doc, largest_image(front, fitz.Rect(-1, 100, 597, 700)), os.path.join(out, 'lake.png'))
-    embedded_image(doc, largest_image(back, fitz.Rect(0, 100, 600, 420)), os.path.join(out, 'terraces.png'))
+    # The terraces fade into the pack's white through a soft mask; the website shows the painting
+    # whole (build-packaging-assets.mjs crops it to the part that is fully painted).
+    embedded_image(
+        doc,
+        largest_image(back, fitz.Rect(0, 100, 600, 420)),
+        os.path.join(out, 'terraces.png'),
+        soft_mask=False,
+    )
     sprigs = sorted(
         {i['xref'] for i in back.get_image_info(xrefs=True)
          if i['xref'] and fitz.Rect(i['bbox']).y0 > 600 and fitz.Rect(i['bbox']).x1 < 200},

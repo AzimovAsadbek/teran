@@ -64,15 +64,19 @@ export function MobileFilters({
 
   return (
     <div className="lg:hidden">
-      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        <SlidersHorizontal aria-hidden className="h-4 w-4" />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="-ml-2 inline-flex h-11 items-center gap-2 rounded-full px-2 text-[1.0625rem] font-medium text-fg transition-colors hover:bg-brand/[0.06]"
+      >
+        <SlidersHorizontal aria-hidden className="h-5 w-5" />
         {t('filters')}
         {activeCount > 0 ? (
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-micro font-bold text-fg-inverse figures">
             {activeCount}
           </span>
         ) : null}
-      </Button>
+      </button>
       <Sheet
         open={open}
         onClose={() => setOpen(false)}

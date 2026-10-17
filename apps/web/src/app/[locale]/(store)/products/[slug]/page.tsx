@@ -1,19 +1,25 @@
-import type { Locale, ProductDetailDto } from '@teran/contracts';
+import type { Locale, ProductDetailDto, ProductSummaryDto } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { BotanicalLayer } from '@/components/brand/botanical';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
-import { ProductCard } from '@/components/catalog/product-card';
+import { ProductRail } from '@/components/home/product-rail';
+import { RailFallback } from '@/components/home/rail-sections';
 import { ProductGallery } from '@/components/product/product-gallery';
-import { BrewingFacts, DeliveryInfo, ProductInfo } from '@/components/product/product-info';
+import {
+  AttributeRows,
+  DifferenceSection,
+  DeliveryInfo,
+  PreparationSection,
+  ProductTabsSection,
+} from '@/components/product/product-info';
 import { PurchasePanel } from '@/components/product/purchase-panel';
+import { RecentlyViewed } from '@/components/product/recently-viewed';
 import { DemoNotice } from '@/components/ui/demo-notice';
-import { SectionHeading } from '@/components/ui/section-heading';
-import { ProductGridSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Link, getPathname } from '@/i18n/navigation';
 import { getProduct, getRelatedProducts, getSlugRedirect } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
@@ -105,94 +111,154 @@ async function ProductView({
     })),
   };
 
+  const th = await getTranslations('Home');
+  const tn = await getTranslations('Nav');
+  const railLabels = {
+    tabList: th('showcaseTabs'),
+    previous: th('showcasePrevious'),
+    next: th('showcaseNext'),
+  };
+
+  // The product's own parts sit in the page column; the rows of products bring their own.
   return (
     <>
-      <Breadcrumbs
-        locale={locale}
-        items={[
-          ...product.breadcrumbs.map((crumb) => ({ label: crumb.name, href: `/${crumb.path}` })),
-          { label: product.name },
-        ]}
-      />
-      <div className="relative isolate mt-4 grid grid-cols-1 gap-8 sm:mt-6 lg:grid-cols-12 lg:gap-12 xl:gap-16">
-        {/* The lightest touch: warm light behind the gallery, one still sprig beneath it. */}
-        <BotanicalLayer scene="product" className="-z-10" />
-        <div className="lg:col-span-7">
-          <ProductGallery images={product.images} name={product.name} />
-        </div>
-        <div className="lg:col-span-5">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-eyebrow">
-            <Link
-              href={`/${product.category.path}`}
-              className="text-accent-fg underline-offset-4 hover:underline"
-            >
-              {product.category.name}
-            </Link>
-            {namesFormat(product.format) ? (
-              <>
-                <span aria-hidden className="text-fg-subtle">
-                  ·
-                </span>
-                <span className="text-fg-subtle">{tc(`formats.${product.format}`)}</span>
-              </>
-            ) : null}
-          </p>
-          <h1 className="mt-3 text-display-lg text-forest-900">{product.name}</h1>
-          {product.isNew || product.onSale ? (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {product.isNew ? <Badge tone="new">{t('badgeNew')}</Badge> : null}
-              {product.onSale ? <Badge tone="sale">{t('badgeSale')}</Badge> : null}
-            </div>
-          ) : null}
-          {product.shortDescription ? (
-            <p className="mt-4 text-body-lg text-fg-muted">{product.shortDescription}</p>
-          ) : null}
-          <div className="mt-6 border-t border-line pt-6">
-            <PurchasePanel
-              productName={product.name}
-              format={product.format}
-              variants={product.variants}
-              initialVariantId={initialVariant.id}
-            />
+      <div className="container-page">
+        <Breadcrumbs
+          locale={locale}
+          items={[
+            ...product.breadcrumbs.map((crumb) => ({ label: crumb.name, href: `/${crumb.path}` })),
+            { label: product.name },
+          ]}
+        />
+        {/* The reference's two halves: gallery left, the product's column right. */}
+        <div className="mt-6 grid grid-cols-1 gap-8 sm:mt-8 lg:grid-cols-2 lg:gap-12">
+          <div>
+            <ProductGallery images={product.images} name={product.name} />
           </div>
-          <DemoNotice variant="inline" className="mt-2" />
-          <BrewingFacts brewing={product.brewing} />
-          <DeliveryInfo options={options} />
-          <ProductInfo product={product} />
+          <div className="lg:pt-11">
+            <p className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`/${product.category.path}`}
+                className="inline-flex min-h-8 items-center rounded-full bg-jade-700 px-[1.375rem] text-[1rem] tracking-[0.04em] text-ivory-50 uppercase transition-[filter] duration-200 hover:brightness-110"
+              >
+                {product.category.name}
+              </Link>
+              {namesFormat(product.format) ? (
+                <span className="text-eyebrow text-fg-subtle">
+                  {tc(`formats.${product.format}`)}
+                </span>
+              ) : null}
+            </p>
+            <h1 className="mt-6 font-heading text-[1.75rem] leading-[1.2] text-fg sm:text-[2rem]">
+              {product.name}
+            </h1>
+            {product.isNew || product.onSale ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {product.isNew ? <Badge tone="new">{t('badgeNew')}</Badge> : null}
+                {product.onSale ? <Badge tone="sale">{t('badgeSale')}</Badge> : null}
+              </div>
+            ) : null}
+            <div className="mt-4">
+              <PurchasePanel
+                productName={product.name}
+                format={product.format}
+                variants={product.variants}
+                initialVariantId={initialVariant.id}
+                image={product.images[0] ?? null}
+                details={
+                  <>
+                    <ProductTabsSection product={product} />
+                    <AttributeRows product={product} />
+                  </>
+                }
+              />
+            </div>
+            <DeliveryInfo options={options} />
+            <DemoNotice variant="inline" className="mt-4" />
+          </div>
         </div>
+        <PreparationSection product={product} />
       </div>
-      <Suspense fallback={<ProductGridSkeleton className="mt-section" />}>
-        <RelatedProducts slug={product.slug} />
+      <Suspense fallback={<RailFallback />}>
+        <RelatedProducts product={product} />
       </Suspense>
+      <div className="container-page">
+        <DifferenceSection product={product} />
+      </div>
+      <RecentlyViewed
+        current={summaryOf(product)}
+        title={t('recentlyViewed')}
+        cta={tn('shopAll')}
+        labels={railLabels}
+      />
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
     </>
   );
 }
 
-async function RelatedProducts({ slug }: { slug: string }) {
+/** The card's fields of a product (what the recently-viewed row keeps on the device). */
+function summaryOf(product: ProductDetailDto): ProductSummaryDto {
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    shortDescription: product.shortDescription,
+    category: product.category,
+    format: product.format,
+    isFeatured: product.isFeatured,
+    isNew: product.isNew,
+    onSale: product.onSale,
+    stockLevel: product.stockLevel,
+    priceFrom: product.priceFrom,
+    compareAtPriceFrom: product.compareAtPriceFrom,
+    currency: product.currency,
+    variantCount: product.variantCount,
+    defaultVariant: product.defaultVariant,
+    image: product.image,
+    stageImage: product.stageImage,
+    hoverImage: product.hoverImage,
+    illustrationKey: product.illustrationKey,
+  };
+}
+
+/** The reference's "they go together" row: related products, and the way to the whole category. */
+async function RelatedProducts({ product }: { product: ProductDetailDto }) {
   const locale = await getLocale();
-  const t = await getTranslations('Product');
-  const related = await getRelatedProducts(locale, slug).catch(() => []);
+  const [t, th, tn] = await Promise.all([
+    getTranslations('Product'),
+    getTranslations('Home'),
+    getTranslations('Nav'),
+  ]);
+  const related = await getRelatedProducts(locale, product.slug).catch(() => []);
   if (related.length === 0) return null;
   return (
-    <section aria-labelledby="related-title" className="mt-section">
-      <SectionHeading id="related-title" title={t('related')} />
-      <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-4">
-        {related.map((item) => (
-          <li key={item.id}>
-            <ProductCard product={item} />
-          </li>
-        ))}
-      </ul>
-    </section>
+    <div className="mt-2">
+      <ProductRail
+        tabs={[
+          {
+            id: 'related',
+            label: t('related'),
+            products: related,
+            href: `/${product.category.path}`,
+            cta: tn('shopIn', { name: product.category.name }),
+          },
+        ]}
+        labels={{
+          tabList: th('showcaseTabs'),
+          previous: th('showcasePrevious'),
+          next: th('showcaseNext'),
+        }}
+        heading="serif"
+      />
+    </div>
   );
 }
 
 function ProductSkeleton() {
   return (
-    <div className="mt-9 grid gap-8 sm:mt-11 lg:grid-cols-12 lg:gap-12 xl:gap-16" aria-hidden>
-      <Skeleton className="aspect-square rounded-panel lg:col-span-7" />
-      <div className="space-y-4 lg:col-span-5">
+    <div className="mt-9 grid gap-8 sm:mt-11 lg:grid-cols-2 lg:gap-12 xl:gap-16" aria-hidden>
+      <Skeleton className="aspect-square" />
+      <div className="space-y-4 lg:pt-6">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-12 w-3/4" />
         <Skeleton className="h-6 w-full" />
@@ -214,8 +280,14 @@ export default function ProductPage({
   searchParams,
 }: PageProps<'/[locale]/products/[slug]'>) {
   return (
-    <div className="container-page pt-4 pb-section sm:pt-6">
-      <Suspense fallback={<ProductSkeleton />}>
+    <div className="pt-6 pb-section sm:pt-8">
+      <Suspense
+        fallback={
+          <div className="container-page">
+            <ProductSkeleton />
+          </div>
+        }
+      >
         <ProductView params={params} searchParams={searchParams} />
       </Suspense>
     </div>

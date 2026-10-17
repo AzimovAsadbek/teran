@@ -71,8 +71,9 @@ export default async function ArticlePreviewPage({
         </Notice>
       ) : null}
 
-      <div className="rounded-panel border border-line bg-canvas px-5 py-8 sm:px-8 sm:py-10">
-        <article className="mx-auto max-w-[44rem]">
+      {/* Gutter padding as on the storefront, so the article's full-bleed hero fits the frame. */}
+      <div className="overflow-hidden rounded-panel border border-line bg-canvas px-gutter pb-10">
+        <article>
           <ArticleContent article={article} locale={locale} />
         </article>
       </div>

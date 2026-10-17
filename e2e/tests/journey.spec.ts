@@ -56,7 +56,8 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   const storage = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   expect(storage).not.toMatch(/teran_session|teran_cart|password/i);
 
-  // 3. The header offers registration; the visitor creates an account.
+  // 3. The header's account menu offers registration; the visitor creates an account.
+  await visible(page.getByRole('banner').locator('summary[aria-label="Account"]')).click();
   await visible(page.getByRole('banner').getByRole('link', { name: 'Register' })).click();
   await expect(page).toHaveURL(/\/en\/account\/register/);
   await field(page, 'First name').fill('Journey');
@@ -126,6 +127,7 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   await visible(page.getByRole('banner').getByLabel('Account menu')).click();
   await visible(page.getByRole('banner').getByRole('button', { name: 'Sign out' })).click();
   await expect(page).toHaveURL(/\/en$/);
+  await visible(page.getByRole('banner').locator('summary[aria-label="Account"]')).click();
   await expect(
     visible(page.getByRole('banner').getByRole('link', { name: 'Sign in' })),
   ).toBeVisible();

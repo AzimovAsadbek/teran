@@ -33,7 +33,7 @@ export async function PremiumCollectionBand({ locale }: { locale: Locale }) {
             {copy.collection.heading}
           </h2>
           <p className="mt-2 text-body-lg text-fg-muted">{copy.collection.text}</p>
-          <p className="mt-5 font-display text-[1.375rem] leading-snug tracking-[0.04em] text-accent-fg sm:text-[1.625rem]">
+          <p className="mt-5 font-headline text-[1.5rem] leading-snug text-jade-700 sm:text-[1.75rem]">
             {COLLECTION_CODES.join(' · ')}
           </p>
         </div>

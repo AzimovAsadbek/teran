@@ -11,15 +11,34 @@ import {
   withAttribute,
   type CatalogFilters,
 } from '@/features/catalog/query';
+import { FilterDropdown } from './filter-dropdown';
+import {
+  FILTER_BUTTON,
+  FILTER_BUTTON_ON,
+  FILTER_OPTION,
+  FILTER_POPOVER_BUTTON,
+} from './filter-styles';
 import { MobileFilters } from './mobile-filters';
 import { PriceFilter } from './price-filter';
 import { RangeFilter } from './range-filter';
 import { SortSelect } from './sort-select';
 
-const CHIP =
-  'inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-body-sm font-medium whitespace-nowrap transition-colors duration-150';
-const CHIP_OFF = 'border-line-strong/45 bg-surface text-fg hover:border-brand/60';
-const CHIP_ON = 'border-brand bg-brand text-fg-inverse';
+const CHIP = FILTER_POPOVER_BUTTON;
+
+/** The checkbox square of a dropdown choice. */
+function Box({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center rounded-[0.1875rem] border',
+        on ? 'border-forest-900 bg-forest-900 text-ivory-50' : 'border-ink-500/70 bg-surface',
+      )}
+    >
+      {on ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : null}
+    </span>
+  );
+}
 
 /**
  * Listing toolbar. Desktop filters are links and GET forms, so filtering works without JavaScript
@@ -129,39 +148,49 @@ export async function FilterBar({
 
   return (
     <div className="mt-6 sm:mt-8">
-      <div className="flex items-center gap-x-3 gap-y-2 border-y border-line py-3">
-        <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 lg:flex">
-          {facets.formats.map(({ value, count }) => {
-            const on = filters.format.includes(value);
-            return (
-              <Link
-                key={value}
-                href={href(toggleFormat(filters, value))}
-                rel="nofollow"
-                scroll={false}
-                className={cn(CHIP, on ? CHIP_ON : CHIP_OFF)}
-              >
-                {on ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
-                {t(`formats.${value as ProductFormat}`)}
-                {/* Links cannot be "pressed"; the state is part of the accessible name instead. */}
-                {on ? <span className="sr-only">({t('filterApplied')})</span> : null}
-                <span className={cn('text-caption', on ? 'text-ivory-100/75' : 'text-fg-subtle')}>
-                  {count}
-                </span>
-              </Link>
-            );
-          })}
-          <span aria-hidden className="mx-1 h-6 w-px bg-line" />
-          <Link
-            href={href({ ...filters, inStock: !filters.inStock, page: 1 })}
-            rel="nofollow"
-            scroll={false}
-            className={cn(CHIP, filters.inStock ? CHIP_ON : CHIP_OFF)}
-          >
-            {filters.inStock ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
-            {t('inStockOnly')}
-            {filters.inStock ? <span className="sr-only">({t('filterApplied')})</span> : null}
-          </Link>
+      <div className="flex items-center gap-x-3 gap-y-2">
+        <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-3 lg:flex">
+          {facets.formats.length > 0 ? (
+            <FilterDropdown
+              label={t('format')}
+              selectedCount={filters.format.length}
+              appliedLabel={t('filterApplied')}
+            >
+              <ul>
+                {facets.formats.map(({ value, count }) => {
+                  const on = filters.format.includes(value);
+                  return (
+                    <li key={value}>
+                      <Link
+                        href={href(toggleFormat(filters, value))}
+                        rel="nofollow"
+                        scroll={false}
+                        aria-current={on ? 'true' : undefined}
+                        className={FILTER_OPTION}
+                      >
+                        <Box on={on} />
+                        <span className="flex-1">{t(`formats.${value as ProductFormat}`)}</span>
+                        {on ? <span className="sr-only">({t('filterApplied')})</span> : null}
+                        <span className="text-caption text-fg-subtle">{count}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </FilterDropdown>
+          ) : null}
+          {facets.attributes.map((facet) => (
+            <AttributeFilter
+              key={facet.key}
+              facet={facet}
+              filters={filters}
+              basePath={basePath}
+              formAction={formAction}
+              href={href}
+              yes={t('yes')}
+              applied={t('filterApplied')}
+            />
+          ))}
           <PriceFilter
             basePath={basePath}
             formAction={formAction}
@@ -177,17 +206,16 @@ export async function FilterBar({
             }}
             chipClassName={CHIP}
           />
-          {facets.attributes.map((facet) => (
-            <AttributeChips
-              key={facet.key}
-              facet={facet}
-              filters={filters}
-              basePath={basePath}
-              formAction={formAction}
-              href={href}
-              yes={t('yes')}
-            />
-          ))}
+          <Link
+            href={href({ ...filters, inStock: !filters.inStock, page: 1 })}
+            rel="nofollow"
+            scroll={false}
+            className={filters.inStock ? FILTER_BUTTON_ON : FILTER_BUTTON}
+          >
+            <Box on={filters.inStock} />
+            {t('inStockOnly')}
+            {filters.inStock ? <span className="sr-only">({t('filterApplied')})</span> : null}
+          </Link>
         </div>
 
         <MobileFilters
@@ -197,10 +225,15 @@ export async function FilterBar({
           facets={facets}
           total={total}
         />
-        <p className="ml-auto text-body-sm whitespace-nowrap text-fg-muted" aria-live="polite">
+        <p
+          className="ml-auto text-[0.875rem] whitespace-nowrap text-fg-muted lg:self-start lg:pt-2.5"
+          aria-live="polite"
+        >
           {t('results', { count: total })}
         </p>
-        <SortSelect value={filters.sort} query={toSearchParams(filters)} />
+        <div className="lg:self-start">
+          <SortSelect value={filters.sort} query={toSearchParams(filters)} />
+        </div>
       </div>
 
       {active.length > 0 ? (
@@ -237,16 +270,17 @@ export async function FilterBar({
 }
 
 /**
- * The filter of one product attribute in the desktop bar: chips for choices and yes/no
- * attributes, a range popover for numbers. Counts come from the API for the current listing.
+ * The filter of one product attribute in the desktop bar: a dropdown of choices (with their
+ * counts for the current listing), a toggle for yes/no attributes, a range popover for numbers.
  */
-function AttributeChips({
+function AttributeFilter({
   facet,
   filters,
   basePath,
   formAction,
   href,
   yes,
+  applied,
 }: {
   facet: AttributeFacetDto;
   filters: CatalogFilters;
@@ -254,6 +288,7 @@ function AttributeChips({
   formAction: string;
   href: (next: CatalogFilters) => string;
   yes: string;
+  applied: string;
 }) {
   const selected = filters.attributes[facet.key] ?? [];
   if (facet.kind === 'NUMBER') {
@@ -286,39 +321,40 @@ function AttributeChips({
         href={href(withAttribute(filters, facet.key, on ? [] : ['true']))}
         rel="nofollow"
         scroll={false}
-        className={cn(CHIP, on ? CHIP_ON : CHIP_OFF)}
+        className={on ? FILTER_BUTTON_ON : FILTER_BUTTON}
       >
-        {on ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
+        <Box on={on} />
         {facet.label}
         <span className="sr-only">: {yes}</span>
-        <span className={cn('text-caption', on ? 'text-ivory-100/75' : 'text-fg-subtle')}>
-          {option.count}
-        </span>
+        {on ? <span className="sr-only">({applied})</span> : null}
+        <span className="text-caption text-fg-subtle">{option.count}</span>
       </Link>
     );
   }
+  if (facet.options.length === 0) return null;
   return (
-    <span role="group" aria-label={facet.label} className="flex flex-wrap items-center gap-2">
-      <span aria-hidden className="mx-1 h-6 w-px bg-line" />
-      <span className="text-caption font-semibold text-fg-subtle">{facet.label}</span>
-      {facet.options.map((option) => {
-        const on = selected.includes(option.key);
-        return (
-          <Link
-            key={option.key}
-            href={href(toggleAttribute(filters, facet.key, option.key))}
-            rel="nofollow"
-            scroll={false}
-            className={cn(CHIP, on ? CHIP_ON : CHIP_OFF)}
-          >
-            {on ? <Check aria-hidden className="-ml-0.5 h-4 w-4" /> : null}
-            {option.label}
-            <span className={cn('text-caption', on ? 'text-ivory-100/75' : 'text-fg-subtle')}>
-              {option.count}
-            </span>
-          </Link>
-        );
-      })}
-    </span>
+    <FilterDropdown label={facet.label} selectedCount={selected.length} appliedLabel={applied}>
+      <ul>
+        {facet.options.map((option) => {
+          const on = selected.includes(option.key);
+          return (
+            <li key={option.key}>
+              <Link
+                href={href(toggleAttribute(filters, facet.key, option.key))}
+                rel="nofollow"
+                scroll={false}
+                aria-current={on ? 'true' : undefined}
+                className={FILTER_OPTION}
+              >
+                <Box on={on} />
+                <span className="flex-1">{option.label}</span>
+                {on ? <span className="sr-only">({applied})</span> : null}
+                <span className="text-caption text-fg-subtle">{option.count}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </FilterDropdown>
   );
 }

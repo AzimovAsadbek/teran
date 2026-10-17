@@ -35,18 +35,22 @@ test.describe('navigation', () => {
     await expect(panel).toBeHidden();
   });
 
-  test('the phone drawer opens a category like an accordion @mobile', async ({ page }) => {
+  test('the phone drawer shows category tiles and opens the categories a level deeper @mobile', async ({
+    page,
+  }) => {
     await page.goto('/en');
     await page.getByRole('button', { name: 'Open menu' }).click();
     const drawer = page.getByRole('dialog', { name: 'Explore' });
-    const tea = drawer.getByRole('button', { name: /^Tea/ });
-    // With few top-level categories the first one starts open.
-    await expect(tea).toHaveAttribute('aria-expanded', 'true');
+    // Picture tiles for the top-level categories and collections, as on the reference.
+    await expect(drawer.getByRole('link', { name: 'Tea', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('link', { name: 'All products', exact: true })).toBeVisible();
+    // "Shop" opens every category with its subcategories; "Back" returns.
+    await drawer.getByRole('button', { name: 'Shop', exact: true }).click();
     await expect(drawer.getByRole('link', { name: /^Green tea/ })).toBeVisible();
-    await tea.click();
-    await expect(tea).toHaveAttribute('aria-expanded', 'false');
+    await expect(drawer.getByRole('button', { name: 'Back' })).toBeFocused();
+    await drawer.getByRole('button', { name: 'Back' }).click();
     await expect(drawer.getByRole('link', { name: /^Green tea/ })).toBeHidden();
-    await tea.click();
+    await drawer.getByRole('button', { name: 'Shop', exact: true }).click();
     await drawer.getByRole('link', { name: /^Green tea/ }).click();
     await expect(page).toHaveURL(/\/en\/tea\/green-tea$/);
     await expect(drawer).toBeHidden();

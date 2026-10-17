@@ -107,8 +107,8 @@ export function LongForm({
             aria-labelledby={`${section.id}-title`}
             className="scroll-mt-24"
           >
-            <h2 id={`${section.id}-title`} className="text-display-sm text-forest-900">
-              {numbered ? <span className="text-accent-fg">{index + 1}. </span> : null}
+            <h2 id={`${section.id}-title`} className="text-display-md text-jade-700">
+              {numbered ? <span>{index + 1}. </span> : null}
               {section.heading}
             </h2>
             <div className="mt-4 space-y-4 text-body text-fg-muted sm:text-body-lg">

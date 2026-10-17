@@ -1,6 +1,6 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
-import { CartDrawer } from '@/components/cart/cart-drawer';
+import { CartDrawerSlot } from '@/components/cart/cart-drawer-slot';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SkipLink } from '@/components/layout/skip-link';
@@ -17,7 +17,7 @@ export default async function StoreLayout({ children }: LayoutProps<'/[locale]'>
         {children}
       </main>
       <SiteFooter />
-      <CartDrawer />
+      <CartDrawerSlot />
     </NextIntlClientProvider>
   );
 }

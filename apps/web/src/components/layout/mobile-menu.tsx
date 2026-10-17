@@ -1,40 +1,44 @@
 'use client';
 
-import {
-  ArrowRight,
-  ChevronDown,
-  ChevronRight,
-  LogOut,
-  Menu,
-  Sparkles,
-  UserRound,
-} from 'lucide-react';
+import { ArrowLeft, ChevronRight, Menu, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Suspense, use, useId, useState, type MouseEvent } from 'react';
-import { useLogout } from '@/components/account/logout';
-import { CategoryThumb } from '@/components/catalog/category-thumb';
+import Image from 'next/image';
+import { Suspense, use, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { CategoryArt } from '@/components/catalog/category-art';
 import { IconButton } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { EMPTY_NAVIGATION, type NavCategoryTree, type Navigation } from '@/lib/navigation';
+import {
+  ABOUT_LINKS,
+  EMPTY_NAVIGATION,
+  HELP_LINKS,
+  LEARN_LINKS,
+  type Navigation,
+} from '@/lib/navigation';
 import type { HeaderAccount } from '@/lib/session';
+import lake from '../../../public/brand/art/lake.webp';
 import { LanguageSwitcherSlot } from './language-switcher';
 
+type Level = 'categories' | 'learn' | 'about';
+
+const TILE =
+  'cat-card group relative block aspect-square overflow-hidden rounded-tile bg-forest-900 text-ivory-50 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-focus';
+const TILE_LABEL =
+  'absolute inset-x-0 bottom-0 line-clamp-3 bg-linear-to-t from-forest-950/90 via-forest-950/55 to-transparent px-3 pt-12 pb-3 font-headline text-[1.375rem] [overflow-wrap:anywhere]';
 const ROW =
-  'flex min-h-12 items-center justify-between gap-3 py-3 text-body font-medium text-fg transition-colors hover:text-brand';
-const HEADING = 'text-eyebrow text-accent-fg';
-/** Up to this many top-level categories, the first with subcategories starts open. */
-const OPEN_FIRST_UP_TO = 3;
+  'flex min-h-14 w-full items-center justify-between gap-3 rounded-tile bg-surface-muted px-5 text-[1.0625rem] font-medium text-fg transition-colors hover:bg-surface-sunken hover:text-brand';
+const LINK_ROW =
+  'flex min-h-12 items-center justify-between gap-3 border-b border-line-subtle py-3 text-body transition-colors hover:text-brand';
 
 /**
- * Drawer navigation below 1280 px, from the same category tree as the desktop panels: the
- * catalogue first (each top-level category opens like an accordion to show its subcategories and
- * a link to the whole category), then collections, the brand's pages, help and the account. The
- * button and drawer work before the navigation data arrives; only the lists stream in, so a drawer
- * opened early stays open. Its contents are rendered the first time it opens (no page carries them
- * in its HTML) and kept afterwards. Esc, the close button and following a link close it; focus
- * returns to the menu button (native dialog).
+ * Drawer navigation below 1280 px, on the reference's model: picture tiles for the catalogue (its
+ * top-level categories, collections with products and "all products", in two columns), then
+ * rounded rows that open the other sections one level deeper (Shop: every category with its
+ * subcategories and every collection; Tea school; About), and a bottom bar with the account and
+ * the language. The tree is the one the
+ * desktop panels use. The button and drawer work before the data arrives; only the lists stream
+ * in. Esc, the close button and following a link close it; focus returns to the menu button.
  */
 export function MobileMenu({
   navigation,
@@ -46,32 +50,22 @@ export function MobileMenu({
   const t = useTranslations('Nav');
   const [open, setOpen] = useState(false);
   const [opened, setOpened] = useState(false);
+  const [level, setLevel] = useState<Level | null>(null);
+  const backRef = useRef<HTMLButtonElement>(null);
   if (open && !opened) setOpened(true);
+
+  const close = () => {
+    setOpen(false);
+    setLevel(null);
+  };
   // Following any link closes the drawer (no need to watch the URL).
   const closeOnLink = (event: MouseEvent) => {
-    if ((event.target as HTMLElement).closest('a')) setOpen(false);
+    if ((event.target as HTMLElement).closest('a')) close();
   };
-
-  const groups = [
-    {
-      title: t('brandWorld'),
-      links: [
-        ['/about', t('about')],
-        ['/journal', t('journal')],
-        ['/media/photos', t('photos')],
-        ['/media/videos', t('videos')],
-        ['/wholesale', t('wholesale')],
-      ],
-    },
-    {
-      title: t('help'),
-      links: [
-        ['/contact', t('contact')],
-        ['/delivery', t('delivery')],
-        ['/faq', t('faq')],
-      ],
-    },
-  ] as const;
+  const enter = (next: Level) => {
+    setLevel(next);
+    requestAnimationFrame(() => backRef.current?.focus());
+  };
 
   return (
     <>
@@ -85,53 +79,64 @@ export function MobileMenu({
       />
       <Sheet
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={close}
         side="left"
+        narrow
         title={t('explore')}
+        hideTitle
         closeLabel={t('closeMenu')}
         footer={
           opened ? (
             <div className="flex items-center justify-between gap-3">
-              <Link
-                href="/account"
-                onClick={() => setOpen(false)}
-                className="inline-flex min-h-11 items-center gap-2 text-title-sm text-fg hover:text-brand"
-              >
-                <UserRound aria-hidden className="h-5 w-5" />
-                {t('account')}
-              </Link>
+              <Suspense fallback={<AccountLink user={null} onDone={close} />}>
+                <StreamedAccountLink account={account} onDone={close} />
+              </Suspense>
               <LanguageSwitcherSlot tone="light" />
             </div>
           ) : null
         }
       >
         {opened ? (
-          <div className="space-y-9 px-5 py-6 sm:px-6" onClick={closeOnLink}>
-            <Suspense fallback={<CatalogueLinks navigation={EMPTY_NAVIGATION} />}>
-              <StreamedCatalogueLinks navigation={navigation} />
-            </Suspense>
-
-            <div className="grid gap-8 sm:grid-cols-2">
-              {groups.map((group) => (
-                <nav key={group.title} aria-label={group.title}>
-                  <h3 className={HEADING}>{group.title}</h3>
-                  <ul className="mt-2 divide-y divide-line-subtle border-y border-line-subtle">
-                    {group.links.map(([href, label]) => (
-                      <li key={href}>
-                        <Link href={href} className={ROW}>
-                          {label}
-                          <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-fg-subtle" />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              ))}
-            </div>
-
-            <Suspense fallback={null}>
-              <AccountLinks account={account} onDone={() => setOpen(false)} />
-            </Suspense>
+          <div className="px-5 pt-6 pb-8" onClick={closeOnLink}>
+            {level ? (
+              <div>
+                <button
+                  ref={backRef}
+                  type="button"
+                  onClick={() => setLevel(null)}
+                  className="-ml-1 inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-body font-semibold text-forest-900"
+                >
+                  <ArrowLeft aria-hidden className="h-5 w-5" />
+                  {t('backTo')}
+                </button>
+                <Suspense fallback={null}>
+                  <LevelLinks level={level} navigation={navigation} />
+                </Suspense>
+              </div>
+            ) : (
+              <>
+                <p className="font-headline text-[2rem] text-jade-700">{t('explore')}</p>
+                <Suspense fallback={<Tiles navigation={EMPTY_NAVIGATION} />}>
+                  <StreamedTiles navigation={navigation} />
+                </Suspense>
+                <ul className="mt-6 space-y-3">
+                  {(
+                    [
+                      ['categories', t('shop')],
+                      ['learn', t('learn')],
+                      ['about', t('about')],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <li key={id}>
+                      <button type="button" onClick={() => enter(id)} className={ROW}>
+                        {label}
+                        <ChevronRight aria-hidden className="h-5 w-5 shrink-0" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         ) : null}
       </Sheet>
@@ -139,231 +144,185 @@ export function MobileMenu({
   );
 }
 
-function StreamedCatalogueLinks({ navigation }: { navigation: Promise<Navigation> }) {
-  return <CatalogueLinks navigation={use(navigation)} />;
+function StreamedTiles({ navigation }: { navigation: Promise<Navigation> }) {
+  return <Tiles navigation={use(navigation)} />;
 }
 
-/** The catalogue: categories (accordion), "all products" and collections (empty while loading). */
-function CatalogueLinks({ navigation }: { navigation: Navigation }) {
+/** Five picture tiles and "all products" fill the first screen, as on the reference. */
+const MAX_TILES = 5;
+
+/**
+ * Picture tiles in two columns: the top-level categories, then collections with products, and
+ * "all products". Everything else (subcategories, every collection, empty ones too) is one level
+ * deeper under the "Shop" row.
+ */
+function Tiles({ navigation }: { navigation: Navigation }) {
   const t = useTranslations('Nav');
-  const { categories, collections } = navigation;
-  const firstWithChildren =
-    categories.length <= OPEN_FIRST_UP_TO
-      ? categories.find((category) => category.children.length > 0)?.slug
-      : undefined;
+  const items = [
+    ...navigation.categories.map((category, index) => ({
+      key: `c-${category.slug}`,
+      href: `/${category.path}`,
+      label: category.name,
+      art: <CategoryArt category={category} variant={index} sizes="10rem" />,
+    })),
+    ...navigation.collections
+      .filter((collection) => collection.productCount > 0)
+      .map((collection, index) => ({
+        key: `k-${collection.slug}`,
+        href: `/collections/${collection.slug}`,
+        label: collection.name,
+        art: <CategoryArt category={collection} variant={index + 1} sizes="10rem" />,
+      })),
+  ].slice(0, MAX_TILES);
+  return (
+    <ul className="mt-5 grid grid-cols-2 gap-3">
+      {items.map((item) => (
+        <li key={item.key}>
+          <Link href={item.href} className={TILE}>
+            {item.art}
+            <span className={TILE_LABEL}>{item.label}</span>
+          </Link>
+        </li>
+      ))}
+      <li>
+        <Link href="/catalog" className={TILE}>
+          <Image src={lake} alt="" fill sizes="10rem" className="object-cover" />
+          <span className={TILE_LABEL}>{t('shopAll')}</span>
+        </Link>
+      </li>
+    </ul>
+  );
+}
+
+function LevelLinks({ level, navigation }: { level: Level; navigation: Promise<Navigation> }) {
+  const t = useTranslations('Nav');
+  if (level === 'learn') {
+    return (
+      <Section title={t('learn')}>
+        {LEARN_LINKS.map((link) => (
+          <Row key={link.href} href={link.href}>
+            {t(link.label)}
+          </Row>
+        ))}
+      </Section>
+    );
+  }
+  if (level === 'about') {
+    return (
+      <>
+        <Section title={t('brandWorld')}>
+          {ABOUT_LINKS.map((link) => (
+            <Row key={link.href} href={link.href}>
+              {t(link.label)}
+            </Row>
+          ))}
+        </Section>
+        <Section title={t('help')}>
+          {HELP_LINKS.map((link) => (
+            <Row key={link.href} href={link.href}>
+              {t(link.label)}
+            </Row>
+          ))}
+        </Section>
+      </>
+    );
+  }
+  return <CategoryLinks navigation={navigation} />;
+}
+
+/** Every category with its subcategories, then every collection. */
+function CategoryLinks({ navigation }: { navigation: Promise<Navigation> }) {
+  const t = useTranslations('Nav');
+  const { categories, collections } = use(navigation);
   return (
     <>
-      <nav aria-label={t('shop')}>
-        <h3 className={HEADING}>{t('shop')}</h3>
-        <ul className="mt-3 space-y-2">
-          {categories.map((category) => (
-            <li key={category.slug}>
-              {category.children.length > 0 ? (
-                <CategoryAccordion
-                  category={category}
-                  defaultOpen={category.slug === firstWithChildren}
-                />
-              ) : (
-                <Link href={`/${category.path}`} className={CATEGORY_ROW}>
-                  <CategoryLabel
-                    category={category}
-                    count={t('menuCount', { count: category.productCount })}
-                  />
-                  <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-fg-subtle" />
-                </Link>
-              )}
-            </li>
+      {categories.map((category) => (
+        <Section key={category.slug} title={category.name}>
+          {category.children.map((child) => (
+            <Row key={child.slug} href={`/${child.path}`} soon={child.productCount === 0}>
+              {child.name}
+            </Row>
           ))}
-        </ul>
-        <Link
-          href="/catalog"
-          className="mt-3 flex min-h-12 items-center justify-between rounded-card bg-surface-inverse px-4 text-title-sm text-fg-inverse transition-colors hover:bg-forest-800"
-        >
-          {t('shopAll')}
-          <ArrowRight aria-hidden className="h-4 w-4 text-accent-on-inverse" />
-        </Link>
-        <Link
-          href="/assistant"
-          className="mt-2 flex min-h-12 items-center gap-2 rounded-card border border-line bg-surface px-4 text-title-sm text-forest-900 transition-colors hover:border-gold-400"
-        >
-          <Sparkles aria-hidden className="h-4 w-4 text-accent-fg" />
-          {t('assistant')}
-        </Link>
-      </nav>
-
+          <Row href={`/${category.path}`} strong>
+            {t('shopIn', { name: category.name })}
+          </Row>
+        </Section>
+      ))}
       {collections.length > 0 ? (
-        <nav aria-label={t('collections')}>
-          <h3 className={HEADING}>{t('collections')}</h3>
-          <ul className="mt-3 grid grid-cols-2 gap-2">
-            {collections.map((collection) => (
-              <li key={collection.slug} className="min-w-0">
-                <Link
-                  href={`/collections/${collection.slug}`}
-                  className="flex h-full min-h-16 flex-col justify-center rounded-control border border-line-subtle bg-surface px-3 py-2.5 transition-colors hover:border-gold-400"
-                >
-                  <span className="text-body-sm font-semibold break-words text-fg">
-                    {collection.name}
-                  </span>
-                  <span className="text-caption text-fg-subtle">
-                    {t('menuCount', { count: collection.productCount })}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <Section title={t('collections')}>
+          {collections.map((collection) => (
+            <Row
+              key={collection.slug}
+              href={`/collections/${collection.slug}`}
+              soon={collection.productCount === 0}
+            >
+              {collection.name}
+            </Row>
+          ))}
+        </Section>
       ) : null}
     </>
   );
 }
 
-const CATEGORY_ROW =
-  'flex w-full min-h-16 items-center gap-3 rounded-card border border-line bg-surface px-3 py-2.5 text-left transition-colors duration-150 hover:border-gold-400';
-
-function CategoryLabel({
-  category,
-  count,
-}: {
-  category: Pick<NavCategoryTree, 'name' | 'illustrationKey' | 'image'>;
-  count: string;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <>
-      <CategoryThumb
-        image={category.image}
-        illustrationKey={category.illustrationKey}
-        className="h-10 w-10"
-        inset="p-1.5"
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block text-title-sm break-words text-fg">{category.name}</span>
-        <span className="block text-caption text-fg-subtle">{count}</span>
-      </span>
-    </>
+    <nav aria-label={title} className="mt-6">
+      <h3 className="font-heading text-[1.5rem] leading-tight text-forest-900">{title}</h3>
+      <ul className="mt-2">{children}</ul>
+    </nav>
   );
 }
 
-/**
- * A top-level category with subcategories: the row opens and closes the list (a disclosure
- * button), which starts with a link to the whole category.
- */
-function CategoryAccordion({
-  category,
-  defaultOpen,
+function Row({
+  href,
+  children,
+  soon = false,
+  strong = false,
 }: {
-  category: NavCategoryTree;
-  defaultOpen: boolean;
+  href: string;
+  children: ReactNode;
+  soon?: boolean;
+  strong?: boolean;
 }) {
   const t = useTranslations('Nav');
-  const [open, setOpen] = useState(defaultOpen);
-  const regionId = useId();
   return (
-    <div className={cn('rounded-card', open && 'bg-ivory-100/70')}>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={regionId}
-        onClick={() => setOpen((value) => !value)}
-        className={cn(CATEGORY_ROW, open && 'border-gold-400/60')}
+    <li>
+      <Link
+        href={href}
+        className={cn(LINK_ROW, strong ? 'font-semibold text-forest-900' : 'font-medium text-fg')}
       >
-        <CategoryLabel
-          category={category}
-          count={t('menuCount', { count: category.productCount })}
-        />
-        <ChevronDown
-          aria-hidden
-          className={cn(
-            'h-5 w-5 shrink-0 text-fg-subtle transition-transform duration-200 motion-reduce:transition-none',
-            open && 'rotate-180 text-accent-fg',
-          )}
-        />
-      </button>
-      <ul id={regionId} hidden={!open} className="space-y-0.5 px-2 pt-1.5 pb-2">
-        <li>
-          <Link
-            href={`/${category.path}`}
-            className="flex min-h-12 items-center justify-between gap-3 rounded-control px-3 text-body font-semibold text-forest-900 hover:bg-surface"
-          >
-            {t('shopIn', { name: category.name })}
-            <ArrowRight aria-hidden className="h-4 w-4 shrink-0 text-accent-fg" />
-          </Link>
-        </li>
-        {category.children.map((child) => (
-          <li key={child.slug}>
-            <Link
-              href={`/${child.path}`}
-              className="flex min-h-12 items-center gap-3 rounded-control px-3 py-1.5 transition-colors hover:bg-surface"
-            >
-              <CategoryThumb
-                image={child.image}
-                illustrationKey={child.illustrationKey}
-                className="h-8 w-8"
-              />
-              <span className="min-w-0 flex-1 text-body break-words text-fg">{child.name}</span>
-              <span aria-hidden className="shrink-0 text-caption text-fg-subtle">
-                {child.productCount > 0 ? child.productCount : t('menuSoon')}
-              </span>
-              <span className="sr-only">{t('menuCount', { count: child.productCount })}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <span className="min-w-0">
+          {children}
+          {soon ? <span className="ml-2 text-caption text-fg-subtle">{t('menuSoon')}</span> : null}
+        </span>
+        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-fg-subtle" />
+      </Link>
+    </li>
   );
 }
 
-/** Sign-in and registration, or the customer's account shortcuts and sign-out. */
-function AccountLinks({
+function StreamedAccountLink({
   account,
   onDone,
 }: {
   account: Promise<HeaderAccount>;
   onDone: () => void;
 }) {
+  return <AccountLink user={use(account)} onDone={onDone} />;
+}
+
+/** "Sign in" for visitors, the account for customers (the reference's bottom-bar sign-in). */
+function AccountLink({ user, onDone }: { user: HeaderAccount; onDone: () => void }) {
   const t = useTranslations('Nav');
-  const user = use(account);
-  const { pending, logout } = useLogout();
-  const links = user
-    ? ([
-        ['/account', t('myAccount')],
-        ['/account/orders', t('myOrders')],
-        ['/account/addresses', t('addresses')],
-        ...(user.staff ? ([['/admin', t('staffArea')]] as const) : []),
-      ] as const)
-    : ([
-        ['/account/login', t('signIn')],
-        ['/account/register', t('register')],
-      ] as const);
   return (
-    <section>
-      <h3 className={HEADING}>{user ? t('signedInAs', { name: user.firstName }) : t('account')}</h3>
-      <ul className="mt-2 divide-y divide-line-subtle border-y border-line-subtle">
-        {links.map(([href, label]) => (
-          <li key={href}>
-            <Link href={href} className={ROW}>
-              {label}
-              <ChevronRight aria-hidden className="h-4 w-4 text-fg-subtle" />
-            </Link>
-          </li>
-        ))}
-        {user ? (
-          <li>
-            <button
-              type="button"
-              disabled={pending}
-              aria-busy={pending}
-              onClick={() => {
-                onDone();
-                void logout();
-              }}
-              className={`${ROW} w-full disabled:opacity-60`}
-            >
-              {t('signOut')}
-              <LogOut aria-hidden className="h-4 w-4 text-fg-subtle" />
-            </button>
-          </li>
-        ) : null}
-      </ul>
-    </section>
+    <Link
+      href={user ? '/account' : '/account/login'}
+      onClick={onDone}
+      className="inline-flex min-h-11 items-center gap-2 text-title-sm text-fg hover:text-brand"
+    >
+      <UserRound aria-hidden className="h-5 w-5" />
+      <span className="max-w-[10rem] truncate">{user ? user.firstName : t('signIn')}</span>
+    </Link>
   );
 }

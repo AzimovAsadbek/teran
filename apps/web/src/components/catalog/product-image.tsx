@@ -10,6 +10,8 @@ interface ProductImageProps {
   /** Responsive `sizes` hint, e.g. "(min-width: 1024px) 25vw, 50vw". */
   sizes: string;
   priority?: boolean;
+  /** A second view that repeats the first (the card's hover picture): no alternative text. */
+  decorative?: boolean;
   className?: string;
 }
 
@@ -25,6 +27,7 @@ export function ProductImage({
   name,
   sizes,
   priority = false,
+  decorative = false,
   className,
 }: ProductImageProps) {
   const t = useTranslations('Product');
@@ -49,7 +52,7 @@ export function ProductImage({
     image.widths.find((width) => width >= 640) ??
     image.widths[image.widths.length - 1] ??
     image.width;
-  const alt = isDemoContent ? `${image.alt} (${t('demoImage')})` : image.alt;
+  const alt = decorative ? '' : isDemoContent ? `${image.alt} (${t('demoImage')})` : image.alt;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element -- pre-sized renditions from the API (see docs/architecture/decisions.md, ADR-009)

@@ -10,13 +10,57 @@ import { cn } from '@/lib/cn';
 import type { HeaderAccount } from '@/lib/session';
 
 /*
- * Same footprint in every state, so the header does not shift when the account state arrives.
- * Below 360 px the row has no room for it beside the menu, wordmark, search and bag (it would push
- * the wordmark over the menu button); the drawer offers the same links there.
+ * Same footprint in every state (a person icon with a chevron, as on the reference), so the bar
+ * does not shift when the account state arrives. Below 1280 px the drawer offers the same links.
  */
-const SLOT = 'flex items-center justify-end max-[22.5rem]:hidden lg:min-w-[10.5rem]';
-const TEXT_LINK =
-  'inline-flex h-10 items-center rounded-control px-2.5 text-body-sm font-semibold whitespace-nowrap text-fg transition-colors duration-150 hover:text-brand';
+const SLOT = 'hidden items-center xl:flex';
+const SUMMARY =
+  'inline-flex h-11 cursor-pointer list-none items-center gap-1 rounded-full px-2.5 text-fg transition-colors duration-150 hover:bg-brand/[0.06] hover:text-brand [&::-webkit-details-marker]:hidden';
+const PANEL =
+  'absolute top-full right-0 z-40 mt-2 w-64 rounded-card border border-line bg-surface p-2 shadow-overlay motion-safe:animate-pop-in';
+const ITEM =
+  'flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-body-sm font-medium text-fg transition-colors hover:bg-surface-muted hover:text-brand';
+
+/** Esc closes an open <details> menu and returns focus to its button; a click outside closes it. */
+function useDetailsDismiss() {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const details = detailsRef.current;
+    if (!details) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (details.open && event.target instanceof Node && !details.contains(event.target)) {
+        details.open = false;
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !details.open) return;
+      details.open = false;
+      details.querySelector('summary')?.focus();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+  const close = () => {
+    if (detailsRef.current) detailsRef.current.open = false;
+  };
+  return { detailsRef, close };
+}
+
+function AccountSummary({ label }: { label: string }) {
+  return (
+    <summary aria-label={label} className={SUMMARY}>
+      <UserRound aria-hidden className="h-6 w-6" />
+      <ChevronDown
+        aria-hidden
+        className="h-4 w-4 text-forest-700 transition-transform duration-150 group-open:rotate-180"
+      />
+    </summary>
+  );
+}
 
 /**
  * Sign-in and registration for visitors, an account menu for customers. The state is resolved on
@@ -49,25 +93,28 @@ function ResolvedAccountMenu({ account }: { account: Promise<HeaderAccount> }) {
 
 function GuestLinks() {
   const t = useTranslations('Nav');
+  const { detailsRef, close } = useDetailsDismiss();
   return (
     <div className={SLOT}>
-      <Link
-        href="/account/login"
-        aria-label={t('signIn')}
-        className={iconButtonClasses('ghost', 'md', 'lg:hidden')}
-      >
-        <UserRound aria-hidden />
-      </Link>
-      <div className="hidden items-center lg:flex">
-        <Link href="/account/login" className={cn(TEXT_LINK, 'gap-1.5')}>
-          <UserRound aria-hidden className="h-4 w-4" />
-          {t('signIn')}
-        </Link>
-        <span aria-hidden className="h-4 w-px bg-line" />
-        <Link href="/account/register" className={TEXT_LINK}>
-          {t('register')}
-        </Link>
-      </div>
+      <details ref={detailsRef} className="group relative">
+        {/* "Account" for visitors; signed-in customers get the "Account menu". */}
+        <AccountSummary label={t('account')} />
+        <div className={PANEL}>
+          <ul onClick={(event) => (event.target as HTMLElement).closest('a') && close()}>
+            <li>
+              <Link href="/account/login" className={ITEM}>
+                <UserRound aria-hidden className="h-4 w-4 text-fg-subtle" />
+                {t('signIn')}
+              </Link>
+            </li>
+            <li>
+              <Link href="/account/register" className={ITEM}>
+                {t('register')}
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </details>
     </div>
   );
 }
@@ -79,56 +126,15 @@ function GuestLinks() {
  */
 function CustomerMenu({ user }: { user: NonNullable<HeaderAccount> }) {
   const t = useTranslations('Nav');
-  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const { detailsRef, close } = useDetailsDismiss();
   const { pending, logout } = useLogout();
-
-  useEffect(() => {
-    const details = detailsRef.current;
-    if (!details) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (details.open && event.target instanceof Node && !details.contains(event.target)) {
-        details.open = false;
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !details.open) return;
-      details.open = false;
-      details.querySelector('summary')?.focus();
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, []);
-
-  const close = () => {
-    if (detailsRef.current) detailsRef.current.open = false;
-  };
-  const item =
-    'flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-body-sm font-medium text-fg transition-colors hover:bg-surface-muted hover:text-brand';
+  const item = ITEM;
 
   return (
     <div className={SLOT}>
       <details ref={detailsRef} className="group relative">
-        <summary
-          aria-label={t('accountMenu')}
-          className={cn(
-            iconButtonClasses('ghost', 'md'),
-            'cursor-pointer list-none lg:w-auto lg:gap-1.5 lg:rounded-control lg:px-3 [&::-webkit-details-marker]:hidden',
-          )}
-        >
-          <UserRound aria-hidden />
-          <span className="hidden max-w-[7rem] truncate text-body-sm font-semibold lg:inline">
-            {user.firstName}
-          </span>
-          <ChevronDown
-            aria-hidden
-            className="hidden h-4 w-4 transition-transform duration-150 group-open:rotate-180 lg:block"
-          />
-        </summary>
-        <div className="absolute top-full right-0 z-40 mt-2 w-64 rounded-card border border-line bg-surface p-2 shadow-overlay motion-safe:animate-pop-in">
+        <AccountSummary label={t('accountMenu')} />
+        <div className={PANEL}>
           <p className="truncate px-3 pt-2 pb-2.5 text-caption text-fg-subtle">
             {t('signedInAs', { name: user.firstName })}
           </p>

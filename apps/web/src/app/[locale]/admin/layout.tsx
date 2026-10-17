@@ -84,9 +84,13 @@ export default async function AdminLayout({ children }: LayoutProps<'/[locale]/a
   const messages = (await getMessages()) as Messages;
   return (
     <NextIntlClientProvider messages={pickMessages(messages, CLIENT_NAMESPACES)}>
-      <Suspense fallback={<AdminSkeleton />}>
-        <AdminGate>{children}</AdminGate>
-      </Suspense>
+      {/* The admin area keeps compact 10 px buttons and plain interface headings (the storefront
+          uses pills and the reference's display faces). */}
+      <div className="contents [--display-font:var(--font-sans)] [--display-weight:700] [--heading-case:none] [--heading-font:var(--font-sans)] [--headline-weight:700] [--radius-button:var(--radius-control)]">
+        <Suspense fallback={<AdminSkeleton />}>
+          <AdminGate>{children}</AdminGate>
+        </Suspense>
+      </div>
     </NextIntlClientProvider>
   );
 }

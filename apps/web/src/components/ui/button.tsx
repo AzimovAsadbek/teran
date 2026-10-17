@@ -4,8 +4,9 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 
 /*
- * Buttons (docs/design/component-audit.md). One shape for every text button (10 px radius) and a
- * circle for icon-only buttons. Hierarchy comes from the variant, never from size alone:
+ * Buttons (docs/design/component-audit.md). One shape for every text button (a pill on the
+ * storefront, 10 px in the admin area: --radius-button) and a circle for icon-only buttons.
+ * Hierarchy comes from the variant, never from size alone:
  *   primary   main action of a view (forest)
  *   secondary second action, or main action on busy surfaces (outlined)
  *   accent    marketing call to action on dark or brand surfaces (gold)
@@ -56,7 +57,7 @@ const SIZES: Record<ButtonSize, string> = {
 };
 
 const BASE =
-  'inline-flex shrink-0 items-center justify-center rounded-control font-semibold whitespace-nowrap select-none ' +
+  'inline-flex shrink-0 items-center justify-center rounded-button font-semibold whitespace-nowrap select-none ' +
   'transition-[background-color,border-color,color,box-shadow,translate] duration-150 ease-[var(--ease-standard)] ' +
   'active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-progress aria-busy:opacity-80';
 

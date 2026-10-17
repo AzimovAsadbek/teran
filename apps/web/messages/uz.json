@@ -96,7 +96,24 @@
     "videosText": "TERAN haqida qisqa videolar",
     "assistant": "Maslahatchidan soʻrash",
     "menuCount": "{count, plural, =0 {Tez orada} other {# ta mahsulot}}",
-    "menuSoon": "Tez orada"
+    "menuSoon": "Tez orada",
+    "learn": "Choy maktabi",
+    "media": "Lavhalar",
+    "returns": "Qaytarish",
+    "terms": "Foydalanish shartlari",
+    "privacy": "Maxfiylik siyosati",
+    "browse": "Tanlash",
+    "newest": "Yangi kelganlar",
+    "recommended": "Tavsiya etamiz",
+    "onSale": "Chegirmadagilar",
+    "articles": "Maqolalar",
+    "guides": "Qoʻllanma",
+    "allArticles": "Barcha maqolalar",
+    "ourStory": "Bizning hikoya",
+    "featuredArticle": "Jurnaldan",
+    "allCollections": "Barcha kolleksiyalar",
+    "menuOf": "{name} menyusi",
+    "backTo": "Orqaga"
   },
   "Footer": {
     "shop": "Doʻkon",
@@ -129,14 +146,10 @@
   "Home": {
     "metaTitle": "TERAN — premium choy onlayn doʻkoni",
     "heroCta": "Choylarni koʻrish",
-    "heroSecondaryCta": "Biznes uchun",
     "heroStageLabel": "TERAN mahsulotlari",
     "heroSlide": "{index} / {total}",
-    "heroPrevious": "Oldingi mahsulot",
-    "heroNext": "Keyingi mahsulot",
     "heroPause": "Avtomatik almashtirishni toʻxtatish",
     "heroPlay": "Avtomatik almashtirishni davom ettirish",
-    "heroGoTo": "{index}-mahsulot: {name}",
     "heroDetails": "Batafsil",
     "valuesTitle": "TERAN qadriyatlari",
     "showcaseTitle": "Sevimli choylaringizni tanlang",
@@ -159,7 +172,20 @@
     "journalTitle": "Choy jurnali",
     "journalCta": "Barcha maqolalar",
     "categoriesEyebrow": "TERAN katalogi",
-    "viewCategory": "Koʻrish"
+    "viewCategory": "Koʻrish",
+    "railNew": "Yangi kelganlar",
+    "railNewCta": "Barcha yangiliklar",
+    "railFeaturedCta": "Tavsiyalarni koʻrish",
+    "marqueeLabel": "TERAN katalogi turkumlari",
+    "galleryTitle": "TERAN olamidan lavhalar",
+    "galleryText": "Rasmlar va qisqa videolar — choy bogʻlaridan piyolagacha.",
+    "galleryCta": "Lavhalarni koʻrish",
+    "advisorEyebrow": "Maslahatchi",
+    "advisorTitle": "Sizga mosini birga tanlaymiz",
+    "advisorText": "Taʼm, damlash usuli yoki sovgʻa haqida yozing — maslahatchi TERAN katalogidagi mahsulotlardan tanlab beradi.",
+    "advisorCta": "Maslahatchidan soʻrash",
+    "pairJournalCta": "Maqolani oʻqish",
+    "promoCta": "Xarid qilish"
   },
   "Brewing": {
     "types": {
@@ -334,7 +360,9 @@
     },
     "characteristics": "Xususiyatlari",
     "yes": "Ha",
-    "no": "Yoʻq"
+    "no": "Yoʻq",
+    "recentlyViewed": "Yaqinda koʻrilganlar",
+    "differenceTitle": "Nega aynan TERAN"
   },
   "Cart": {
     "title": "Savat",
@@ -713,8 +741,6 @@
   "Pages": {
     "onThisPage": "Ushbu sahifada",
     "draftNotice": "Qoralama: bu matn hali TERAN va yurist tomonidan tekshirilmagan. Belgilangan joylar tasdiqlanishi kerak boʻlgan maʼlumotlardir.",
-    "legalEyebrow": "Huquqiy maʼlumot",
-    "helpEyebrow": "Yordam",
     "stillQuestions": "Savollaringiz qoldimi?",
     "stillQuestionsText": "Biz bilan bogʻlaning — javob berishdan xursandmiz.",
     "faqTitle": "Savol va javoblar",
@@ -1689,7 +1715,6 @@
   "Assistant": {
     "metaTitle": "Mahsulot maslahatchisi",
     "metaDescription": "Nimani qidirayotganingizni yozing — TERAN maslahatchisi katalogdan mos mahsulotlarni haqiqiy narxlari bilan topib beradi.",
-    "eyebrow": "TERAN maslahatchisi",
     "title": "Sizga mosini birga tanlaymiz",
     "intro": "Turini, byudjetingizni, qadoq shaklini yoki kimga sovgʻa ekanini oddiy soʻzlar bilan yozing. Maslahatchi faqat katalogdagi mavjud mahsulotlar va ularning yozilgan maʼlumotlariga tayanadi.",
     "modeAi": "Javoblar AI yordamida tayyorlanadi; har bir mahsulot, narx va havola katalogdan olinadi.",
@@ -1718,5 +1743,11 @@
     "gift": "Sovgʻa uchun",
     "query": "«{query}»",
     "viewProduct": "Mahsulotni koʻrish"
+  },
+  "About": {
+    "scrollHint": "Davomini koʻring",
+    "previous": "Oldingi",
+    "next": "Keyingi",
+    "ideasLabel": "TERAN gʻoyalari"
   }
 }

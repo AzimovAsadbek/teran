@@ -11,7 +11,8 @@ interface QuantityStepperProps {
   disabled?: boolean;
   /** Accessible name of the group, e.g. "Quantity of Classic black tea". */
   label: string;
-  size?: 'sm' | 'md';
+  /** `lg`: as tall as a large button and as wide as its container (beside add to bag). */
+  size?: 'sm' | 'md' | 'lg';
 }
 
 /** −/+ stepper with an announced value; never exceeds the stock-derived maximum. */
@@ -24,9 +25,9 @@ export function QuantityStepper({
   size = 'md',
 }: QuantityStepperProps) {
   const t = useTranslations('Product');
-  const height = size === 'sm' ? 'h-9' : 'h-12';
+  const height = size === 'sm' ? 'h-9' : size === 'lg' ? 'h-13' : 'h-12';
   const button = cn(
-    'inline-flex aspect-square items-center justify-center rounded-[calc(var(--radius-control)-3px)] text-fg transition-colors duration-150 hover:bg-brand/[0.06]',
+    'inline-flex aspect-square items-center justify-center rounded-full text-fg transition-colors duration-150 hover:bg-brand/[0.06]',
     'aria-disabled:cursor-not-allowed aria-disabled:opacity-35 aria-disabled:hover:bg-transparent',
     size === 'sm' ? 'h-[calc(100%-4px)]' : 'h-[calc(100%-6px)]',
   );
@@ -40,8 +41,8 @@ export function QuantityStepper({
       role="group"
       aria-label={label}
       className={cn(
-        'inline-flex shrink-0 items-center justify-between rounded-control border border-line-strong/60 bg-surface px-[2px] shadow-xs',
-        size === 'sm' ? 'w-[6.5rem]' : 'w-36',
+        'inline-flex shrink-0 items-center justify-between rounded-full border border-line-strong/60 bg-surface px-[3px] shadow-xs',
+        size === 'sm' ? 'w-[6.5rem]' : size === 'lg' ? 'w-full' : 'w-36',
         height,
       )}
     >

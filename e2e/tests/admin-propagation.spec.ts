@@ -286,7 +286,8 @@ test.describe('admin changes reach the storefront', () => {
       }),
     );
     const menu = await collectionsMenu();
-    await expect(menu.getByRole('link', { name: new RegExp(`${name}.*1 product`) })).toBeVisible();
+    // With a product the collection no longer says "Coming soon" (menus show no counts).
+    await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
 
     // Tidy up for the other journeys: the collection and the category are switched off.
     const collections = (await (await page.request.get(`${API}/admin/collections`)).json()) as {

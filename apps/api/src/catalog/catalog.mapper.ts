@@ -65,9 +65,10 @@ export function summaryInclude(locale: Locale) {
       where: { isActive: true },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
     },
+    // The first image for the card, the second for the card's hover state.
     images: {
       orderBy: { position: 'asc' },
-      take: 1,
+      take: 2,
       include: { translations: { where: { locale } } },
     },
   } satisfies Prisma.ProductInclude;
@@ -271,6 +272,7 @@ export function toProductSummary(
   );
   const purchasable = variants.find((variant) => variant.stockLevel !== 'out_of_stock');
   const firstImage = product.images[0];
+  const secondImage = product.images[1];
 
   return {
     id: product.id,
@@ -294,6 +296,9 @@ export function toProductSummary(
       : firstImage?.transparent
         ? toImageDto(firstImage, productImageAlt(firstImage, locale, name))
         : null,
+    hoverImage: secondImage
+      ? toImageDto(secondImage, productImageAlt(secondImage, locale, name))
+      : null,
     illustrationKey: asIllustrationKey(product.illustrationKey),
   };
 }

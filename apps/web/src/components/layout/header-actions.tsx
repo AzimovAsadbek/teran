@@ -1,42 +1,35 @@
 'use client';
 
-import { Search, ShoppingBag } from 'lucide-react';
+import { Search, ShoppingBag, Store } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
-import { SearchDialog } from '@/components/search/search-dialog';
+import { useEffect, useState } from 'react';
 import { searchActions, useSearchOpen } from '@/components/search/search-store';
 import { IconButton } from '@/components/ui/button';
 import { cartActions, useCart } from '@/features/cart/cart-store';
+import { Link } from '@/i18n/navigation';
 import type { HeaderAccount } from '@/lib/session';
+import { whenIdle } from '@/lib/when-idle';
 import { AccountMenu } from './account-menu';
 
-/**
- * Search beside the menu button below 1280 px, so the row is balanced around the centred wordmark
- * (menu and search on one side, account and bag on the other). It opens the same overlay as the
- * search box in HeaderActions.
- */
-export function SearchButton() {
-  const t = useTranslations('Nav');
-  return (
-    <IconButton
-      label={t('search')}
-      icon={<Search />}
-      onClick={searchActions.open}
-      aria-haspopup="dialog"
-      className="xl:hidden"
-    />
-  );
-}
+const loadSearch = () => import('@/components/search/search-dialog');
+const SearchDialog = dynamic(() => loadSearch().then((module) => module.SearchDialog), {
+  ssr: false,
+});
 
 /**
- * Wide screens: a search box-like button (easier to discover than an icon), account and bag.
- * Below 1280 px: account and bag as 44 px icon buttons with accessible names (search moves next to
- * the menu button, see SearchButton).
+ * The bar's right side, as on the reference: a text utility link with its icon (TERAN's business
+ * page, where the reference has its store finder), then search, account and bag as 44 px icons.
+ * Below 1280 px only search and bag stay here (account and language are in the drawer).
  */
 export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) {
   const t = useTranslations('Nav');
-  const ts = useTranslations('Search');
   const searchOpen = useSearchOpen();
+  // The search's code is fetched once the page is idle (or when the button is pointed at), not
+  // with the page; the dialog mounts once it is ready, so it still opens with its transition.
+  const [searchReady, setSearchReady] = useState(false);
+  if (searchOpen && !searchReady) setSearchReady(true);
+  useEffect(() => whenIdle(() => void loadSearch().then(() => setSearchReady(true))), []);
   const { cart } = useCart();
   const count = cart?.itemCount ?? 0;
 
@@ -49,16 +42,22 @@ export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) 
   }
 
   return (
-    <div className="flex items-center justify-end gap-0.5 sm:gap-1">
-      <button
-        type="button"
-        onClick={searchActions.open}
-        aria-haspopup="dialog"
-        className="mr-2 hidden h-10 w-56 items-center gap-2.5 rounded-control border border-line bg-surface px-3.5 text-body-sm text-fg-subtle shadow-xs transition-[border-color,color] duration-150 hover:border-line-strong hover:text-fg xl:inline-flex"
+    <div className="flex items-center justify-end xl:gap-4">
+      <Link
+        href="/wholesale"
+        className="mr-3 hidden h-11 items-center gap-2 text-[0.9375rem] font-medium whitespace-nowrap text-fg transition-colors duration-150 hover:text-brand xl:inline-flex"
       >
-        <Search aria-hidden className="h-4 w-4 shrink-0" />
-        <span className="truncate">{ts('label')}</span>
-      </button>
+        <Store aria-hidden className="h-5 w-5 text-forest-900" />
+        {t('wholesale')}
+      </Link>
+      <IconButton
+        label={t('search')}
+        icon={<Search />}
+        onClick={searchActions.open}
+        onPointerEnter={() => void loadSearch()}
+        onFocus={() => void loadSearch()}
+        aria-haspopup="dialog"
+      />
       <AccountMenu account={account} />
       <IconButton
         label={t('cartCount', { count })}
@@ -67,8 +66,9 @@ export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) 
         aria-haspopup="dialog"
         badge={count > 0 ? (count > 99 ? '99+' : count) : null}
         badgeBump={bump}
+        className="-mr-2 xl:mr-0"
       />
-      <SearchDialog open={searchOpen} onClose={searchActions.close} />
+      {searchReady ? <SearchDialog open={searchOpen} onClose={searchActions.close} /> : null}
     </div>
   );
 }

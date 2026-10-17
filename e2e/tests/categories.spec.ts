@@ -242,6 +242,7 @@ test.describe('multi-category catalogue', () => {
       visible(page.getByRole('heading', { level: 1, name: `Honey (test ${id})` })),
     ).toBeVisible();
     const filter = visible(page.getByRole('group', { name: 'Flower' }));
+    await filter.locator('summary').click();
     await expect(filter.getByRole('link', { name: /Acacia/ })).toBeVisible();
     await expect(page.getByRole('link', { name: /^(Loose leaf|Other)\b/ })).toHaveCount(0);
 

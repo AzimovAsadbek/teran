@@ -1,5 +1,4 @@
 import type { Locale } from '@teran/contracts';
-import { ChevronRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { jsonLd, localizedUrl } from '@/lib/seo';
@@ -10,7 +9,10 @@ export interface Crumb {
   href?: string;
 }
 
-/** Visible breadcrumb trail plus matching BreadcrumbList structured data. */
+/**
+ * Visible breadcrumb trail plus matching BreadcrumbList structured data, as the reference sets it:
+ * 14 px, the links semibold, slashes between, the current page in a muted tone.
+ */
 export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: Locale }) {
   const t = await getTranslations('Common');
   const trail: Crumb[] = [{ label: t('home'), href: '/' }, ...items];
@@ -27,22 +29,17 @@ export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: L
   };
 
   return (
-    <nav aria-label={t('breadcrumbs')} className="text-body-sm">
-      <ol className="flex flex-wrap items-center gap-1.5 text-fg-subtle">
+    <nav aria-label={t('breadcrumbs')} className="text-[0.875rem] leading-[1.5]">
+      <ol className="flex flex-wrap items-center gap-x-4 gap-y-1 text-fg">
         {trail.map((crumb, index) => (
-          <li key={`${crumb.label}-${index}`} className="flex items-center gap-1.5">
-            {index > 0 ? (
-              <ChevronRight aria-hidden className="h-3.5 w-3.5 text-fg-subtle/70" />
-            ) : null}
+          <li key={`${crumb.label}-${index}`} className="flex min-w-0 items-center gap-x-4">
+            {index > 0 ? <span aria-hidden>/</span> : null}
             {crumb.href && index < trail.length - 1 ? (
-              <Link
-                href={crumb.href}
-                className="underline-offset-4 transition-colors hover:text-fg hover:underline"
-              >
+              <Link href={crumb.href} className="font-semibold underline-offset-4 hover:underline">
                 {crumb.label}
               </Link>
             ) : (
-              <span aria-current="page" className="font-medium text-fg">
+              <span aria-current="page" className="text-fg-muted">
                 {crumb.label}
               </span>
             )}

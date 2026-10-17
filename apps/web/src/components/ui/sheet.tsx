@@ -17,6 +17,9 @@ const PANEL: Record<Side, string> = {
   left: 'mr-auto h-dvh w-[min(26rem,100vw)] -translate-x-full open:translate-x-0 starting:open:-translate-x-full',
   top: 'mt-0 w-full -translate-y-3 opacity-0 open:translate-y-0 open:opacity-100 starting:open:-translate-y-3 starting:open:opacity-0',
 };
+/** The navigation drawer: most of a phone's width, leaving a strip of the page visible. */
+const NARROW_LEFT =
+  'mr-auto h-dvh w-[min(22.5rem,86vw)] -translate-x-full open:translate-x-0 starting:open:-translate-x-full';
 /** A wider right-hand panel for editors with several columns of fields. */
 const WIDE_RIGHT =
   'ml-auto h-dvh w-[min(60rem,100vw)] translate-x-full open:translate-x-0 starting:open:translate-x-full';
@@ -39,6 +42,8 @@ interface SheetProps {
   bare?: boolean;
   /** Right-hand panel at up to 60rem instead of 30rem. */
   wide?: boolean;
+  /** Left-hand panel at up to 22.5rem (86 % of a phone) instead of 26rem. */
+  narrow?: boolean;
 }
 
 /**
@@ -59,6 +64,7 @@ export function Sheet({
   headerExtra,
   bare = false,
   wide = false,
+  narrow = false,
 }: SheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -94,7 +100,11 @@ export function Sheet({
       className={cn(
         'm-0 max-h-none max-w-none bg-transparent p-0 backdrop:bg-forest-950/45 backdrop:backdrop-blur-[2px]',
         'transition-[translate,opacity,overlay,display] duration-300 ease-[var(--ease-soft)] transition-discrete',
-        side === 'right' && wide ? WIDE_RIGHT : PANEL[side],
+        side === 'right' && wide
+          ? WIDE_RIGHT
+          : side === 'left' && narrow
+            ? NARROW_LEFT
+            : PANEL[side],
       )}
     >
       <div

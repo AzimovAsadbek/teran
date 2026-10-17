@@ -11,23 +11,26 @@ import wordmark from '../../../public/brand/teran-wordmark.png';
  */
 export function Wordmark({
   className,
-  priority = false,
+  eager = false,
   size = 'header',
 }: {
   className?: string;
-  priority?: boolean;
-  /** `header`: 132 px, 176 px from 1280 px. `compact`: 120 px (admin, checkout on phones). */
+  /** Above the fold on every page: loaded at once, but without taking priority over the page's main picture. */
+  eager?: boolean;
+  /** `header`: 112 px; 144 px from 1280 px; 160 px from 1440 px. `compact`: 120 px (admin, checkout on phones). */
   size?: 'header' | 'compact';
 }) {
   return (
     <Image
       src={wordmark}
       alt="TERAN"
-      priority={priority}
-      sizes={size === 'compact' ? '120px' : '(min-width: 1280px) 176px, 132px'}
+      loading={eager ? 'eager' : undefined}
+      sizes={
+        size === 'compact' ? '120px' : '(min-width: 1440px) 160px, (min-width: 1280px) 144px, 112px'
+      }
       className={cn(
         'h-auto',
-        size === 'compact' ? 'w-[120px]' : 'w-[132px] xl:w-[176px]',
+        size === 'compact' ? 'w-[120px]' : 'w-[112px] xl:w-[144px] min-[90rem]:w-[160px]',
         className,
       )}
     />

@@ -6,11 +6,12 @@ import { Wordmark } from '@/components/brand/logo';
 import { Link } from '@/i18n/navigation';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCategories, getCollections } from '@/lib/data/catalog';
-import { categoryTree, navCollections, type Navigation } from '@/lib/navigation';
+import { getArticles } from '@/lib/data/content';
+import { categoryTree, navArticles, navCollections, type Navigation } from '@/lib/navigation';
 import { hasSessionCookie, type HeaderAccount } from '@/lib/session';
 import { AnnouncementBar } from './announcement-bar';
 import { DesktopNav } from './desktop-nav';
-import { HeaderActions, SearchButton } from './header-actions';
+import { HeaderActions } from './header-actions';
 import { MobileMenu } from './mobile-menu';
 import { StickyHeader } from './sticky-header';
 
@@ -18,12 +19,19 @@ import { StickyHeader } from './sticky-header';
 async function loadNavigation(): Promise<Navigation> {
   await connection();
   const locale = await getLocale();
-  const [categories, collections] = await Promise.all([
+  const [categories, collections, articles] = await Promise.all([
     getCategories(locale).catch(() => []),
     getCollections(locale).catch(() => []),
+    getArticles(locale, 1, 5, true)
+      .then((page) => page.items)
+      .catch(() => []),
   ]);
-  // The same tree feeds the desktop panels, the drawer and the home page's category cards.
-  return { categories: categoryTree(categories), collections: navCollections(collections) };
+  // The same tree feeds the desktop panels, the drawer and the home page's category sections.
+  return {
+    categories: categoryTree(categories),
+    collections: navCollections(collections),
+    articles: navArticles(articles),
+  };
 }
 
 /**
@@ -39,37 +47,35 @@ async function loadAccount(): Promise<HeaderAccount> {
 }
 
 /**
- * Header modelled on the reference's reading order — category triggers left, wordmark centred,
- * utilities right — with TERAN's own identity. Below 1280 px: menu and search left, account and bag
- * right, so the wordmark stays centred. The menus render (and work) immediately; only their
- * category and collection lists stream in, so a menu opened early stays open when data arrives.
+ * Header on the reference layout (docs/design/reference-map.md): a 50 px announcement band, then
+ * an 88 px bar with four menu triggers on the left, the wordmark centred and utilities on the right
+ * (business link, search, account, bag). Both stay on top while the page scrolls. Below 1280 px the
+ * bar is 48 px: menu on the left, wordmark centred, search and bag on the right (account and
+ * language move into the drawer). The menus render and work immediately; only their lists stream in.
  */
 export async function SiteHeader() {
   const t = await getTranslations('Common');
   const navigation = loadNavigation();
   const account = loadAccount();
   return (
-    <>
+    <StickyHeader>
       <AnnouncementBar />
-      <StickyHeader>
-        <header className="relative">
-          <div className="container-page grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 xl:h-[4.75rem]">
-            <div className="flex items-center gap-0.5 sm:gap-1 xl:min-w-0">
-              <MobileMenu navigation={navigation} account={account} />
-              <SearchButton />
-              <DesktopNav navigation={navigation} />
-            </div>
-            <Link
-              href="/"
-              aria-label={`TERAN — ${t('home')}`}
-              className="flex justify-center rounded-control py-1"
-            >
-              <Wordmark priority />
-            </Link>
-            <HeaderActions account={account} />
+      <header className="relative border-b border-line bg-canvas">
+        <div className="container-page grid h-12 grid-cols-[1fr_auto_1fr] items-center gap-2 xl:h-[5.5rem] xl:gap-6">
+          <div className="flex items-center xl:min-w-0 xl:self-stretch">
+            <MobileMenu navigation={navigation} account={account} />
+            <DesktopNav navigation={navigation} />
           </div>
-        </header>
-      </StickyHeader>
-    </>
+          <Link
+            href="/"
+            aria-label={`TERAN — ${t('home')}`}
+            className="flex justify-center rounded-control py-1"
+          >
+            <Wordmark eager />
+          </Link>
+          <HeaderActions account={account} />
+        </div>
+      </header>
+    </StickyHeader>
   );
 }

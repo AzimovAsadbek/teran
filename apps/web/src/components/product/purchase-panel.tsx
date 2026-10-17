@@ -1,9 +1,9 @@
 'use client';
 
-import type { ProductFormat, VariantDto } from '@teran/contracts';
+import type { ImageDto, ProductFormat, VariantDto } from '@teran/contracts';
 import { Check, ShoppingBag } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { QuantityStepper } from '@/components/cart/quantity-stepper';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Price } from '@/components/ui/price';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { cn } from '@/lib/cn';
 import { formatMoney, multiplyMoney, packLabel } from '@/lib/format';
+import { imageSources } from '@/lib/navigation';
 import { useApiErrorMessage } from '@/lib/use-api-error-message';
 
 /**
@@ -24,11 +25,17 @@ export function PurchasePanel({
   format,
   variants,
   initialVariantId,
+  image = null,
+  details,
 }: {
   productName: string;
   format: ProductFormat;
   variants: VariantDto[];
   initialVariantId: string;
+  /** The product's first picture, for the floating bar. */
+  image?: ImageDto | null;
+  /** Shown between the price and the pack sizes (the reference's tabs and attribute rows). */
+  details?: ReactNode;
 }) {
   const t = useTranslations('Product');
   const tc = useTranslations('Common');
@@ -73,6 +80,7 @@ export function PurchasePanel({
   const soldOut = variant.stockLevel === 'out_of_stock';
   const pending = pendingKey === `add:${variant.id}`;
   const lineTotalMoney = multiplyMoney(variant.price, quantity);
+  const thumb = image ? imageSources(image, 160) : null;
   const units = (key: 'TEA_BAGS' | 'PYRAMIDS' | 'default', values: { count: number }) =>
     t(`units.${key}`, values);
 
@@ -91,13 +99,17 @@ export function PurchasePanel({
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <Price amount={variant.price} compareAt={variant.compareAtPrice} className="text-metric" />
-        <span className="text-body text-fg-subtle">
-          · {packLabel(variant, format, locale, units)}
-        </span>
+      {/* The reference's price line: 18 px bold price, then • pack size. */}
+      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[1.125rem] leading-[1.6]">
+        <Price
+          amount={variant.price}
+          compareAt={variant.compareAtPrice}
+          className="[&>span:first-child]:font-bold"
+        />
+        <span className="text-[1rem] text-fg">• {packLabel(variant, format, locale, units)}</span>
       </div>
       <StockStatus level={variant.stockLevel} maxQuantity={variant.maxQuantity} />
+      {details}
 
       {variants.length > 1 ? (
         <fieldset className="mt-6">
@@ -149,14 +161,15 @@ export function PurchasePanel({
         </fieldset>
       ) : null}
 
-      {/* Side by side when the column is wide enough for the priced label, stacked otherwise. */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+      {/* The reference's pair of equal pills: quantity, then add to bag with the line total. */}
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {!soldOut ? (
           <QuantityStepper
             value={quantity}
             max={Math.max(1, variant.maxQuantity)}
             onChange={setQuantity}
             label={`${t('quantity')} — ${productName}`}
+            size="lg"
           />
         ) : null}
         <Button
@@ -165,8 +178,7 @@ export function PurchasePanel({
           onClick={() => void add()}
           disabled={soldOut}
           loading={pending}
-          // grow, not flex-1: a 0% basis would collapse the button's height in the column layout.
-          className="grow"
+          className={cn('w-full', soldOut && 'sm:col-span-2')}
         >
           {pending ? null : <ShoppingBag aria-hidden className="h-[1.125rem] w-[1.125rem]" />}
           {pending ? t('adding') : addLabel}
@@ -183,24 +195,33 @@ export function PurchasePanel({
       </p>
 
       {/*
-       * Sticky purchase bar on phones and tablets once the main button has scrolled away. It is
-       * rendered into <body> (only ever on the client, after scrolling), so the product grid's own
-       * stacking context (isolate, for its botanical layer) cannot put later content over it.
+       * The reference's floating bar once the main button has scrolled away: a pill centred at the
+       * bottom with the picture, name, price and add to bag. It is rendered into <body> (only ever
+       * on the client, after scrolling), so no stacking context on the page can cover it.
        */}
       {!soldOut && scrolledPast
         ? createPortal(
-            <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 shadow-overlay backdrop-blur-md motion-safe:animate-slide-up lg:hidden">
-              <div className="container-page flex items-center gap-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-title-sm text-fg">{productName}</p>
-                  <p className="flex items-baseline gap-1.5 text-body-sm">
-                    <Price amount={variant.price} compareAt={variant.compareAtPrice} />
-                    <span className="truncate text-fg-subtle">
-                      · {packLabel(variant, format, locale, units)}
-                    </span>
-                  </p>
-                </div>
-                <Button onClick={() => void add()} loading={pending}>
+            <div className="fixed inset-x-0 bottom-3 z-30 flex justify-center px-3 pb-[env(safe-area-inset-bottom)] motion-safe:animate-slide-up">
+              <div className="flex w-full max-w-[37.5rem] items-center gap-3 rounded-full border border-line bg-surface py-2 pr-2 pl-2 shadow-overlay">
+                {thumb ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009)
+                  <img
+                    src={thumb.src}
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 shrink-0 rounded-full bg-surface-muted object-cover"
+                  />
+                ) : null}
+                <p className="min-w-0 flex-1 truncate text-body-sm text-fg sm:text-body">
+                  {productName}
+                </p>
+                <Price
+                  amount={variant.price}
+                  compareAt={variant.compareAtPrice}
+                  className="hidden shrink-0 text-body-sm sm:inline"
+                />
+                <Button onClick={() => void add()} loading={pending} className="shrink-0">
                   {pending ? null : <ShoppingBag aria-hidden className="h-4 w-4" />}
                   {t('addToCart')}
                 </Button>

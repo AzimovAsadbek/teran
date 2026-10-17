@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, ShoppingBag } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { Price } from '@/components/ui/price';
@@ -100,13 +100,13 @@ export function CartDrawer() {
 export function EmptyCart({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations('Cart');
   return (
+    // The reference's empty bag: condensed title, one line and a pill, centred.
     <div className="flex flex-col items-center px-4 py-12 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-forest-900">
-        <ShoppingBag aria-hidden className="h-7 w-7" />
-      </span>
-      <p className="mt-5 text-display-sm text-forest-900">{t('empty')}</p>
-      <p className="mt-2 max-w-xs text-body text-fg-muted">{t('emptyText')}</p>
-      <ButtonLink href="/catalog" className="mt-6" onClick={onNavigate}>
+      <p className="font-headline text-[1.5rem] leading-none text-fg [--heading-case:none] [--headline-weight:800]">
+        {t('empty')}
+      </p>
+      <p className="mt-8 max-w-xs text-[1rem] leading-[1.6] text-fg">{t('emptyText')}</p>
+      <ButtonLink href="/catalog" size="lg" className="mt-6" onClick={onNavigate}>
         {t('startShopping')}
       </ButtonLink>
     </div>

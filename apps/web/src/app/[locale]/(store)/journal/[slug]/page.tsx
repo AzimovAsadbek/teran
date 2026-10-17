@@ -73,15 +73,17 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
         locale={locale}
         items={[{ label: t('journalTitle'), href: '/journal' }, { label: article.title }]}
       />
-      <article className="mx-auto mt-8 max-w-[44rem]">
+      <article className="mt-4 sm:mt-6">
         <ArticleContent article={article} locale={locale} />
-        <Link
-          href="/journal"
-          className="mt-12 inline-flex items-center gap-2 text-button text-brand underline-offset-4 hover:underline"
-        >
-          <ArrowLeft aria-hidden className="h-4 w-4" />
-          {t('backToJournal')}
-        </Link>
+        <div className="mx-auto max-w-[46rem]">
+          <Link
+            href="/journal"
+            className="mt-12 inline-flex items-center gap-2 text-button text-brand underline-offset-4 hover:underline"
+          >
+            <ArrowLeft aria-hidden className="h-4 w-4" />
+            {t('backToJournal')}
+          </Link>
+        </div>
       </article>
       <Suspense fallback={null}>
         <MoreArticles currentSlug={article.slug} />
@@ -106,7 +108,7 @@ async function MoreArticles({ currentSlug }: { currentSlug: string }) {
       <h2 id="more-articles" className="text-display-md text-forest-900">
         {t('moreArticles')}
       </h2>
-      <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
         {others.map((article) => (
           <li key={article.slug}>
             <ArticleCard article={article} />

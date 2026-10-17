@@ -131,12 +131,7 @@ export default async function ContactPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow={tn('contact')}
-        title={t('contactTitle')}
-        intro={t('contactDescription')}
-        illustration="mint"
-      />
+      <PageHeader title={t('contactTitle')} intro={t('contactDescription')} />
       <div className="container-page grid grid-cols-1 gap-8 py-section-sm lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-12">
         <section
           aria-labelledby="message-title"

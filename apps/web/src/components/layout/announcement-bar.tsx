@@ -6,6 +6,12 @@ import { getPublicSettings } from '@/lib/data/content';
 import { isDemoContent } from '@/lib/site';
 import { LanguageSwitcherSlot } from './language-switcher';
 
+/**
+ * The message configured in the admin area (Settings → announcement), with its link as an
+ * underlined uppercase call to action, as on the reference. Nothing is invented: without a
+ * configured message the band shows the demo notice while the catalogue is a demonstration, and
+ * stays empty otherwise.
+ */
 async function AnnouncementMessage() {
   await connection();
   const locale = await getLocale();
@@ -14,32 +20,37 @@ async function AnnouncementMessage() {
   const announcement = settings?.announcement;
 
   if (announcement) {
-    return announcement.href ? (
-      <Link
-        href={announcement.href}
-        className="underline decoration-gold-300/50 underline-offset-4 hover:decoration-gold-300"
-      >
-        {announcement.text}
-      </Link>
-    ) : (
-      <span>{announcement.text}</span>
+    return (
+      <>
+        <span className="min-w-0 truncate">{announcement.text}</span>
+        {announcement.href ? (
+          <Link
+            href={announcement.href}
+            className="shrink-0 tracking-[0.06em] uppercase underline decoration-gold-300/70 decoration-1 underline-offset-[5px] hover:decoration-gold-300"
+          >
+            {t('learnMore')}
+            {/* "Learn more" alone says nothing out of context (link lists, search engines). */}
+            <span className="sr-only">: {announcement.text}</span>
+          </Link>
+        ) : null}
+      </>
     );
   }
-  return isDemoContent ? <span>{t('demoNoticeShort')}</span> : null;
+  return isDemoContent ? <span className="truncate">{t('demoNoticeShort')}</span> : null;
 }
 
-/** Slim utility bar: one configurable message plus the language switcher. */
+/** 40 px band on phones, 50 px from 1024 px: the message centred, the language switcher right. */
 export function AnnouncementBar() {
   return (
-    <div className="on-dark bg-surface-inverse-deep text-ivory-100">
-      <div className="container-page flex min-h-9 items-center justify-center gap-4 py-1.5 text-helper font-medium tracking-[0.01em] lg:justify-between">
-        <span aria-hidden className="hidden w-[132px] lg:block" />
-        <p className="text-center text-balance">
+    <div className="on-dark bg-forest-900 text-ivory-50">
+      <div className="container-page grid h-10 grid-cols-1 items-center lg:h-[3.125rem] lg:grid-cols-[1fr_auto_1fr]">
+        <span aria-hidden className="hidden lg:block" />
+        <p className="flex min-w-0 items-center justify-center gap-4 text-[0.8125rem] font-medium tracking-[0.01em] sm:text-[0.9375rem]">
           <Suspense fallback={null}>
             <AnnouncementMessage />
           </Suspense>
         </p>
-        <LanguageSwitcherSlot className="hidden lg:flex" />
+        <LanguageSwitcherSlot className="hidden justify-self-end lg:flex" />
       </div>
     </div>
   );

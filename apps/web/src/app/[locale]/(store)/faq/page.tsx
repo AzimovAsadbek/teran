@@ -6,6 +6,7 @@ import * as rootParams from 'next/root-params';
 import { HelpFooter } from '@/components/content/help-footer';
 import { Blocks } from '@/components/content/long-form';
 import { PageHeader } from '@/components/content/page-header';
+import { PromiseCard } from '@/components/content/promise-card';
 import { faqGroups } from '@/content/pages/faq';
 import type { Block } from '@/content/types';
 import { jsonLd, pageMetadata } from '@/lib/seo';
@@ -49,12 +50,8 @@ export default async function FaqPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow={t('helpEyebrow')}
-        title={t('faqTitle')}
-        intro={t('faqDescription')}
-        illustration="oolong"
-      />
+      <PageHeader title={t('faqTitle')} intro={t('faqDescription')} />
+      <PromiseCard />
       <div className="container-page grid grid-cols-1 gap-10 py-12 sm:py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16">
         <nav aria-label={t('onThisPage')} className="hidden lg:block">
           <ol className="sticky top-24 space-y-1 border-l border-line text-body-sm">

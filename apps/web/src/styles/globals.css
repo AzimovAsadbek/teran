@@ -1,7 +1,4 @@
 @import 'tailwindcss';
-@import './botanical.css';
-/* The home hero's stage (components/home/hero*.tsx). */
-@import './hero.css';
 /* Category cards and menu tiles: components/catalog/category-art.tsx. */
 @import './category-art.css';
 
@@ -52,6 +49,14 @@
   --color-sage-300: #b9c3ad;
   --color-sage-500: #7e8975;
 
+  /* Muted jade: the hero's garden green (#2f6b5a) and its tints, for menus, bands and tiles. */
+  --color-jade-50: #f2f7f3;
+  --color-jade-100: #e3efe7;
+  --color-jade-200: #cbe0d3;
+  --color-jade-300: #a7c9b5;
+  --color-jade-600: #3e7a66;
+  --color-jade-700: #2f6b5a;
+
   --color-ink-900: #1c211d;
   --color-ink-700: #3a423c;
   --color-ink-500: #5d665f;
@@ -100,12 +105,15 @@
   --color-info-soft: var(--color-sage-100);
 
   /* ── Typography ─────────────────────────────────────────────────────────────────────────── */
-  --font-display: var(--font-eb-garamond), 'EB Garamond', Georgia, 'Times New Roman', serif;
+  /* Section headings: soft heavy serif (the reference's Oxtail role); Cyrillic from Merriweather. */
+  --font-display: var(--font-fraunces), var(--font-merriweather), Georgia, 'Times New Roman', serif;
+  /* Banner, hero and tile headlines in capitals (the reference's Alternate Gothic role). */
+  --font-condensed: var(--font-oswald), 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  /* Interface and body text (the reference's Omnes role). */
   --font-sans:
-    var(--font-onest), 'Onest', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+    var(--font-nunito), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /* Interface roles (Onest). Display roles are the text-display-* utilities below. */
+  /* Interface roles (Nunito). Display roles are the text-display-* utilities below. */
   --text-title-lg: 1.25rem;
   --text-title-lg--line-height: 1.3;
   --text-title-lg--font-weight: 600;
@@ -142,7 +150,8 @@
   --text-lead--line-height: 1.55;
 
   /* ── Layout ─────────────────────────────────────────────────────────────────────────────── */
-  --spacing-gutter: clamp(1rem, 4vw, 2.5rem);
+  /* Page margins: 24 px on phones growing to 64 px at 1440 px (the reference's content edges). */
+  --spacing-gutter: clamp(1.5rem, 4.45vw, 4rem);
   --spacing-section: clamp(3.5rem, 2.25rem + 4.5vw, 7rem);
   --spacing-section-sm: clamp(2.5rem, 1.75rem + 3vw, 4.5rem);
   --spacing-header: 4rem;
@@ -153,11 +162,18 @@
   --radius-control: 0.625rem;
   --radius-card: 0.875rem;
   --radius-panel: 1.25rem;
+  /* Text buttons are pills on the storefront (the admin area keeps 10 px, see admin layout). */
+  --radius-button: 9999px;
+  /* Editorial banners, bento tiles and menu cards (reference: 24 px and 16 px). */
+  --radius-banner: 1.5rem;
+  --radius-tile: 1rem;
 
   /* ── Elevation ──────────────────────────────────────────────────────────────────────────── */
   --shadow-xs: 0 1px 2px rgb(14 61 18 / 0.06);
+  /* Product cards: a white card lifted just off the page. */
+  --shadow-card: 0 0 40px rgb(0 0 0 / 0.05);
   --shadow-soft: 0 1px 2px rgb(14 61 18 / 0.05), 0 10px 28px -16px rgb(14 61 18 / 0.2);
-  --shadow-lift: 0 2px 4px rgb(14 61 18 / 0.06), 0 22px 44px -22px rgb(14 61 18 / 0.3);
+  --shadow-lift: 0 12px 40px rgb(0 0 0 / 0.1);
   --shadow-overlay: 0 24px 64px -24px rgb(8 43 13 / 0.42), 0 2px 6px rgb(8 43 13 / 0.08);
   /* A pack standing on a surface. */
   --shadow-pack: 0 30px 40px -24px rgb(32 24 8 / 0.45), 0 8px 14px -10px rgb(32 24 8 / 0.3);
@@ -342,53 +358,106 @@
   }
 }
 
-/* ── Display type (EB Garamond) ──────────────────────────────────────────────────────────────── */
+/* ── Display type (docs/design/reference-map.md) ─────────────────────────────────────────────────
+ * Headlines (xl, lg): condensed capitals, the reference's Alternate Gothic role.
+ * Headings (md, sm, xs): soft heavy serif, the reference's Oxtail role.
+ * The admin area resets them to its calmer interface face (--heading-font, --heading-case,
+ * --display-font, --display-weight on the admin layout).
+ */
 
-/* Hero headline. */
+/* Hero headline: 100 px capitals on wide screens. */
 @utility text-display-xl {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(2.75rem, 1.45rem + 4.6vw, 5.5rem);
-  line-height: 1.02;
-  letter-spacing: -0.02em;
+  font-family: var(--heading-font, var(--font-condensed));
+  font-weight: var(--headline-weight, 700);
+  font-size: clamp(3.25rem, 1.6rem + 5.2vw, 6.25rem);
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: var(--heading-case, uppercase);
   text-wrap: balance;
 }
 
-/* Page heading (h1). */
+/* Page heading (h1): 50 px capitals on wide screens. */
 @utility text-display-lg {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(2.25rem, 1.6rem + 2.3vw, 3.75rem);
-  line-height: 1.06;
-  letter-spacing: -0.015em;
+  font-family: var(--heading-font, var(--font-condensed));
+  font-weight: var(--headline-weight, 700);
+  font-size: clamp(2.5rem, 1.9rem + 1.8vw, 3.125rem);
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: var(--heading-case, uppercase);
   text-wrap: balance;
 }
 
-/* Section heading (h2). */
+/* Section heading (h2): 32 px condensed, as the reference's policy and help sections ("Shipping"). */
 @utility text-display-md {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(1.875rem, 1.5rem + 1.3vw, 2.75rem);
+  font-family: var(--heading-font, var(--font-condensed));
+  font-weight: var(--headline-weight, 700);
+  font-size: 2rem;
   line-height: 1.1;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
-/* Sub-section and editorial card heading (h3). */
+/* Sub-section and card heading (h3): soft heavy serif, the reference's Oxtail role (TERAN keeps
+   its headings in sentence case: the reference's all-lowercase style was dropped at the owner's
+   request, 2026-10-17). */
 @utility text-display-sm {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(1.5rem, 1.35rem + 0.55vw, 1.875rem);
+  font-family: var(--display-font, var(--font-display));
+  font-weight: var(--display-weight, 900);
+  font-size: clamp(1.375rem, 1.25rem + 0.4vw, 1.5rem);
   line-height: 1.15;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
+  font-variation-settings: 'SOFT' 100;
 }
 
 /* Serif title for cards, menu tiles and short editorial headings. */
 @utility text-display-xs {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 1.375rem;
+  font-family: var(--display-font, var(--font-display));
+  font-weight: var(--display-weight, 900);
+  font-size: 1.25rem;
   line-height: 1.2;
+  font-variation-settings: 'SOFT' 100;
+}
+
+/*
+ * Outlined sticker lettering, as the reference's tilted labels ("free shipping", "so happy you're
+ * here!"): a hard outline drawn with eight offset shadows and a drop below. The outline's colour
+ * and width come from --sticker-color and --sticker-width.
+ */
+@utility text-sticker {
+  --sticker-w: var(--sticker-width, 2px);
+  --sticker-c: var(--sticker-color, var(--color-gold-500));
+  text-shadow:
+    var(--sticker-w) var(--sticker-w) 0 var(--sticker-c),
+    calc(var(--sticker-w) * -1) var(--sticker-w) 0 var(--sticker-c),
+    var(--sticker-w) calc(var(--sticker-w) * -1) 0 var(--sticker-c),
+    calc(var(--sticker-w) * -1) calc(var(--sticker-w) * -1) 0 var(--sticker-c),
+    0 calc(var(--sticker-w) * 1.25) 0 var(--sticker-c),
+    calc(var(--sticker-w) * 1.25) 0 0 var(--sticker-c),
+    0 calc(var(--sticker-w) * -1.25) 0 var(--sticker-c),
+    calc(var(--sticker-w) * -1.25) 0 0 var(--sticker-c),
+    calc(var(--sticker-w) * 1.5) calc(var(--sticker-w) * 2.5) 0 rgb(0 0 0 / 0.25);
+}
+
+/* The reference's grainy colour fields (its "quality" band): fine noise over the background. */
+@utility bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Condensed capitals at any size (banners, tiles, ribbons): the reference's Alternate Gothic role. */
+@utility font-headline {
+  font-family: var(--heading-font, var(--font-condensed));
+  font-weight: var(--headline-weight, 700);
+  text-transform: var(--heading-case, uppercase);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* Soft heavy serif at any size (section and card headings): the reference's Oxtail role. */
+@utility font-heading {
+  font-family: var(--display-font, var(--font-display));
+  font-weight: var(--display-weight, 900);
+  font-variation-settings: 'SOFT' 100;
+  letter-spacing: 0;
 }
 
 /* Large figures in the interface face: product price, dashboard figures, brewing values. */
@@ -415,15 +484,42 @@
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* Page container: max 88rem with fluid gutters. */
+/* Page container: max 90rem (1440 px) with fluid gutters, so content spans 1312 px at 1440. */
 @utility container-page {
   width: 100%;
-  max-width: 88rem;
+  max-width: 90rem;
   margin-inline: auto;
   padding-inline: var(--spacing-gutter);
 }
 
 @layer components {
+  /* Home page ribbons (components/home/marquee.tsx): the track holds two copies of the words and
+     moves by one copy, so the loop is seamless. Paused on hover and off screen; still with reduced
+     motion. */
+  .marquee-track {
+    animation: marquee var(--marquee-duration, 48s) linear infinite;
+  }
+  .marquee:hover .marquee-track,
+  .marquee[data-offscreen] .marquee-track {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none;
+    }
+  }
+
+  /* Home gallery band: the card in the middle of the row grows a little (scroll-driven, where
+     supported), as the reference's centre card. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .media-band-card {
+        animation: media-band-focus linear both;
+        animation-timeline: view(inline);
+      }
+    }
+  }
+
   /* Gold hairline used for premium dividers. */
   .rule-gold {
     height: 1px;
@@ -471,5 +567,24 @@
   [data-reveal='pending'] {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes media-band-focus {
+  0%,
+  100% {
+    scale: 0.88;
+  }
+  50% {
+    scale: 1.04;
   }
 }

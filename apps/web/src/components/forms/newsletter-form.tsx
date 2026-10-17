@@ -79,11 +79,11 @@ export function NewsletterForm({
     <form method="post" onSubmit={onSubmit} noValidate>
       <label
         htmlFor={`${id}-email`}
-        className={cn('block text-label', dark ? 'text-ivory-50' : 'text-fg')}
+        className={cn('block text-label', dark ? 'sr-only' : 'text-fg')}
       >
         {t('emailLabel')}
       </label>
-      <div className="mt-2 flex flex-col gap-2.5 sm:flex-row">
+      <div className={cn('flex gap-2.5', dark ? 'flex-row' : 'mt-2 flex-col sm:flex-row')}>
         <input
           id={`${id}-email`}
           type="email"
@@ -97,7 +97,7 @@ export function NewsletterForm({
           aria-describedby={describedBy}
           className={
             dark
-              ? 'h-13 w-full min-w-0 rounded-control border border-ivory-50/45 bg-ivory-50/[0.06] px-4 text-body text-ivory-50 outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-ivory-100/55 hover:border-ivory-50/70 focus:border-gold-300 focus:ring-[3px] focus:ring-gold-300/20 sm:flex-1'
+              ? 'h-12 w-full min-w-0 flex-1 rounded-full border border-transparent bg-ivory-50 px-5 text-body text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-subtle focus:border-gold-300 focus:ring-[3px] focus:ring-gold-300/30'
               : inputClasses({ invalid: Boolean(fieldError), size: 'lg', className: 'sm:flex-1' })
           }
         />
@@ -113,7 +113,7 @@ export function NewsletterForm({
         <Button
           type="submit"
           size="lg"
-          variant={dark ? 'accent' : 'primary'}
+          variant={dark ? 'outline-inverse' : 'primary'}
           loading={state === 'sending'}
         >
           {state === 'sending' ? t('submitting') : t('submit')}

@@ -56,33 +56,40 @@ export async function ArticleContent({
   const t = await getTranslations('Pages');
   return (
     <>
-      <header>
-        <time dateTime={article.publishedAt} className="text-eyebrow text-accent-fg">
-          {t('published', { date: formatDate(article.publishedAt, locale) })}
-        </time>
-        <h1 className="mt-3 text-display-lg break-words text-forest-900">{article.title}</h1>
-        {article.excerpt ? <p className="mt-4 text-lead text-fg-muted">{article.excerpt}</p> : null}
-        {article.cover ? (
-          <figure className="mt-8 overflow-hidden rounded-panel border border-line-subtle bg-surface-muted">
-            <div className="aspect-[16/9]">
-              <CoverImage image={article.cover} sizes="(min-width: 768px) 44rem, 100vw" priority />
+      {/* The reference's split hero: the picture across the left half, the words centred right. */}
+      <header className="-mx-gutter grid grid-cols-1 bg-surface-muted lg:min-h-[25rem] lg:grid-cols-2">
+        <div className="relative aspect-[16/10] bg-ivory-200 lg:aspect-auto">
+          {article.cover ? (
+            <div className="absolute inset-0">
+              <CoverImage image={article.cover} sizes="(min-width: 1024px) 50vw, 100vw" priority />
             </div>
-          </figure>
-        ) : (
-          <div
-            aria-hidden
-            className="mt-8 flex justify-center rounded-panel border border-line-subtle bg-surface-muted py-10 sm:py-14"
+          ) : (
+            <div aria-hidden className="absolute inset-0 flex items-center justify-center">
+              <span className="h-32 w-32 sm:h-40 sm:w-40">
+                <TeaTypeArt kind={article.illustrationKey} />
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:px-12 lg:px-16">
+          <time
+            dateTime={article.publishedAt}
+            className="rounded-full bg-forest-900 px-3.5 py-1.5 text-caption text-ivory-50"
           >
-            <span className="h-32 w-32 sm:h-40 sm:w-40">
-              <TeaTypeArt kind={article.illustrationKey} />
-            </span>
-          </div>
-        )}
+            {t('published', { date: formatDate(article.publishedAt, locale) })}
+          </time>
+          <h1 className="mt-4 font-headline text-[2.75rem] break-words text-forest-900 sm:text-[4rem]">
+            {article.title}
+          </h1>
+          {article.excerpt ? (
+            <p className="mt-4 max-w-xl text-body-lg text-fg-muted">{article.excerpt}</p>
+          ) : null}
+        </div>
       </header>
-      <div className="mt-10">
+      <div className="mx-auto mt-12 max-w-[46rem]">
         <ArticleBody body={article.body} />
+        {article.media.length > 0 ? <ArticleMedia items={article.media} /> : null}
       </div>
-      {article.media.length > 0 ? <ArticleMedia items={article.media} /> : null}
     </>
   );
 }

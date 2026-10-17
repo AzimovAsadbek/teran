@@ -7,6 +7,7 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { HelpFooter } from '@/components/content/help-footer';
 import { PageHeader } from '@/components/content/page-header';
+import { PromiseCard } from '@/components/content/promise-card';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { deliveryPage } from '@/content/pages/delivery';
@@ -154,16 +155,11 @@ async function ConfiguredOptions() {
 export default async function DeliveryPage() {
   const locale = (await rootParams.locale()) as Locale;
   const page = deliveryPage[locale];
-  const t = await getTranslations('Pages');
 
   return (
     <>
-      <PageHeader
-        eyebrow={t('helpEyebrow')}
-        title={page.title}
-        intro={page.intro}
-        illustration="herbal"
-      />
+      <PageHeader title={page.title} intro={page.intro} />
+      <PromiseCard />
       <div className="container-page space-y-14 py-12 sm:py-16">
         <Suspense
           fallback={

@@ -36,6 +36,8 @@ test.describe('catalogue', () => {
     // Green tea: seven loose-leaf teas and one in pyramids.
     await page.goto('/en/tea/green-tea');
     await expect(count(page, '8 products')).toBeVisible();
+    // Filters are dropdowns, as on the reference; a choice applies at once.
+    await visible(page.locator('details summary', { hasText: 'Format' })).click();
     await visible(page.getByRole('main').getByRole('link', { name: /^Loose leaf/ })).click();
     await expect(page).toHaveURL(/format=LOOSE_LEAF/);
     await expect(count(page, '7 products')).toBeVisible();

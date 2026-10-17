@@ -2,10 +2,11 @@ import type { Locale, MediaKind } from '@teran/contracts';
 import { ArrowRight, Film, Images, type LucideIcon } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
-import { BotanicalLayer } from '@/components/brand/botanical';
+import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getMedia } from '@/lib/data/content';
+import lake from '../../../public/brand/art/lake.webp';
 
 /** The media pages: an overview and one page per kind, photographs and films kept apart. */
 export type MediaPageKey = 'all' | 'photos' | 'videos';
@@ -40,7 +41,10 @@ export function pageNumber(value: string | string[] | undefined): number {
   return Number.isInteger(parsed) && parsed > 1 && parsed <= 1000 ? parsed : 1;
 }
 
-/** The dark editorial header of the media pages. */
+/**
+ * The header of the media pages on the reference's hero template: the pack's landscape full-bleed
+ * under a deep veil, the title and intro centred (the dark gallery continues below it).
+ */
 export function MediaHeader({
   eyebrow,
   title,
@@ -52,17 +56,23 @@ export function MediaHeader({
 }) {
   return (
     <header className="relative isolate overflow-hidden border-b border-ivory-50/10">
-      <BotanicalLayer scene="gallery" className="-z-10" />
-      <div className="container-page pt-14 pb-12 sm:pt-20 sm:pb-16">
+      <Image
+        src={lake}
+        alt=""
+        fill
+        loading="eager"
+        fetchPriority="high"
+        quality={60}
+        sizes="(max-width: 767px) 75vw, 100vw"
+        className="-z-20 object-cover"
+      />
+      <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/65" />
+      <div className="container-page flex min-h-[17rem] flex-col items-center justify-center py-14 text-center sm:min-h-[25rem] sm:py-20">
         <p className="text-eyebrow text-gold-300">{eyebrow}</p>
-        <h1 className="mt-4 text-display-xl break-words text-ivory-50">{title}</h1>
-        <div className="mt-6 flex items-center gap-4">
-          <span
-            aria-hidden
-            className="h-px w-14 shrink-0 bg-linear-to-r from-gold-300 to-transparent"
-          />
-          <p className="max-w-2xl text-body-lg text-ivory-100/80">{intro}</p>
-        </div>
+        <h1 className="mt-3 font-headline text-[3rem] break-words text-ivory-50 sm:text-[5rem]">
+          {title}
+        </h1>
+        <p className="mt-4 max-w-2xl text-body-lg text-ivory-100/90">{intro}</p>
       </div>
     </header>
   );

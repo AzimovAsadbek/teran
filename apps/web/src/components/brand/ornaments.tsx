@@ -32,19 +32,23 @@ export function ValueIcon({ value, className }: { value: BrandValue; className?:
 
 /**
  * The pack's row of values (natural product, refined taste, everyday vigour, quality choice) with
- * the thin dividers between them.
+ * the thin dividers between them. On a dark or photographic background (`tone="dark"`) the icons
+ * sit in ivory discs and the labels are ivory.
  */
 export function BrandValues({
   locale,
   className,
   compact = false,
+  tone = 'light',
 }: {
   locale: Locale;
   className?: string;
   /** Smaller icons and labels, e.g. beside a product. */
   compact?: boolean;
+  tone?: 'light' | 'dark';
 }) {
   const labels = brandValueLabels[locale];
+  const dark = tone === 'dark';
   return (
     // Two by two on phones (Russian labels are long), one row of four from 640 px, as on the pack.
     <ul className={cn('grid grid-cols-2 gap-y-7 sm:grid-cols-4 sm:gap-y-0', className)}>
@@ -52,15 +56,23 @@ export function BrandValues({
         <li
           key={value}
           className={cn(
-            'flex flex-col items-center border-gold-500/35 px-2 text-center sm:px-3',
+            'flex flex-col items-center px-2 text-center sm:px-3',
+            dark ? 'border-ivory-50/35' : 'border-gold-500/35',
             index % 2 === 1 && 'border-l',
             index === 2 && 'sm:border-l',
           )}
         >
-          <ValueIcon value={value} className={compact ? 'w-9' : 'w-11 sm:w-14'} />
+          {dark ? (
+            <span className="flex rounded-full bg-ivory-50 p-1">
+              <ValueIcon value={value} className={compact ? 'w-8' : 'w-10 sm:w-12'} />
+            </span>
+          ) : (
+            <ValueIcon value={value} className={compact ? 'w-9' : 'w-11 sm:w-14'} />
+          )}
           <span
             className={cn(
-              'mt-2.5 max-w-[10rem] font-bold tracking-[0.06em] text-balance text-forest-900 uppercase',
+              'mt-2.5 max-w-[10rem] font-bold tracking-[0.06em] text-balance uppercase',
+              dark ? 'text-ivory-50' : 'text-forest-900',
               compact ? 'text-[0.625rem] leading-tight' : 'text-micro sm:text-caption',
             )}
           >

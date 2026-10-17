@@ -1,82 +1,94 @@
 import type { Locale } from '@teran/contracts';
-import { ArrowRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
-import { BotanicalLayer } from '@/components/brand/botanical';
-import { ButtonLink } from '@/components/ui/button';
-import { BRAND, brandCopy, SIGNATURE_TAGLINE } from '@/content/brand';
-import { HeroStage } from './hero-stage';
+import { connection } from 'next/server';
+import { Suspense } from 'react';
+import { BRAND, brandCopy } from '@/content/brand';
+import { getProductList } from '@/lib/data/catalog';
+import lake from '../../../public/brand/art/lake.webp';
+import terraces from '../../../public/brand/art/terraces.webp';
+import { HeroSlider, type HeroLabels, type HeroSlideData } from './hero-slider';
 
-/** One line per sentence ("Teran ta’m." / "Teran taassurot."), with the space kept for screen readers. */
+/** The showcase's "featured" query, so both read one cached list. */
+const FEATURED_QUERY = 'featured=true&pageSize=8&sort=featured';
+/** Products after the brand's own slide (the reference runs two to four slides). */
+const PRODUCT_SLIDES = 3;
+/**
+ * Each product stands on one of the paintings from the packs, under a veil of its slide's colour:
+ * the tea terraces, the lake at sunrise, the misty mountains above the terraces.
+ */
+const PRODUCT_SCENES: Pick<HeroSlideData, 'tone' | 'art' | 'artFocus'>[] = [
+  { tone: 'jade', art: terraces, artFocus: 'right' },
+  { tone: 'gold', art: lake, artFocus: 'right' },
+  { tone: 'sage', art: terraces, artFocus: 'left' },
+];
+
+/** One line per sentence ("Teran ta’m." / "Teran taassurot."), as the reference breaks its lines. */
 function sentences(text: string): string[] {
   return text.split(/(?<=\.)\s+/);
 }
 
 /**
- * The front page's first view, in a deep green garden at dawn. On the left, as one group, the
- * brand's words: descriptor, the pack's tagline as the headline (one sentence per line), the
- * signature line, the description and both calls to action. On the right, a stage where TERAN's
- * featured products appear one at a time in front of a moon gate (hero-stage.tsx).
- *
- * The words, the buttons and the painting in the gate are part of the prerendered shell and paint
- * at once (no entrance waits on script); the products stream in after them.
+ * The front page's first view, as the reference's feature banner: TERAN's own slide first (the
+ * pack's tagline over the lake painted on the packs, prerendered with the page so it paints at
+ * once), then featured products standing on the packs' paintings, which stream in at request time.
+ * Nothing here names a product: the slides are whatever the catalogue marks as featured.
  */
 export async function Hero() {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
   const copy = brandCopy[locale];
-  const signature =
-    locale === 'uz'
-      ? { text: brandCopy.en.tagline, lang: 'en' }
-      : { text: SIGNATURE_TAGLINE, lang: 'uz' };
-
+  const brand: HeroSlideData = {
+    key: 'brand',
+    tone: 'art',
+    eyebrow: `${BRAND.name}® · ${BRAND.descriptor}`,
+    lines: sentences(copy.tagline),
+    text: copy.description,
+    cta: { href: '/catalog', label: t('heroCta') },
+    art: lake,
+  };
+  const labels: HeroLabels = {
+    heading: `${BRAND.name} — ${copy.tagline}`,
+    region: t('heroStageLabel'),
+    // A template the slider fills in per slide.
+    slide: t('heroSlide', { index: '{index}', total: '{total}' }),
+    pause: t('heroPause'),
+    play: t('heroPlay'),
+  };
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="hero-night on-dark relative isolate overflow-hidden text-fg-inverse"
-    >
-      <BotanicalLayer scene="heroNight" className="-z-10" />
-      <div className="container-page grid grid-cols-1 items-center gap-2 lg:min-h-[min(46rem,calc(100svh-7.625rem))] lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)] lg:gap-10">
-        <div className="pt-10 sm:pt-14 lg:py-16 motion-safe:animate-rise">
-          <p className="text-eyebrow text-accent-on-inverse">
-            {BRAND.name}® · {BRAND.descriptor}
-          </p>
-          <h1 id="hero-title" className="mt-4 text-display-xl text-ivory-50 lg:mt-6">
-            {sentences(copy.tagline).map((sentence, index) => (
-              <span key={sentence} className="block">
-                {index > 0 ? ' ' : null}
-                {sentence}
-              </span>
-            ))}
-          </h1>
-          <div className="mt-5 flex items-center gap-4 lg:mt-7">
-            <span
-              aria-hidden
-              className="h-px w-12 shrink-0 bg-linear-to-r from-gold-400 to-transparent sm:w-16"
-            />
-            <p lang={signature.lang} className="text-display-xs text-gold-300">
-              {signature.text}
-            </p>
-          </div>
-          <p className="mt-4 max-w-[32rem] text-body text-ivory-100/85 sm:text-body-lg lg:mt-5">
-            {copy.description}
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3 lg:mt-9">
-            <ButtonLink href="/catalog" variant="accent" size="lg" className="grow sm:grow-0">
-              {t('heroCta')} <ArrowRight aria-hidden className="h-4 w-4" />
-            </ButtonLink>
-            <ButtonLink
-              href="/wholesale"
-              variant="outline-inverse"
-              size="lg"
-              className="grow sm:grow-0"
-            >
-              {t('heroSecondaryCta')}
-            </ButtonLink>
-          </div>
-        </div>
-        <HeroStage locale={locale} />
-      </div>
-    </section>
+    <Suspense fallback={<HeroSlider slides={[brand]} labels={labels} />}>
+      <FeaturedSlides locale={locale} brand={brand} labels={labels} />
+    </Suspense>
   );
+}
+
+async function FeaturedSlides({
+  locale,
+  brand,
+  labels,
+}: {
+  locale: Locale;
+  brand: HeroSlideData;
+  labels: HeroLabels;
+}) {
+  await connection();
+  const [list, t] = await Promise.all([
+    getProductList(locale, FEATURED_QUERY).catch(() => null),
+    getTranslations('Home'),
+  ]);
+  // Only products with a cut-out stand on a slide; a photograph would not sit on the colour.
+  const staged = (list?.items ?? []).filter((product) => product.stageImage);
+  const slides: HeroSlideData[] = [
+    brand,
+    ...staged.slice(0, PRODUCT_SLIDES).map((product, index): HeroSlideData => ({
+      key: product.id,
+      ...PRODUCT_SCENES[index % PRODUCT_SCENES.length]!,
+      eyebrow: product.category.name,
+      lines: [product.name],
+      text: product.shortDescription,
+      cta: { href: `/products/${product.slug}`, label: t('heroDetails') },
+      product: product.stageImage,
+    })),
+  ];
+  return <HeroSlider slides={slides} labels={labels} />;
 }

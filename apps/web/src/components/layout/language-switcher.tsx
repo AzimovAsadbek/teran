@@ -50,7 +50,9 @@ function LocaleLinks({
                       : 'text-fg hover:bg-brand/[0.06]',
                 )}
               >
-                <span className="sr-only">{t(`names.${locale}`)}</span>
+                {/* Spoken only: in the system font, so a page in another alphabet does not
+                    download the brand font's Cyrillic or Latin files for these names. */}
+                <span className="sr-only font-[family-name:system-ui]">{t(`names.${locale}`)}</span>
                 <span aria-hidden>{t(`short.${locale}`)}</span>
               </Link>
             </li>

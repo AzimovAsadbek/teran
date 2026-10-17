@@ -3,8 +3,9 @@
 import { PRODUCT_SORTS, type ProductSort } from '@teran/contracts/constants';
 import { useTranslations } from 'next-intl';
 import { useId, useTransition } from 'react';
-import { SelectChevron, selectClasses } from '@/components/ui/field';
+import { SelectChevron } from '@/components/ui/field';
 import { usePathname, useRouter } from '@/i18n/navigation';
+import { SORT_SELECT } from './filter-styles';
 
 /** Sort control; changing it rewrites the URL (and resets pagination) without a full reload. */
 export function SortSelect({ value, query }: { value: ProductSort; query: string }) {
@@ -17,7 +18,7 @@ export function SortSelect({ value, query }: { value: ProductSort; query: string
   return (
     // Phones sort from the filter drawer, which keeps the toolbar on one line.
     <div className="hidden min-w-0 items-center gap-2 sm:flex">
-      <label htmlFor={id} className="text-body-sm text-fg-muted">
+      <label htmlFor={id} className="sr-only">
         {t('sort')}
       </label>
       <div className="relative min-w-0">
@@ -36,7 +37,7 @@ export function SortSelect({ value, query }: { value: ProductSort; query: string
               router.replace(search ? `${pathname}?${search}` : pathname, { scroll: false });
             });
           }}
-          className={selectClasses({ size: 'xs', fullWidth: false, className: 'font-medium' })}
+          className={SORT_SELECT}
         >
           {PRODUCT_SORTS.map((sort) => (
             <option key={sort} value={sort}>

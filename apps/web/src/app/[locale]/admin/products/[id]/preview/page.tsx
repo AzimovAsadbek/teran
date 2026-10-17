@@ -8,7 +8,7 @@ import { AdminPageHeader, ProductStatusPill } from '@/components/admin/ui';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/catalog/product-card';
 import { ProductGallery } from '@/components/product/product-gallery';
-import { BrewingFacts, ProductInfo } from '@/components/product/product-info';
+import { AttributeRows, ProductTabsSection } from '@/components/product/product-info';
 import { Notice } from '@/components/ui/notice';
 import { Price } from '@/components/ui/price';
 import { Link } from '@/i18n/navigation';
@@ -110,8 +110,8 @@ export default async function ProductPreviewPage({
                 </li>
               ) : null}
             </ul>
-            <BrewingFacts brewing={product.brewing} />
-            <ProductInfo product={product} />
+            <ProductTabsSection product={product} />
+            <AttributeRows product={product} />
           </div>
         </div>
       </div>

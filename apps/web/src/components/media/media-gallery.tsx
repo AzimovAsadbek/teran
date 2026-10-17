@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { cn } from '@/lib/cn';
 import { imageSources } from '@/lib/navigation';
+import { TileTitle } from './tile-title';
 
 export interface MediaLabels {
   photo: string;
@@ -41,6 +42,24 @@ function duration(seconds: number | null): string | null {
 const ratio = (item: MediaItemDto) => item.image.width / item.image.height;
 
 /**
+ * A justified tile is as wide as its row is tall (9.5, 14, 17 rem) times its proportions, a little
+ * wider as rows stretch to fill; on phones at most the page's width.
+ */
+const justifiedSizes = (item: MediaItemDto) => {
+  const r = ratio(item);
+  const rem = (row: number) => `${(row * r * 1.25).toFixed(1)}rem`;
+  return `(min-width: 1024px) ${rem(17)}, (min-width: 640px) ${rem(14)}, ${Math.min(88, Math.round(45 * r))}vw`;
+};
+
+/** Films: one column on phones, two from 640 px, three from 1024 px when there are three or more. */
+const filmSizes = (count: number) =>
+  count >= 3
+    ? '(min-width: 1440px) 26.5rem, (min-width: 1024px) 30vw, (min-width: 640px) 46vw, calc(100vw - 3rem)'
+    : count === 2
+      ? '(min-width: 1440px) 40rem, (min-width: 640px) 46vw, calc(100vw - 3rem)'
+      : '(min-width: 816px) 48rem, calc(100vw - 3rem)';
+
+/**
  * The home page's order: a wide picture leads (the feature), a tall one stands beside it, the rest
  * follow; with no wide or tall picture the order is kept.
  */
@@ -69,12 +88,13 @@ function KindLabel({
   const Icon = item.video ? Film : ImageIcon;
   return (
     <span
+      aria-hidden
       className={cn(
         'inline-flex items-center gap-1.5 text-micro tracking-[0.16em] text-gold-300 uppercase',
         className,
       )}
     >
-      <Icon aria-hidden className="h-3.5 w-3.5" strokeWidth={1.75} />
+      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
       {item.video ? labels.video : labels.photo}
       {time ? ` · ${time}` : null}
     </span>
@@ -167,24 +187,15 @@ export function MediaGallery({
     opener.current = element;
     setOpen(index);
   };
-  const name = (item: MediaItemDto) =>
-    fill(item.video ? labels.play : labels.open, { title: item.title });
 
   return (
     <>
       {layout === 'editorial' ? (
-        <EditorialLayout
-          items={shown}
-          labels={labels}
-          name={name}
-          onOpen={openAt}
-          className={className}
-        />
+        <EditorialLayout items={shown} labels={labels} onOpen={openAt} className={className} />
       ) : layout === 'films' ? (
         <FilmsLayout
           items={shown}
           labels={labels}
-          name={name}
           onOpen={openAt}
           priorityFirst={priorityFirst}
           className={className}
@@ -211,23 +222,21 @@ export function MediaGallery({
               <button
                 type="button"
                 onClick={(event) => openAt(index)(event.currentTarget)}
-                aria-label={name(item)}
                 className={cn(TILE_BUTTON, 'rounded-[0.375rem]')}
                 style={{ aspectRatio: `${item.image.width} / ${item.image.height}` }}
               >
                 <TileImage
                   item={item}
-                  sizes="(min-width: 1024px) 40vw, 70vw"
+                  sizes={justifiedSizes(item)}
                   priority={priorityFirst && index === 0}
                 />
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-0 bg-linear-to-t from-forest-950/85 via-forest-950/30 to-transparent px-3 pt-10 pb-2.5 transition-opacity duration-300 sm:px-4 sm:pb-3.5 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-visible:opacity-100"
-                >
+                <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-forest-950/85 via-forest-950/30 to-transparent px-3 pt-10 pb-2.5 transition-opacity duration-300 sm:px-4 sm:pb-3.5 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-visible:opacity-100">
                   <KindLabel item={item} labels={labels} />
-                  <span className="mt-1 line-clamp-2 block text-body-sm font-medium text-ivory-50 sm:text-title-sm">
-                    {item.title}
-                  </span>
+                  <TileTitle
+                    item={item}
+                    labels={labels}
+                    className="mt-1 line-clamp-2 block text-body-sm font-medium text-ivory-50 sm:text-title-sm"
+                  />
                 </span>
                 {item.video ? <PlayMark /> : null}
               </button>
@@ -253,14 +262,12 @@ export function MediaGallery({
 function FilmsLayout({
   items,
   labels,
-  name,
   onOpen,
   priorityFirst,
   className,
 }: {
   items: MediaItemDto[];
   labels: MediaLabels;
-  name: (item: MediaItemDto) => string;
   onOpen: (index: number) => (element: HTMLElement) => void;
   priorityFirst: boolean;
   className?: string;
@@ -285,13 +292,12 @@ function FilmsLayout({
             <button
               type="button"
               onClick={(event) => onOpen(index)(event.currentTarget)}
-              aria-label={name(item)}
               className="group block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-300"
             >
               <span className="relative block aspect-video overflow-hidden rounded-[0.25rem] bg-forest-900">
                 <TileImage
                   item={item}
-                  sizes="(min-width: 1024px) 30vw, (min-width: 640px) 46vw, 100vw"
+                  sizes={filmSizes(items.length)}
                   priority={priorityFirst && index === 0}
                 />
                 <span
@@ -308,13 +314,18 @@ function FilmsLayout({
                   </span>
                 ) : null}
               </span>
-              <span aria-hidden className="mt-3.5 block">
+              <span className="mt-3.5 block">
                 <KindLabel item={item} labels={labels} />
-                <span className="mt-1.5 block text-title-sm text-ivory-50 decoration-gold-300/50 underline-offset-4 group-hover:underline sm:text-display-xs">
-                  {item.title}
-                </span>
+                <TileTitle
+                  item={item}
+                  labels={labels}
+                  className="mt-1.5 block text-title-sm text-ivory-50 decoration-gold-300/50 underline-offset-4 group-hover:underline sm:text-display-xs"
+                />
                 {item.caption ? (
-                  <span className="mt-1.5 line-clamp-2 block text-body-sm text-ivory-100/70">
+                  <span
+                    aria-hidden
+                    className="mt-1.5 line-clamp-2 block text-body-sm text-ivory-100/70"
+                  >
                     {item.caption}
                   </span>
                 ) : null}
@@ -330,13 +341,11 @@ function FilmsLayout({
 function EditorialLayout({
   items,
   labels,
-  name,
   onOpen,
   className,
 }: {
   items: MediaItemDto[];
   labels: MediaLabels;
-  name: (item: MediaItemDto) => string;
   onOpen: (index: number) => (element: HTMLElement) => void;
   className?: string;
 }) {
@@ -358,25 +367,32 @@ function EditorialLayout({
       <button
         type="button"
         onClick={(event) => onOpen(0)(event.currentTarget)}
-        aria-label={name(feature)}
         className={cn(
           TILE_BUTTON,
           'aspect-[4/5] rounded-[0.25rem] sm:aspect-[16/10] lg:aspect-auto lg:h-[34rem]',
           tall ? 'lg:col-span-7' : 'lg:col-span-12',
         )}
       >
-        <TileImage item={feature} sizes="(min-width: 1024px) 58vw, 100vw" />
+        <TileImage
+          item={feature}
+          sizes={tall ? '(min-width: 1024px) 56vw, calc(100vw - 3rem)' : 'calc(100vw - 3rem)'}
+        />
         <span
           aria-hidden
           className="absolute inset-0 bg-linear-to-t from-forest-950/90 via-forest-950/15 to-transparent"
         />
-        <span aria-hidden className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+        <span className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
           <KindLabel item={feature} labels={labels} />
-          <span className="mt-2 block max-w-xl text-display-sm text-ivory-50 sm:text-display-md">
-            {feature.title}
-          </span>
+          <TileTitle
+            item={feature}
+            labels={labels}
+            className="mt-2 block max-w-xl text-display-sm text-ivory-50 sm:text-display-md"
+          />
           {feature.caption ? (
-            <span className="mt-2 line-clamp-2 block max-w-lg text-body-sm text-ivory-100/80 sm:text-body">
+            <span
+              aria-hidden
+              className="mt-2 line-clamp-2 block max-w-lg text-body-sm text-ivory-100/80 sm:text-body"
+            >
               {feature.caption}
             </span>
           ) : null}
@@ -394,7 +410,6 @@ function EditorialLayout({
             <EditorialTile
               item={tall}
               labels={labels}
-              name={name(tall)}
               onOpen={onOpen(1)}
               imageClass="aspect-[4/5] lg:aspect-auto lg:h-[27.5rem]"
               sizes="(min-width: 1024px) 40vw, 72vw"
@@ -413,7 +428,6 @@ function EditorialLayout({
             <EditorialTile
               item={item}
               labels={labels}
-              name={name(item)}
               onOpen={onOpen(index + 2)}
               imageClass={secondShape.image}
               sizes="(min-width: 1024px) 34vw, 60vw"
@@ -428,7 +442,6 @@ function EditorialLayout({
 function EditorialTile({
   item,
   labels,
-  name,
   onOpen,
   imageClass,
   sizes,
@@ -436,7 +449,6 @@ function EditorialTile({
 }: {
   item: MediaItemDto;
   labels: MediaLabels;
-  name: string;
   onOpen: (element: HTMLElement) => void;
   imageClass: string;
   sizes: string;
@@ -447,7 +459,6 @@ function EditorialTile({
     <button
       type="button"
       onClick={(event) => onOpen(event.currentTarget)}
-      aria-label={name}
       className="group block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-300"
     >
       <span
@@ -461,13 +472,15 @@ function EditorialTile({
         />
         {item.video ? <PlayMark /> : null}
       </span>
-      <span aria-hidden className="mt-3.5 block">
+      <span className="mt-3.5 block">
         <KindLabel item={item} labels={labels} />
-        <span className="mt-1.5 block text-title-sm text-ivory-50 decoration-gold-300/50 underline-offset-4 group-hover:underline sm:text-display-xs">
-          {item.title}
-        </span>
+        <TileTitle
+          item={item}
+          labels={labels}
+          className="mt-1.5 block text-title-sm text-ivory-50 decoration-gold-300/50 underline-offset-4 group-hover:underline sm:text-display-xs"
+        />
         {withCaption && item.caption ? (
-          <span className="mt-1.5 line-clamp-2 block text-body-sm text-ivory-100/70">
+          <span aria-hidden className="mt-1.5 line-clamp-2 block text-body-sm text-ivory-100/70">
             {item.caption}
           </span>
         ) : null}
@@ -485,7 +498,7 @@ const SWIPE_DISTANCE = 56;
  * thumbnails below shows where one is. The neighbouring pictures are fetched ahead. A film plays
  * only when its controls are used; moving on stops it.
  */
-function MediaViewer({
+export function MediaViewer({
   items,
   index,
   labels,

@@ -92,7 +92,8 @@ export async function CatalogResults({
         <>
           {/* Keeps the outline in order: page title (h1), this list (h2), product names (h3). */}
           <h2 className="sr-only">{t('productsHeading')}</h2>
-          <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:mt-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 xl:grid-cols-4">
+          {/* The reference's grid: 8 px between white cards, four across from 1024 px. */}
+          <ul className="mt-5 grid grid-cols-2 gap-2 sm:mt-6 md:grid-cols-3 lg:grid-cols-4">
             {list.items.map((product, index) => (
               <li key={product.id}>
                 <ProductCard product={product} priority={index < 4} />

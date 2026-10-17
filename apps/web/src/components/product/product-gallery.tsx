@@ -1,14 +1,19 @@
 'use client';
 
 import type { ImageDto } from '@teran/contracts';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { ProductImage } from '@/components/catalog/product-image';
 import { IconButton } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 
-const MAIN_SIZES = '(min-width: 1024px) 50vw, 100vw';
+/**
+ * The picture's real width in the page column (gutters 1.5 rem up to 4.45 vw, two columns 48 px
+ * apart from 1024 px), so a phone loads the 960 px file rather than the 1280 px one.
+ */
+const MAIN_SIZES =
+  '(min-width: 1440px) 632px, (min-width: 1024px) calc(45.5vw - 1.5rem), (min-width: 640px) 91vw, calc(100vw - 3rem)';
 
 /**
  * Product images as a row of slides that scroll sideways with snap points: a swipe on touch
@@ -27,8 +32,8 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
 
   if (count < 2) {
     return (
-      <section aria-label={t('gallery')} className="lg:sticky lg:top-24">
-        <div className="relative aspect-square overflow-hidden rounded-panel bg-surface-muted">
+      <section aria-label={t('gallery')} className="lg:sticky lg:top-40">
+        <div className="relative aspect-square overflow-hidden bg-surface">
           <ProductImage image={images[0] ?? null} name={name} sizes={MAIN_SIZES} priority />
         </div>
       </section>
@@ -67,13 +72,14 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
   return (
     <section
       aria-label={t('gallery')}
-      className="lg:sticky lg:top-24"
+      className="lg:sticky lg:top-40"
       onKeyDown={onKeyDown}
       onPointerEnter={prime}
       onTouchStart={prime}
       onFocus={prime}
     >
-      <div className="relative aspect-square overflow-hidden rounded-panel bg-surface-muted">
+      {/* The reference: the picture on white, plain arrows at its sides, thumbnails centred below. */}
+      <div className="relative aspect-square overflow-hidden bg-surface">
         <div
           ref={trackRef}
           onScroll={onScroll}
@@ -81,7 +87,7 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
           tabIndex={0}
           role="group"
           aria-label={`${index + 1} / ${count}`}
-          className="flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-panel [scrollbar-width:none] focus-visible:outline-offset-[-3px] [&::-webkit-scrollbar]:hidden"
+          className="flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] focus-visible:outline-offset-[-3px] [&::-webkit-scrollbar]:hidden"
         >
           {images.map((image, imageIndex) => (
             <div
@@ -102,18 +108,18 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
         </div>
         <IconButton
           label={t('previousImage')}
-          icon={<ChevronLeft />}
-          variant="surface"
+          icon={<ArrowLeft />}
+          variant="ghost"
           onClick={() => show(index - 1)}
           // IconButton nudges itself down when pressed, so centre with top rather than translate.
-          className="absolute top-[calc(50%-1.375rem)] left-3 sm:left-4"
+          className="absolute top-[calc(50%-1.375rem)] left-1"
         />
         <IconButton
           label={t('nextImage')}
-          icon={<ChevronRight />}
-          variant="surface"
+          icon={<ArrowRight />}
+          variant="ghost"
           onClick={() => show(index + 1)}
-          className="absolute top-[calc(50%-1.375rem)] right-3 sm:right-4"
+          className="absolute top-[calc(50%-1.375rem)] right-1"
         />
         <p
           aria-hidden
@@ -122,7 +128,7 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
           {index + 1} / {count}
         </p>
       </div>
-      <ul className="mt-3 flex gap-2.5 sm:mt-4 sm:gap-3">
+      <ul className="mt-3 flex justify-center gap-2 sm:mt-4">
         {images.map((image, imageIndex) => (
           <li key={image.src}>
             <button
@@ -131,9 +137,9 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
               aria-label={t('showImage', { index: imageIndex + 1 })}
               aria-current={imageIndex === index ? 'true' : undefined}
               className={cn(
-                'block h-16 w-16 overflow-hidden rounded-control border bg-surface-muted transition-[border-color,box-shadow] duration-150 sm:h-20 sm:w-20',
+                'block h-16 w-16 overflow-hidden rounded-[0.5rem] border bg-surface transition-[border-color,box-shadow] duration-150 sm:h-[5.25rem] sm:w-[5.25rem]',
                 imageIndex === index
-                  ? 'border-brand ring-1 ring-brand'
+                  ? 'border-forest-900 ring-1 ring-forest-900'
                   : 'border-line hover:border-line-strong',
               )}
             >

@@ -410,7 +410,9 @@ export async function DeliveryInfo({ options }: { options: CheckoutOptionsDto | 
         {showPrices ? t('delivery') : t('deliveryOnly')}
       </h2>
       <ul className="mt-2.5 divide-y divide-line-subtle rounded-card border border-line bg-surface text-body-sm">
-        {options && options.deliveryMethods.length > 0 ? (
+        {/* While orders go by phone (no prices), delivery is agreed then: the configured
+            methods' times and areas are not promised here (lib/site showPrices). */}
+        {showPrices && options && options.deliveryMethods.length > 0 ? (
           options.deliveryMethods.map((method) => (
             <li key={method.code} className="flex items-start gap-3 px-4 py-3">
               <Truck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-accent-fg" />

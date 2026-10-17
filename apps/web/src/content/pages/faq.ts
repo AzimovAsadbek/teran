@@ -342,8 +342,9 @@ export const faqByContact: Localized<
     },
     delivery: {
       0: [
-        'Delivery methods, regions and estimated times are listed on the Delivery page. We agree the delivery fee when you order.',
+        'Call or write to us with your region: we tell you how we can deliver there and agree the delivery fee when you order.',
       ],
+      1: ['We agree the delivery time with you when you order, and call you before it arrives.'],
     },
   },
   ru: {
@@ -360,8 +361,9 @@ export const faqByContact: Localized<
     },
     delivery: {
       0: [
-        'Способы, регионы и ориентировочные сроки доставки указаны на странице «Доставка». Стоимость доставки согласуем при заказе.',
+        'Позвоните или напишите нам и назовите ваш регион: расскажем, как можем доставить, и согласуем стоимость доставки при заказе.',
       ],
+      1: ['Срок доставки согласуем с вами при заказе и позвоним перед тем, как привезти заказ.'],
     },
   },
   uz: {
@@ -378,7 +380,10 @@ export const faqByContact: Localized<
     },
     delivery: {
       0: [
-        'Yetkazib berish usullari, hududlar va taxminiy muddatlar «Yetkazib berish» sahifasida koʻrsatilgan. Yetkazib berish narxini buyurtma berishda kelishib olamiz.',
+        'Bizga qoʻngʻiroq qiling yoki yozing va hududingizni ayting: qanday yetkazib bera olishimizni aytamiz va yetkazib berish narxini buyurtma berishda kelishib olamiz.',
+      ],
+      1: [
+        'Yetkazib berish muddatini buyurtma berishda siz bilan kelishamiz va olib borishdan oldin qoʻngʻiroq qilamiz.',
       ],
     },
   },

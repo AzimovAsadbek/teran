@@ -67,7 +67,9 @@ async function ConfiguredOptions() {
 
   return (
     <>
-      {options.deliveryMethods.length === 0 ? (
+      {/* While orders go by phone (no prices), delivery is agreed then: no table of methods,
+          times and areas that TERAN has not confirmed (lib/site showPrices). */}
+      {!showPrices || options.deliveryMethods.length === 0 ? (
         <p>{showPrices ? tp('deliveryText') : tp('deliveryTextByContact')}</p>
       ) : (
         // Wider than a phone: the table scrolls sideways, and keyboards can reach it to scroll.

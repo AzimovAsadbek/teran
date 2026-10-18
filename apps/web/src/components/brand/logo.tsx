@@ -1,13 +1,12 @@
 import Image from 'next/image';
 import { cn } from '@/lib/cn';
 import emblem from '../../../public/brand/teran-emblem.png';
-import fullLogo from '../../../public/brand/teran-logo.png';
 import wordmark from '../../../public/brand/teran-wordmark.png';
 
 /**
  * The TERAN logo exactly as printed on the packaging (flat TERAN green, gold steam and saucer, red
  * ®), cut out of the print files by scripts/packaging/build-packaging-assets.mjs. It is designed
- * for light backgrounds; on dark surfaces place it on an ivory plate (see LogoPlate).
+ * for light backgrounds; on dark surfaces it is drawn in ivory (CSS filters, e.g. the footer).
  */
 export function Wordmark({
   className,
@@ -46,34 +45,5 @@ export function Wordmark({
 export function Emblem({ className, sizes = '64px' }: { className?: string; sizes?: string }) {
   return (
     <Image src={emblem} alt="" aria-hidden sizes={sizes} className={cn('h-auto', className)} />
-  );
-}
-
-/** Cup emblem above the wordmark. */
-export function StackedLogo({
-  className,
-  sizes = '240px',
-}: {
-  className?: string;
-  sizes?: string;
-}) {
-  return <Image src={fullLogo} alt="TERAN" sizes={sizes} className={cn('h-auto', className)} />;
-}
-
-/** The logo on an ivory plate, for dark surfaces such as the footer. */
-export function LogoPlate({
-  className,
-  logoClassName = 'w-40',
-}: {
-  className?: string;
-  /** Width of the logo inside the plate (the plate's padding comes from `className`). */
-  logoClassName?: string;
-}) {
-  return (
-    <div
-      className={cn('inline-flex rounded-card bg-ivory-50 shadow-soft', className ?? 'px-6 py-5')}
-    >
-      <StackedLogo className={logoClassName} sizes="160px" />
-    </div>
   );
 }

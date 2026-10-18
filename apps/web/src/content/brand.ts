@@ -205,6 +205,3 @@ export const brandCopy: Localized<BrandCopy> = {
     },
   },
 };
-
-/** The original Uzbek tagline, shown as the brand signature on the Russian and English pages. */
-export const SIGNATURE_TAGLINE = brandCopy.uz.tagline;

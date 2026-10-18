@@ -27,19 +27,6 @@ export async function getCategories(locale: Locale): Promise<CategoryDto[]> {
   return apiGet<CategoryDto[]>(`/catalog/categories?locale=${locale}`);
 }
 
-/**
- * Categories a shopper browses directly: subcategories, and top-level categories without
- * subcategories (e.g. Green tea, Black tea, Gift sets), with products, in the API's order.
- */
-export function leafCategories(categories: CategoryDto[]): CategoryDto[] {
-  const parents = new Set(
-    categories
-      .filter((category) => category.productCount > 0)
-      .map((category) => category.parentSlug),
-  );
-  return categories.filter((category) => category.productCount > 0 && !parents.has(category.slug));
-}
-
 /** A category page by path ("tea", "tea/green-tea"), its new address if moved, or null. */
 export async function getCategoryPage(
   locale: Locale,

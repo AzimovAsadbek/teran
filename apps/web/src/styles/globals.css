@@ -219,41 +219,14 @@
   --duration-base: 220ms;
   --duration-slow: 320ms;
 
-  --animate-reveal: reveal 600ms var(--ease-soft) both;
-  /* Transform-only entrance: content stays fully opaque, so it never delays LCP. */
-  --animate-rise: rise 800ms var(--ease-soft) both;
   --animate-fade-in: fade-in 220ms var(--ease-standard) both;
   --animate-pop-in: pop-in 220ms var(--ease-soft) both;
-  /* A hairline drawing itself from its centre outwards (set transform-origin on each half). */
-  --animate-draw: draw 900ms var(--ease-soft) both;
   /* The bag count acknowledging a change. */
   --animate-badge-pop: badge-pop 420ms var(--ease-soft);
   /* A bar arriving from the bottom edge (sticky purchase bar on phones). */
   --animate-slide-up: slide-up 320ms var(--ease-soft) both;
-  /* Content of an opened disclosure settling into place. */
-  --animate-disclose: disclose 280ms var(--ease-soft) both;
   /* A just-added bag line: its highlight fades away. */
   --animate-glow-out: glow-out 2s ease-out both;
-
-  @keyframes reveal {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  @keyframes rise {
-    from {
-      transform: translateY(12px);
-    }
-    to {
-      transform: none;
-    }
-  }
 
   @keyframes fade-in {
     from {
@@ -275,15 +248,6 @@
     }
   }
 
-  @keyframes draw {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: none;
-    }
-  }
-
   @keyframes badge-pop {
     0% {
       transform: scale(1);
@@ -301,17 +265,6 @@
       transform: translateY(100%);
     }
     to {
-      transform: none;
-    }
-  }
-
-  @keyframes disclose {
-    from {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    to {
-      opacity: 1;
       transform: none;
     }
   }
@@ -675,38 +628,6 @@
       }
     }
   }
-
-  /* Gold hairline used for premium dividers. */
-  .rule-gold {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--color-gold-500), transparent);
-  }
-
-  /* Elements revealed on scroll by <Reveal>; visible by default if JS is unavailable. */
-  [data-reveal='pending'] {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  [data-reveal='shown'] {
-    animation: var(--animate-reveal);
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    /*
-     * Rows inside a revealed section (cards, articles) rise one after another. Mark the list with
-     * data-stagger and give each item --i (its index); after six items the rest arrive together.
-     */
-    [data-reveal='shown'] [data-stagger] > * {
-      animation: var(--animate-rise);
-      animation-duration: 700ms;
-      animation-delay: calc(min(var(--i, 0), 5) * 80ms + 120ms);
-    }
-
-    /* Opt-in for <details>: the opened content settles in instead of appearing at once. */
-    details[data-disclose][open] > :not(summary) {
-      animation: var(--animate-disclose);
-    }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -718,11 +639,6 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-
-  [data-reveal='pending'] {
-    opacity: 1;
-    transform: none;
   }
 }
 

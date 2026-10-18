@@ -1,6 +1,6 @@
 /**
- * Draws every shape and texture of the botanical atmosphere (src/components/brand/botanical.tsx,
- * src/styles/botanical.css) into public/brand/botanical/.
+ * Draws the botanical shapes the category art uses (src/styles/category-art.css) into
+ * public/brand/botanical/: a sprig, a branch and the branch out of focus.
  *
  * These are original illustrations drawn in code for the website, not TERAN packaging artwork.
  *
@@ -8,15 +8,8 @@
  *   a drawn-out tip, fine forward-pointing serrations and lateral veins that curve towards the
  *   tip. Veins are cut out of the silhouette with an SVG mask, so the files work as CSS masks: the
  *   page colours them with the brand palette.
- * - Branches carry alternate leaves that shrink towards "one bud, two leaves" at the tip; one is
- *   straight, one follows an arc (for the moon gate). `branch-soft.webp` is the straight branch
- *   out of focus, for the nearest foliage and for soft shadows.
- * - Ridges are two ranges of karst peaks either side of an empty centre, as in shan shui painting:
- *   a far and a near layer, each fading into mist at its foot.
- * - Mist textures are long bands of soft fractal noise that repeat seamlessly from side to side,
- *   so a band can drift endlessly without a visible seam or jump.
- * - Light: shafts of morning sun (`rays.svg`) and a soft texture that varies the strength of glows
- *   on plain backgrounds (`light.webp`), where a smooth faint gradient would show rings.
+ * - The branch carries alternate leaves that shrink towards "one bud, two leaves" at the tip;
+ *   `branch-soft.webp` is the branch out of focus, for the nearest foliage.
  *
  *   node scripts/botanical/generate-botanical.mjs   (run from apps/web)
  */
@@ -35,67 +28,6 @@ const smoothstep = (from, to, x) => {
 };
 const pathFrom = (points, step = 0.1) =>
   `M${points.map(([x, y]) => `${fixed(x, step)} ${fixed(y, step)}`).join('L')}`;
-
-/** Seeded random numbers (mulberry32), so every run draws the same shapes. */
-function random(seed) {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/**
- * Smooth gradient noise that repeats every `period` lattice cells along x, so textures built from
- * it tile seamlessly from side to side. Values are roughly within ±0.7.
- */
-function periodicNoise(seed) {
-  const next = random(seed);
-  const size = 256;
-  const gx = new Float64Array(size * size);
-  const gy = new Float64Array(size * size);
-  for (let index = 0; index < size * size; index += 1) {
-    const angle = next() * Math.PI * 2;
-    gx[index] = Math.cos(angle);
-    gy[index] = Math.sin(angle);
-  }
-  const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
-  return (x, y, period) => {
-    const x0 = Math.floor(x);
-    const y0 = Math.floor(y);
-    const fx = x - x0;
-    const fy = y - y0;
-    const corner = (ix, iy, dx, dy) => {
-      const index =
-        ((((ix % period) + period) % period) % size) * size + (((iy % size) + size) % size);
-      return gx[index] * dx + gy[index] * dy;
-    };
-    const u = fade(fx);
-    const v = fade(fy);
-    const top = corner(x0, y0, fx, fy) * (1 - u) + corner(x0 + 1, y0, fx - 1, fy) * u;
-    const bottom =
-      corner(x0, y0 + 1, fx, fy - 1) * (1 - u) + corner(x0 + 1, y0 + 1, fx - 1, fy - 1) * u;
-    return top * (1 - v) + bottom * v;
-  };
-}
-
-/** Fractal noise: octaves of `noise`, each twice as fine; still periodic along x. */
-function fbm(noise, x, y, period, octaves = 4, gain = 0.5) {
-  let sum = 0;
-  let amplitude = 1;
-  let total = 0;
-  let frequency = 1;
-  for (let octave = 0; octave < octaves; octave += 1) {
-    sum += amplitude * noise(x * frequency, y * frequency, period * frequency);
-    total += amplitude;
-    amplitude *= gain;
-    frequency *= 2;
-  }
-  return sum / total;
-}
 
 /* ----------------------------------------------------------------------------------- Leaves */
 
@@ -229,17 +161,6 @@ function svg(viewBox, groups, extra = '') {
 }
 
 const ratioOf = (width, height) => round((width / height) * 1000, 1) / 1000;
-
-function single(name, options) {
-  const shape = leaf(options);
-  const pad = 2;
-  const { minX, minY, maxX, maxY } = shape.box;
-  const viewBox = [minX - pad, minY - pad, maxX - minX + pad * 2, maxY - minY + pad * 2]
-    .map((value) => round(value))
-    .join(' ');
-  writeFileSync(join(OUT, `${name}.svg`), svg(viewBox, [leafGroup(`${name}-veins`, shape)]));
-  return { name, ratio: ratioOf(maxX - minX + pad * 2, maxY - minY + pad * 2) };
-}
 
 /** A stem along `curve(t)` (t = 0 at the cut end), tapering from `from` to `to` units thick. */
 function stemPath(curve, from, to, step) {
@@ -447,36 +368,6 @@ const BRANCH = {
   bud: 58,
 };
 
-/*
- * A branch that follows a circle of radius 300 around (0, 0), from the lower left of the circle
- * towards its left side, leaves turned mostly outwards: placed concentric with the moon gate.
- */
-const ARC = (() => {
-  const radius = 300;
-  const start = 128; // degrees, measured clockwise from "right" (y points down)
-  const end = 214;
-  const curve = (t) => {
-    const angle = ((start + (end - start) * t) * Math.PI) / 180;
-    return [Math.cos(angle) * radius, Math.sin(angle) * radius];
-  };
-  return {
-    radius,
-    curve,
-    stem: [4.6, 1.3],
-    nodes: [
-      [0.1, -1, 120, 50, { bend: 0.04, fold: 0.7 }],
-      [0.2, 1, 104, 56, { bend: -0.04, fold: 0.9, curl: -0.03 }],
-      [0.32, -1, 128, 46, { bend: 0.05, fold: 0.62 }],
-      [0.44, 1, 92, 52, { bend: -0.03, fold: 0.86 }],
-      [0.56, -1, 112, 44, { bend: 0.04, fold: 0.7, curl: 0.03 }],
-      [0.68, 1, 76, 48, { bend: -0.03, fold: 0.9 }],
-      [0.79, -1, 84, 40, { bend: 0.03, fold: 0.76 }],
-      [0.89, 1, 56, 36, { bend: -0.02, teeth: 0, veins: 0 }],
-    ],
-    bud: 46,
-  };
-})();
-
 function branchFile(name, design) {
   const { groups, stem, box } = foliage(name, design);
   const pad = 4;
@@ -496,25 +387,6 @@ function branchFile(name, design) {
 /** Where the cut end of a branch (0, 0) sits in its drawing, for `transform-origin`. */
 const cutEnd = ([x, y, width, height]) =>
   `cut end at ${fixed((-x / width) * 100, 0.1)}% ${fixed((-y / height) * 100, 0.1)}%`;
-
-/**
- * The arc branch in a square centred on its circle, so the page can lay it over the moon gate and
- * turn it about the gate's centre. Reports where the cut end sits (for `transform-origin`).
- */
-function arcFile(name) {
-  const { groups, stem, box } = foliage(name, ARC);
-  const half = Math.ceil(Math.max(-box.minX, box.maxX, -box.minY, box.maxY) + 4);
-  writeFileSync(
-    join(OUT, `${name}.svg`),
-    svg(`${-half} ${-half} ${half * 2} ${half * 2}`, groups, `<path d="${stem}"/>`),
-  );
-  const [bx, by] = ARC.curve(0);
-  return {
-    name,
-    ratio: 1,
-    note: `circle radius ${fixed((ARC.radius / (half * 2)) * 100, 0.1)}% of the square, ${cutEnd([-half - bx, -half - by, half * 2, half * 2])}`,
-  };
-}
 
 /**
  * The straight branch out of focus, as a small raster mask: blurred, then enlarged by the page,
@@ -574,261 +446,9 @@ function maskImage(alpha, width, height, rgb = [0, 0, 0]) {
   });
 }
 
-/* ----------------------------------------------------------------------------------- Ridges */
-
-/** Smooth maximum: like Math.max, but rounds the valley where two slopes meet. */
-const smoothMax = (a, b, k) => {
-  const h = Math.max(k - Math.abs(a - b), 0) / k;
-  return Math.max(a, b) + (h * h * k) / 4;
-};
-
-/**
- * A range of rounded karst peaks: each peak has its own height and slopes (steeper on one side),
- * neighbours merge in rounded saddles, a low rolling foot joins them, and the outline has a fine
- * irregular edge, like a brushed silhouette. Closed along the bottom of the drawing.
- */
-function range({ peaks, from, to, bottom, roughness, seed }) {
-  const noise = periodicNoise(seed);
-  const points = [];
-  for (let x = from; x <= to; x += 4) {
-    // The foot runs out towards the empty centre; the outer end continues past the edge.
-    const taper =
-      (from > 0 ? smoothstep(from, from + 90, x) : 1) *
-      (to < 1600 ? 1 - smoothstep(to - 90, to, x) : 1);
-    let lift = (26 + 22 * fbm(noise, x / 140, 7.5, 64, 3)) * taper;
-    for (const peak of peaks) {
-      const side = x < peak.x ? peak.left : peak.right;
-      const t = Math.abs(x - peak.x) / side;
-      if (t < 1)
-        lift = smoothMax(
-          lift,
-          peak.height * (1 - t ** (peak.round ?? 2)) ** (peak.steep ?? 1.8),
-          34,
-        );
-    }
-    const edge = fbm(noise, x / 34, 0.5, 64, 4) + 0.35 * fbm(noise, x / 8, 3.5, 256, 2);
-    points.push([x, bottom - lift + roughness * edge * (0.5 + lift / 320)]);
-  }
-  return `${pathFrom([[from, bottom], ...points, [to, bottom]], 1)}Z`;
-}
-
-/**
- * Far and near ranges for the hero, each a file of its own (the page fades them separately).
- * Drawn 1600 × 440 and stretched to the hero: peaks either side, the centre left empty for the
- * headline, as the empty sky in a shan shui painting. Each layer darkens towards its crests and
- * dissolves into mist at its foot; the far one is paler and softer.
- */
-function ridges() {
-  const width = 1600;
-  const height = 440;
-  const peak = (x, h, left, right, steep, round) => ({ x, height: h, left, right, steep, round });
-  const layers = {
-    'ridges-far': {
-      fade: [96, 0.6, 372],
-      blur: 3,
-      ranges: [
-        {
-          from: 0,
-          to: 660,
-          seed: 11,
-          peaks: [
-            peak(18, 306, 120, 150, 1.5),
-            peak(142, 214, 64, 92, 2),
-            peak(252, 268, 96, 118, 2.3, 2.2),
-            peak(366, 172, 88, 76),
-            peak(446, 206, 66, 112, 2.5, 2.4),
-            peak(570, 108, 98, 120),
-          ],
-        },
-        {
-          from: 940,
-          to: 1600,
-          seed: 12,
-          peaks: [
-            peak(1036, 98, 110, 88),
-            peak(1150, 192, 104, 66, 2.5, 2.3),
-            peak(1242, 148, 70, 92),
-            peak(1352, 262, 112, 98, 2.2),
-            peak(1462, 206, 76, 92, 2),
-            peak(1582, 312, 142, 120, 1.5),
-          ],
-        },
-      ],
-    },
-    'ridges-near': {
-      fade: [228, 1, 436],
-      blur: 1.4,
-      ranges: [
-        {
-          from: 0,
-          to: 580,
-          seed: 21,
-          peaks: [
-            peak(66, 150, 120, 86, 1.7),
-            peak(172, 206, 78, 112, 2.3, 2.2),
-            peak(302, 128, 92, 78),
-            peak(384, 152, 58, 92, 2.5, 2.4),
-            peak(496, 70, 92, 84),
-          ],
-        },
-        {
-          from: 1020,
-          to: 1600,
-          seed: 22,
-          peaks: [
-            peak(1106, 62, 84, 92),
-            peak(1202, 140, 92, 58, 2.5, 2.4),
-            peak(1292, 112, 72, 92),
-            peak(1424, 202, 112, 88, 2.3, 2.2),
-            peak(1544, 158, 80, 124, 1.7),
-          ],
-        },
-      ],
-    },
-  };
-  for (const [name, { fade, blur, ranges }] of Object.entries(layers)) {
-    const [top, opacity, foot] = fade;
-    const paths = ranges
-      .map((options) => `<path d="${range({ ...options, bottom: height, roughness: 6 })}"/>`)
-      .join('');
-    writeFileSync(
-      join(OUT, `${name}.svg`),
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="${top}" x2="0" y2="${foot}"><stop offset="0" stop-opacity="${opacity}"/><stop offset="0.55" stop-opacity="${round(opacity * 0.42, 0.01)}"/><stop offset="1" stop-opacity="0"/></linearGradient><filter id="f" x="-2%" y="-5%" width="104%" height="110%"><feGaussianBlur stdDeviation="${blur}"/></filter></defs><g fill="url(#g)" filter="url(#f)">${paths}</g></svg>\n`,
-    );
-  }
-  return [{ name: 'ridges-far / ridges-near', note: `${width}×${height}, stretched` }];
-}
-
-/* ------------------------------------------------------------------------------------- Mist */
-
-/**
- * A long band of mist that tiles seamlessly along x: its centre line and thickness wander along
- * the band, and fractal noise stretched sideways breaks it into denser drifts and thin streaks.
- * The alpha channel is the mist; the colour is ivory, so the page can use it as a background.
- */
-async function mist(name, { width, height, seed, thickness, wander, cells, floor, density }) {
-  const noise = periodicNoise(seed);
-  const alpha = Buffer.alloc(width * height);
-  for (let px = 0; px < width; px += 1) {
-    const u = px / width;
-    const centre = 0.5 + wander * fbm(noise, u * 3, 0.37, 3, 3);
-    const half = thickness * (1 + 0.7 * fbm(noise, u * 5, 3.71, 5, 2));
-    for (let py = 0; py < height; py += 1) {
-      const v = py / height;
-      const distance = (v - centre) / Math.max(0.03, half);
-      const envelope =
-        Math.exp(-distance * distance * 1.6) *
-        smoothstep(0, 0.18, v) *
-        (1 - smoothstep(0.82, 1, v));
-      const body = fbm(noise, u * cells[0], v * cells[1] + 9.1, cells[0], 4, 0.55);
-      const drift = smoothstep(density[0], density[1], 0.5 + body * 1.5);
-      const value = envelope * (floor + (1 - floor) * drift);
-      alpha[py * width + px] = Math.round(255 * Math.min(1, value));
-    }
-  }
-  await maskImage(alpha, width, height, [252, 250, 244]).toFile(join(OUT, `${name}.webp`));
-  return { name, note: `${width}×${height}, tiles along x` };
-}
-
-/* ------------------------------------------------------------------------------------ Light */
-
-/**
- * Gentle unevenness for a pool of light, as sunlight has through leaves and mist: soft fractal
- * noise between 82 % and 100 %, used as a mask over a smooth radial gradient. A radial this faint
- * on a plain background shows rings on an 8-bit screen; varied a little, it does not. Alpha only.
- */
-async function lightPool(name, { size, seed }) {
-  const noise = periodicNoise(seed);
-  const alpha = Buffer.alloc(size * size);
-  for (let py = 0; py < size; py += 1) {
-    for (let px = 0; px < size; px += 1) {
-      const mottle = fbm(noise, px / (size / 3), py / (size / 3) + 31.7, 256, 3, 0.5);
-      alpha[py * size + px] = Math.round(255 * Math.min(1, Math.max(0, 0.91 + 0.26 * mottle)));
-    }
-  }
-  await maskImage(alpha, size, size).toFile(join(OUT, `${name}.webp`));
-  return { name, note: `${size}×${size}` };
-}
-
-/**
- * Shafts of morning sun falling down and to the left from a sun at the top right corner: soft
- * wedges of pale gold (blurred), fading in near the sun and out with distance. A ready-made image,
- * so the page draws it without a mask (the page sets its overall strength with `opacity`).
- */
-function sunRays(name) {
-  const size = 1000;
-  // Direction (degrees clockwise from "up", as in CSS), half-width in degrees, strength.
-  const shafts = [
-    [194.5, 1.6, 1],
-    [207.5, 2.6, 0.55],
-    [217.5, 1.4, 1],
-    [230, 2.8, 0.6],
-    [246, 1.6, 1],
-    [258.5, 2.6, 0.5],
-  ];
-  const point = (degrees, radius) => {
-    const angle = (degrees * Math.PI) / 180;
-    return [size + Math.sin(angle) * radius, -Math.cos(angle) * radius];
-  };
-  const reach = size * 1.45;
-  const wedges = shafts
-    .map(([direction, half, alpha]) => {
-      const [ax, ay] = point(direction - half, reach);
-      const [bx, by] = point(direction + half, reach);
-      return `<path d="M${size} 0L${round(ax, 1)} ${round(ay, 1)}L${round(bx, 1)} ${round(by, 1)}Z" fill-opacity="${alpha}"/>`;
-    })
-    .join('');
-  writeFileSync(
-    join(OUT, `${name}.svg`),
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}"><defs><radialGradient id="r" gradientUnits="userSpaceOnUse" cx="${size}" cy="0" r="${size}"><stop offset="0.03" stop-color="#f5e4a1" stop-opacity="0"/><stop offset="0.16" stop-color="#f5e4a1"/><stop offset="0.52" stop-color="#f5e4a1" stop-opacity="0.5"/><stop offset="0.94" stop-color="#f5e4a1" stop-opacity="0"/></radialGradient><filter id="b" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="9"/></filter><mask id="m"><g fill="#fff" filter="url(#b)">${wedges}</g></mask></defs><rect width="${size}" height="${size}" fill="url(#r)" mask="url(#m)"/></svg>\n`,
-  );
-  return { name, note: `${shafts.length} shafts` };
-}
-
 mkdirSync(OUT, { recursive: true });
 const branch = branchFile('branch', BRANCH);
-const results = [
-  single('leaf-broad', {
-    length: 180,
-    width: 43,
-    base: 0.85,
-    taper: 1.35,
-    bend: -0.03,
-    sway: -0.01,
-    curl: -0.02,
-    asymmetry: 0.08,
-    teeth: 26,
-    tip: 0.34,
-    seed: 2.1,
-  }),
-  sprig('sprig'),
-  branch,
-  arcFile('branch-arc'),
-  await softBranch('branch-soft', branch.view),
-  ...ridges(),
-  await mist('mist-band', {
-    width: 800,
-    height: 112,
-    seed: 5,
-    thickness: 0.21,
-    wander: 0.15,
-    cells: [6, 4.4],
-    floor: 0.36,
-    density: [0.24, 0.86],
-  }),
-  await lightPool('light', { size: 160, seed: 17 }),
-  sunRays('rays'),
-  await mist('mist-wisps', {
-    width: 800,
-    height: 72,
-    seed: 9,
-    thickness: 0.13,
-    wander: 0.2,
-    cells: [8, 4],
-    floor: 0.12,
-    density: [0.38, 0.88],
-  }),
-];
+const results = [sprig('sprig'), branch, await softBranch('branch-soft', branch.view)];
 console.log(
   results
     .map(({ name, ratio, note }) =>

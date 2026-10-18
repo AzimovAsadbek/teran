@@ -9,11 +9,11 @@
  * The fronts come from the owner's photographs of the zip pouches (build-pouch-assets.mjs).
  *
  * Outputs:
- *   public/brand/teran-{logo,emblem,wordmark,lockup}.{png,webp}   logo set (transparent)
+ *   public/brand/teran-{logo,emblem,wordmark,lockup}.png         logo set (transparent)
  *   public/brand/art/{lake,terraces,sprig-1}.webp                artwork from the packaging (the
  *                                                                terraces cropped to the part that
  *                                                                is fully painted)
- *   public/brand/ornaments/*.svg                                 the pack's four icons, 绿茶, seal
+ *   public/brand/ornaments/*.svg                                 the pack's four icons
  *   ../api/prisma/seed/assets/packaging/<code>-back.webp          square shots of the backs
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -123,7 +123,6 @@ async function saveLogo(buffer, name, width) {
   const pngPath = resolve(brandDir, `${name}.png`);
   writeFileSync(pngPath, resized.data);
   report(pngPath, resized.info, resized.data.length);
-  await writeWebp(sharp(resized.data), resolve(brandDir, `${name}.webp`), { quality: 92 });
 }
 
 await saveLogo(
@@ -263,11 +262,6 @@ for (const [index, icon] of ICONS.entries()) {
     })),
   );
 }
-
-// calligraphy.svg: 绿茶 (ink), the seal (red) and the seal's characters 茶叶 (white).
-const [characters, seal, sealCharacters] = svgPaths('calligraphy.svg');
-writeSvg('green-tea-calligraphy', '15 10 55 164', [characters, seal, sealCharacters]);
-writeSvg('tea-seal', '23.5 123.8 34 49.6', [seal, sealCharacters]);
 
 // ── Packs ─────────────────────────────────────────────────────────────────────────────────────
 

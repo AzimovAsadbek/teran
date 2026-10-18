@@ -258,7 +258,7 @@ accessibility behaviour. In short:
 | Product    | gallery, purchase panel with pack-size cards and sticky bar, brewing facts, delivery facts, information disclosures                                                                                                                                                                                                      |
 | Commerce   | bag drawer and page, quantity stepper, checkout with numbered sections, choice cards, order summary, order progress and details                                                                                                                                                                                          |
 | Content    | page header, long-form pages, article card and body, help footer, contact and wholesale forms                                                                                                                                                                                                                            |
-| Brand      | logo set (`Wordmark`, `Emblem`, `StackedLogo`, `LogoPlate`), ornaments from the pack (`BrandValues`, `Pennant`, `GoldRule`, `WavePattern`, `GreenTeaCalligraphy`, `TeaSeal`, `MoonGate`), tea-type medallions                                                                                                            |
+| Brand      | logo set (`Wordmark`, `Emblem`), the pack's value icons (`BrandValues`, `ValueIcon`, `ValueMark`), tea-type medallions                                                                                                                                                                                                   |
 | Admin      | shell with grouped menu and work counts (drawer on phones), page header, panels, tables that become cards below 768 px, status tabs, status pills, filter forms that apply on change, confirm dialog, top-of-screen confirmation, sticky save bar, editors                                                               |
 
 ### Navigation pattern
@@ -384,12 +384,12 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   cuts out the logo set (`teran-logo`, `-emblem`, `-wordmark`, and `-lockup` with the pack's line
   and rule, used for the social image), the artwork (`art/lake`, `art/terraces`, `art/sprig-1`), the pack fronts (`packs/*`) and
   the ornaments (`ornaments/*.svg`), and `scripts/generate-brand-assets.mjs` makes the favicon, app
-  icons (emblem on ivory) and the default social image (1200×630) from the logo set. PNG and WebP
-  copies are written; the web app imports them through `next/image`, which serves modern formats.
-- **Ornaments** (`components/brand/ornaments.tsx`): the pack's four ringed icons and their labels
-  (`BrandValues`), 绿茶 with the 茶叶 seal, the seal alone, the "PREMIUM CHINESE TEA" ribbon
-  (`Pennant`), the gold rule with a diamond (`GoldRule`), seigaiha waves (`WavePattern`) and the
-  round view onto the lake (`MoonGate`). All decorative; the text beside them is real text.
+  icons (emblem on ivory) and the default social image (1200×630) from the logo set. The logo set
+  is PNG (the artwork WebP); the web app imports them through `next/image`, which serves modern
+  formats.
+- **Ornaments** (`components/brand/ornaments.tsx`): the pack's four ringed icons, alone
+  (`ValueIcon`, `ValueMark`) and with their labels (`BrandValues`). Decorative; the text beside
+  them is real text.
 - **Product photos** are uploaded in the admin and served as WebP renditions with `srcset`
   ([ADR-009](../architecture/decisions.md)). XC2025, G8810, 8830 and 8009 have pack shots made
   from their print files (front and back); the other demonstration products keep pack shots and

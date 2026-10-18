@@ -61,7 +61,6 @@
     "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",
     "@types/supertest": "7.2.1",
-    "@vitest/coverage-v8": "4.1.11",
     "esbuild": "0.28.2",
     "eslint": "9.39.5",
     "globals": "16.5.0",

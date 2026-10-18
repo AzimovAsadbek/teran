@@ -207,15 +207,16 @@ export async function SiteFooter() {
             <p className="mb-6 font-headline text-[2rem] leading-8 [--heading-case:none] [--headline-weight:600]">
               {th('valuesTitle')}
             </p>
-            <ul className="flex flex-wrap gap-x-4 gap-y-6 min-[61.875rem]:gap-6">
+            {/* Below 990 px the cup stands at the right of this row: the values keep clear of it
+                (two to a row on a phone) rather than run under it. */}
+            <ul className="flex flex-wrap gap-x-4 gap-y-6 max-[61.875rem]:pr-[7rem] min-[61.875rem]:gap-6">
               {BRAND_VALUES.map((value) => (
                 <li
                   key={value}
                   className="flex flex-col items-start gap-3 text-left min-[61.875rem]:items-center min-[61.875rem]:text-center"
                 >
                   <ValueMarkMint value={value} />
-                  {/* Two lines each (four values, where the reference has three promises), so the
-                      row stays clear of the cup. */}
+                  {/* Two lines each (four values, where the reference has three promises). */}
                   <span className="max-w-[4.5rem] text-[0.83125rem] leading-[0.9375rem] font-medium">
                     {values[value]}
                   </span>

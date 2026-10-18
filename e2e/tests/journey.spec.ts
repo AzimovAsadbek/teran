@@ -56,8 +56,7 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   const storage = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   expect(storage).not.toMatch(/teran_session|teran_cart|password/i);
 
-  // 3. The header's account menu offers registration; the visitor creates an account.
-  await visible(page.getByRole('banner').locator('summary[aria-label="Account"]')).click();
+  // 3. The header offers registration beside sign-in; the visitor creates an account.
   await visible(page.getByRole('banner').getByRole('link', { name: 'Register' })).click();
   await expect(page).toHaveURL(/\/en\/account\/register/);
   await field(page, 'First name').fill('Journey');
@@ -127,10 +126,11 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   await visible(page.getByRole('banner').getByLabel('Account menu')).click();
   await visible(page.getByRole('banner').getByRole('button', { name: 'Sign out' })).click();
   await expect(page).toHaveURL(/\/en$/);
-  await visible(page.getByRole('banner').locator('summary[aria-label="Account"]')).click();
+  // Signed out, the bar offers sign-in and registration again, and no account menu.
   await expect(
     visible(page.getByRole('banner').getByRole('link', { name: 'Sign in' })),
   ).toBeVisible();
+  await expect(page.getByRole('banner').getByLabel('Account menu')).toHaveCount(0);
   await signIn(page, email, PASSWORD, '/account/orders');
   await expect(page).toHaveURL(/\/en\/account\/orders$/);
   await expect(

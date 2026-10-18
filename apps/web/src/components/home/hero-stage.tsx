@@ -60,11 +60,12 @@ function headlineSize(lines: string[]): string {
 /**
  * The front page's first view, one view without rotation: TERAN's words — the pack's tagline in
  * yellow condensed capitals, what TERAN is, a pill to the teas — over `home.hero.1`'s film, or
- * over that place's picture, or over the lake painted on the packs. 540 px high on phones and
- * 560 px from 900 px (as tall as a 3.1:1 picture at wider windows), as the slides it replaced; the
- * words centred over the top on phones (over a soft dark veil), on the left from 1024 px, where
- * the film stays as bright as it is (the owner's wish of 2026-10-18) and a soft shadow behind the
- * letters keeps them readable.
+ * over that place's picture, or over the lake painted on the packs. Below 900 px it is 1.12 times
+ * as tall as it is wide (464 to 672 px: the next section shows on a phone's first screen), from
+ * 900 px 560 px or as tall as a 3.1:1 picture at wider windows. The words stand in the middle on
+ * phones (over a soft veil behind them only), on the left from 1024 px, where the film stays as
+ * bright as it is (the owner's wish of 2026-10-18); a soft shadow behind the letters keeps them
+ * readable.
  *
  * The film (LoopingFilm): the place's picture is its first frame, painted at once (the page's
  * largest paint); the film is fetched once the page has loaded, fades in over it and loops
@@ -85,7 +86,7 @@ export function HeroStage({
   const visual = media === 'pending' ? null : media;
   const film = visual?.video ?? null;
   return (
-    <section className="relative isolate h-[max(33.75rem,calc(100vw/0.7242))] w-full overflow-hidden bg-forest-950 min-[56.25rem]:h-[max(35rem,calc(100vw/3.0956))]">
+    <section className="relative isolate h-[clamp(29rem,112vw,42rem)] w-full overflow-hidden bg-forest-950 min-[56.25rem]:h-[max(35rem,calc(100vw/3.0956))]">
       <h1 className="sr-only">{labels.heading}</h1>
       {visual ? (
         // The film's first frame (or the picture): it fills the slide from its centre, as the
@@ -111,12 +112,12 @@ export function HeroStage({
         />
       ) : null}
       {film ? <LoopingFilm film={film} phoneFilm={visual?.mobileVideo} /> : null}
-      {/* On phones a veil where the words are (the top), so the yellow headline and the white
-          words stay readable over the bright sky and leaves; wide screens keep the film's own
-          light and shade the letters instead. */}
+      {/* On phones a soft veil where the words are (the middle), so the yellow headline and the
+          white words stay readable over the bright leaves; wide screens keep the film's own light
+          and shade the letters instead. */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-linear-to-b from-forest-950/75 via-forest-950/35 via-50% to-forest-950/0 to-80% lg:hidden"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_50%_at_50%_50%,color-mix(in_oklab,var(--color-forest-950)_55%,transparent),transparent)] lg:hidden"
       />
       <span
         aria-hidden
@@ -126,8 +127,8 @@ export function HeroStage({
       {/* The whole picture leads where the pill does, for a pointer (the pill is the keyboard's
           way and the screen readers'). */}
       <Link href={words.cta.href} tabIndex={-1} aria-hidden className="absolute inset-0 -z-[5]" />
-      <div className="pointer-events-none container-page flex h-full flex-col items-center pt-8 text-center lg:items-start lg:justify-center lg:pt-0 lg:text-left">
-        <div className="pointer-events-auto flex max-w-[45rem] flex-col items-center lg:max-w-[min(36rem,40vw)] lg:items-start lg:[text-shadow:0_2px_18px_rgb(0_0_0_/_0.45),0_1px_3px_rgb(0_0_0_/_0.3)]">
+      <div className="pointer-events-none container-page flex h-full flex-col items-center justify-center text-center lg:items-start lg:text-left">
+        <div className="pointer-events-auto flex max-w-[45rem] flex-col items-center [text-shadow:0_2px_18px_rgb(0_0_0_/_0.45),0_1px_3px_rgb(0_0_0_/_0.3)] lg:max-w-[min(36rem,40vw)] lg:items-start">
           <p className="text-[1.25rem] leading-[1.1] font-bold text-ivory-50 uppercase">
             {words.eyebrow}
           </p>

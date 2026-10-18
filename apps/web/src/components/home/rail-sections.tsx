@@ -15,6 +15,21 @@ import { ProductRail, type RailLabels, type RailTab } from './product-rail';
 
 const PAGE = 'pageSize=8';
 
+/**
+ * Whether a later row would only repeat the first one: every product it holds is already among the
+ * newest the first row shows (a small catalogue). It is then left out, and comes back by itself
+ * once the catalogue outgrows one row.
+ */
+async function repeatsFirstRow(
+  locale: Parameters<typeof getProductList>[0],
+  tabs: RailTab[],
+): Promise<boolean> {
+  const latest = await getProductList(locale, `${PAGE}&sort=newest`).catch(() => null);
+  if (!latest) return false;
+  const shown = new Set(latest.items.map((item) => item.slug));
+  return tabs.every((tab) => tab.products.every((product) => shown.has(product.slug)));
+}
+
 async function railLabels(): Promise<RailLabels> {
   const t = await getTranslations('Home');
   return { tabList: t('showcaseTabs'), previous: t('showcasePrevious'), next: t('showcaseNext') };
@@ -78,6 +93,7 @@ export async function CollectionsRail() {
     href: `/collections/${collection.slug}`,
     cta: t('featuredCta'),
   }));
+  if (await repeatsFirstRow(locale, tabs)) return null;
   return <ProductRail tabs={tabs} labels={await railLabels()} heading="hidden" cta={false} />;
 }
 
@@ -102,6 +118,7 @@ export async function CategoriesRail() {
     href: `/${category.path}`,
     cta: t('shopIn', { name: category.name }),
   }));
+  if (await repeatsFirstRow(locale, tabs)) return null;
   return <ProductRail tabs={tabs} labels={await railLabels()} heading="hidden" />;
 }
 

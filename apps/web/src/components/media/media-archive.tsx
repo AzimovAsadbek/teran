@@ -93,11 +93,12 @@ export async function MediaTabs({
   totals: MediaTotals;
 }) {
   const t = await getTranslations('Media');
+  // A kind with nothing published yet has no tab (but its own page keeps it).
   const tabs: { key: MediaPageKey; count: number }[] = [
-    { key: 'all', count: totals.photos + totals.videos },
-    { key: 'photos', count: totals.photos },
-    { key: 'videos', count: totals.videos },
-  ];
+    { key: 'all' as const, count: totals.photos + totals.videos },
+    { key: 'photos' as const, count: totals.photos },
+    { key: 'videos' as const, count: totals.videos },
+  ].filter((tab) => tab.key === 'all' || tab.count > 0 || tab.key === current);
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-ivory-50/10 pb-6">
       <nav aria-label={t('filter')} className="max-w-full overflow-x-auto [scrollbar-width:none]">

@@ -78,7 +78,9 @@ export default async function HomePage() {
 
   return (
     <>
-      <Suspense fallback={<div aria-hidden className="h-[5.5rem] bg-forest-950 lg:h-20" />}>
+      <Suspense
+        fallback={<div aria-hidden className="h-[5.75rem] bg-forest-950 min-[46.875rem]:h-20" />}
+      >
         <PromoStrip />
       </Suspense>
       <Hero settings={settings} />

@@ -76,28 +76,22 @@ async function Overview() {
           </div>
         )}
       </section>
-      <section aria-labelledby="media-videos" className="mt-16 sm:mt-20">
-        <MediaGroupHeading
-          id="media-videos"
-          kind="VIDEO"
-          title={t('videosTitle')}
-          text={t('videosIntro')}
-          href={totals.videos > 0 ? MEDIA_PATHS.videos : undefined}
-          linkLabel={t('allVideos')}
-        />
-        {videos && videos.items.length > 0 ? (
-          <MediaGallery items={videos.items} labels={labels} layout="films" className="mt-6" />
-        ) : (
-          <div className="mt-6">
-            <MediaEmpty
-              kind="VIDEO"
-              title={t('emptyVideosTitle')}
-              text={t('emptyVideosText')}
-              compact
-            />
-          </div>
-        )}
-      </section>
+      {/* No "coming soon" for films: their part shows once one is published. */}
+      {totals.videos > 0 ? (
+        <section aria-labelledby="media-videos" className="mt-16 sm:mt-20">
+          <MediaGroupHeading
+            id="media-videos"
+            kind="VIDEO"
+            title={t('videosTitle')}
+            text={t('videosIntro')}
+            href={totals.videos > 0 ? MEDIA_PATHS.videos : undefined}
+            linkLabel={t('allVideos')}
+          />
+          {videos && videos.items.length > 0 ? (
+            <MediaGallery items={videos.items} labels={labels} layout="films" className="mt-6" />
+          ) : null}
+        </section>
+      ) : null}
     </>
   );
 }

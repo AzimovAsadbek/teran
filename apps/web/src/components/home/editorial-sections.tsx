@@ -145,7 +145,8 @@ function FilmVeil() {
 /**
  * The reference's dark promotional strip under the header (80 px), carrying TERAN's own collection
  * instead of an offer: the descriptor in teal, the collection's name and its line, the pack's
- * slogan as a tilted sticker (from 1200 px) and the shop pill. As on the reference the whole strip
+ * slogan as a tilted sticker (from 1600 px, so the line beside the name does not wrap at 1440 px)
+ * and the shop pill. As on the reference the whole strip
  * leads to the collection. Phones keep the name and the pill. Hidden when no collection has
  * products.
  */
@@ -164,28 +165,32 @@ export async function PromoStrip() {
   const href = `/collections/${collection.slug}`;
   return (
     <section aria-label={collection.name} className="on-dark bg-forest-950 text-ivory-50">
-      <div className="relative isolate mx-auto flex min-h-20 max-w-[120rem] items-center justify-between gap-3 px-[1.375rem] py-4 min-[46.875rem]:gap-5 min-[46.875rem]:px-12 min-[90rem]:gap-6 min-[90rem]:px-[7.5rem] min-[160rem]:px-16">
+      <div className="relative isolate mx-auto flex min-h-[5.75rem] max-w-[120rem] items-center justify-between gap-3 px-[1.375rem] py-3 min-[46.875rem]:min-h-20 min-[46.875rem]:gap-5 min-[46.875rem]:px-12 min-[46.875rem]:py-4 min-[90rem]:gap-6 min-[90rem]:px-[7.5rem] min-[160rem]:px-16">
         <StripLink href={href} />
         <p className="hidden font-headline text-[1.75rem] leading-[1.05] whitespace-nowrap text-gold-300 min-[46.875rem]:block min-[90rem]:text-[2rem]">
           {BRAND.descriptor}
         </p>
         <p className="min-w-0">
-          <span className="block font-headline text-[2rem] leading-[1.05] [--headline-weight:600] [overflow-wrap:anywhere] min-[46.875rem]:inline min-[46.875rem]:text-[1.75rem] min-[90rem]:text-[2rem]">
+          {/* Phones: two lines at most (the strip stays under 100 px above the first view). */}
+          <span className="block font-headline text-[1.375rem] leading-[1.1] [--headline-weight:600] [overflow-wrap:anywhere] min-[46.875rem]:inline min-[46.875rem]:text-[1.75rem] min-[46.875rem]:leading-[1.05] min-[90rem]:text-[2rem]">
             {collection.name}
           </span>
-          <span className="block font-condensed text-[1rem] leading-[1.34] min-[46.875rem]:ml-2 min-[46.875rem]:inline min-[46.875rem]:leading-[2.1]">
+          <span className="block font-condensed text-[0.875rem] leading-[1.34] min-[46.875rem]:ml-2 min-[46.875rem]:inline min-[46.875rem]:text-[1rem] min-[46.875rem]:leading-[2.1]">
             {copy.collection.heading}
           </span>
         </p>
         <p
           lang="uz"
-          className="text-sticker hidden -rotate-6 text-[1.575rem] leading-none font-semibold whitespace-nowrap text-ivory-50 uppercase min-[75rem]:block"
+          className="text-sticker hidden -rotate-6 text-[1.575rem] leading-none font-semibold whitespace-nowrap text-ivory-50 uppercase min-[100rem]:block"
         >
           {PACKAGING.slogan[2]}
         </p>
         <Link
           href={href}
-          className={cn(PILL, 'relative z-[1] h-12 shrink-0 bg-gold-300 px-6 text-fg sm:px-8')}
+          className={cn(
+            PILL,
+            'relative z-[1] h-10 shrink-0 bg-gold-300 px-5 text-fg sm:h-12 sm:px-8',
+          )}
         >
           {t('promoCta')}
         </Link>
@@ -735,12 +740,21 @@ export async function BentoSection() {
                 ) : (
                   <Sparkles points={SPARKLES_HIGH} className={cn('-z-10', tone.spark)} />
                 )}
+                {photo ? (
+                  // The tile's pale ink stands on a photograph: a soft shade on the left, where
+                  // the name and the pill are, keeps them readable on a bright one too.
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 -z-10 bg-linear-to-r from-black/50 via-black/25 via-50% to-black/0 to-80%"
+                  />
+                ) : null}
                 <SurfaceLink href={tile.href} />
                 <span className="@container pointer-events-none relative z-10 w-[55%]">
                   <span
                     className={cn(
                       'block font-headline text-[length:min(3rem,var(--fit))] [overflow-wrap:anywhere] sm:text-[length:min(5rem,var(--fit))]',
                       tone.title,
+                      photo && '[text-shadow:0_2px_14px_rgb(0_0_0_/_0.35)]',
                     )}
                     // Short names keep the reference's 80 px; a long word gets smaller instead.
                     style={{ '--fit': fitWidth(tile.name, 0.55) } as CSSProperties}
@@ -897,7 +911,7 @@ export async function ValuesBanner({
         <>
           <PhotoFill photo={photo} sizes="100vw" />
           {/* A light veil over the whole photograph, deeper behind the words in the middle, so
-              the white headline and labels stay readable over a bright sky. */}
+              the white headline and labels stay readable over its brighter parts. */}
           <span
             aria-hidden
             className="absolute inset-0 -z-10 bg-forest-950/20 bg-[radial-gradient(ellipse_62%_58%_at_50%_50%,color-mix(in_oklab,var(--color-forest-950)_58%,transparent),transparent)]"

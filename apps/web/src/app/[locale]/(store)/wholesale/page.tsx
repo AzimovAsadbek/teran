@@ -391,7 +391,9 @@ export default async function WholesalePage() {
         <Frame className="absolute inset-0">
           <WholesalePicture slot="wholesale.flavour" art={lake} sizes="100vw" />
         </Frame>
-        <div className="relative mx-auto flex max-w-[62.5rem] flex-col items-center gap-3 px-4 pt-[2.1rem] text-center min-[61.875rem]:pt-12">
+        {/* The dark words sit on the photograph's light top on wide screens; a phone's crop has
+            the dark leaves there, so below 990 px they stand on a light panel. */}
+        <div className="relative mx-auto flex max-w-[62.5rem] flex-col items-center gap-3 px-4 pt-[2.1rem] text-center max-[61.875rem]:mx-4 max-[61.875rem]:mt-6 max-[61.875rem]:rounded-[1.25rem] max-[61.875rem]:bg-white/85 max-[61.875rem]:py-5 max-[61.875rem]:backdrop-blur-sm min-[61.875rem]:pt-12">
           <h2 id="flavour-title" className={H2}>
             {landing.flavour.title}
           </h2>

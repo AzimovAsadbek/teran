@@ -3,12 +3,21 @@
 import { ArrowLeft, ChevronRight, Menu, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { Suspense, use, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import {
+  Suspense,
+  use,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import { CategoryArt } from '@/components/catalog/category-art';
-import { IconButton } from '@/components/ui/button';
+import { buttonClasses, IconButton } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { fitWidth } from '@/lib/fit';
 import {
   ABOUT_LINKS,
   EMPTY_NAVIGATION,
@@ -23,9 +32,19 @@ import { LanguageSwitcherSlot } from './language-switcher';
 type Level = 'categories' | 'learn' | 'about';
 
 const TILE =
-  'cat-card group relative block aspect-square overflow-hidden rounded-tile bg-forest-900 text-ivory-50 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-focus';
+  'cat-card group @container relative block aspect-square overflow-hidden rounded-tile bg-forest-900 text-ivory-50 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-focus';
+/** A long word gets smaller rather than break inside ("MAHSULOTL-AR"): see lib/fit. */
 const TILE_LABEL =
-  'absolute inset-x-0 bottom-0 line-clamp-3 bg-linear-to-t from-forest-950/90 via-forest-950/55 to-transparent px-3 pt-12 pb-3 font-headline text-[1.375rem] [overflow-wrap:anywhere]';
+  'absolute inset-x-0 bottom-0 line-clamp-3 bg-linear-to-t from-forest-950/90 via-forest-950/55 to-transparent px-3 pt-12 pb-3 font-headline text-[length:min(1.375rem,var(--fit))] [overflow-wrap:anywhere]';
+
+/** The tile's name, sized so its longest word fits the tile (its padding included). */
+function TileLabel({ children }: { children: string }) {
+  return (
+    <span className={TILE_LABEL} style={{ '--fit': fitWidth(children, 0.66) } as CSSProperties}>
+      {children}
+    </span>
+  );
+}
 const ROW =
   'flex min-h-14 w-full items-center justify-between gap-3 rounded-tile bg-surface-muted px-5 text-[1.0625rem] font-medium text-fg transition-colors hover:bg-surface-sunken';
 const LINK_ROW =
@@ -180,14 +199,14 @@ function Tiles({ navigation }: { navigation: Navigation }) {
         <li key={item.key}>
           <Link href={item.href} className={TILE}>
             {item.art}
-            <span className={TILE_LABEL}>{item.label}</span>
+            <TileLabel>{item.label}</TileLabel>
           </Link>
         </li>
       ))}
       <li>
         <Link href="/catalog" className={TILE}>
           <Image src={lake} alt="" fill sizes="10rem" className="object-cover" />
-          <span className={TILE_LABEL}>{t('shopAll')}</span>
+          <TileLabel>{t('shopAll')}</TileLabel>
         </Link>
       </li>
     </ul>
@@ -312,17 +331,40 @@ function StreamedAccountLink({
   return <AccountLink user={use(account)} onDone={onDone} />;
 }
 
-/** "Sign in" for visitors, the account for customers (the reference's bottom-bar sign-in). */
+/**
+ * Visitors: "Sign in" and "Register" side by side; customers: their account, by name with the
+ * person icon (as in the bar from 1280 px).
+ */
 function AccountLink({ user, onDone }: { user: HeaderAccount; onDone: () => void }) {
   const t = useTranslations('Nav');
+  if (!user) {
+    return (
+      <div className="flex min-w-0 items-center gap-4">
+        <Link
+          href="/account/login"
+          onClick={onDone}
+          className="inline-flex min-h-11 items-center text-title-sm text-fg hover:underline hover:underline-offset-4"
+        >
+          {t('signIn')}
+        </Link>
+        <Link
+          href="/account/register"
+          onClick={onDone}
+          className={buttonClasses('primary', 'sm', 'font-medium')}
+        >
+          {t('register')}
+        </Link>
+      </div>
+    );
+  }
   return (
     <Link
-      href={user ? '/account' : '/account/login'}
+      href="/account"
       onClick={onDone}
       className="inline-flex min-h-11 items-center gap-2 text-title-sm text-fg hover:underline hover:underline-offset-4"
     >
       <UserRound aria-hidden className="h-5 w-5" />
-      <span className="max-w-[10rem] truncate">{user ? user.firstName : t('signIn')}</span>
+      <span className="max-w-[10rem] truncate">{user.firstName}</span>
     </Link>
   );
 }

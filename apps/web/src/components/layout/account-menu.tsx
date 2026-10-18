@@ -4,14 +4,16 @@ import { ChevronDown, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense, use, useEffect, useRef } from 'react';
 import { useLogout } from '@/components/account/logout';
-import { iconButtonClasses } from '@/components/ui/button';
+import { buttonClasses } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import type { HeaderAccount } from '@/lib/session';
 
 /*
- * Same footprint in every state (a person icon with a chevron, as on the reference), so the bar
- * does not shift when the account state arrives. Below 1280 px the drawer offers the same links.
+ * Visitors see "Sign in" and "Register" side by side; a signed-in customer gets the person icon
+ * with a chevron (as on the reference) that opens the account menu. Until the account state
+ * streams in, the visitors' links show (most visitors are not signed in). Below 1280 px the
+ * drawer offers the same links.
  */
 const SLOT = 'hidden items-center xl:flex';
 /** The reference's account button: a person and a teal caret, unchanged when pointed at. */
@@ -67,24 +69,13 @@ function AccountSummary({ label }: { label: string }) {
 /**
  * Sign-in and registration for visitors, an account menu for customers. The state is resolved on
  * the server in the same response as the page (see SiteHeader); until it streams in, the slot
- * shows an account icon that already works.
+ * shows the visitors' links, which already work.
  */
 export function AccountMenu({ account }: { account: Promise<HeaderAccount> }) {
   return (
-    <Suspense fallback={<AccountFallback />}>
+    <Suspense fallback={<GuestLinks />}>
       <ResolvedAccountMenu account={account} />
     </Suspense>
-  );
-}
-
-function AccountFallback() {
-  const t = useTranslations('Nav');
-  return (
-    <div className={SLOT}>
-      <Link href="/account" aria-label={t('account')} className={iconButtonClasses('ghost', 'md')}>
-        <UserRound aria-hidden />
-      </Link>
-    </div>
   );
 }
 
@@ -93,30 +84,23 @@ function ResolvedAccountMenu({ account }: { account: Promise<HeaderAccount> }) {
   return user ? <CustomerMenu user={user} /> : <GuestLinks />;
 }
 
+/** Two links of their own, no person icon: that stands for a signed-in account. */
 function GuestLinks() {
   const t = useTranslations('Nav');
-  const { detailsRef, close } = useDetailsDismiss();
   return (
-    <div className={SLOT}>
-      <details ref={detailsRef} className="group relative">
-        {/* "Account" for visitors; signed-in customers get the "Account menu". */}
-        <AccountSummary label={t('account')} />
-        <div className={PANEL}>
-          <ul onClick={(event) => (event.target as HTMLElement).closest('a') && close()}>
-            <li>
-              <Link href="/account/login" className={ITEM}>
-                <UserRound aria-hidden className="h-4 w-4 text-fg-subtle" />
-                {t('signIn')}
-              </Link>
-            </li>
-            <li>
-              <Link href="/account/register" className={ITEM}>
-                {t('register')}
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </details>
+    <div className={cn(SLOT, 'gap-5')}>
+      <Link
+        href="/account/login"
+        className="inline-flex h-11 items-center text-[0.9375rem] leading-6 font-medium whitespace-nowrap text-fg hover:underline hover:underline-offset-4"
+      >
+        {t('signIn')}
+      </Link>
+      <Link
+        href="/account/register"
+        className={buttonClasses('primary', 'sm', 'px-4 text-[0.9375rem] font-medium')}
+      >
+        {t('register')}
+      </Link>
     </div>
   );
 }

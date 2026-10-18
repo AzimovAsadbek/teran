@@ -292,3 +292,15 @@ in-memory limits are per function instance); a per-(account, IP) login lock and 
 staff; a nonce-based CSP for `/admin`; double opt-in for the newsletter once e-mail is configured;
 purging abandoned direct uploads; registering the site in Google Search Console and Yandex
 Webmaster with the sitemap.
+
+## Home pictures of 2026-10-18 (tea photographs)
+
+Four home places (`home.hero.2`, `home.banner.2`, `home.banner.3`, `home.feature`) now show tea
+photographs (docs/design/reference-assets.md, section 3). Checked on the page at 390, 820, 1024,
+1280, 1440 and 1920 px: the subject whole from 1280 px up (at 1024 px the last cup or the teapot's
+handle is cut, as with the reference's pictures), the words on dark ground everywhere.
+
+**Found and fixed**: from 750 to 899 px (tablets held upright) a home slide keeps its phone
+proportions (about 820 × 1130 px) but showed the wide picture's middle quarter, blown up and
+blurred. The slide's picture now switches to its phone crop below 900 px, where the slide's height
+does (`VisualPicture` `phoneBelow`); the other page pictures keep 750 px.

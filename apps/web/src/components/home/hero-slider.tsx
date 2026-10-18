@@ -469,8 +469,10 @@ function Slide({
         />
       ) : null}
       {slide.photo && load ? (
+        // The slide keeps the phone crop's proportions under 900 px (its height above), so the
+        // phone crop shows there too, not the wide picture enlarged to fill a tall slide.
         <div aria-hidden className="absolute inset-0 -z-20">
-          <VisualPicture visual={slide.photo} sizes="100vw" priority={first} />
+          <VisualPicture visual={slide.photo} sizes="100vw" priority={first} phoneBelow={900} />
         </div>
       ) : null}
       {slide.art ? (

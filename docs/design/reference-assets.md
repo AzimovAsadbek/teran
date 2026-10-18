@@ -42,9 +42,13 @@ On the live site this runs against the production database with the Blob token (
 the production seed, docs/deployment/vercel.md), only when the owner asks for a deploy. Done on
 2026-10-18 with the release: 23 places filled from the 27 files (four are phone crops).
 
-## 2. `storage/reference-mockup/` — the reference's campaign and product pictures (43 entries)
+## 2. `storage/reference-mockup/` — the reference's campaign and product pictures (35 entries)
 
-**Live since 2026-10-18.** TERAN and the owner decided that the live site shows these pictures as
+**Live since 2026-10-18.** On 2026-10-18 TERAN asked for tea photographs instead of the
+reference's drinks and merchandise in four home places (`home.hero.2`, `home.banner.2`,
+`home.banner.3`, `home.feature`): they now come from section 3, and their eight entries were taken
+out of this manifest and of `storage/reference-partner/` (43 → 35), so a later import of either
+folder cannot bring the old pictures back there. The files themselves were kept. TERAN and the owner decided that the live site shows these pictures as
 the local presentation does (TERAN preferred the leaf and cup photographs to its own pack
 photographs as the first pictures of its teas, and the owner wants to advertise DAVIDsTEA, under
 the written permission the owner states TERAN holds). They were loaded into production from
@@ -89,6 +93,35 @@ corepack pnpm --filter @teran/api visuals:import --dir storage/reference-mockup 
 photographs (recognised by their content; TERAN's own photographs stay) and the covers recorded in
 `storage/reference-mockup/applied.json` when it set them, unless an editor has replaced them
 since. The places it filled are empty again, so the storefront falls back to TERAN's artwork.
+
+## 3. `storage/tea-photos/` — free tea photographs for four home places (8 files, go live)
+
+Photographs from Unsplash under the
+[Unsplash License](https://unsplash.com/license) (free for commercial use, no attribution or
+permission needed), each checked on its page to be a free photograph, not an Unsplash+ one. Only
+tea and tea ware, no brand or product; nothing generated.
+
+| Place           | Photograph (photographer)                                                                                                                                                                                                           | Words over it                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `home.hero.2`   | [Carved green teapot](https://unsplash.com/photos/a-decorative-green-teapot-with-ornate-carvings-6BEDV1dECaI) (Adi Albulescu)                                                                                                       | The premium collection slide     |
+| `home.banner.2` | [Three gaiwans of green tea](https://unsplash.com/photos/three-glasses-of-green-tea-on-a-tray-3KxnrtEEI-4) (Fenghua)                                                                                                                | "A choice for every taste"       |
+| `home.banner.3` | [Clay teapot and cup](https://unsplash.com/photos/a-tea-pot-and-a-cup-on-a-table-5QRlve1YaaE); phone crop: [the same set, steaming](https://unsplash.com/photos/a-steaming-tea-pot-and-a-cup-on-a-table-UuLhgdfVTa0) (Seven Colors) | "Contact us to order"            |
+| `home.feature`  | [Tea poured into a white cup](https://unsplash.com/photos/a-cup-of-tea-being-poured-into-a-teapot-vCdC4Tz-dFU) (Georg Niggli)                                                                                                       | "Tea school: the art of brewing" |
+
+Each is composed as the reference's banners are: on the wide picture (2560 px) the subject stands
+between about 47 % and 85 % of the width, so it stays whole from 1280 px up, even where a long
+Uzbek title makes a banner taller, and the words keep the dark left side; on the phone crop
+(1200 × 1657) it stands in the lower half, under the words. Where a photograph is narrower than the
+place, its own dark background and table continue it and fall off like the light round the
+subject; nothing else is painted in. Under the words the pictures' average luminance stays below
+8 %, so the yellow, ivory and pink words keep a contrast of 5:1 and more.
+
+```bash
+corepack pnpm --filter @teran/api visuals:import --dir storage/tea-photos --force
+```
+
+`--force` because the places already held the reference's pictures (they are replaced, and their
+stored files deleted). On the live site this ran on 2026-10-18, as section 1 describes.
 
 ## Not copied
 

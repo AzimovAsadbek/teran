@@ -11,18 +11,23 @@ export function VisualPicture({
   visual,
   sizes,
   priority = false,
+  phoneBelow = 750,
   className,
 }: {
   visual: PublicVisualDto;
   sizes: string;
   priority?: boolean;
+  /** The width under which the taller crop is shown, where the frame keeps its proportions. */
+  phoneBelow?: number;
   className?: string;
 }) {
   const wide = imageSources(visual.image, 1280);
   const phone = visual.mobile ? imageSources(visual.mobile, 960) : null;
   return (
     <picture>
-      {phone ? <source media="(max-width: 749px)" srcSet={phone.srcSet} sizes="100vw" /> : null}
+      {phone ? (
+        <source media={`(max-width: ${phoneBelow - 1}px)`} srcSet={phone.srcSet} sizes="100vw" />
+      ) : null}
       <img
         src={wide.src}
         srcSet={wide.srcSet}

@@ -42,7 +42,15 @@ On the live site this runs against the production database with the Blob token (
 the production seed, docs/deployment/vercel.md), only when the owner asks for a deploy. Done on
 2026-10-18 with the release: 23 places filled from the 27 files (four are phone crops).
 
-## 2. `storage/reference-mockup/` — presentation mockup (43 entries, **local only**)
+## 2. `storage/reference-mockup/` — the reference's campaign and product pictures (43 entries)
+
+**Live since 2026-10-18.** TERAN and the owner decided that the live site shows these pictures as
+the local presentation does (TERAN preferred the leaf and cup photographs to its own pack
+photographs as the first pictures of its teas, and the owner wants to advertise DAVIDsTEA, under
+the written permission the owner states TERAN holds). They were loaded into production from
+`storage/reference-partner/`, a copy of this folder whose manifest is not marked `localOnly`
+(26 page places, 4 covers, 2 photographs before each tea's own pack photographs). The text below
+describes the earlier arrangement, when they stayed on this machine.
 
 The reference's campaign photographs and product photographs, which show DAVIDsTEA's name, packs,
 merchandise, staff and shops, other teas as TERAN's five teas, or its store map. They are for a

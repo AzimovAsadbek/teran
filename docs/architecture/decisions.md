@@ -553,6 +553,13 @@ and paintings in the other places until TERAN uploads photographs; importing the
 is part of a deploy the owner asks for. A pointer can now reach a link from more of the page than
 the reference allows; keyboard and screen-reader behaviour is unchanged.
 
+**Update (2026-10-18, later the same day).** TERAN and the owner decided that the live site shows
+the 43 reference pictures as well, exactly as the local presentation: the campaign pictures with
+the DAVIDsTEA name (the owner wants to advertise DAVIDsTEA, under the written permission the owner
+states TERAN holds) and the leaf and cup photographs as the first pictures of the five teas, before
+their own pack photographs (TERAN preferred them). They were loaded from
+`storage/reference-partner` (docs/design/reference-assets.md).
+
 ## ADR-035: Ordering closed at the API, prices out of the page data, real status codes for crawlers
 
 **Context.** A security and search review before the 2026-10-18 release found three gaps. The

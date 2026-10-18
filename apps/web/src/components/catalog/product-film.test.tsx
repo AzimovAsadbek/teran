@@ -45,11 +45,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function scrollToFilm() {
+/** Brings the film on screen, drawn `width` CSS pixels wide. */
+function scrollToFilm(width = 240) {
   act(() => {
     for (const callback of observers) {
       callback(
-        [{ isIntersecting: true, intersectionRatio: 1 } as IntersectionObserverEntry],
+        [
+          {
+            isIntersecting: true,
+            intersectionRatio: 1,
+            boundingClientRect: { width } as DOMRectReadOnly,
+          } as IntersectionObserverEntry,
+        ],
         {} as IntersectionObserver,
       );
     }
@@ -69,6 +76,13 @@ describe('ProductFilm', () => {
     await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
     act(() => setMotionPaused(true));
     await waitFor(() => expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled());
+  });
+
+  it('plays the film itself on a card drawn wider than its copy (a large card at 2×)', async () => {
+    vi.stubGlobal('devicePixelRatio', 2);
+    const { container } = render(<ProductFilm film={film} size="card" />);
+    scrollToFilm(430);
+    await waitFor(() => expect(container.querySelector('video')).toHaveAttribute('src', film.src));
   });
 
   it('plays the film itself in the gallery, only on the slide shown', async () => {

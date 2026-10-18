@@ -261,7 +261,12 @@ describe('page pictures', () => {
       focusY: 45,
     };
     const parsed = visualsSettingSchema.parse({ 'home.hero.1': { image: picture, video: film } });
-    expect(parsed['home.hero.1']?.video).toEqual(film);
+    expect(parsed['home.hero.1']?.video).toEqual({ ...film, widths: [] });
+    // Its copies at other widths.
+    const copies = visualsSettingSchema.parse({
+      'home.hero.1': { image: picture, video: { ...film, widths: [1280, 3840] } },
+    });
+    expect(copies['home.hero.1']?.video?.widths).toEqual([1280, 3840]);
     expect(
       visualsSettingSchema.safeParse({
         'home.hero.1': { image: picture, video: { ...film, type: 'video/quicktime' } },
@@ -277,6 +282,7 @@ describe('page pictures', () => {
       width: null,
       height: null,
       mask: false,
+      widths: [],
       focusX: 50,
       focusY: 50,
     });

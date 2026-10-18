@@ -377,7 +377,7 @@ export class AdminContentService {
     if (!existing) throw ApiException.notFound('Article not found');
     let stored;
     try {
-      stored = await storeImage(file, this.images, articleImagePrefix(id));
+      stored = await storeImage(file, this.images, articleImagePrefix(id), WIDE_PICTURE);
     } catch (error) {
       uploadError(error);
     }
@@ -641,7 +641,10 @@ export class AdminContentService {
   }
 }
 
-/** Page pictures span the page: renditions up to 2560 px and at the picture's own width. */
+/**
+ * Page pictures span the page, and journal cards show a slice of their cover: renditions up to
+ * 5120 px, as far as the picture's own width (and at that width).
+ */
 const WIDE_PICTURE = { widths: WIDE_IMAGE_WIDTHS, fullWidth: true } as const;
 
 /** A stored image as the `visuals` setting keeps it. */

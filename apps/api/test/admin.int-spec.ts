@@ -649,7 +649,7 @@ describe('admin API', () => {
         .expect(201);
       const stored = first.body.visuals['banner:catalog'];
       expect(stored).toMatchObject({ source: 'https://example.com/banner.png' });
-      // Wide pictures get renditions up to 2560 px and one at their own width (2400 px here).
+      // Wide pictures get renditions up to 5120 px, as far as their own width (2400 px here).
       expect(stored.image.widths).toEqual([320, 480, 640, 960, 1280, 1600, 1920, 2400]);
       expect(stored.mobile.widths).toEqual([320, 480, 640, 800]);
 
@@ -677,10 +677,11 @@ describe('admin API', () => {
       const withFilm = row.value as Record<string, Prisma.InputJsonObject>;
       withFilm['banner:catalog'] = {
         ...withFilm['banner:catalog'],
-        video: { key: filmKey, type: 'video/mp4', width: 736, height: 414 },
+        video: { key: filmKey, type: 'video/mp4', width: 736, height: 414, widths: [3840, 1280] },
       };
       await ctx.prisma.siteSetting.update({ where: { key: 'visuals' }, data: { value: withFilm } });
       const playing = await request(server()).get(`${API}/content/settings?locale=uz`).expect(200);
+      // Its copies at other widths are listed with it, narrowest first.
       expect(playing.body.visuals['banner:catalog'].video).toEqual({
         src: `/uploads/${filmKey}/video.mp4`,
         type: 'video/mp4',
@@ -689,6 +690,11 @@ describe('admin API', () => {
         mask: null,
         focusX: 50,
         focusY: 50,
+        sources: [
+          { src: `/uploads/${filmKey}/video.mp4`, width: 736 },
+          { src: `/uploads/${filmKey}/w1280.mp4`, width: 1280 },
+          { src: `/uploads/${filmKey}/w3840.mp4`, width: 3840 },
+        ],
       });
       const pictured = await agent
         .post(`${API}/admin/settings/visuals/banner:catalog`)

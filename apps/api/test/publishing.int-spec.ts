@@ -359,6 +359,8 @@ describe('publishing workflow', () => {
       const withCover = (await upload(admin, `/admin/articles/${draft.id}/cover`, 90))
         .body as AdminArticle;
       expect(withCover.cover?.src).toMatch(/^\/uploads\/articles\//);
+      // A journal card shows a slice of its cover: the file is kept at its own width too.
+      expect(withCover.cover?.widths).toEqual([320, 420]);
       const published = (
         await admin
           .put(`${API}/admin/articles/${draft.id}`)

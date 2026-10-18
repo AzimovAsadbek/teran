@@ -16,7 +16,11 @@ import {
   type VisualsSetting,
 } from '@teran/contracts';
 import { PUBLIC_UPLOADS_PATH } from '../catalog/catalog.mapper.js';
-import { PRODUCT_FILM_MASK_FILE, videoFileName } from '../media/image-processing.js';
+import {
+  filmCopyFileName,
+  PRODUCT_FILM_MASK_FILE,
+  videoFileName,
+} from '../media/image-processing.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -49,15 +53,29 @@ export interface SettingValues {
   visuals: VisualsSetting;
 }
 
-/** A place's film as the storefront plays it: the file's address and how it loops. */
+/**
+ * A place's film as the storefront plays it: the file's address, its copies by width (narrowest
+ * first, the file itself among them) and how it loops.
+ */
 export function visualVideo(video: VisualsSetting[string]['video']): PublicFilmDto | null {
   if (!video) return null;
-  const { key, mask, ...play } = video;
+  const { key, mask, widths, ...play } = video;
   const base = `${PUBLIC_UPLOADS_PATH}/${key}`;
+  const src = `${base}/${videoFileName(video.type)}`;
+  const copies = widths.map((width) => ({ src: `${base}/${filmCopyFileName(width)}`, width }));
+  const sources =
+    copies.length > 0
+      ? [...(video.width ? [{ src, width: video.width }] : []), ...copies]
+          .filter(
+            (copy, index, all) => all.findIndex((other) => other.width === copy.width) === index,
+          )
+          .sort((a, b) => a.width - b.width)
+      : [];
   return {
-    src: `${base}/${videoFileName(video.type)}`,
+    src,
     ...play,
     mask: mask ? `${base}/${PRODUCT_FILM_MASK_FILE}` : null,
+    sources,
   };
 }
 

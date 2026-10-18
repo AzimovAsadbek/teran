@@ -741,3 +741,41 @@ of the API during a build or a revalidation, the page streams its pictures until
 again, within minutes of the API answering. Pictures in covering frames download larger files,
 below the fold only. The product and catalogue pages still stream their main content (they read
 the address's query): the next place to look for speed.
+
+## ADR-040: Films and pictures sharp on the largest screens
+
+**Context.** On 2026-10-18 the owner showed the home page in Chrome on a large Retina screen: the
+first view's film and the banners were blurry, and the gaiwan banner's painted steam would not do.
+They asked for every picture and film to open sharp on every screen, the largest included. An audit
+(each picture's and film's own pixels against the device pixels it fills, at 1875 and 1440 px
+windows at 2× and a 390 px phone at 3×) found 64 of 108 short: the first view's film was 596 × 336
+at its source and drawn 3750 device pixels wide; page pictures stopped at 2560 px (or their source:
+900 px for the values band); films had one size for every screen.
+
+**Decision.**
+
+- Page pictures get renditions up to 5120 px (`WIDE_IMAGE_WIDTHS`: 3200, 3840 and 5120 added),
+  made only as far as the source allows, so a full-width picture is sharp in a 2560 px window at 2×
+  while smaller screens keep files their size (`sizes`, ADR-039).
+- A page film can carry copies at other widths (`widths` on the stored film, `w<width>.mp4` beside
+  `video.mp4`; `sources` in the public film, narrowest first). `LoopingFilm` measures its frame when
+  the film is fetched and plays the narrowest copy whose width fills the frame's device pixels (a
+  covering film is drawn at the frame's height when it is wider than the frame), or the widest.
+- The four home films are 4K footage (Pexels, free licence), prepared as seamless loops at full
+  size and copied at 1280, 1920, 2560, 3200 and 3840 px and as the phone's 9:16 part at 1080 and
+  720 px; their posters are their first frames at full size. Pictures too small for their places
+  were replaced by Pexels photographs of the same subjects, cropped to the places' proportions
+  (docs/design/reference-assets.md, section 9).
+- Journal covers get the page pictures' renditions too (admin uploads and `visuals:import`): a
+  tall journal card shows a slice of a wide cover, so it needs a file two to three times its own
+  width, and the card's `sizes` say so (`coverSizes`, as the home cards since ADR-039). Category
+  and collection covers keep `IMAGE_WIDTHS` (their sources are 258 to 1200 px).
+- A product card plays the tea's film itself (1024 px) instead of the 512 px card copy where the
+  card is drawn wider than the copy on the screen (a 316 to 431 px card at 2×), so the steam is as
+  sharp as the picture around it; phones keep the copy.
+
+**Consequences.** On a 1440 px window at 2× the first view now draws a 3200 px film (10.7 MB, after
+the page has loaded) instead of a 1192 px one; a 1× screen gets 1920 px (3.9 MB) and a phone 1080 ×
+1920 (4 MB). Storage holds seven files per film. Pictures and films whose sources are small (the
+owner's tea cup and leaves at 1024 to 1254 px, the gallery's 1280 px photographs) are as sharp as
+they can be until larger originals come.

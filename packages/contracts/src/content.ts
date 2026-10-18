@@ -215,6 +215,11 @@ export const storedVideoSchema = z
     height: z.number().int().positive().nullable().default(null),
     /** A mask of where the film moves is stored beside it (`<key>/mask.png`). */
     mask: z.boolean().default(false),
+    /**
+     * The widths of the film's copies stored beside it (`<key>/w3840.mp4`): the same picture at
+     * other sizes, so large screens get a sharp copy and small ones a light one.
+     */
+    widths: z.array(z.number().int().positive()).max(8).default([]),
   })
   .extend(filmFocusSchema.shape);
 
@@ -230,6 +235,11 @@ export const publicFilmSchema = z
      * and still; null: the film shows everywhere.
      */
     mask: z.string().nullable().default(null),
+    /**
+     * Every copy of the film by width, narrowest first (`src` among them): the storefront plays
+     * the narrowest that fills the device pixels of its frame. Empty: `src` only.
+     */
+    sources: z.array(z.object({ src: z.string(), width: z.number().int().positive() })).default([]),
   })
   .extend(filmFocusSchema.shape);
 export type PublicFilmDto = z.infer<typeof publicFilmSchema>;

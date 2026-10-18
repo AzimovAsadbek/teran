@@ -12,6 +12,7 @@ const film: PublicFilmDto = {
   mask: null,
   focusX: 50,
   focusY: 65,
+  sources: [],
 };
 const phoneFilm: PublicFilmDto = {
   ...film,

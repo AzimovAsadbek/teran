@@ -167,7 +167,7 @@ for TERAN 8009. The eight-plus-five places replaced here were taken out of the m
 sections 1 and 2, so importing those folders again cannot bring the old pictures back. `home.hero.1`
 plays the owner's film since (section 5); its entries were taken out of this manifest the same way.
 
-## 5. `storage/hero-video/` and `storage/banner-films/` — films (go live)
+## 5. `storage/hero-video/` and `storage/banner-films/` — films (replaced by section 9)
 
 The home page's first view plays the owner's film of tea gardens; its three large banners play
 films the owner chose from Pinterest pins they sent (ADR-037). Each place's picture is its film's
@@ -276,7 +276,7 @@ corepack pnpm --filter @teran/api visuals:import --dir storage/remove-tea-cups-v
 corepack pnpm --filter @teran/api visuals:import --dir storage/tea-films
 ```
 
-## 8. `storage/banner-2-gaiwans/` — "A choice for every taste" with steam (go live)
+## 8. `storage/banner-2-gaiwans/` — "A choice for every taste" with steam (replaced by section 9)
 
 The owner asked for another film than the teapot in this banner. Its section 3 photograph — three
 gaiwans of green tea (Fenghua, Unsplash License), composed for the place at 2560 px and 1200 px
@@ -289,6 +289,50 @@ The first view's film and the order and tea-school banners' wide-screen films (s
 re-encoded twice their size the same day (Lanczos, a little sharpening:
 `apps/api/scripts/upscale-film.swift`), the banners with masks of where they move (measured over their frames), and the
 first view got a phone film of the middle a phone shows.
+
+## 9. `storage/hd-films/` and `storage/hd-pictures/` — sharp on the largest screens (go live)
+
+The owner found the first view and the banners blurry in Chrome on a large Retina screen, asked for
+a better film than the gaiwans, and for every picture to stay sharp on the largest screens too
+(ADR-040). The first view's film (596 × 336 at its source) and the two Pinterest banner films
+(736 px) could not be made sharper, so the four home films are now 4K Pexels footage (Pexels
+License: free to use, no attribution required; the authors are named in the manifests):
+
+| Place           | Film (Pexels)                                                                       | Source              | Loop            |
+| --------------- | ----------------------------------------------------------------------------------- | ------------------- | --------------- |
+| `home.hero.1`   | Tea bushes before mountains, #8191045 (Roman Odintsov)                              | 4096 × 2160, 30 fps | 7.7 s, dissolve |
+| `home.banner.2` | Teas on a tray, tea poured into a pitcher, #6540437 (Tima Miroshnichenko), mirrored | 3840 × 2160, 25 fps | 13.3 s          |
+| `home.banner.3` | Tea poured from a celadon teapot, #6691563 (RDNE Stock project)                     | 3840 × 2160, 24 fps | 9.9 s           |
+| `home.feature`  | Gongfu tea with a gaiwan, #6540435 (Tima Miroshnichenko)                            | 3840 × 2160, 25 fps | 12.6 s          |
+
+Each was made a seamless loop at full size with `apps/api/scripts/loop-film.swift` (the last 1.4–1.6
+s dissolve into the first; no frames matched closely enough for a cut), then copied with
+`upscale-film.swift` (Lanczos, a touch of sharpening) at 1280, 1920, 2560, 3200 and 3840 px, and as
+the 9:16 part phones show at 1080 × 1920 and 720 × 1280. The storefront plays the narrowest copy
+that fills its frame's device pixels: for the first view, 1920 px (3.9 MB) on a 1× screen, 3200 px
+(10.7 MB) in a 1440 px window at 2×, 3840 px (15 MB) only on the largest screens, 1080 × 1920 (4 MB)
+on phones; each film is fetched once the page has loaded and its place comes near. Posters are each
+film's first frame at full size (4096 or 3840 px, the phone's 1215 × 2160).
+
+`storage/hd-pictures/` replaces the page pictures that were smaller than large screens need with
+Pexels photographs of the same subjects, cropped to each place's proportions so the layout stays:
+the values band (Shah-i-Zinda, 900 px → 5120 px), the two bento tiles and the business card (up to
+1536 px → 3200 px), the wholesale first view (cups on the right, clear of the words; 5120 px) and
+the dealer section's backdrop (5120 px), and an About timeline picture (705 → 2400 px). Not
+replaced: the story band (the only fitting photograph put its tea set where the words are), the
+wholesale flavour band (its words are dark and sit on the picture's light top) and the Tea 101
+cups (the photograph found showed coffee too).
+
+```bash
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-films --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-pictures --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-rerender --force
+```
+
+`storage/hd-rerender/` holds the catalogue and help-centre banners of section 4 again (3700 and 3800
+px) and the four journal covers of `storage/reference-assets/` (1921 to 2560 px): imported anew,
+their renditions reach their own width instead of stopping at 2560 px (banners) or 1600 px (covers,
+which the tall journal cards show only a slice of).
 
 ## Not copied
 

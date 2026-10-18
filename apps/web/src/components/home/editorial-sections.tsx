@@ -896,8 +896,12 @@ export async function ValuesBanner({
       {photo ? (
         <>
           <PhotoFill photo={photo} sizes="100vw" />
-          {/* A light veil keeps the small labels readable over a bright illustration. */}
-          <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/20" />
+          {/* A light veil over the whole photograph, deeper behind the words in the middle, so
+              the white headline and labels stay readable over a bright sky. */}
+          <span
+            aria-hidden
+            className="absolute inset-0 -z-10 bg-forest-950/20 bg-[radial-gradient(ellipse_62%_58%_at_50%_50%,color-mix(in_oklab,var(--color-forest-950)_58%,transparent),transparent)]"
+          />
         </>
       ) : (
         <>
@@ -909,7 +913,7 @@ export async function ValuesBanner({
       <div className="pointer-events-none container-page flex min-h-[33.625rem] flex-col items-center justify-center py-14 text-center lg:min-h-[max(35rem,calc(100vw/var(--band-ratio,100)))]">
         <h2
           id="values-banner-title"
-          className="pointer-events-auto max-w-[31rem] font-headline text-[2.75rem] text-balance sm:text-[4rem] lg:max-w-[50rem] lg:text-[5rem]"
+          className="pointer-events-auto max-w-[31rem] font-headline text-[2.75rem] text-balance [text-shadow:0_2px_18px_rgb(0_0_0/0.35)] sm:text-[4rem] lg:max-w-[50rem] lg:text-[5rem]"
         >
           {copy.tagline}
         </h2>

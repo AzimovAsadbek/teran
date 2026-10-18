@@ -12,10 +12,13 @@ import sharp, { type Metadata } from 'sharp';
 export const IMAGE_WIDTHS = [320, 480, 640, 960, 1280, 1600] as const;
 
 /**
- * Widths for page pictures that span the whole page (the About hero, listing banners): up to 2560,
- * so a 1312 px banner stays sharp on 2× screens.
+ * Widths for page pictures that span the whole page (the first view, banners, listing banners):
+ * up to 5120, so a full-width picture stays sharp on the largest screens (a 2560 px wide window
+ * at 2× density, a 5K display) when its source is that large; narrower screens still get files
+ * their size. Journal covers have them too: a tall card shows a slice of a wide cover, so it
+ * needs a file several times its own width.
  */
-export const WIDE_IMAGE_WIDTHS = [...IMAGE_WIDTHS, 1920, 2560] as const;
+export const WIDE_IMAGE_WIDTHS = [...IMAGE_WIDTHS, 1920, 2560, 3200, 3840, 5120] as const;
 
 const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp']);
 const MIN_DIMENSION = 200;
@@ -384,6 +387,14 @@ export interface StoredVideo {
 /** The file name a stored video has under its key. */
 export function videoFileName(type: string): string {
   return type === 'video/webm' ? 'video.webm' : 'video.mp4';
+}
+
+/**
+ * A page film's copy at another width, under the film's key (`w3840.mp4`): the same picture,
+ * so the storefront can play the smallest copy that fills the screen's pixels.
+ */
+export function filmCopyFileName(width: number): string {
+  return `w${width}.mp4`;
 }
 
 /** A product picture's film: its smaller copy for product cards, under the film's key. */

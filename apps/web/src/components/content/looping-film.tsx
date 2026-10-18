@@ -4,7 +4,7 @@ import type { PublicFilmDto } from '@teran/contracts';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { useFilmsAllowed, useMatches, useMotionPaused } from '@/lib/motion';
-import { filmPosition } from '@/lib/visuals';
+import { filmPosition, filmSource } from '@/lib/visuals';
 
 /** How long a film takes to appear over its poster (its own first frame) when it starts. */
 const FADE_IN_MS = 800;
@@ -69,13 +69,16 @@ function FilmPlayer({ film, stopped }: { film: PublicFilmDto; stopped: boolean }
     };
   }, []);
 
-  // Fetched whole, after the page's own load, so the loop never waits for the network.
+  // Fetched whole, after the page's own load, so the loop never waits for the network: the copy
+  // whose width fills this frame on this screen (sharp on the largest, light on small ones).
   useEffect(() => {
     if (!near) return;
     const abort = new AbortController();
     let objectUrl: string | null = null;
     const fetchFilm = () => {
-      fetch(film.src, { signal: abort.signal })
+      const frame = frameRef.current?.getBoundingClientRect();
+      const src = frame ? filmSource(film, frame, window.devicePixelRatio || 1) : film.src;
+      fetch(src, { signal: abort.signal })
         .then((response) => (response.ok ? response.blob() : Promise.reject(response.status)))
         .then((blob) => {
           objectUrl = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: film.type }));
@@ -92,7 +95,7 @@ function FilmPlayer({ film, stopped }: { film: PublicFilmDto; stopped: boolean }
       abort.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [near, film.src, film.type]);
+  }, [near, film]);
 
   const playing = url !== null && onScreen && !stopped;
   useEffect(() => {

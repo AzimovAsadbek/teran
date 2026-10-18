@@ -6,6 +6,13 @@ import { cn } from '@/lib/cn';
 import { useFilmsAllowed, useMotionPaused, usePageLoaded } from '@/lib/motion';
 
 /**
+ * The width of the cards' copy (storage/tea-films: 512 px). A card drawn wider than that on the
+ * screen (a large card on a 2× display) plays the film itself, so its moving part is as sharp as
+ * the picture around it.
+ */
+const CARD_COPY_WIDTH = 512;
+
+/**
  * A product picture's living film over the picture itself (its first frame): steam rising from a
  * cup, the tea stirring. Only where it moves does the film show (its mask; elsewhere the picture
  * underneath, so the still parts stay sharp and never flicker as the loop starts over). It loads
@@ -21,7 +28,10 @@ export function ProductFilm({
   className,
 }: {
   film: ProductFilmDto;
-  /** `card`: the smaller copy (product cards); `full`: the film itself (the product's gallery). */
+  /**
+   * `card`: the smaller copy (product cards; the film itself where a card is drawn wider than the
+   * copy); `full`: the film itself (the product's gallery).
+   */
   size: 'card' | 'full';
   active?: boolean;
   className?: string;
@@ -29,9 +39,11 @@ export function ProductFilm({
   const allowed = useFilmsAllowed();
   const paused = useMotionPaused();
   const loaded = usePageLoaded();
-  const src = size === 'card' ? (film.cardSrc ?? null) : film.src;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [near, setNear] = useState(false);
+  // Measured as the card comes near: whether it is drawn wider than its copy.
+  const [wide, setWide] = useState(false);
+  const src = size === 'card' ? film.cardSrc && (wide ? film.src : film.cardSrc) : film.src;
   const [onScreen, setOnScreen] = useState(false);
   const [shown, setShown] = useState(false);
 
@@ -40,7 +52,10 @@ export function ProductFilm({
     if (!video || !allowed) return;
     const ahead = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting) setNear(true);
+        if (!entry?.isIntersecting) return;
+        const drawn = entry.boundingClientRect.width * (window.devicePixelRatio || 1);
+        setWide(drawn > CARD_COPY_WIDTH * 1.1);
+        setNear(true);
       },
       { rootMargin: '50% 0px' },
     );

@@ -44,6 +44,7 @@ import {
   articleImagePrefix,
   contentHash,
   deleteStoredImage,
+  filmCopyFileName,
   type ImageStore,
   productImagePrefix,
   PRODUCT_FILM_CARD_FILE,
@@ -92,6 +93,19 @@ const manifestSchema = z.object({
         .string()
         .regex(/^[A-Za-z0-9._-]+$/)
         .optional(),
+      /**
+       * Page films: copies of the film at other widths (the same picture, MP4), so large screens
+       * get a sharp copy and small ones a light one: file names in the folder.
+       */
+      copies: z
+        .array(
+          z.object({
+            width: z.number().int().positive(),
+            file: z.string().regex(/^[A-Za-z0-9._-]+$/),
+          }),
+        )
+        .max(8)
+        .optional(),
       file: z.string().regex(/^[A-Za-z0-9._-]+$/),
       /** The address it was taken from, or who supplied it (e.g. a file the owner provided). */
       source: z.string().min(1).max(500),
@@ -116,7 +130,10 @@ type Entry = z.infer<typeof manifestSchema>['assets'][number];
 type Applied = z.infer<typeof appliedSchema>;
 type CoverOwner = Applied['covers'][number]['owner'];
 
-/** As the admin area stores them: renditions up to 2560 px and at the picture's own width. */
+/**
+ * As the admin area stores page pictures and journal covers: renditions up to 5120 px, as far as
+ * the picture's own width (and at that width).
+ */
 const WIDE_PICTURE = { widths: WIDE_IMAGE_WIDTHS, fullWidth: true } as const;
 
 interface Run {
@@ -437,7 +454,12 @@ async function setCover(
     );
     return 0;
   }
-  const stored = await storeImage(await run.read(main), run.store, cover.prefix);
+  const stored = await storeImage(
+    await run.read(main),
+    run.store,
+    cover.prefix,
+    owner === 'article' ? WIDE_PICTURE : undefined,
+  );
   try {
     await cover.set(stored);
   } catch (error) {
@@ -580,12 +602,24 @@ async function storeFilm(run: Run, entry: Entry) {
       .toBuffer();
     await run.store.saveFile(stored.storageKey, PRODUCT_FILM_MASK_FILE, mask, 'image/png');
   }
+  // Its copies at other widths, each checked to be an MP4 of the width it claims.
+  const widths: number[] = [];
+  for (const copy of entry.copies ?? []) {
+    const data = await run.readFile(copy.file);
+    const copySize = mp4FrameSize(data);
+    if (data.toString('latin1', 4, 8) !== 'ftyp' || copySize?.width !== copy.width) {
+      throw new Error(`${copy.file}: not an MP4 ${copy.width} px wide`);
+    }
+    await run.store.saveFile(stored.storageKey, filmCopyFileName(copy.width), data, 'video/mp4');
+    widths.push(copy.width);
+  }
   return {
     key: stored.storageKey,
     type: stored.type,
     width: size?.width ?? null,
     height: size?.height ?? null,
     mask: Boolean(entry.filmMask),
+    widths: widths.sort((a, b) => a - b),
     focusX: entry.focus?.[0] ?? 50,
     focusY: entry.focus?.[1] ?? 50,
   };

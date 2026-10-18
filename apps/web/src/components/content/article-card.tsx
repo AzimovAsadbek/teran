@@ -6,6 +6,15 @@ import { CoverImage } from '@/components/content/cover-image';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format';
+import { coverSizes } from '@/lib/navigation';
+
+/** The card's width at each layout (its frame is 345 × 472; covers are photographs). */
+const CARD_SIZES = [
+  { media: '(min-width: 95rem)', width: '21.5625rem', ratio: 345 / 472 },
+  { media: '(min-width: 1280px)', width: '23vw', ratio: 345 / 472 },
+  { media: '(min-width: 640px)', width: '45vw', ratio: 345 / 472 },
+  { width: '92vw', ratio: 345 / 472 },
+];
 
 /**
  * The reference's blog card: the picture fills a tall rounded card, a pill sits at its top right
@@ -27,7 +36,8 @@ export function ArticleCard({
       {article.cover ? (
         <CoverImage
           image={article.cover}
-          sizes="(min-width: 95rem) 21.5625rem, (min-width: 1280px) 23vw, (min-width: 640px) 45vw, 92vw"
+          // The tall card crops a wide cover at its sides: ask for the width it is drawn at.
+          sizes={coverSizes(article.cover, CARD_SIZES)}
           className="absolute inset-0 -z-20 transition-transform duration-[350ms] ease-[ease] group-hover:scale-[1.04]"
         />
       ) : (

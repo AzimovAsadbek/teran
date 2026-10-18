@@ -444,3 +444,65 @@ prerendering (the photographs are now handed to the banners directly).
 thread time on a phone slowed four times); the catalogue's five card films load after the page
 (about 1.35 MB on a phone; none with data saving or reduced motion). The catalogue and product
 pages still stream their main content, as they read the address's query.
+
+## Sharp on the largest screens, and the project cleaned (2026-10-18)
+
+The owner found the live first view and banners blurry in Chrome on a large Retina screen, asked
+for a better film than the gaiwans, for every picture and film to be sharp on every screen (the
+largest included), and for the project to be cleaned of what it no longer uses (ADR-040; released
+in f10fd24, c3cc3aa and 2efe357, pictures imported into production from `storage/hd-films`,
+`storage/hd-pictures` and `storage/hd-rerender`).
+
+Sharpness, measured in Google Chrome on the live site as each picture's or film's own width against
+the device pixels it fills (eleven pages; map tiles left out):
+
+| Drawn from a file at least 20 % too narrow | Before (8836bf2) | After (2efe357) |
+| ------------------------------------------ | ---------------- | --------------- |
+| 1875 px window, 2×                         | 44 of 160        | 7 of 149        |
+| 1440 px window, 2×                         | 26 of 161        | 4 of 154        |
+| 390 px phone, 3×                           | 20 of 135        | 8 of 127        |
+
+What each screen gets now: the first view's film at 3840 px in a 2560 px window at 2× and in a
+1875 px window at 2×, 3200 px at 1440 px 2×, 1920 px at 1× and 1080 × 1920 on a phone (its poster
+at 4096, 3840, 3200, 1600 and 1215 px); the product cards the tea's 1024 px film at 2× and the
+512 px copy at 1× and on phones; the journal cards files of 1600 to 2560 px at 2× and 3× (0.88 to
+1.12 of what they fill, from 0.33 to 0.68 before), but for the two covers whose sources are 1921
+and 1254 px.
+
+Left short, each at its source's limit: the product gallery on 2× desktops (the owner's 1024 px
+cup: 0.69 to 0.78), the teas category's banner (a 1200 px cover, renditions to 960 px), those two
+journal covers, the story band and the wholesale flavour band in a 1875 px window at 2× (2560 px
+files: 0.68 to 0.73), and the dealer section's backdrop on phones (a landscape photograph behind a
+2,400 px tall column, 0.11; 0.66 to 0.79 on 2× desktops). The About page's four icons are SVG
+(sharp at any size; the audit reads their nominal width).
+
+Checked locally first, on a production build against the e2e API: the journal cards and the
+catalogue cards pick the files above; screenshots of the first view, the banners, the bento, the
+pair, the values band and the wholesale page on a desktop and a phone (the values band's words
+needed a deeper veil over its brighter photograph, added). Checked live in Google Chrome: the films
+and posters each screen gets (above), the home page on a desktop and a phone, no console errors.
+
+**Found and fixed on the live site**: Vercel's CDN kept a two-byte part of a product film (asked
+for as a range, as Safari asks first) under the file's address and gave it to every later request,
+so the film failed with a format error for everyone using that edge (seen as the catalogue cards'
+1024 px films at 2×, and the product gallery's film). Range requests to `/uploads` are no longer
+cached (2efe357, docs/deployment/vercel.md) and the CDN cache was purged; checked: with a two-byte
+request first, every later range and the whole file come back right.
+
+Cleanup: 15 unused files in `public/brand` (the botanical atmosphere's layers, the logo set's WebP
+copies, the calligraphy, the seal and the waves), three unused components (`CategoryThumb`,
+`Reveal`, `SectionHeading`), unused exports (the logo plate and stacked logo, six ornaments,
+`leafCategories`, `SIGNATURE_TAGLINE`, the Decimal helpers), 84 lines of CSS only they used and two
+unused dev dependencies, found with an import graph from the Next.js entries and a reference search
+of every export (the API has no unused files). The asset generators make only what the site uses;
+their outputs are byte-identical. Import folders no longer needed went to the macOS Trash
+(`~/.Trash/teran-storage-2026-10-18`), not deleted.
+
+Tests: contracts 31, storefront unit 64, API unit 102, API integration 137 (the two files touched
+by the journal-cover change again: 23), end-to-end 51 on the final build. **Open**: CI's "Format,
+lint, types and unit tests" job fails at `pnpm test` on c3cc3aa and 2efe357 without a failing test
+reported (its only annotation is the exit code); the same steps pass here, in a fresh checkout and
+in Linux containers (Alpine arm64; Debian x64 with CI's environment). Its log needs a signed-in
+GitHub account. Vercel did not deploy 2efe357 from the push (no status on GitHub, no incident
+reported), so it was deployed from the CLI as docs/deployment/vercel.md describes, from a clean
+export of the commit.

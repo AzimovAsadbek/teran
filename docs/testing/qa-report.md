@@ -398,3 +398,49 @@ with it and goes when the picture is replaced or deleted).
 sampled below the cup's outline; it is now held above it); a plain loop flickered in its still
 parts at each restart (fixed by the masks, after one key frame per loop and a second encoding pass
 did not help); the first recolouring painted the tea flat (it now turns the hue in OKLab).
+
+## Speed and sharper pictures (2026-10-18)
+
+The owner asked for a faster site and crisper pictures (ADR-039).
+
+Lighthouse 12.8.2 on the live site (mobile and desktop presets, simulated throttling), before
+(97946c3) and after (8836bf2):
+
+| Page                                  | Phone before                        | Phone after                             | Desktop |
+| ------------------------------------- | ----------------------------------- | --------------------------------------- | ------- |
+| Home (`/`)                            | 75: LCP 4.0 s, TBT 380 ms, SI 5.0 s | 90: LCP 2.6 s, TBT 250 ms, SI 3.7 s     | 98 → 98 |
+| Catalogue (`/en/tea`)                 | 89: LCP 3.3 s, TBT 180 ms           | 87 to 90 in four runs: LCP 3.2 to 3.5 s | 99 → 99 |
+| Product (`/en/products/teran-xc2025`) | 85: LCP 3.7 s, TBT 170 ms           | 88: LCP 3.0 s, TBT 220 ms               | 99 → 98 |
+
+Accessibility on the home page went from 99 to 100 (heading order). The first view's picture is
+now 23 KB into the home page's HTML and preloaded from the head, each crop for its widths (before:
+200 to 300 KB in, after the streamed parts); no banner artwork is fetched unseen.
+
+Sharpness, measured in Chrome as each picture's file width against the device pixels it fills:
+pictures drawn from a file at least 20 % too narrow went from 19 to 9 on a phone (390 px, 3×,
+eight pages), and on the home, About, media and Tea 101 pages from 7 to 1 at 1440 px and from 12
+to 5 at 1440 px 2×. Those left are drawn from the largest file their source allows: the first view's
+phone poster (780 px, from the owner's 596 × 336 film), the gallery photographs (1280 px), one
+About picture (705 px), the category tiles' photographs (1400 px) and the wide banners on 2×
+screens (1920 to 2560 px).
+
+Checked locally on a production build against the e2e API: a picture uploaded in Admin → Settings
+for the first view showed in the regenerated page 3.5 s later, from the page's prerendered part,
+and went on removal; the same for a banner, whose packs then were not in the page at all. A build
+without an API, as in CI, streams the pictures as before. Checked live in Google Chrome: the five
+catalogue cards and the product gallery play their films, masked; the first view's film plays;
+the footer's switch stops all sixteen films of the home page; no console errors.
+
+Tests: storefront unit 60 (two new for `coverSizes`), end-to-end 51 passed on the build without an
+API, API unit 102 and integration 137 (this batch's API changes).
+
+**Found and fixed**: a cached loader that throws stops `next build` even when the caller catches
+the error (the home page's settings loader returns null instead); a build reused an earlier build's
+API answers from `.next/cache/fetch-cache` (API reads are now `no-store`); with a Suspense fallback
+in the page's shell, each banner's artwork was fetched although its photograph replaced it during
+prerendering (the photographs are now handed to the banners directly).
+
+**Measured, not changed**: `content-visibility` on the home page's lower sections (no gain in main
+thread time on a phone slowed four times); the catalogue's five card films load after the page
+(about 1.35 MB on a phone; none with data saving or reduced motion). The catalogue and product
+pages still stream their main content, as they read the address's query.

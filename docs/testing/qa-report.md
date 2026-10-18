@@ -506,3 +506,47 @@ in Linux containers (Alpine arm64; Debian x64 with CI's environment). Its log ne
 GitHub account. Vercel did not deploy 2efe357 from the push (no status on GitHub, no incident
 reported), so it was deployed from the CLI as docs/deployment/vercel.md describes, from a clean
 export of the commit.
+
+## The owner's second look: films, values band, header, phones (2026-10-19)
+
+The owner found the first view's film "strange" and soft, Samarkand odd as the values band's
+picture on a tea site, the first view too tall on phones with its words at the top, and a person
+icon where visitors expect "Sign in" and "Register"; and asked for a pass over the whole site.
+
+**Films.** Frames taken across one loop showed the cause: each home film's dissolve loop blended
+two camera positions for 1.5 s at every restart (doubled trees, pitcher, teapot, hand). Made again
+without blending (ADR-040 revised; `storage/hd-films-2`, imported into production): the first view
+plays forwards and back with eased turns, the banners restart with a plain cut. Their copies have
+more bitrate (the first view's 3200 px copy 16.9 MB for 9.5 s, from 10.7 MB for 7.7 s); a 100 %
+crop comparison showed the source footage itself is soft, so more bitrate or HEVC changes little
+beyond this.
+
+**Values band.** Longjing tea terraces in Hangzhou with tea pickers (Pexels, chosen by the owner
+from six mock-ups of the band), 5120 px with a phone crop (`storage/hd-values`).
+
+**Whole-site pass** (live screenshots of 14 pages on a 390 px phone and at 1440 px; no page
+scrolls sideways). Found and fixed:
+
+- The header showed visitors a person icon whose menu held sign-in and registration: they are now
+  two links in the bar (and in the drawer); the icon is the signed-in customer's menu.
+- Phones: the first view was 540 to 607 px tall (1060 px on a tablet) with its words at the top;
+  now 464 to 672 px with the words in the middle, and the promo strip above it keeps to two lines
+  (about 90 px instead of 130), so the first products show on the first screen.
+- A bento tile's pale pink name was unreadable on its bright photograph (a soft shade now).
+- The footer's cup covered its fourth value on phones ("Sifatli tan…").
+- The wholesale flavour band's dark words sat on the dark leaves of its phone crop (a light panel
+  now).
+- The drawer's tile names broke inside words ("MAHSULOTL-AR"); they now shrink to fit.
+- The media page showed an empty "Videos coming soon" part and a 0 tab; hidden until a film is
+  published.
+- The home page showed the same five teas in three rows; a row that would only repeat the first
+  is left out until the catalogue outgrows one row.
+- At 1440 px the promo strip's line wrapped beside the collection's name (its sticker now shows
+  from 1600 px).
+
+Checked locally on a production build against the e2e API (all of the above on a phone and a
+desktop), then live in Google Chrome: the phone hero 464 px high at 390 px with its words centred,
+the drawer and bar links, one product row with tabs on the home page. CI: the unit-test job had
+failed since c3cc3aa on a test race (a film test could reach jsdom's unimplemented `play()` after
+its mocks were restored; fixed in 12222a0, all five jobs green again). End-to-end 51 passed (the
+journey test now takes "Register" from the bar).

@@ -1,6 +1,7 @@
 import type { PublicFilmDto } from '@teran/contracts';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setMotionPaused } from '@/lib/motion';
 import { LoopingFilm } from './looping-film';
 
 const film: PublicFilmDto = {
@@ -8,6 +9,7 @@ const film: PublicFilmDto = {
   type: 'video/mp4',
   width: 736,
   height: 414,
+  mask: null,
   focusX: 50,
   focusY: 65,
 };
@@ -18,7 +20,6 @@ const phoneFilm: PublicFilmDto = {
   height: 1280,
   focusY: 80,
 };
-const labels = { pause: 'Pause the video', play: 'Play the video' };
 
 let media: Record<string, boolean>;
 let observers: IntersectionObserverCallback[];
@@ -53,6 +54,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  act(() => setMotionPaused(false));
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -67,51 +69,39 @@ function scrollToFilm() {
 }
 
 describe('LoopingFilm', () => {
-  it('fetches the film near the screen, loops it over the poster and lets it be stopped', async () => {
-    const { container } = render(
-      <LoopingFilm film={film} labels={labels} controlsClassName="bottom-4 left-4" />,
-    );
+  it('fetches the film near the screen, loops it over the poster, and stops with the footer switch', async () => {
+    const { container } = render(<LoopingFilm film={film} />);
     expect(fetch).not.toHaveBeenCalled();
     scrollToFilm();
-    const button = await screen.findByRole('button', { name: 'Pause the video' });
+    await waitFor(() =>
+      expect(container.querySelector('video')).toHaveAttribute('src', 'blob:film'),
+    );
     expect(fetch).toHaveBeenCalledWith(film.src, expect.anything());
     const video = container.querySelector('video')!;
-    expect(video).toHaveAttribute('src', 'blob:film');
     expect(video.loop).toBe(true);
     expect(video.muted).toBe(true);
     expect(video.closest('[aria-hidden="true"]')).not.toBeNull();
     expect(video.style.objectPosition).toBe('50% 65%');
     await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
-
-    fireEvent.click(button);
-    expect(screen.getByRole('button', { name: 'Play the video' })).toBeInTheDocument();
-    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+    // No button of its own: the visitor's pause (lib/motion) stops it.
+    expect(container.querySelector('button')).toBeNull();
+    act(() => setMotionPaused(true));
+    await waitFor(() => expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled());
   });
 
   it('gives phones their own film', async () => {
     media['(max-width: 749px)'] = true;
-    const { container } = render(
-      <LoopingFilm
-        film={film}
-        phoneFilm={phoneFilm}
-        labels={labels}
-        controlsClassName="bottom-4 left-4"
-      />,
-    );
+    const { container } = render(<LoopingFilm film={film} phoneFilm={phoneFilm} />);
     scrollToFilm();
-    await screen.findByRole('button', { name: 'Pause the video' });
-    expect(fetch).toHaveBeenCalledWith(phoneFilm.src, expect.anything());
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(phoneFilm.src, expect.anything()));
     expect(container.querySelector('video')!.style.objectPosition).toBe('50% 80%');
   });
 
   it('keeps the poster alone with reduced motion', () => {
     media['(prefers-reduced-motion: reduce)'] = true;
-    const { container } = render(
-      <LoopingFilm film={film} labels={labels} controlsClassName="bottom-4 left-4" />,
-    );
+    const { container } = render(<LoopingFilm film={film} />);
     scrollToFilm();
     expect(container.querySelector('video')).toBeNull();
-    expect(screen.queryByRole('button')).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
   });
 });

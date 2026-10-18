@@ -120,6 +120,8 @@
     "accessibility": "Доступность"
   },
   "Footer": {
+    "motionPause": "Остановить видео",
+    "motionPlay": "Продолжить видео",
     "shop": "Магазин",
     "company": "Компания",
     "help": "Помощь",
@@ -154,8 +156,6 @@
   "Home": {
     "metaTitle": "TERAN — интернет-магазин премиального китайского чая",
     "heroCta": "Смотреть чай",
-    "filmPause": "Остановить видео",
-    "filmPlay": "Продолжить видео",
     "valuesTitle": "Ценности TERAN",
     "showcaseTitle": "Выберите свой любимый чай",
     "showcaseTabs": "Подборки товаров",

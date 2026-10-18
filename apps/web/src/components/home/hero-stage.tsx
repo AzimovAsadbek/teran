@@ -27,8 +27,6 @@ export interface HeroWords {
 export interface HeroLabels {
   /** The page's heading, for screen readers and search engines. */
   heading: string;
-  pause: string;
-  play: string;
 }
 
 /**
@@ -70,8 +68,7 @@ function headlineSize(lines: string[]): string {
  *
  * The film (LoopingFilm): the place's picture is its first frame, painted at once (the page's
  * largest paint); the film is fetched once the page has loaded, fades in over it and loops
- * without a seam, with a round pause button at the bottom left, in line with the words (the
- * bottom right belongs to the chat and the networks' buttons, which float over the page there).
+ * without a seam.
  */
 export function HeroStage({
   words,
@@ -113,14 +110,7 @@ export function HeroStage({
           className="-z-30 object-cover object-[60%_100%] lg:object-center"
         />
       ) : null}
-      {film ? (
-        <LoopingFilm
-          film={film}
-          phoneFilm={visual?.mobileVideo}
-          labels={labels}
-          controlsClassName="inset-x-0 bottom-4 container-page lg:bottom-6"
-        />
-      ) : null}
+      {film ? <LoopingFilm film={film} phoneFilm={visual?.mobileVideo} /> : null}
       {/* On phones a veil where the words are (the top), so the yellow headline and the white
           words stay readable over the bright sky and leaves; wide screens keep the film's own
           light and shade the letters instead. */}

@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { ProductFilm } from '@/components/catalog/product-film';
 import { ProductImage } from '@/components/catalog/product-image';
 import { IconButton } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
@@ -70,6 +71,7 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
       <section aria-label={t('gallery')} className="lg:sticky lg:top-40">
         <div className="relative aspect-square overflow-hidden bg-surface">
           <ProductImage image={images[0] ?? null} name={name} sizes={MAIN_SIZES} priority />
+          {images[0]?.film ? <ProductFilm film={images[0].film} size="full" /> : null}
           {images[0] ? zoomButton(0, true) : null}
         </div>
         {zoom}
@@ -142,6 +144,9 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
                   sizes={MAIN_SIZES}
                   priority={imageIndex === 0}
                 />
+              ) : null}
+              {image.film && (imageIndex === 0 || primed) ? (
+                <ProductFilm film={image.film} size="full" active={imageIndex === index} />
               ) : null}
               {zoomButton(imageIndex, imageIndex === index)}
             </div>

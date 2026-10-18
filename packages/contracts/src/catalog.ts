@@ -182,6 +182,24 @@ export const searchSuggestQuerySchema = z.object({
 
 // ─── Responses ──────────────────────────────────────────────────────────────
 
+export const videoTypeSchema = z.enum(['video/mp4', 'video/webm']);
+
+/**
+ * A muted film looping over a product picture, the picture being its first frame (a living
+ * picture: steam rising from a cup, the tea stirring).
+ */
+export const productFilmSchema = z.object({
+  src: z.string(),
+  /** A smaller copy for product cards; null: cards keep the picture still. */
+  cardSrc: z.string().nullable().default(null),
+  /** Where the film moves (a PNG whose alpha is the film's): elsewhere the picture shows. */
+  mask: z.string().nullable().default(null),
+  type: videoTypeSchema,
+  width: z.number().int().positive().nullable().default(null),
+  height: z.number().int().positive().nullable().default(null),
+});
+export type ProductFilmDto = z.infer<typeof productFilmSchema>;
+
 export const imageSchema = z.object({
   /** Base path; the file for a width is `${src}/${width}.webp`. */
   src: z.string(),
@@ -191,6 +209,8 @@ export const imageSchema = z.object({
   alt: z.string(),
   /** A cut-out on a transparent background, rather than a photograph with its own background. */
   transparent: z.boolean().default(false),
+  /** A product picture's living film, where it has one. */
+  film: productFilmSchema.nullable().optional(),
 });
 export type ImageDto = z.infer<typeof imageSchema>;
 

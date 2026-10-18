@@ -11,7 +11,7 @@ export const accessibilityStatement: Localized<LongFormContent> = {
     description:
       'How the TERAN website works with a keyboard, screen readers and other assistive technology, what is still limited and how to get help.',
     intro:
-      'TERAN wants everyone to be able to browse, choose and order tea on this website, whatever device or assistive technology they use. This statement explains what we do for that, what is still limited and how to reach us if something gets in your way. Last updated: 17 October 2026.',
+      'TERAN wants everyone to be able to browse, choose and order tea on this website, whatever device or assistive technology they use. This statement explains what we do for that, what is still limited and how to reach us if something gets in your way. Last updated: 18 October 2026.',
     sections: [
       {
         id: 'aim',
@@ -31,7 +31,7 @@ export const accessibilityStatement: Localized<LongFormContent> = {
               'Pictures that carry information have text alternatives; decorative pictures are hidden from screen readers.',
               'Pages are built with headings, landmarks and labelled form fields, and each page declares its language (Uzbek, Russian or English), so screen readers read it with the right pronunciation.',
               'Text and controls are designed to meet the WCAG AA colour contrast, and pages can be zoomed to 200% and read on narrow screens without the page scrolling sideways.',
-              'The moving slideshow and ribbons on the home page stop when your device is set to reduce motion, and the slideshow has a pause button.',
+              'The films on the home page and in product pictures stay still when your device is set to reduce motion or to save data, and the "Pause the videos" switch at the foot of every page stops them all (your device remembers the choice). The moving ribbons on the home page stop when your device is set to reduce motion and while the keyboard focus is on one of their links.',
               'Form errors are explained in words next to the field and summarised at the top of the form.',
             ],
           },
@@ -64,7 +64,7 @@ export const accessibilityStatement: Localized<LongFormContent> = {
     description:
       'Как сайт TERAN работает с клавиатурой, программами экранного доступа и другими вспомогательными технологиями, что пока ограничено и как получить помощь.',
     intro:
-      'TERAN хочет, чтобы каждый мог смотреть, выбирать и заказывать чай на этом сайте, каким бы устройством или вспомогательной технологией он ни пользовался. Здесь рассказано, что для этого сделано, что пока ограничено и как связаться с нами, если что-то мешает. Последнее обновление: 17 октября 2026 года.',
+      'TERAN хочет, чтобы каждый мог смотреть, выбирать и заказывать чай на этом сайте, каким бы устройством или вспомогательной технологией он ни пользовался. Здесь рассказано, что для этого сделано, что пока ограничено и как связаться с нами, если что-то мешает. Последнее обновление: 18 октября 2026 года.',
     sections: [
       {
         id: 'aim',
@@ -84,7 +84,7 @@ export const accessibilityStatement: Localized<LongFormContent> = {
               'У изображений, которые несут информацию, есть текстовое описание; декоративные изображения скрыты от программ экранного доступа.',
               'Страницы размечены заголовками, областями (landmarks) и подписанными полями форм, и каждая страница сообщает свой язык (узбекский, русский или английский), чтобы программы экранного доступа читали текст с правильным произношением.',
               'Текст и элементы управления спроектированы с контрастом цветов по WCAG AA; страницы можно увеличить до 200 % и читать на узких экранах без горизонтальной прокрутки страницы.',
-              'Движущиеся слайд-шоу и ленты на главной странице останавливаются, если на устройстве включено уменьшение движения; у слайд-шоу есть кнопка паузы.',
+              'Видео на главной странице и в фотографиях товаров не двигаются, если на устройстве включено уменьшение движения или экономия трафика, а переключатель «Остановить видео» внизу каждой страницы останавливает их все (выбор запоминается на устройстве). Движущиеся ленты на главной странице останавливаются, если включено уменьшение движения, и пока фокус клавиатуры находится на одной из их ссылок.',
               'Ошибки в формах объясняются словами рядом с полем и собираются в сводку вверху формы.',
             ],
           },
@@ -117,7 +117,7 @@ export const accessibilityStatement: Localized<LongFormContent> = {
     description:
       'TERAN sayti klaviatura, ekran oʻquvchi dasturlar va boshqa yordamchi texnologiyalar bilan qanday ishlashi, cheklovlar va yordam olish yoʻllari.',
     intro:
-      'TERAN har bir kishi — qaysi qurilma yoki yordamchi texnologiyadan foydalanmasin — ushbu saytda choyni koʻrib chiqishi, tanlashi va buyurtma qilishi mumkin boʻlishini istaydi. Ushbu bayonot buning uchun nima qilinganini, nimalar hali cheklanganini va biror narsa xalaqit bersa, biz bilan qanday bogʻlanishni tushuntiradi. Soʻnggi yangilanish: 2026-yil 17-oktabr.',
+      'TERAN har bir kishi — qaysi qurilma yoki yordamchi texnologiyadan foydalanmasin — ushbu saytda choyni koʻrib chiqishi, tanlashi va buyurtma qilishi mumkin boʻlishini istaydi. Ushbu bayonot buning uchun nima qilinganini, nimalar hali cheklanganini va biror narsa xalaqit bersa, biz bilan qanday bogʻlanishni tushuntiradi. Soʻnggi yangilanish: 2026-yil 18-oktabr.',
     sections: [
       {
         id: 'aim',
@@ -137,7 +137,7 @@ export const accessibilityStatement: Localized<LongFormContent> = {
               'Maʼlumot beruvchi rasmlarning matnli tavsifi bor; bezak uchun qoʻyilgan rasmlar ekran oʻquvchi dasturlardan yashirilgan.',
               'Sahifalar sarlavhalar, hududlar (landmark) va nomlangan shakl maydonlari bilan tuzilgan; har bir sahifa oʻz tilini (oʻzbek, rus yoki ingliz) bildiradi, shuning uchun ekran oʻquvchi dasturlar matnni toʻgʻri talaffuz bilan oʻqiydi.',
               'Matn va boshqaruv elementlari WCAG AA rang kontrastiga mos qilib loyihalangan; sahifalarni 200 % gacha kattalashtirish va tor ekranlarda sahifani yon tomonga surmasdan oʻqish mumkin.',
-              'Bosh sahifadagi harakatlanuvchi slayd-shou va lentalar qurilmangizda «harakatni kamaytirish» sozlamasi yoqilganda toʻxtaydi; slayd-shouda pauza tugmasi ham bor.',
+              'Bosh sahifadagi va mahsulot rasmlaridagi videolar qurilmangizda «harakatni kamaytirish» yoki trafikni tejash sozlamasi yoqilganda harakatlanmaydi, har bir sahifa pastidagi «Videolarni toʻxtatish» tugmasi esa ularning hammasini toʻxtatadi (tanlov qurilmangizda eslab qolinadi). Bosh sahifadagi harakatlanuvchi lentalar «harakatni kamaytirish» yoqilganda va klaviatura fokusi ularning havolalaridan birida turganda toʻxtaydi.',
               'Shakldagi xatolar maydon yonida soʻz bilan tushuntiriladi va shakl tepasida jamlab koʻrsatiladi.',
             ],
           },

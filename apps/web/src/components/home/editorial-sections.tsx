@@ -7,7 +7,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { TeaTypeArt } from '@/components/brand/illustrations';
 import { BrandValues } from '@/components/brand/ornaments';
 import { RIBBON_STICKERS, StickerDefs } from '@/components/brand/stickers';
-import { LoopingFilm, type FilmLabels } from '@/components/content/looping-film';
+import { LoopingFilm } from '@/components/content/looping-film';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { BRAND, brandCopy, PACKAGING, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
@@ -20,6 +20,7 @@ import { filmPosition, visualFor } from '@/lib/visuals';
 import {
   browsableCategories,
   categoryTree,
+  coverSizes,
   imageSources,
   type NavCategory,
 } from '@/lib/navigation';
@@ -73,7 +74,8 @@ function bannerHeadline(title: string): string {
 
 /**
  * A home-page picture set in Admin → Settings (see FIXED_VISUAL_SLOTS), read at request time; null
- * keeps the section's own artwork.
+ * keeps the section's own artwork. The home page passes the banners their pictures instead when it
+ * has the settings while prerendering (ADR-039).
  */
 async function homeVisual(slot: string): Promise<PublicVisualDto | null> {
   await connection();
@@ -94,12 +96,9 @@ function bandRatio(photo: PublicVisualDto | null): CSSProperties | undefined {
   return { '--band-ratio': ratio.toFixed(4) } as CSSProperties;
 }
 
-/** The pause button's corner in a banner: bottom left on phones, top right from 1024 px. */
-const BANNER_FILM_CONTROLS = 'bottom-4 left-4 lg:top-6 lg:right-6 lg:bottom-auto lg:left-auto';
-
 /**
  * A photograph filling its frame from behind (the frame sets the size, so nothing moves), and the
- * place's film looping over it when it has one (`film` says where its pause button goes).
+ * place's film looping over it when it has one and `film` is set.
  */
 function PhotoFill({
   photo,
@@ -110,7 +109,7 @@ function PhotoFill({
   photo: PublicVisualDto;
   sizes: string;
   className?: string;
-  film?: { labels: FilmLabels; controls: string };
+  film?: boolean;
 }) {
   const playing = photo.video && film ? photo.video : null;
   return (
@@ -123,22 +122,9 @@ function PhotoFill({
           phonePosition={filmPosition(playing && (photo.mobileVideo ?? playing))}
         />
       </div>
-      {playing && film ? (
-        <LoopingFilm
-          film={playing}
-          phoneFilm={photo.mobileVideo}
-          labels={film.labels}
-          controlsClassName={film.controls}
-        />
-      ) : null}
+      {playing && film ? <LoopingFilm film={playing} phoneFilm={photo.mobileVideo} /> : null}
     </>
   );
-}
-
-/** The film's pause button labels. */
-async function filmLabels(): Promise<FilmLabels> {
-  const t = await getTranslations('Home');
-  return { pause: t('filmPause'), play: t('filmPlay') };
 }
 
 /**
@@ -311,12 +297,20 @@ const SCATTER: {
  * Section 5, the reference's gift-guide banner: a pastel field with products scattered around a
  * large soft-serif title and a pill. Here the TERAN packs around the brand's story heading.
  */
-export async function StoryBanner({ withPhoto = false }: { withPhoto?: boolean }) {
+export async function StoryBanner({
+  withPhoto = false,
+  photo: given,
+}: {
+  /** Read the photograph at request time. */
+  withPhoto?: boolean;
+  /** The photograph, already read with the page's settings (null: none set). */
+  photo?: PublicVisualDto | null;
+}) {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
   const copy = brandCopy[locale];
   // A campaign photograph (Admin → Settings) replaces the scattered packs, as the reference's.
-  const photo = withPhoto ? await homeVisual('home.banner.1') : null;
+  const photo = given !== undefined ? given : withPhoto ? await homeVisual('home.banner.1') : null;
   return (
     <BannerFrame
       href="/about"
@@ -328,7 +322,8 @@ export async function StoryBanner({ withPhoto = false }: { withPhoto?: boolean }
           key={`${item.pack.src}-${index}`}
           src={item.pack}
           alt=""
-          sizes="96px"
+          // The packs are 96 px (128 px from 1024 px) high, so about two thirds of that wide.
+          sizes="(min-width: 1024px) 87px, 65px"
           className={cn(
             'absolute -z-10 h-24 w-auto drop-shadow-[0_14px_14px_rgb(0_0_0_/_0.18)] lg:h-32',
             item.small
@@ -373,7 +368,6 @@ const PHOTO_SPARKLES: SparklePoint[] = [
 function PhotoBanner({
   image,
   photo,
-  labels,
   title,
   text,
   cta,
@@ -385,7 +379,6 @@ function PhotoBanner({
    * film gets one on the words' side).
    */
   photo?: PublicVisualDto | null;
-  labels: FilmLabels;
   title: string;
   text?: string;
   cta: string;
@@ -395,11 +388,7 @@ function PhotoBanner({
     <BannerFrame href={href} className="on-dark bg-forest-950 text-ivory-50">
       {photo ? (
         <>
-          <PhotoFill
-            photo={photo}
-            sizes="(min-width: 1920px) 1792px, 100vw"
-            film={{ labels, controls: BANNER_FILM_CONTROLS }}
-          />
+          <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" film />
           {photo.video ? <FilmVeil /> : null}
         </>
       ) : (
@@ -451,17 +440,15 @@ export async function GalleryBanner() {
   await connection();
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations('Home');
-  const [media, photo, labels] = await Promise.all([
+  const [media, photo] = await Promise.all([
     getMedia(locale, { pageSize: 1 }).catch(() => null),
     homeVisual('home.banner.2'),
-    filmLabels(),
   ]);
   if (showGallery && media && media.total > 0) {
     return (
       <PhotoBanner
         image={terraces}
         photo={photo}
-        labels={labels}
         title={t('galleryTitle')}
         text={t('galleryText')}
         cta={t('galleryCta')}
@@ -474,7 +461,6 @@ export async function GalleryBanner() {
     <PhotoBanner
       image={terraces}
       photo={photo}
-      labels={labels}
       title={copy.collection.heading}
       text={copy.collection.text}
       cta={t('featuredCta')}
@@ -553,11 +539,10 @@ function PackRow() {
 export async function OrderBanner() {
   await connection();
   const locale = await getLocale();
-  const [t, tn, settings, labels] = await Promise.all([
+  const [t, tn, settings] = await Promise.all([
     getTranslations('Product'),
     getTranslations('Nav'),
     getPublicSettings(locale).catch(() => null),
-    filmLabels(),
   ]);
   // A campaign photograph (Admin → Settings) or film behind the words, instead of the packs.
   const photo = visualFor(settings, 'home.banner.3');
@@ -567,13 +552,7 @@ export async function OrderBanner() {
       tall
       className="on-dark flex-col bg-matcha text-ivory-50 lg:flex-row lg:items-center"
     >
-      {photo ? (
-        <PhotoFill
-          photo={photo}
-          sizes="(min-width: 1920px) 1792px, 100vw"
-          film={{ labels, controls: BANNER_FILM_CONTROLS }}
-        />
-      ) : null}
+      {photo ? <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" film /> : null}
       {photo?.video ? <FilmVeil /> : null}
       <Sparkles points={ADVISOR_SPARKLES} className="-z-10 hidden text-gold-100 lg:block" />
       <div className="flex flex-col items-center px-6 pt-10 text-center lg:w-[46%] lg:items-start lg:py-12 lg:pr-0 lg:pl-16 lg:text-left">
@@ -744,7 +723,13 @@ export async function BentoSection() {
                 {photo ? (
                   <PhotoFill
                     photo={photo}
-                    sizes="(min-width: 1024px) 644px, 100vw"
+                    // The tile is nearly square on phones (342:332): a wide photograph covering
+                    // it is drawn at its height, wider than the window.
+                    sizes={coverSizes(photo.image, [
+                      { media: '(min-width: 1024px)', width: '644px', ratio: 644 / 340 },
+                      { media: '(min-width: 640px)', width: '100vw', ratio: 592 / 340 },
+                      { width: '100vw', ratio: 342 / 332 },
+                    ])}
                     className={'photo' in tone ? tone.photo : undefined}
                   />
                 ) : (
@@ -775,7 +760,15 @@ export async function BentoSection() {
                   <img
                     src={sources.src}
                     srcSet={sources.srcSet}
-                    sizes="(min-width: 1024px) 20vw, 39vw"
+                    // A photograph covers its tall frame on phones (44 % by 82 % of the tile).
+                    sizes={
+                      image.transparent
+                        ? '(min-width: 1024px) 20vw, 39vw'
+                        : coverSizes(image, [
+                            { media: '(min-width: 1024px)', width: '20vw', ratio: 1 },
+                            { width: '39vw', ratio: 0.55 },
+                          ])
+                    }
                     alt=""
                     loading="lazy"
                     decoding="async"
@@ -812,32 +805,26 @@ const BREWING_SPARKLES: SparklePoint[] = [
  * The reference's full-width feature band (560 px): a tag in a box, 80 px capitals, a line of
  * text and a pill on the left, with sparkles; the pack's brewing guide stands on the right.
  */
-export async function BrewingBanner({ withPhoto = false }: { withPhoto?: boolean }) {
+export async function BrewingBanner({
+  withPhoto = false,
+  photo: given,
+}: {
+  /** Read the photograph at request time. */
+  withPhoto?: boolean;
+  /** The photograph, already read with the page's settings (null: none set). */
+  photo?: PublicVisualDto | null;
+}) {
   const t = await getTranslations('Home');
   // A campaign photograph (Admin → Settings) or film fills the band; the guide card then steps
   // aside.
-  const [photo, labels] = await Promise.all([
-    withPhoto ? homeVisual('home.feature') : null,
-    filmLabels(),
-  ]);
+  const photo = given !== undefined ? given : withPhoto ? await homeVisual('home.feature') : null;
   return (
     <section
       aria-labelledby="brewing-title"
       className="on-dark relative isolate overflow-hidden bg-jade-700 text-ivory-50"
       style={bandRatio(photo)}
     >
-      {photo ? (
-        <PhotoFill
-          photo={photo}
-          sizes="100vw"
-          film={{
-            labels,
-            // In line with the words (the page's frame), at the top right from 1024 px.
-            controls:
-              'inset-x-0 bottom-4 container-page flex lg:top-6 lg:bottom-auto lg:justify-end',
-          }}
-        />
-      ) : null}
+      {photo ? <PhotoFill photo={photo} sizes="100vw" film /> : null}
       {photo?.video ? <FilmVeil /> : null}
       <Sparkles points={BREWING_SPARKLES} className="-z-10 hidden text-blush lg:block" />
       <SurfaceLink href="/journal" />
@@ -887,11 +874,19 @@ export async function BrewingBanner({ withPhoto = false }: { withPhoto?: boolean
  * row of marks and a white pill. Here the tea terraces, the pack's tagline and its four values
  * (where the reference shows certifications — none is claimed).
  */
-export async function ValuesBanner({ withPhoto = false }: { withPhoto?: boolean }) {
+export async function ValuesBanner({
+  withPhoto = false,
+  photo: given,
+}: {
+  /** Read the photograph at request time. */
+  withPhoto?: boolean;
+  /** The photograph, already read with the page's settings (null: none set). */
+  photo?: PublicVisualDto | null;
+}) {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
   const copy = brandCopy[locale];
-  const photo = withPhoto ? await homeVisual('home.values') : null;
+  const photo = given !== undefined ? given : withPhoto ? await homeVisual('home.values') : null;
   return (
     <section
       aria-labelledby="values-banner-title"

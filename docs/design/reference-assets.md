@@ -250,6 +250,46 @@ with `--remove` before the steaming ones. The removal folder holds the DAVIDsTEA
 taken out of `storage/reference-partner/`'s manifest (section 2), so importing it again cannot bring
 them back.
 
+## 7. `storage/tea-films/` — each tea's living cup (go live)
+
+Later on 2026-10-18 the owner sent a photograph of a steaming cup of tea (a reference photograph
+with its teapot taken out; 1024 × 1536) and asked for it to be each tea's first picture, the tea
+moving and the steam rising, each tea in its own colour (ADR-038). It replaces the painted
+blue-and-gold cups of section 6 (`storage/remove-tea-cups-v2`, imported with `--remove` first);
+the dry leaves stay the second picture.
+
+- **The picture**: squared (the cup, its saucer and the lower steam: rows 230–1254); the tea's hue
+  turned from the photograph's black tea to each tea's in OKLab, its lightness lifted for the green
+  teas, the window's reflection and the rings kept: fresh green (8830), green-olive (XC2025),
+  yellow-green (8800), olive-gold (G8810), amber (8009).
+- **The film** (5 s, 24 frames a second, seamless): the steam flows upward and leans left as in
+  the photograph, in two copies half a cycle apart (each fading out before it starts over), with a
+  gentle swirl that returns to itself; it never samples the cup (its rim stays still); the rings
+  on the tea run outwards and the reflection shimmers with them. One key frame per loop.
+- **The files**: `<tea>-film.mp4` (1024 px, 1.2 Mbit/s, about 670 KB) for the product page,
+  `<tea>-card.mp4` (512 px, 0.5 Mbit/s, about 270 KB) for cards, `<tea>-mask.png` (where it
+  moves), `<tea>-poster.jpg` (its first frame, the picture itself). Outside the mask the frames
+  hold a blur (never seen).
+
+```bash
+corepack pnpm --filter @teran/api visuals:import --dir storage/remove-tea-cups-v2 --remove
+corepack pnpm --filter @teran/api visuals:import --dir storage/tea-films
+```
+
+## 8. `storage/banner-2-gaiwans/` — "A choice for every taste" with steam (go live)
+
+The owner asked for another film than the teapot in this banner. Its section 3 photograph — three
+gaiwans of green tea (Fenghua, Unsplash License), composed for the place at 2560 px and 1200 px
+for phones — now has steam painted rising from each cup, a seamless 6 s living picture: wisps of
+domain-warped noise flowing up in two copies half a cycle apart, warm against the dark. The films
+are 1920 × 620 (590 KB) and 720 × 994 (390 KB), each with a mask of the steam; the posters are the
+full-size first frames. Its entries were taken out of `storage/banner-films/`'s manifest.
+
+The first view's film and the order and tea-school banners' wide-screen films (section 5) were
+re-encoded twice their size the same day (Lanczos, a little sharpening:
+`apps/api/scripts/upscale-film.swift`), the banners with masks of where they move (measured over their frames), and the
+first view got a phone film of the middle a phone shows.
+
 ## Not copied
 
 - The reference's logo, texts, prices, reviews and ratings: TERAN keeps its own.

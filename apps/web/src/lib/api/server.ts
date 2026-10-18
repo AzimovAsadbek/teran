@@ -13,8 +13,10 @@ interface VisitorContext {
 }
 
 /**
- * Server-to-server GET against the API. Never cached by fetch itself: callers decide caching with
- * `'use cache'`.
+ * Server-to-server GET against the API. Never cached by fetch itself (`no-store`: without it a
+ * build keeps what it fetched in `.next/cache/fetch-cache`, and the next build prerenders with
+ * that copy instead of asking the API again): callers decide caching with `'use cache'`, whose
+ * tags the API's changes expire. Inside a cache scope `no-store` makes nothing dynamic.
  *
  * - Without a visitor (cached catalogue/content loads shared by everyone) the request carries the
  *   internal key, so the API does not count it against one IP's rate limit.
@@ -32,6 +34,7 @@ export async function apiGet<T>(path: string, visitor?: VisitorContext): Promise
 
   const response = await fetch(`${API_URL}/api/v1${path}`, {
     headers: requestHeaders,
+    cache: 'no-store',
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (!response.ok) {

@@ -13,12 +13,15 @@ export function Wordmark({
   className,
   eager = false,
   size = 'header',
+  sizes,
 }: {
   className?: string;
   /** Above the fold on every page: loaded at once, but without taking priority over the page's main picture. */
   eager?: boolean;
   /** `header`: 112 px; 144 px from 1280 px; 160 px from 1440 px. `compact`: 120 px (admin, checkout on phones). */
   size?: 'header' | 'compact';
+  /** The drawn width, where `className` makes it wider or narrower than `size` (so it stays sharp). */
+  sizes?: string;
 }) {
   return (
     <Image
@@ -26,7 +29,10 @@ export function Wordmark({
       alt="TERAN"
       loading={eager ? 'eager' : undefined}
       sizes={
-        size === 'compact' ? '120px' : '(min-width: 1440px) 160px, (min-width: 1280px) 144px, 112px'
+        sizes ??
+        (size === 'compact'
+          ? '120px'
+          : '(min-width: 1440px) 160px, (min-width: 1280px) 144px, 112px')
       }
       className={cn(
         'h-auto',

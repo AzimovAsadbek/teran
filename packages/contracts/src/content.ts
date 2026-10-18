@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { localeSchema } from './common.js';
-import { illustrationKeySchema, imageSchema } from './catalog.js';
+import { illustrationKeySchema, imageSchema, videoTypeSchema } from './catalog.js';
 
 const localizedText = (max: number) =>
   z.object({
@@ -197,8 +197,6 @@ export const storedPictureSchema = z.object({
   height: z.number().int().positive(),
 });
 
-export const videoTypeSchema = z.enum(['video/mp4', 'video/webm']);
-
 /** The point of a film kept in view where its frame crops it (percent of its width and height). */
 const filmFocusSchema = z.object({
   focusX: z.number().min(0).max(100).default(50),
@@ -215,6 +213,8 @@ export const storedVideoSchema = z
     type: videoTypeSchema,
     width: z.number().int().positive().nullable().default(null),
     height: z.number().int().positive().nullable().default(null),
+    /** A mask of where the film moves is stored beside it (`<key>/mask.png`). */
+    mask: z.boolean().default(false),
   })
   .extend(filmFocusSchema.shape);
 
@@ -225,6 +225,11 @@ export const publicFilmSchema = z
     type: videoTypeSchema,
     width: z.number().int().positive().nullable(),
     height: z.number().int().positive().nullable(),
+    /**
+     * Where the film moves (a PNG whose alpha is the film's): elsewhere its poster shows, sharp
+     * and still; null: the film shows everywhere.
+     */
+    mask: z.string().nullable().default(null),
   })
   .extend(filmFocusSchema.shape);
 export type PublicFilmDto = z.infer<typeof publicFilmSchema>;

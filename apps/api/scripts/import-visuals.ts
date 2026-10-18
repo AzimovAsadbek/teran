@@ -37,6 +37,7 @@ import {
   visualsSettingSchema,
   type VisualsSetting,
 } from '@teran/contracts';
+import sharp from 'sharp';
 import { z } from 'zod';
 import { PrismaClient, type Prisma } from '../src/generated/prisma/client.js';
 import {
@@ -45,6 +46,8 @@ import {
   deleteStoredImage,
   type ImageStore,
   productImagePrefix,
+  PRODUCT_FILM_CARD_FILE,
+  PRODUCT_FILM_MASK_FILE,
   storeImage,
   storeVideo,
   type StoredImage,
@@ -72,6 +75,23 @@ const manifestSchema = z.object({
         .default('default'),
       /** Films: the point kept in view where the frame crops them (percent). */
       focus: z.tuple([z.number().min(0).max(100), z.number().min(0).max(100)]).optional(),
+      /**
+       * Product photographs: a film looping over the photograph (its first frame), its smaller
+       * copy for product cards and where it moves (a PNG whose alpha is the film's): file names
+       * in the folder.
+       */
+      film: z
+        .string()
+        .regex(/^[A-Za-z0-9._-]+$/)
+        .optional(),
+      cardFilm: z
+        .string()
+        .regex(/^[A-Za-z0-9._-]+$/)
+        .optional(),
+      filmMask: z
+        .string()
+        .regex(/^[A-Za-z0-9._-]+$/)
+        .optional(),
       file: z.string().regex(/^[A-Za-z0-9._-]+$/),
       /** The address it was taken from, or who supplied it (e.g. a file the owner provided). */
       source: z.string().min(1).max(500),
@@ -104,6 +124,8 @@ interface Run {
   store: ImageStore;
   force: boolean;
   read: (entry: Entry) => Promise<Buffer>;
+  /** Another file of the folder, by name (a product film and its companions). */
+  readFile: (name: string) => Promise<Buffer>;
   visuals: VisualsSetting;
   visualsChanged: boolean;
   applied: Applied;
@@ -148,6 +170,7 @@ async function main(): Promise<void> {
       store: seedImageStore(uploadsDirectory()),
       force,
       read: (entry) => readFile(join(dir, entry.file)),
+      readFile: (name) => readFile(join(dir, name)),
       visuals: row ? visualsSettingSchema.parse(row.value) : {},
       visualsChanged: false,
       applied: await readApplied(appliedPath),
@@ -263,9 +286,9 @@ async function addProductPhotos(
   }
   const ordered = [...entries].sort((a, b) => photoOrder(a) - photoOrder(b));
   const files = await Promise.all(ordered.map(run.read));
-  const fresh = files.filter(
-    (file) => !product.images.some((image) => image.contentHash === contentHash(file)),
-  );
+  const fresh = ordered
+    .map((entry, index) => ({ entry, file: files[index]! }))
+    .filter(({ file }) => !product.images.some((image) => image.contentHash === contentHash(file)));
   if (fresh.length === 0) {
     console.log(`  ${name}: already has these photographs`);
     return 0;
@@ -275,19 +298,23 @@ async function addProductPhotos(
     return 0;
   }
   const first = Math.min(0, ...product.images.map((image) => image.position)) - fresh.length;
-  for (const [index, file] of fresh.entries()) {
+  for (const [index, { entry, file }] of fresh.entries()) {
     const stored = await storeImage(file, run.store, productImagePrefix(product.id));
+    let film: Awaited<ReturnType<typeof storeProductFilm>> | null = null;
     try {
+      film = entry.film ? await storeProductFilm(run, product.id, entry) : null;
       await run.prisma.productImage.create({
         data: {
           productId: product.id,
           ...stored,
           contentHash: contentHash(file),
           position: first + index,
+          ...(film ?? {}),
         },
       });
     } catch (error) {
       await deleteStoredImage(run.store, stored.storageKey);
+      if (film) await deleteStoredImage(run.store, film.videoKey);
       throw error;
     }
   }
@@ -311,13 +338,15 @@ async function removeProductPhotos(
   const hashes = (await Promise.all(entries.map(run.read))).map(contentHash);
   const images = await run.prisma.productImage.findMany({
     where: { productId: product.id, contentHash: { in: hashes } },
-    select: { id: true, storageKey: true },
+    select: { id: true, storageKey: true, videoKey: true },
   });
   if (images.length === 0) return 0;
   await run.prisma.productImage.deleteMany({
     where: { id: { in: images.map((image) => image.id) } },
   });
-  run.obsolete.push(...images.map((image) => image.storageKey));
+  run.obsolete.push(
+    ...images.flatMap((image) => [image.storageKey, ...(image.videoKey ? [image.videoKey] : [])]),
+  );
   console.log(`  ${name}: ${images.length} photograph(s) removed`);
   return images.length;
 }
@@ -543,13 +572,60 @@ async function storeFilm(run: Run, entry: Entry) {
   const file = await run.read(entry);
   const stored = await storeVideo(file, run.store, visualImagePrefix());
   const size = stored.type === 'video/mp4' ? mp4FrameSize(file) : null;
+  // Where it moves, when given: the page then shows the film only there, over its sharp poster.
+  if (entry.filmMask) {
+    const mask = await sharp(await run.readFile(entry.filmMask))
+      .ensureAlpha()
+      .png()
+      .toBuffer();
+    await run.store.saveFile(stored.storageKey, PRODUCT_FILM_MASK_FILE, mask, 'image/png');
+  }
   return {
     key: stored.storageKey,
     type: stored.type,
     width: size?.width ?? null,
     height: size?.height ?? null,
+    mask: Boolean(entry.filmMask),
     focusX: entry.focus?.[0] ?? 50,
     focusY: entry.focus?.[1] ?? 50,
+  };
+}
+
+/**
+ * A product photograph's film: the film itself (MP4 or WebM, checked by its first bytes) under a
+ * key of the product's, with its smaller copy for cards and where it moves beside it.
+ */
+async function storeProductFilm(run: Run, productId: string, entry: Entry) {
+  const file = await run.readFile(entry.film!);
+  const stored = await storeVideo(file, run.store, productImagePrefix(productId));
+  const files: string[] = [];
+  try {
+    if (entry.cardFilm) {
+      const card = await run.readFile(entry.cardFilm);
+      if (card.toString('latin1', 4, 8) !== 'ftyp')
+        throw new Error(`${entry.cardFilm}: not an MP4`);
+      await run.store.saveFile(stored.storageKey, PRODUCT_FILM_CARD_FILE, card, 'video/mp4');
+      files.push('card');
+    }
+    if (entry.filmMask) {
+      const mask = await sharp(await run.readFile(entry.filmMask))
+        .ensureAlpha()
+        .png()
+        .toBuffer();
+      await run.store.saveFile(stored.storageKey, PRODUCT_FILM_MASK_FILE, mask, 'image/png');
+      files.push('mask');
+    }
+  } catch (error) {
+    await deleteStoredImage(run.store, stored.storageKey);
+    throw error;
+  }
+  const size = stored.type === 'video/mp4' ? mp4FrameSize(file) : null;
+  return {
+    videoKey: stored.storageKey,
+    videoType: stored.type,
+    videoWidth: size?.width ?? null,
+    videoHeight: size?.height ?? null,
+    videoFiles: files,
   };
 }
 

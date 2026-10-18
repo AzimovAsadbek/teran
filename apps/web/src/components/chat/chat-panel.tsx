@@ -181,7 +181,11 @@ export default function ChatPanel({
           empty ? 'mt-7' : 'mt-2',
         )}
       >
-        <Wordmark size="compact" className={cn('brightness-0 invert', empty ? 'w-60!' : 'w-28!')} />
+        <Wordmark
+          size="compact"
+          sizes={empty ? '240px' : '112px'}
+          className={cn('brightness-0 invert', empty ? 'w-60!' : 'w-28!')}
+        />
       </div>
 
       <ol

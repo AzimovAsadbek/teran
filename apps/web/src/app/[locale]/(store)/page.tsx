@@ -29,8 +29,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { brandCopy } from '@/content/brand';
 import { StoreStructuredData } from '@/components/seo/store-structured-data';
+import { getPrerenderSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
 import { showAdvisor } from '@/lib/site';
+import { visualFor } from '@/lib/visuals';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -61,29 +63,40 @@ function BannerFallback({ tall = false }: { tall?: boolean }) {
  * content: promo strip (a real collection) · hero · category ribbon · new arrivals / our picks ·
  * story banner · category shortcuts · gallery banner · collections row · advisor banner ·
  * categories row · bento · brewing band · category collage · values band · gallery band · journal
- * and business pair · slogan ribbon · footer (layout). Data sections stream at request time, each
- * in its own Suspense boundary; anything without real content is left out.
+ * and business pair · slogan ribbon · footer (layout). Catalogue sections stream at request time,
+ * each in its own Suspense boundary; anything without real content is left out. The first view's
+ * and the banners' pictures are prerendered with the page when the API answers (ADR-039).
  */
 export default async function HomePage() {
   const locale = (await rootParams.locale()) as Locale;
+  // The pictures from Admin → Settings, read with the page (cached under `settings`, so a change
+  // there renders the page again), go into the prerendered page itself: the first view's picture
+  // is announced in the head, and no banner draws its own artwork first (ADR-039). Without an
+  // answer from the API (a build with none, ADR-008) each place reads its picture at request time.
+  const settings = await getPrerenderSettings(locale);
+  const photo = (slot: string) => visualFor(settings, slot);
 
   return (
     <>
       <Suspense fallback={<div aria-hidden className="h-[5.5rem] bg-forest-950 lg:h-20" />}>
         <PromoStrip />
       </Suspense>
-      <Hero />
+      <Hero settings={settings} />
       <Suspense fallback={<div aria-hidden className="h-12 bg-jade-100 sm:h-[4.1875rem]" />}>
         <CategoryMarquee />
       </Suspense>
       <Suspense fallback={<RailFallback />}>
         <NewArrivalsRail />
       </Suspense>
-      {/* Each banner renders at once with its own artwork; a photograph set in Admin → Settings
-          streams in over it (same frame, so nothing moves). */}
-      <Suspense fallback={<StoryBanner />}>
-        <StoryBanner withPhoto />
-      </Suspense>
+      {/* Without the settings each banner renders at once with its own artwork, and a photograph
+          set in Admin → Settings streams in over it (same frame, so nothing moves). */}
+      {settings ? (
+        <StoryBanner photo={photo('home.banner.1')} />
+      ) : (
+        <Suspense fallback={<StoryBanner />}>
+          <StoryBanner withPhoto />
+        </Suspense>
+      )}
       <Suspense fallback={null}>
         <CategoryShortcuts />
       </Suspense>
@@ -107,15 +120,23 @@ export default async function HomePage() {
       <Suspense fallback={<BannerFallback tall />}>
         <BentoSection />
       </Suspense>
-      <Suspense fallback={<BrewingBanner />}>
-        <BrewingBanner withPhoto />
-      </Suspense>
+      {settings ? (
+        <BrewingBanner photo={photo('home.feature')} />
+      ) : (
+        <Suspense fallback={<BrewingBanner />}>
+          <BrewingBanner withPhoto />
+        </Suspense>
+      )}
       <Suspense fallback={<CategoryCollageFallback />}>
         <CategoryCollage />
       </Suspense>
-      <Suspense fallback={<ValuesBanner />}>
-        <ValuesBanner withPhoto />
-      </Suspense>
+      {settings ? (
+        <ValuesBanner photo={photo('home.values')} />
+      ) : (
+        <Suspense fallback={<ValuesBanner />}>
+          <ValuesBanner withPhoto />
+        </Suspense>
+      )}
       <Suspense fallback={null}>
         <MediaBandSection />
       </Suspense>

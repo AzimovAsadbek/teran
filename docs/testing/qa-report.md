@@ -374,3 +374,27 @@ their veil at the top, where the words lie over the bright sky.
 rings on the surface, a few bubbles and steam rising, a different pattern for each tea. Checked on
 the live site in Google Chrome: the catalogue at 1440 px (the steam reads at card size) and the
 product page of TERAN 8009 at 390 px (the cup first, then the leaves and the packs).
+
+## Living cups, masked films and crisper videos (2026-10-18)
+
+Each tea's first picture is the owner's steaming cup, the tea in its own colour, alive (steam
+rising, the tea's rings running out); the "A choice for every taste" banner shows three gaiwans
+with steam; the first view's and two banners' films are twice as sharp; no film has a pause button
+(ADR-038, docs/design/reference-assets.md sections 7 and 8).
+
+Checked locally in Google Chrome: the catalogue at 1440 px (five cards playing their 512 px films,
+masked, faded in), the product page (the gallery's film playing on the slide shown), the four home
+films at 1440 and 390 px (sources by width, masks applied), no pause buttons, the footer's switch
+stopping every film. The living films' content loops without a seam (the step from the last frame
+to the first equals the ordinary steps), and with their masks the still parts show the picture
+itself, so the encoder's refinement of still areas no longer flickers at each restart. Banner film
+against its poster: they differ only where the steam is.
+
+Tests: contracts 31 (a film on a product picture), storefront unit 58 (the product film: cards,
+gallery, reduced motion, the footer's pause), API admin integration 15 (a picture's film is shown
+with it and goes when the picture is replaced or deleted).
+
+**Found and fixed**: the first cinemagraph dragged the cup's rim up into the steam (the flow
+sampled below the cup's outline; it is now held above it); a plain loop flickered in its still
+parts at each restart (fixed by the masks, after one key frame per loop and a second encoding pass
+did not help); the first recolouring painted the tea flat (it now turns the hue in OKLab).

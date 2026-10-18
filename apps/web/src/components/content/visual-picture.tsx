@@ -1,5 +1,6 @@
 import type { PublicVisualDto } from '@teran/contracts';
 import type { CSSProperties } from 'react';
+import { preload } from 'react-dom';
 import { cn } from '@/lib/cn';
 import { imageSources } from '@/lib/navigation';
 
@@ -12,7 +13,9 @@ const PHONE_POSITION: Record<number, string> = {
 /**
  * A page picture from Admin → Settings, filling its frame: the wide picture, and its taller crop
  * under 750 px when one was uploaded (as the reference's banners switch at that width).
- * Decorative: the text it sits behind carries the meaning.
+ * Decorative: the text it sits behind carries the meaning. A `priority` picture (the first view's)
+ * is also announced in the document's head, each crop for the widths that show it, so the browser
+ * fetches it with the styles and fonts instead of once the page's markup reaches it.
  */
 export function VisualPicture({
   visual,
@@ -39,15 +42,32 @@ export function VisualPicture({
 }) {
   const wide = imageSources(visual.image, 1280);
   const phone = visual.mobile ? imageSources(visual.mobile, 960) : null;
+  const phoneMedia = `(max-width: ${phoneBelow - 1}px)`;
+  if (priority) {
+    if (phone) {
+      preload(phone.src, {
+        as: 'image',
+        imageSrcSet: phone.srcSet,
+        imageSizes: '100vw',
+        fetchPriority: 'high',
+        media: phoneMedia,
+      });
+    }
+    preload(wide.src, {
+      as: 'image',
+      imageSrcSet: wide.srcSet,
+      imageSizes: sizes,
+      fetchPriority: 'high',
+      media: phone ? `not all and ${phoneMedia}` : undefined,
+    });
+  }
   const positions = {
     ...(position ? { '--position': position } : {}),
     ...(phonePosition ? { '--position-phone': phonePosition } : {}),
   } as CSSProperties;
   return (
     <picture>
-      {phone ? (
-        <source media={`(max-width: ${phoneBelow - 1}px)`} srcSet={phone.srcSet} sizes="100vw" />
-      ) : null}
+      {phone ? <source media={phoneMedia} srcSet={phone.srcSet} sizes="100vw" /> : null}
       <img
         src={wide.src}
         srcSet={wide.srcSet}

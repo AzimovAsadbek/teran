@@ -1,4 +1,4 @@
-import type { Locale } from '@teran/contracts';
+import type { Locale, PublicSettingsDto } from '@teran/contracts';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
@@ -18,10 +18,12 @@ function sentences(text: string): string[] {
  * The front page's first view: TERAN's words — the pack's tagline, what TERAN is, a pill to the
  * teas — over the film of the first view's place (`home.hero.1`, set by the import script), or its
  * picture (Admin → Settings), or the lake painted on the packs. One view, no rotation (the owner's
- * decision of 2026-10-18, ADR-037): the words are prerendered with the page; the picture or film
- * streams in at request time, behind them.
+ * decision of 2026-10-18, ADR-037). The words are prerendered with the page, and so is the picture
+ * (the page's largest paint) when the page has the settings while prerendering: the browser then
+ * finds it in the document's first bytes and in its head (ADR-039). Without them (a build with no
+ * API, ADR-008) the picture or film streams in at request time, behind the words.
  */
-export async function Hero() {
+export async function Hero({ settings = null }: { settings?: PublicSettingsDto | null }) {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
   const copy = brandCopy[locale];
@@ -34,9 +36,17 @@ export async function Hero() {
   const labels: HeroLabels = {
     // Read by screen readers and search engines only: the brand, what it sells, its tagline.
     heading: `${BRAND.name} — ${t('heroHeadingKind')}. ${copy.tagline}`,
-    pause: t('filmPause'),
-    play: t('filmPlay'),
   };
+  if (settings) {
+    return (
+      <HeroStage
+        words={words}
+        labels={labels}
+        media={visualFor(settings, 'home.hero.1')}
+        art={lake}
+      />
+    );
+  }
   return (
     <Suspense fallback={<HeroStage words={words} labels={labels} media="pending" art={lake} />}>
       <HeroWithMedia locale={locale} words={words} labels={labels} />

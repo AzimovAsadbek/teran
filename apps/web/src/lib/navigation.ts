@@ -170,6 +170,27 @@ export function browsableCategories(tree: NavCategoryTree[]): NavCategory[] {
   });
 }
 
+/**
+ * `sizes` for a picture filling a frame of a known shape with `object-fit: cover`. A picture wider
+ * than its frame is drawn at the frame's height, so wider than the frame: told only the frame's
+ * width, the browser picks too narrow a file and the picture looks soft. `frames` follow the
+ * `sizes` order (widest windows first, the last without a media condition): each frame's width
+ * (a length `sizes` accepts) and shape (width / height).
+ */
+export function coverSizes(
+  picture: { width: number; height: number },
+  frames: { media?: string; width: string; ratio: number }[],
+): string {
+  const aspect = picture.width / picture.height;
+  return frames
+    .map(({ media, width, ratio }) => {
+      const scale = aspect / ratio;
+      const drawn = scale > 1.02 ? `calc(${width} * ${scale.toFixed(2)})` : width;
+      return media ? `${media} ${drawn}` : drawn;
+    })
+    .join(', ');
+}
+
 /** `src`/`srcSet` for an API image (renditions at fixed widths, ADR-009). */
 export function imageSources(image: ImageDto, preferredWidth = 640) {
   const url = (width: number) => `${image.src}/${width}.webp`;

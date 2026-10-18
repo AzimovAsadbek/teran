@@ -212,41 +212,47 @@ export function ProductRail({
             {current.label}
           </h2>
         ) : (
-          <div
-            role="tablist"
-            aria-label={labels.tabList}
-            onKeyDown={onKeyDown}
-            className={cn(
-              // The tabs scroll sideways on phones, bleeding to the margins of the row's frame.
-              frame === 'content' ? '-mx-frame px-frame' : '-mx-gutter px-gutter',
-              '-mt-1.5 mb-[1.125rem] flex min-h-[3.375rem] items-end gap-4 overflow-x-auto pt-1.5 [scrollbar-width:none] min-[46.875rem]:mx-0 min-[46.875rem]:mt-0 min-[46.875rem]:mb-8 min-[46.875rem]:min-h-[2.625rem] min-[46.875rem]:flex-wrap min-[46.875rem]:justify-center min-[46.875rem]:gap-8 min-[46.875rem]:overflow-visible min-[46.875rem]:px-0 min-[46.875rem]:pt-0',
-            )}
-          >
-            {tabs.map((tab, index) => (
-              <button
-                key={tab.id}
-                ref={(element) => {
-                  tabRefs.current[index] = element;
-                }}
-                type="button"
-                role="tab"
-                id={`${baseId}-tab-${tab.id}`}
-                aria-selected={index === active}
-                aria-controls={`${baseId}-panel`}
-                tabIndex={index === active ? 0 : -1}
-                onClick={() => select(index)}
-                className={cn(
-                  // The reference's tabs: teal and underlined when chosen, teal while pointed at.
-                  'shrink-0 border-b-2 pb-2 font-heading text-[1.5rem] leading-[1.1] whitespace-nowrap transition-[color,border-color] duration-200 ease-[ease] first:ml-auto last:mr-auto hover:text-forest-900 min-[46.875rem]:text-[2rem] min-[46.875rem]:first:ml-0 min-[46.875rem]:last:mr-0',
-                  index === active
-                    ? 'border-forest-900 text-forest-900'
-                    : 'border-transparent text-fg',
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <>
+            {/* The tabs are no headings: this one keeps the page's outline (h1, h2, the cards' h3). */}
+            <h2 id={`${baseId}-tabs`} className="sr-only">
+              {labels.tabList}
+            </h2>
+            <div
+              role="tablist"
+              aria-labelledby={`${baseId}-tabs`}
+              onKeyDown={onKeyDown}
+              className={cn(
+                // The tabs scroll sideways on phones, bleeding to the margins of the row's frame.
+                frame === 'content' ? '-mx-frame px-frame' : '-mx-gutter px-gutter',
+                '-mt-1.5 mb-[1.125rem] flex min-h-[3.375rem] items-end gap-4 overflow-x-auto pt-1.5 [scrollbar-width:none] min-[46.875rem]:mx-0 min-[46.875rem]:mt-0 min-[46.875rem]:mb-8 min-[46.875rem]:min-h-[2.625rem] min-[46.875rem]:flex-wrap min-[46.875rem]:justify-center min-[46.875rem]:gap-8 min-[46.875rem]:overflow-visible min-[46.875rem]:px-0 min-[46.875rem]:pt-0',
+              )}
+            >
+              {tabs.map((tab, index) => (
+                <button
+                  key={tab.id}
+                  ref={(element) => {
+                    tabRefs.current[index] = element;
+                  }}
+                  type="button"
+                  role="tab"
+                  id={`${baseId}-tab-${tab.id}`}
+                  aria-selected={index === active}
+                  aria-controls={`${baseId}-panel`}
+                  tabIndex={index === active ? 0 : -1}
+                  onClick={() => select(index)}
+                  className={cn(
+                    // The reference's tabs: teal and underlined when chosen, teal while pointed at.
+                    'shrink-0 border-b-2 pb-2 font-heading text-[1.5rem] leading-[1.1] whitespace-nowrap transition-[color,border-color] duration-200 ease-[ease] first:ml-auto last:mr-auto hover:text-forest-900 min-[46.875rem]:text-[2rem] min-[46.875rem]:first:ml-0 min-[46.875rem]:last:mr-0',
+                    index === active
+                      ? 'border-forest-900 text-forest-900'
+                      : 'border-transparent text-fg',
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         <div

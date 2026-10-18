@@ -9,6 +9,7 @@ import {
   checkoutSchema,
   contactInquirySchema,
   formatUzPhone,
+  imageSchema,
   listingBannerSlot,
   normalizeSearchText,
   normalizeUzPhone,
@@ -255,6 +256,7 @@ describe('page pictures', () => {
       type: 'video/mp4',
       width: 596,
       height: 336,
+      mask: true,
       focusX: 60,
       focusY: 45,
     };
@@ -274,9 +276,32 @@ describe('page pictures', () => {
       type: 'video/webm',
       width: null,
       height: null,
+      mask: false,
       focusX: 50,
       focusY: 50,
     });
+  });
+});
+
+describe('imageSchema', () => {
+  const image = {
+    src: '/uploads/products/x/y',
+    widths: [320],
+    width: 400,
+    height: 400,
+    alt: 'Tea',
+  };
+  it('carries a product picture its film, with the cards copy and mask optional', () => {
+    const film = { src: '/uploads/f/video.mp4', type: 'video/mp4', width: 1024, height: 1024 };
+    expect(imageSchema.parse({ ...image, film }).film).toEqual({
+      ...film,
+      cardSrc: null,
+      mask: null,
+    });
+    expect(imageSchema.parse(image).film).toBeUndefined();
+    expect(
+      imageSchema.safeParse({ ...image, film: { ...film, type: 'video/quicktime' } }).success,
+    ).toBe(false);
   });
 });
 

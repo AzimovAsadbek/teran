@@ -16,7 +16,7 @@ import {
   type VisualsSetting,
 } from '@teran/contracts';
 import { PUBLIC_UPLOADS_PATH } from '../catalog/catalog.mapper.js';
-import { videoFileName } from '../media/image-processing.js';
+import { PRODUCT_FILM_MASK_FILE, videoFileName } from '../media/image-processing.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -52,8 +52,13 @@ export interface SettingValues {
 /** A place's film as the storefront plays it: the file's address and how it loops. */
 export function visualVideo(video: VisualsSetting[string]['video']): PublicFilmDto | null {
   if (!video) return null;
-  const { key, ...play } = video;
-  return { src: `${PUBLIC_UPLOADS_PATH}/${key}/${videoFileName(video.type)}`, ...play };
+  const { key, mask, ...play } = video;
+  const base = `${PUBLIC_UPLOADS_PATH}/${key}`;
+  return {
+    src: `${base}/${videoFileName(video.type)}`,
+    ...play,
+    mask: mask ? `${base}/${PRODUCT_FILM_MASK_FILE}` : null,
+  };
 }
 
 /** A stored page picture as an image the storefront can render (decorative: no alt text). */

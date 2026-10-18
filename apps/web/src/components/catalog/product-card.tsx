@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatMoney, packLabel } from '@/lib/format';
 import { showPrices } from '@/lib/site';
+import { ProductFilm } from './product-film';
 import { ProductImage } from './product-image';
 import { OrderAction } from './order-action';
 import { QuickAdd } from './quick-add';
@@ -33,7 +34,8 @@ function discountPercent(price: string, compareAt: string | null): number | null
  * then the tea type in italics, the name and price · pack size. As on the reference the picture and
  * the name lead to the product (the name, underlined while pointed at, is the keyboard's stop),
  * the card itself does not move and the second picture fades in while the pointer is on the
- * picture. While the card is pointed at, the "Add to bag · price" pill shows over the picture's
+ * picture; a first picture with a film comes alive (product-film.tsx). While the card is pointed
+ * at, the "Add to bag · price" pill shows over the picture's
  * foot (a round bag button on touch screens, quick-add.tsx); without prices, an "Order" pill to
  * the product page's ordering block (order-action.tsx). No rating row: TERAN has no reviews, and
  * none is invented.
@@ -78,6 +80,10 @@ export function ProductCard({
           priority={priority}
           className={cn(soldOut && 'opacity-60')}
         />
+        {/* A living picture (steam rising, the tea stirring) where the first picture has a film. */}
+        {product.image?.film?.cardSrc && !soldOut ? (
+          <ProductFilm film={product.image.film} size="card" />
+        ) : null}
         {hoverImage ? (
           // Not displayed on touch screens, so it is never downloaded there.
           <ProductImage

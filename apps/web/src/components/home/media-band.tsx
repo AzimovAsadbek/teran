@@ -8,7 +8,17 @@ import type { MediaLabels } from '@/components/media/media-gallery';
 import { TileTitle } from '@/components/media/tile-title';
 import { IconButton } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
-import { imageSources } from '@/lib/navigation';
+import { coverSizes, imageSources } from '@/lib/navigation';
+
+/**
+ * The cards (15rem, 17rem from 640 px, 9:14, the centred one 4 % larger) cover their picture: a
+ * landscape picture is drawn at the card's height, nearly three times as wide as the card.
+ */
+const cardSizes = (picture: { width: number; height: number }) =>
+  coverSizes(picture, [
+    { media: '(min-width: 640px)', width: '17.7rem', ratio: 9 / 14 },
+    { width: '15.6rem', ratio: 9 / 14 },
+  ]);
 
 export interface MediaBandLabels {
   /** Spoken before the heading: "Gallery". */
@@ -194,7 +204,7 @@ export function MediaBand({
                   <img
                     src={sources.src}
                     srcSet={sources.srcSet}
-                    sizes="17rem"
+                    sizes={cardSizes(item.image)}
                     alt=""
                     loading="lazy"
                     decoding="async"

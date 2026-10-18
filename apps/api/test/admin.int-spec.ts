@@ -322,6 +322,69 @@ describe('admin API', () => {
       expect((removed.body as AdminProductDetail).images).toHaveLength(1);
     });
 
+    it("shows a picture's film with it, and lets a new or deleted picture take the film along", async () => {
+      const { agent } = await signedIn('MANAGER');
+      const product = (
+        await agent
+          .post(`${API}/admin/products`)
+          .send(productPayload(categoryId, { status: 'DRAFT', slug: 'film-test-tea' }))
+          .expect(201)
+      ).body as AdminProductDetail;
+      const pictured = (
+        await agent
+          .post(`${API}/admin/products/${product.id}/images`)
+          .attach('file', await png(400), { filename: 'cup.png', contentType: 'image/png' })
+          .expect(201)
+      ).body as AdminProductDetail;
+      const imageId = pictured.images[0]!.id;
+      const uploads = TEST_ENV.UPLOADS_DIR!;
+      // A film as the import script stores it: the film, its cards' copy and where it moves.
+      const attachFilm = async (name: string) => {
+        const key = `products/${product.id}/${name}`;
+        mkdirSync(join(uploads, key), { recursive: true });
+        for (const file of ['video.mp4', 'card.mp4', 'mask.png']) {
+          writeFileSync(join(uploads, key, file), 'x');
+        }
+        await ctx.prisma.productImage.update({
+          where: { id: imageId },
+          data: {
+            videoKey: key,
+            videoType: 'video/mp4',
+            videoWidth: 1024,
+            videoHeight: 1024,
+            videoFiles: ['card', 'mask'],
+          },
+        });
+        return key;
+      };
+      const first = await attachFilm('filmAAAAAAAA');
+      const detail = (await agent.get(`${API}/admin/products/${product.id}`).expect(200))
+        .body as AdminProductDetail;
+      expect(detail.images[0]?.film).toEqual({
+        src: `/uploads/${first}/video.mp4`,
+        cardSrc: `/uploads/${first}/card.mp4`,
+        mask: `/uploads/${first}/mask.png`,
+        type: 'video/mp4',
+        width: 1024,
+        height: 1024,
+      });
+
+      // A new picture is not the film's first frame: the film goes, files and all.
+      const replaced = (
+        await agent
+          .post(`${API}/admin/products/${product.id}/images/${imageId}/file`)
+          .attach('file', await png(500), { filename: 'other.png', contentType: 'image/png' })
+          .expect(201)
+      ).body as AdminProductDetail;
+      expect(replaced.images[0]?.film).toBeNull();
+      expect(existsSync(join(uploads, first, 'video.mp4'))).toBe(false);
+
+      // Deleting the picture deletes its film too.
+      const second = await attachFilm('filmBBBBBBBB');
+      await agent.delete(`${API}/admin/products/${product.id}/images/${imageId}`).expect(200);
+      expect(existsSync(join(uploads, second, 'card.mp4'))).toBe(false);
+    });
+
     it('never lets an adjustment take stock below zero', async () => {
       const { agent } = await signedIn('MANAGER');
       const product = await createProduct(ctx.prisma, {
@@ -623,6 +686,7 @@ describe('admin API', () => {
         type: 'video/mp4',
         width: 736,
         height: 414,
+        mask: null,
         focusX: 50,
         focusY: 50,
       });

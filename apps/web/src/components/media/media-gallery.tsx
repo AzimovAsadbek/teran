@@ -48,7 +48,9 @@ const ratio = (item: MediaItemDto) => item.image.width / item.image.height;
 const justifiedSizes = (item: MediaItemDto) => {
   const r = ratio(item);
   const rem = (row: number) => `${(row * r * 1.25).toFixed(1)}rem`;
-  return `(min-width: 1024px) ${rem(17)}, (min-width: 640px) ${rem(14)}, ${Math.min(88, Math.round(45 * r))}vw`;
+  // A phone's rows hold two or three pictures, which grow up to nearly twice their 9.5rem height
+  // to fill the row (measured 2026-10-18), hence the larger allowance there.
+  return `(min-width: 1024px) ${rem(17)}, (min-width: 640px) ${rem(14)}, ${Math.min(92, Math.round(70 * r))}vw`;
 };
 
 /** Films: one column on phones, two from 640 px, three from 1024 px when there are three or more. */

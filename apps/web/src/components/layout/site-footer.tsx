@@ -8,6 +8,7 @@ import { FooterCup, ValueMarkMint } from '@/components/brand/footer-art';
 import { Wordmark } from '@/components/brand/logo';
 import { NewsletterForm } from '@/components/forms/newsletter-form';
 import { NETWORK_NAMES, SocialIcon } from '@/components/social/social-icon';
+import { MotionToggle } from '@/components/ui/motion-toggle';
 import { BRAND, BRAND_VALUES, brandCopy, brandValueLabels } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { emailLinks, phoneLinks, socialLinks } from '@/lib/contact';
@@ -172,7 +173,7 @@ export async function SiteFooter() {
         <div className="min-[61.875rem]:w-[19.875rem] min-[61.875rem]:flex-[0_1_19.875rem]">
           <Link href="/" className="flex w-fit" aria-label={BRAND.name}>
             {/* The wordmark in white on the band, as the reference's. */}
-            <Wordmark size="compact" className="w-[11.25rem]! brightness-0 invert" />
+            <Wordmark size="compact" sizes="180px" className="w-[11.25rem]! brightness-0 invert" />
           </Link>
           <p className="mt-[1.1875rem] hidden font-headline text-[2rem] leading-10 [--heading-case:none] [--headline-weight:600] min-[61.875rem]:block">
             {copy.tagline}
@@ -252,6 +253,8 @@ export async function SiteFooter() {
           >
             {t('privacy')}
           </Link>
+          {/* Every film on the storefront stops here (WCAG 2.2.2): they have no buttons of their own. */}
+          <MotionToggle labels={{ pause: t('motionPause'), play: t('motionPlay') }} />
         </div>
         <LanguageSwitcherSlot placement="up" className="flex" />
       </div>

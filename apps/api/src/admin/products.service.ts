@@ -491,7 +491,7 @@ export class AdminProductsService {
     const hash = contentHash(file);
     const current = await this.prisma.productImage.findFirst({
       where: { id: imageId, productId },
-      select: { storageKey: true },
+      select: { storageKey: true, videoKey: true },
     });
     if (!current) throw ApiException.notFound('Image not found');
     const twin = await this.prisma.productImage.findFirst({
@@ -509,7 +509,16 @@ export class AdminProductsService {
       await this.prisma.$transaction(async (tx) => {
         await tx.productImage.update({
           where: { id: imageId },
-          data: { ...stored, contentHash: hash },
+          // A film made from the old picture goes with it (the new picture is not its first frame).
+          data: {
+            ...stored,
+            contentHash: hash,
+            videoKey: null,
+            videoType: null,
+            videoWidth: null,
+            videoHeight: null,
+            videoFiles: [],
+          },
         });
         await this.audit.record(
           {
@@ -531,6 +540,7 @@ export class AdminProductsService {
       throw error;
     }
     await deleteStoredImage(this.images, current.storageKey);
+    if (current.videoKey) await deleteStoredImage(this.images, current.videoKey);
     this.revalidation.notify('catalog');
     return this.get(productId);
   }
@@ -679,6 +689,7 @@ export class AdminProductsService {
     });
     // Files go only after the row is gone, so the storefront never references a missing file.
     await deleteStoredImage(this.images, image.storageKey);
+    if (image.videoKey) await deleteStoredImage(this.images, image.videoKey);
     this.revalidation.notify('catalog');
     return this.get(productId);
   }

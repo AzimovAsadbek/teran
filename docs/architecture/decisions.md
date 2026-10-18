@@ -107,7 +107,8 @@ function loses its class.
 
 **Consequences.** Fast static shells with streamed data, edits visible within about a second,
 and builds that do not depend on a running API. Partial prefetching prerenders admin child
-segments separately, so each has its own `loading.tsx`.
+segments separately, so each has its own `loading.tsx`. (Amended by ADR-039: the home page's
+pictures join the prerendered shell when the API answers, and stream as before when it does not.)
 
 ## ADR-009: Product images as API renditions served with `<img srcset>`
 
@@ -648,10 +649,8 @@ players' timing depended on the device.
   plays it with the browser's own `loop` (`LoopingFilm`), one player, no timing of its own. The
   films are re-encoded muted at 1.2–2 Mbit/s: the first view's film went from 4.1 MB to 2.2 MB.
 - A film is fetched whole once the page has loaded and the place comes within a screen of view,
-  fades in over its poster, plays only while on screen, and has a round pause button (WCAG 2.2.2):
-  at the bottom left of the first view, in line with the words, and in the banners at the bottom
-  left on phones and the top right from 1024 px, away from the words and from the chat and
-  networks buttons floating at the bottom right. A veil darkens the words' side over a banner's
+  fades in over its poster and plays only while on screen. (Its round pause button was removed
+  the same day at the owner's request: ADR-038.) A veil darkens the words' side over a banner's
   film; the first view keeps its film's own light from 1024 px (the owner found the veil too dark)
   and shades the letters instead, its veil staying on phones, where the words lie over the sky.
 
@@ -660,3 +659,85 @@ steps are in docs/design/reference-assets.md, section 5. The banner films come f
 creators on Pinterest and the first view's from the owner: TERAN should confirm it may use them
 (section 5). Films are decorative; the words carry the meaning, so search engines and screen
 readers lose nothing without them.
+
+## ADR-038: Living product pictures, films shown only where they move, no pause buttons
+
+**Context.** On 2026-10-18 the owner sent a photograph of a steaming cup of tea and asked for it
+to be each tea's first picture, with the tea moving and the steam slowly rising, each tea in its
+own colour; for another film in the "A choice for every taste" banner; for crisper videos; and,
+the same day, for no pause buttons. Films repeating in a plain loop showed a small flicker in their
+still parts as each loop began: encoders refine still areas frame by frame, and the restart falls
+back to the key frame.
+
+**Decision.**
+
+- A product picture can carry a film (ProductImage `videoKey`, `videoType`, `videoWidth`,
+  `videoHeight`, `videoFiles`; migration `20261018150000_product_image_film`, additive): the
+  picture is its first frame; beside it a 512 px copy for product cards (`card.mp4`) and a mask of
+  where it moves (`mask.png`). The import script sets them (`film`, `cardFilm`, `filmMask` on a
+  product photograph); a picture replaced or deleted in Admin takes its film along. Page films
+  (ADR-037) can carry a mask too.
+- A film shows only where it moves (CSS `mask-image`, cropped as the film is: cover at its focus
+  point); elsewhere the sharp picture under it shows. The still parts never flicker and the films'
+  hidden parts are blurred in the files, so they cost almost nothing.
+- Product cards play the cards' copy while on screen; the product page's gallery plays the film on
+  the slide shown (`ProductFilm`). Banner and first-view films play as in ADR-037.
+- No film has a button of its own (the owner's choice). Films never play with reduced motion, on a
+  data-saving connection or off screen, and the footer's "Videolarni to'xtatish" switch stops them
+  all (remembered on the device, `lib/motion.ts`): the WCAG 2.2.2 way to pause them.
+- The living pictures are made from stills: the owner's cup with the tea's hue turned per tea in
+  OKLab (lightness and the window's reflection kept), the steam flowing upward in two copies half a
+  cycle apart (each fading out before it starts over: no seam), rings running outwards on the tea;
+  the banner's three gaiwans (an Unsplash photograph already composed for that place) with steam
+  painted rising from each cup. The low-resolution films (the owner's first-view film, the order
+  and tea-school banners) were re-encoded twice the size with Lanczos and a little sharpening, and
+  the first view has a phone film of the part phones show.
+
+**Consequences.** The home page loads more video (each film after the page, near its place, the
+cards' copies about 270 KB each); data-saving connections and reduced motion get the pictures
+alone. The tea liquors in the cup are an illustration and the cup photograph is the owner's (a
+reference with its teapot removed), as the Pinterest films are third-party: real photographs of
+TERAN's brews and filmed footage should replace them in time (docs/design/reference-assets.md).
+
+## ADR-039: The home page's pictures prerendered with the page; pictures sized for their frames
+
+**Context.** The owner asked on 2026-10-18 for a faster site and crisper pictures. Lighthouse
+(mobile) gave the home page 75: its largest paint, the first view's picture, came in a part of the
+page streamed at request time (ADR-008), 200 to 300 KB into the HTML, so the browser found it only
+when nearly the whole page had arrived. Each banner drew its own artwork in the page's shell until
+its photograph streamed in, so the artwork's pictures (four or eight pack pictures) were fetched
+and never seen. An audit of the pictures (each file's width against the device pixels it fills)
+found that pictures covering a frame of another shape (a landscape photograph in a tall card) told
+the browser only the frame's width, so it chose files up to 2.5 times too narrow; the About page's
+welcome band asked for 75 % of the window it fills.
+
+**Decision.**
+
+- The home page reads the settings itself while it is prerendered (`getPrerenderSettings`, cached
+  under the `settings` tag like `getPublicSettings`) and hands the first view and the banners
+  their pictures: they are part of the page's prerendered shell, without a Suspense fallback, and
+  the first view's picture is announced in the head (`preload` with each crop's media query,
+  `VisualPicture`). Every change in Admin → Settings expires the tag, so the page is prerendered
+  again with it.
+- Without an answer from the API (a build without one: CI, Docker; ADR-008) the loader returns
+  null instead of throwing (an error inside a cached function stops `next build` even when the
+  caller catches it), kept a minute only, and each place reads its picture at request time as
+  before. Builds still never depend on the API. Catalogue sections stay streamed.
+- `apiGet` fetches with `no-store`: otherwise a build keeps what it fetched in
+  `.next/cache/fetch-cache` and the next build prerenders with that copy. Caching is the
+  `'use cache'` loaders' alone.
+- A picture covering a frame of another shape gets `sizes` worked out from both shapes
+  (`coverSizes`, lib/navigation.ts): the home page's gallery cards, category tiles and their
+  product photographs, the About page's timeline pictures; the media page's rows allow for their
+  growth on phones. Page bands use their full width; the wordmark is asked for at the width it is
+  drawn; the story banner's packs at theirs.
+
+**Consequences.** The first view's picture is in the first 21 KB of the home page's HTML and in
+its head instead of 200 to 300 KB in, and the browser fetches it with the styles and fonts; the
+shell is smaller (no fallback copies) and no unseen artwork is fetched. A change in Admin →
+Settings still shows within seconds (checked on a local production build: 3.5 s from the upload
+to the regenerated page, for the first view and a banner, and back on removal). After an outage
+of the API during a build or a revalidation, the page streams its pictures until it is prerendered
+again, within minutes of the API answering. Pictures in covering frames download larger files,
+below the fold only. The product and catalogue pages still stream their main content (they read
+the address's query): the next place to look for speed.

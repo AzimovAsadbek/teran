@@ -386,6 +386,11 @@ export function videoFileName(type: string): string {
   return type === 'video/webm' ? 'video.webm' : 'video.mp4';
 }
 
+/** A product picture's film: its smaller copy for product cards, under the film's key. */
+export const PRODUCT_FILM_CARD_FILE = 'card.mp4';
+/** A product picture's film: where it moves (a PNG whose alpha is the film's), under its key. */
+export const PRODUCT_FILM_MASK_FILE = 'mask.png';
+
 /**
  * Keeps an uploaded video as it is, under a random key. Only MP4 (ISO base media, not QuickTime)
  * and WebM files are accepted, recognised by their first bytes rather than the declared type.

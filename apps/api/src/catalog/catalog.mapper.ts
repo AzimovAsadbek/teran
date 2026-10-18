@@ -8,6 +8,7 @@ import {
   type Locale,
   type ProductAttributeDto,
   type ProductDetailDto,
+  type ProductFilmDto,
   type ProductSummaryDto,
   type StockLevel,
   type VariantDto,
@@ -15,6 +16,11 @@ import {
 import type { Prisma } from '../generated/prisma/client.js';
 import { localeChain, pickTranslation } from '../common/i18n.js';
 import { toMoney, toMoneyOrNull } from '../common/money.js';
+import {
+  PRODUCT_FILM_CARD_FILE,
+  PRODUCT_FILM_MASK_FILE,
+  videoFileName,
+} from '../media/image-processing.js';
 
 export const PUBLIC_UPLOADS_PATH = '/uploads';
 
@@ -101,7 +107,15 @@ type ImageRow = SummaryProduct['images'][number];
 export type StoredImageRow = Pick<
   ImageRow,
   'storageKey' | 'widths' | 'width' | 'height' | 'altText' | 'transparent'
-> & { translations?: readonly { locale: string; altText: string }[] };
+> & {
+  translations?: readonly { locale: string; altText: string }[];
+  /** The picture's living film (product pictures only; other queries leave it out). */
+  videoKey?: string | null;
+  videoType?: string | null;
+  videoWidth?: number | null;
+  videoHeight?: number | null;
+  videoFiles?: readonly string[];
+};
 type AttributeValueRow = DetailProduct['attributeValues'][number];
 
 /** Localised plain text stored as { "uz": "…", "ru": "…", "en": "…" } (validated on write). */
@@ -246,6 +260,24 @@ export function toImageDto(image: StoredImageRow, alt: string): ImageDto {
     height: image.height,
     alt: image.altText ?? alt,
     transparent: image.transparent,
+    film: productFilm(image),
+  };
+}
+
+/** A product picture's film: its file, the cards' smaller copy and where it moves, if stored. */
+export function productFilm(image: StoredImageRow): ProductFilmDto | null {
+  if (!image.videoKey || (image.videoType !== 'video/mp4' && image.videoType !== 'video/webm')) {
+    return null;
+  }
+  const base = `${PUBLIC_UPLOADS_PATH}/${image.videoKey}`;
+  const files = image.videoFiles ?? [];
+  return {
+    src: `${base}/${videoFileName(image.videoType)}`,
+    cardSrc: files.includes('card') ? `${base}/${PRODUCT_FILM_CARD_FILE}` : null,
+    mask: files.includes('mask') ? `${base}/${PRODUCT_FILM_MASK_FILE}` : null,
+    type: image.videoType,
+    width: image.videoWidth ?? null,
+    height: image.videoHeight ?? null,
   };
 }
 

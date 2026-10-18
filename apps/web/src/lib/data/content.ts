@@ -21,6 +21,25 @@ export async function getPublicSettings(locale: Locale): Promise<PublicSettingsD
   return apiGet<PublicSettingsDto>(`/content/settings?locale=${locale}`);
 }
 
+/**
+ * The settings for a page to prerender with (ADR-039), or null when the API does not answer (a
+ * build without one, ADR-008). Never throws: an error inside a cached function stops `next build`
+ * even when the caller catches it. A miss is kept a minute only, so the page is prerendered again
+ * soon after the API answers; meanwhile the page reads its pictures at request time.
+ */
+export async function getPrerenderSettings(locale: Locale): Promise<PublicSettingsDto | null> {
+  'use cache';
+  cacheTag('settings');
+  try {
+    const settings = await apiGet<PublicSettingsDto>(`/content/settings?locale=${locale}`);
+    cacheLife('hours');
+    return settings;
+  } catch {
+    cacheLife('minutes');
+    return null;
+  }
+}
+
 export async function getArticles(
   locale: Locale,
   page = 1,

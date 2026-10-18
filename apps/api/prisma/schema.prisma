@@ -595,6 +595,15 @@ model ProductImage {
   position    Int      @default(0)
   /// SHA-256 of the uploaded file: the same file is not stored twice for one product.
   contentHash String?
+  /// A muted film looping over this picture, the picture being its first frame (set by the import
+  /// script): <videoKey>/video.mp4 (or .webm). `videoFiles` names its other files: "card" — a
+  /// smaller copy for product cards (card.mp4), "mask" — where the film moves (mask.png; the
+  /// picture shows elsewhere).
+  videoKey    String?
+  videoType   String?
+  videoWidth  Int?
+  videoHeight Int?
+  videoFiles  String[] @default([])
   createdAt   DateTime @default(now())
 
   translations ProductImageTranslation[]

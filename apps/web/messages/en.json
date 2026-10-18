@@ -120,6 +120,8 @@
     "accessibility": "Accessibility"
   },
   "Footer": {
+    "motionPause": "Pause the videos",
+    "motionPlay": "Play the videos",
     "shop": "Shop",
     "company": "Company",
     "help": "Help",
@@ -154,8 +156,6 @@
   "Home": {
     "metaTitle": "TERAN — premium Chinese tea online store",
     "heroCta": "Shop teas",
-    "filmPause": "Pause the video",
-    "filmPlay": "Play the video",
     "valuesTitle": "What TERAN stands for",
     "showcaseTitle": "Choose your favourite tea",
     "showcaseTabs": "Product selections",

@@ -1,44 +1,13 @@
 'use client';
 
 import type { PublicFilmDto } from '@teran/contracts';
-import { Pause, Play } from 'lucide-react';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { useFilmsAllowed, useMatches, useMotionPaused } from '@/lib/motion';
 import { filmPosition } from '@/lib/visuals';
 
 /** How long a film takes to appear over its poster (its own first frame) when it starts. */
 const FADE_IN_MS = 800;
-
-export interface FilmLabels {
-  pause: string;
-  play: string;
-}
-
-function useMatches(query: string): boolean | null {
-  return useSyncExternalStore(
-    (onChange) => {
-      const list = window.matchMedia(query);
-      list.addEventListener('change', onChange);
-      return () => list.removeEventListener('change', onChange);
-    },
-    () => window.matchMedia(query).matches,
-    () => null,
-  );
-}
-
-const noSubscription = () => () => {};
-
-/** A data-saving connection (Chrome on Android, mostly): films stay posters there. */
-function useSaveData(): boolean {
-  return useSyncExternalStore(
-    noSubscription,
-    () =>
-      Boolean(
-        (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData,
-      ),
-    () => false,
-  );
-}
 
 /**
  * A muted film looping over its poster, decorative (the words over it carry the meaning): a page
@@ -46,69 +15,32 @@ function useSaveData(): boolean {
  * is prepared as a loop (its end flows into its beginning), so it simply repeats, without a seam.
  *
  * It is fetched whole once the page has loaded and the place comes near the screen, then fades
- * in over the poster; it plays only while on screen, never with reduced motion or on a
- * data-saving connection, and its round button stops it (WCAG 2.2.2). Phones (under
- * `phoneBelow`, as the poster's taller crop) get their own film when there is one.
+ * in over the poster; it plays only while on screen, and never with reduced motion, on a
+ * data-saving connection or while the visitor has paused the films (the footer's switch,
+ * lib/motion). It has no button of its own (the owner's choice). Phones (under `phoneBelow`, as
+ * the poster's taller crop) get their own film when there is one.
  *
- * The film lies at -z-20 in its frame (over a poster at -z-20 or below); `controlsClassName`
- * places the button's row (absolutely, in the frame).
+ * The film lies at -z-20 in its frame (over a poster at -z-20 or below).
  */
 export function LoopingFilm({
   film,
   phoneFilm = null,
   phoneBelow = 750,
-  labels,
-  controlsClassName,
 }: {
   film: PublicFilmDto;
   phoneFilm?: PublicFilmDto | null;
   phoneBelow?: number;
-  labels: FilmLabels;
-  controlsClassName: string;
 }) {
   const phone = useMatches(`(max-width: ${phoneBelow - 1}px)`);
-  const reducedMotion = useMatches('(prefers-reduced-motion: reduce)');
-  const saveData = useSaveData();
-  const [ready, setReady] = useState(false);
-  const [stopped, setStopped] = useState(false);
-  const allowed = reducedMotion === false && !saveData;
+  const allowed = useFilmsAllowed();
+  const paused = useMotionPaused();
   const source = phone === null ? null : phone && phoneFilm ? phoneFilm : film;
-
-  return (
-    <>
-      {source && allowed ? (
-        <FilmPlayer key={source.src} film={source} stopped={stopped} onReady={setReady} />
-      ) : null}
-      {ready && allowed ? (
-        <div className={cn('pointer-events-none absolute', controlsClassName)}>
-          <button
-            type="button"
-            onClick={() => setStopped((value) => !value)}
-            aria-label={stopped ? labels.play : labels.pause}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-forest-950/45 text-ivory-50 backdrop-blur-sm transition-colors duration-200 hover:bg-forest-950/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ivory-50"
-          >
-            {stopped ? (
-              <Play aria-hidden className="h-4 w-4 fill-current" />
-            ) : (
-              <Pause aria-hidden className="h-4 w-4 fill-current" />
-            )}
-          </button>
-        </div>
-      ) : null}
-    </>
-  );
+  if (!source || !allowed) return null;
+  return <FilmPlayer key={source.src} film={source} stopped={paused} />;
 }
 
 /** One film: fetched when near, playing while on screen and not stopped. */
-function FilmPlayer({
-  film,
-  stopped,
-  onReady,
-}: {
-  film: PublicFilmDto;
-  stopped: boolean;
-  onReady: (ready: boolean) => void;
-}) {
+function FilmPlayer({ film, stopped }: { film: PublicFilmDto; stopped: boolean }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [near, setNear] = useState(false);
@@ -162,11 +94,6 @@ function FilmPlayer({
     };
   }, [near, film.src, film.type]);
 
-  useEffect(() => {
-    onReady(url !== null);
-    return () => onReady(false);
-  }, [url, onReady]);
-
   const playing = url !== null && onScreen && !stopped;
   useEffect(() => {
     const video = videoRef.current;
@@ -191,7 +118,24 @@ function FilmPlayer({
         preload="auto"
         tabIndex={-1}
         onPlaying={() => setShown(true)}
-        style={{ objectPosition: filmPosition(film), transitionDuration: `${FADE_IN_MS}ms` }}
+        style={{
+          objectPosition: filmPosition(film),
+          transitionDuration: `${FADE_IN_MS}ms`,
+          // Only where it moves, when it has a mask: elsewhere its sharp poster shows through. The
+          // mask is cropped as the film is (cover, at the same point), so the two stay aligned.
+          ...(film.mask
+            ? {
+                maskImage: `url(${film.mask})`,
+                WebkitMaskImage: `url(${film.mask})`,
+                maskSize: 'cover',
+                WebkitMaskSize: 'cover',
+                maskPosition: filmPosition(film),
+                WebkitMaskPosition: filmPosition(film),
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+              }
+            : {}),
+        }}
         className={cn(
           'h-full w-full object-cover transition-opacity ease-out',
           shown ? 'opacity-100' : 'opacity-0',

@@ -120,6 +120,8 @@
     "accessibility": "Maxsus imkoniyatlar"
   },
   "Footer": {
+    "motionPause": "Videolarni toʻxtatish",
+    "motionPlay": "Videolarni davom ettirish",
     "shop": "Doʻkon",
     "company": "Kompaniya",
     "help": "Yordam",
@@ -154,8 +156,6 @@
   "Home": {
     "metaTitle": "TERAN — premium Xitoy choyi onlayn doʻkoni",
     "heroCta": "Choylarni koʻrish",
-    "filmPause": "Videoni toʻxtatish",
-    "filmPlay": "Videoni davom ettirish",
     "valuesTitle": "TERAN qadriyatlari",
     "showcaseTitle": "Sevimli choylaringizni tanlang",
     "showcaseTabs": "Mahsulotlar toʻplami",

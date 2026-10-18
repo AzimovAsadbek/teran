@@ -29,7 +29,7 @@ import { getCategories } from '@/lib/data/catalog';
 import { NETWORK_NAMES, SocialIcon } from '@/components/social/social-icon';
 import { socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
-import { categoryTree } from '@/lib/navigation';
+import { categoryTree, coverSizes } from '@/lib/navigation';
 import { pageMetadata } from '@/lib/seo';
 import { showAdvisor, showGallery } from '@/lib/site';
 import { visualFor } from '@/lib/visuals';
@@ -94,13 +94,7 @@ export default async function AboutPage() {
       {/* 1. Welcome: the lake painted on the packs, the title and a tilted sticker. */}
       <header className="on-dark relative isolate flex h-[18rem] items-center justify-center overflow-hidden bg-forest-950 text-center sm:h-[26.125rem]">
         <Suspense fallback={null}>
-          <PagePicture
-            slot="about.hero"
-            art={lake}
-            sizes="(max-width: 767px) 75vw, 100vw"
-            priority
-            className="-z-20"
-          />
+          <PagePicture slot="about.hero" art={lake} sizes="100vw" priority className="-z-20" />
         </Suspense>
         <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/35" />
         <p
@@ -450,17 +444,20 @@ async function PagePicture({
 }: {
   slot: string;
   art: StaticImageData;
-  sizes: string;
+  /** Or, for a frame the picture covers, worked out from the picture's shape (`coverSizes`). */
+  sizes: string | ((picture: { width: number; height: number }) => string);
   priority?: boolean;
   className?: string;
 }) {
   await connection();
   const locale = await getLocale();
   const visual = visualFor(await getPublicSettings(locale).catch(() => null), slot);
+  const sizesFor = (picture: { width: number; height: number }) =>
+    typeof sizes === 'string' ? sizes : sizes(picture);
   if (visual) {
     return (
       <div className={cn('absolute inset-0', className)}>
-        <VisualPicture visual={visual} sizes={sizes} priority={priority} />
+        <VisualPicture visual={visual} sizes={sizesFor(visual.image)} priority={priority} />
       </div>
     );
   }
@@ -469,7 +466,7 @@ async function PagePicture({
       src={art}
       alt=""
       fill
-      sizes={sizes}
+      sizes={sizesFor(art)}
       quality={60}
       loading={priority ? 'eager' : undefined}
       fetchPriority={priority ? 'high' : undefined}
@@ -518,7 +515,24 @@ function IdeaStep({
           )}
         >
           <Suspense fallback={null}>
-            <PagePicture slot={picture.slot} art={picture.art} sizes="20rem" />
+            <PagePicture
+              slot={picture.slot}
+              art={picture.art}
+              sizes={(shape) =>
+                coverSizes(
+                  shape,
+                  picture.shape === 'circle'
+                    ? [
+                        { media: '(min-width: 640px)', width: '16rem', ratio: 1 },
+                        { width: '13rem', ratio: 1 },
+                      ]
+                    : [
+                        { media: '(min-width: 640px)', width: '20rem', ratio: 320 / 336 },
+                        { width: '15rem', ratio: 320 / 336 },
+                      ],
+                )
+              }
+            />
           </Suspense>
         </div>
       ) : null}

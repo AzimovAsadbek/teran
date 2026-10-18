@@ -112,6 +112,16 @@ const nextConfig: NextConfig = {
         ? [
             { source: '/admin/:path*', headers: adminHeaders },
             { source: '/:locale(ru|en)/admin/:path*', headers: adminHeaders },
+            // Vercel's CDN keeps what /uploads answers (Blob's one-year Cache-Control) under the
+            // file's address alone, so a part of a film asked for by a player (Safari first asks
+            // for two bytes) was answered to every later request and the film would not play.
+            // Answers to range requests are not kept: Blob serves each range itself. Whole files
+            // (pictures, the films fetched whole) are still kept.
+            {
+              source: '/uploads/:path*',
+              has: [{ type: 'header' as const, key: 'range' }],
+              headers: [{ key: 'x-vercel-enable-rewrite-caching', value: '0' }],
+            },
           ]
         : []),
     ];

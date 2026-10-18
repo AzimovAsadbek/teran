@@ -52,6 +52,15 @@ the Docker deployment.
 The API refuses to start on Vercel without a Blob token, because images written to the function's
 disk would be lost.
 
+Vercel's CDN keeps what Blob answers through the `/uploads` rewrite (Blob sends a one-year
+`Cache-Control`) under the file's address alone, whatever byte range was asked for. A film played
+straight from a `<video>` element is asked for in ranges (Safari first asks for two bytes), so one
+cached part was answered to every later request and the film failed with a format error (found
+2026-10-18 on the product films). The storefront therefore marks range requests to `/uploads` with
+`x-vercel-enable-rewrite-caching: 0` (`next.config.ts`): Blob answers each range itself, while
+whole files (pictures, and the page films, which are fetched whole) are still kept on the CDN.
+After a change like this, purge the CDN cache once: `vercel cache purge --type cdn`.
+
 Films: the admin area asks the API for an upload permission (`POST
 /api/v1/admin/media/:id/video/direct`: one file, its type, at most 512 MB, 30 minutes), sends the
 file to Blob itself (`@vercel/blob/client`, in parts above 32 MB), then asks the API to record it

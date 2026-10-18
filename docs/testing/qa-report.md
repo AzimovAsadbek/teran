@@ -369,3 +369,8 @@ trace of the vase or brooch, the cup's and saucer's outlines single, the backdro
 1024 px is gone, so the film keeps its own light; a soft shadow behind the letters keeps the yellow
 headline and the white words readable over the leaves (checked at 1440 and 1824 px). Phones keep
 their veil at the top, where the words lie over the bright sky.
+
+**Repainted at the owner's request** (the same day): the cups now hold freshly poured tea, with
+rings on the surface, a few bubbles and steam rising, a different pattern for each tea. Checked on
+the live site in Google Chrome: the catalogue at 1440 px (the steam reads at card size) and the
+product page of TERAN 8009 at 390 px (the cup first, then the leaves and the packs).

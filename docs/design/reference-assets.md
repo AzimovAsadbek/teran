@@ -222,12 +222,17 @@ These replace the DAVIDsTEA leaf and cup photographs shown before each tea's pac
   Larisa Birta (Unsplash License), square-cropped. The vase behind it was replaced by the backdrop
   mirrored from beyond it (its light matched along the edges, the cup's outline re-blended), the
   brooch beside the saucer by the table's own light and grain.
-- **The tea** is painted in: a surface 125 px below the rim in the cup's taper; its colour from
-  light crossing the tea to the far inner wall and back (Beer–Lambert, so it is pale at the far
-  edge and deepest at the front); the far wall and gold rim mirrored in it (13 %), the near wall's
-  shade, the window's soft glare and the photo's grain. The liquors are an illustration, not a
-  photograph of the teas: fresh jade green (8830), olive green-gold (XC2025), lemon yellow (8800),
-  golden (G8810), golden amber (8009, roasted). Photographs of the real brews should replace them.
+- **The tea** is painted in, just poured (the owner asked for it to look freshly brewed and hot,
+  as in a reference photograph they sent): a surface 125 px below the rim in the cup's taper; its
+  colour from light crossing the tea to the far inner wall and back (Beer–Lambert, pale at the far
+  edge, deepest at the front); rings spreading from where the stream landed (wider outwards, as
+  real ripples), which bend the mirrored far wall and gold rim, change the surface's sheen
+  (Fresnel) and catch the window's light; a few bubbles; steam rising in wisps above the rim; a
+  slightly warmer light, the wall a shade deeper behind the steam. Each tea has its own rings,
+  bubbles and steam. The liquors are an illustration, not a photograph of the teas: fresh jade
+  green (8830), olive green-gold (XC2025), lemon yellow (8800), golden (G8810), golden amber (8009,
+  roasted). Photographs of the real brews should replace them. The scripts that made them were
+  one-off and are not kept; the method is this list.
 - **The leaves** (the owner's 1254 px studio photographs): XC2025 thin curled leaves, G8810 downy
   Yunnan leaves, 8800 large twisted leaves, 8830 straight needles, 8009 flat roasted leaves. The
   Tea 101 page's round frames show the owner's white, oolong, black and pu-erh leaves in their
@@ -239,7 +244,9 @@ corepack pnpm --filter @teran/api visuals:import --dir storage/remove-partner-pr
 corepack pnpm --filter @teran/api visuals:import --dir storage/tea-cups
 ```
 
-The removal folder holds the DAVIDsTEA product photographs (matched by content); their entries were
+The first, still versions of the cups (the same day) are in `storage/remove-tea-cups-v1/`, imported
+with `--remove` before the steaming ones. The removal folder holds the DAVIDsTEA product photographs
+(matched by content); their entries were
 taken out of `storage/reference-partner/`'s manifest (section 2), so importing it again cannot bring
 them back.
 

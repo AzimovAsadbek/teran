@@ -352,3 +352,20 @@ dissolved the film's end into its start in the browser with two players taking t
 footage showed two moments half-transparent for 1.6 s; the loops are prepared in the files now. An
 end-to-end test expected the product's address without the pack the product page adds
 (`?variant=…`) and failed when the page loaded quickly; it accepts the pack now.
+
+## Tea cups and leaves (2026-10-18)
+
+Each tea's first picture is now the tea brewed in one blue-and-gold cup, a different liquor for
+each, and its second the tea's dry leaves; the DAVIDsTEA leaf and cup photographs are gone; the
+Tea 101 page's five bands show their kind's dry leaves (docs/design/reference-assets.md section 6).
+
+Checked locally in Google Chrome: the catalogue at 1440 px (five cups, five liquors, told apart at
+card size), the product pages of TERAN 8009 at 1440 px and TERAN 8830 at 390 px (the cup, the
+leaves, then the three pack photographs), Tea 101 at 1440 and 390 px. On the cup, at 2× zoom: no
+trace of the vase or brooch, the cup's and saucer's outlines single, the backdrop's grain matching
+(σ 2.4 against 2.1 around it).
+
+**Changed at the owner's request** (the same day): the first view's dark veil on the left from
+1024 px is gone, so the film keeps its own light; a soft shadow behind the letters keeps the yellow
+headline and the white words readable over the leaves (checked at 1440 and 1824 px). Phones keep
+their veil at the top, where the words lie over the bright sky.

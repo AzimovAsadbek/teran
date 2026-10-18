@@ -651,7 +651,9 @@ players' timing depended on the device.
   fades in over its poster, plays only while on screen, and has a round pause button (WCAG 2.2.2):
   at the bottom left of the first view, in line with the words, and in the banners at the bottom
   left on phones and the top right from 1024 px, away from the words and from the chat and
-  networks buttons floating at the bottom right. A veil darkens the words' side over a film.
+  networks buttons floating at the bottom right. A veil darkens the words' side over a banner's
+  film; the first view keeps its film's own light from 1024 px (the owner found the veil too dark)
+  and shades the letters instead, its veil staying on phones, where the words lie over the sky.
 
 **Consequences.** A film uploaded without preparation would show a cut at each repetition; the
 steps are in docs/design/reference-assets.md, section 5. The banner films come from third-party

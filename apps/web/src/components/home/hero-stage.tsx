@@ -62,9 +62,11 @@ function headlineSize(lines: string[]): string {
 /**
  * The front page's first view, one view without rotation: TERAN's words — the pack's tagline in
  * yellow condensed capitals, what TERAN is, a pill to the teas — over `home.hero.1`'s film, or
- * over that place's picture, or over the lake painted on the packs. 540 px high on phones and 560 px from 900 px (as tall as a 3.1:1 picture at wider
- * windows), as the slides it replaced; the words centred over the top on phones, on the left of
- * a soft dark veil from 1024 px.
+ * over that place's picture, or over the lake painted on the packs. 540 px high on phones and
+ * 560 px from 900 px (as tall as a 3.1:1 picture at wider windows), as the slides it replaced; the
+ * words centred over the top on phones (over a soft dark veil), on the left from 1024 px, where
+ * the film stays as bright as it is (the owner's wish of 2026-10-18) and a soft shadow behind the
+ * letters keeps them readable.
  *
  * The film (LoopingFilm): the place's picture is its first frame, painted at once (the page's
  * largest paint); the film is fetched once the page has loaded, fades in over it and loops
@@ -119,11 +121,12 @@ export function HeroStage({
           controlsClassName="inset-x-0 bottom-4 container-page lg:bottom-6"
         />
       ) : null}
-      {/* A deep veil where the words are (the top on phones, the left from 1024 px), so the
-          yellow headline and the white words stay readable over bright leaves. */}
+      {/* On phones a veil where the words are (the top), so the yellow headline and the white
+          words stay readable over the bright sky and leaves; wide screens keep the film's own
+          light and shade the letters instead. */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-linear-to-b from-forest-950/75 via-forest-950/35 via-50% to-forest-950/0 to-80% lg:bg-linear-to-r lg:from-forest-950/75 lg:via-forest-950/30 lg:via-45% lg:to-forest-950/0 lg:to-75%"
+        className="absolute inset-0 -z-10 bg-linear-to-b from-forest-950/75 via-forest-950/35 via-50% to-forest-950/0 to-80% lg:hidden"
       />
       <span
         aria-hidden
@@ -134,7 +137,7 @@ export function HeroStage({
           way and the screen readers'). */}
       <Link href={words.cta.href} tabIndex={-1} aria-hidden className="absolute inset-0 -z-[5]" />
       <div className="pointer-events-none container-page flex h-full flex-col items-center pt-8 text-center lg:items-start lg:justify-center lg:pt-0 lg:text-left">
-        <div className="pointer-events-auto flex max-w-[45rem] flex-col items-center lg:max-w-[min(36rem,40vw)] lg:items-start">
+        <div className="pointer-events-auto flex max-w-[45rem] flex-col items-center lg:max-w-[min(36rem,40vw)] lg:items-start lg:[text-shadow:0_2px_18px_rgb(0_0_0_/_0.45),0_1px_3px_rgb(0_0_0_/_0.3)]">
           <p className="text-[1.25rem] leading-[1.1] font-bold text-ivory-50 uppercase">
             {words.eyebrow}
           </p>
@@ -158,7 +161,7 @@ export function HeroStage({
           ) : null}
           <Link
             href={words.cta.href}
-            className="pill-hover mt-5 inline-flex h-[3.125rem] items-center rounded-full bg-cream px-8 text-[1rem] font-medium text-fg lg:mt-8"
+            className="pill-hover mt-5 inline-flex h-[3.125rem] items-center rounded-full bg-cream px-8 text-[1rem] font-medium text-fg [text-shadow:none] lg:mt-8"
           >
             {words.cta.label}
           </Link>

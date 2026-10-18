@@ -14,6 +14,11 @@ import { getPublicSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
 import { visualFor } from '@/lib/visuals';
 import terraces from '../../../../../public/brand/art/terraces.webp';
+import blackLeaves from '../../../../../public/brand/leaves/black.webp';
+import greenLeaves from '../../../../../public/brand/leaves/green.webp';
+import oolongLeaves from '../../../../../public/brand/leaves/oolong.webp';
+import puerhLeaves from '../../../../../public/brand/leaves/puerh.webp';
+import whiteLeaves from '../../../../../public/brand/leaves/white.webp';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -27,9 +32,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The kinds of tea in the reference's order with its pastel bands, and the category each would be
- * sold from. The reference's matcha, herbal, mate and rooibos bands are left out: they are not
- * the Chinese teas TERAN deals in.
+ * The kinds of tea in the reference's order with its pastel bands, the category each would be
+ * sold from and its dry leaves (photographs the owner supplied). The reference's matcha, herbal,
+ * mate and rooibos bands are left out: they are not the Chinese teas TERAN deals in.
  */
 const STEPS = ['measure', 'water', 'steep'] as const;
 
@@ -37,11 +42,11 @@ const STEPS = ['measure', 'water', 'steep'] as const;
 const HEADLINE = 'font-headline text-[2rem] text-[#121212] [--headline-weight:800]';
 
 const TYPES = [
-  { key: 'white', slug: 'white-tea', band: 'bg-[#f0f9f7]' },
-  { key: 'green', slug: 'green-tea', band: 'bg-[#f1f8e4]' },
-  { key: 'oolong', slug: 'oolong-tea', band: 'bg-[#d4e9f3]' },
-  { key: 'black', slug: 'black-tea', band: 'bg-[#ccd7e0]' },
-  { key: 'puerh', slug: 'puerh-tea', band: 'bg-[#e2d2da]' },
+  { key: 'white', slug: 'white-tea', band: 'bg-[#f0f9f7]', leaves: whiteLeaves },
+  { key: 'green', slug: 'green-tea', band: 'bg-[#f1f8e4]', leaves: greenLeaves },
+  { key: 'oolong', slug: 'oolong-tea', band: 'bg-[#d4e9f3]', leaves: oolongLeaves },
+  { key: 'black', slug: 'black-tea', band: 'bg-[#ccd7e0]', leaves: blackLeaves },
+  { key: 'puerh', slug: 'puerh-tea', band: 'bg-[#e2d2da]', leaves: puerhLeaves },
 ] as const;
 
 /**
@@ -111,9 +116,9 @@ async function AmountPicture() {
 
 /**
  * Tea 101 on the reference's page: a teal banner, "What is tea?" on white, then a pastel band per
- * kind of tea with its name, what makes it and how to brew it, and — where TERAN sells that kind —
- * a pill to its category and a row of its teas; then how much tea a pack makes and the three
- * brewing steps. The kinds' text is general tea knowledge; the amounts, temperatures and times
+ * kind of tea with its dry leaves, its name, what makes it and how to brew it, and — where TERAN
+ * sells that kind — a pill to its category and a row of its teas; then how much tea a pack makes
+ * and the three brewing steps. The kinds' text is general tea knowledge; the amounts, temperatures and times
  * are those of TERAN's own teas (their product pages give each one's).
  */
 export default async function TeaBasicsPage() {
@@ -142,6 +147,14 @@ export default async function TeaBasicsPage() {
           className={`${type.band} py-12 text-center`}
         >
           <div className="container-frame">
+            {/* The kind's dry leaves, in a round white frame above its name. */}
+            <Image
+              src={type.leaves}
+              alt=""
+              sizes="(min-width: 46.875rem) 176px, 136px"
+              quality={75}
+              className="mx-auto mb-6 size-34 rounded-full object-cover shadow-[0_8px_24px_rgb(0_0_0_/_0.08)] ring-4 ring-white min-[46.875rem]:size-44"
+            />
             <h2
               id={`tea-${type.key}`}
               className="font-heading text-[2rem] leading-[2.4rem] text-[#191919] lowercase"

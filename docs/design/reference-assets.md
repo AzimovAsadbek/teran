@@ -212,6 +212,37 @@ work found on Pinterest, used at the owner's request: a pin grants no licence, s
 the creators' permission or replace them with its own footage (the places keep working with any
 prepared film, or with a picture uploaded in Admin, which replaces the film).
 
+## 6. `storage/tea-cups/` — each tea brewed in one cup, then its dry leaves (go live)
+
+On 2026-10-18 the owner asked for each tea's first picture to show it brewed in a fine porcelain
+cup, a different liquor for each, followed by the tea's dry leaves (photographs they supplied).
+These replace the DAVIDsTEA leaf and cup photographs shown before each tea's pack photographs.
+
+- **The cup**: [a blue-rose teacup with gold rims](https://unsplash.com/photos/ToXwAwrpRKU) by
+  Larisa Birta (Unsplash License), square-cropped. The vase behind it was replaced by the backdrop
+  mirrored from beyond it (its light matched along the edges, the cup's outline re-blended), the
+  brooch beside the saucer by the table's own light and grain.
+- **The tea** is painted in: a surface 125 px below the rim in the cup's taper; its colour from
+  light crossing the tea to the far inner wall and back (Beer–Lambert, so it is pale at the far
+  edge and deepest at the front); the far wall and gold rim mirrored in it (13 %), the near wall's
+  shade, the window's soft glare and the photo's grain. The liquors are an illustration, not a
+  photograph of the teas: fresh jade green (8830), olive green-gold (XC2025), lemon yellow (8800),
+  golden (G8810), golden amber (8009, roasted). Photographs of the real brews should replace them.
+- **The leaves** (the owner's 1254 px studio photographs): XC2025 thin curled leaves, G8810 downy
+  Yunnan leaves, 8800 large twisted leaves, 8830 straight needles, 8009 flat roasted leaves. The
+  Tea 101 page's round frames show the owner's white, oolong, black and pu-erh leaves in their
+  bands and the flat green leaves in the green band (`apps/web/public/brand/leaves/`); the jasmine,
+  mint, fruit and gunpowder photographs are kept for teas TERAN may add.
+
+```bash
+corepack pnpm --filter @teran/api visuals:import --dir storage/remove-partner-products --remove
+corepack pnpm --filter @teran/api visuals:import --dir storage/tea-cups
+```
+
+The removal folder holds the DAVIDsTEA product photographs (matched by content); their entries were
+taken out of `storage/reference-partner/`'s manifest (section 2), so importing it again cannot bring
+them back.
+
 ## Not copied
 
 - The reference's logo, texts, prices, reviews and ratings: TERAN keeps its own.

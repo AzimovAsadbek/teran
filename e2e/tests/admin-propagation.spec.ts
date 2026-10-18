@@ -211,7 +211,7 @@ test.describe('admin changes reach the storefront', () => {
     await store.context().close();
   });
 
-  test('a new category shows in the menu at once, its texts update, and it goes when switched off', async ({
+  test('a new category joins the menu with its first product, its texts update, and it goes when switched off', async ({
     page,
     browser,
   }) => {
@@ -227,18 +227,13 @@ test.describe('admin changes reach the storefront', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('button', { name: name, exact: true })).toBeVisible();
 
-    // In the menu straight away (no products yet: "Coming soon"), with a page that says so.
+    // Without products it stays out of the menus (shoppers see only what is for sale), while its
+    // own page already answers and says products are coming.
     const shopMenu = async () => {
       await store.goto('/en');
       await store.getByRole('button', { name: 'Shop', exact: true }).click();
       return store.locator('[id$="-shop"]');
     };
-    await expect(async () => {
-      const menu = await shopMenu();
-      await expect(menu.getByRole('link', { name: new RegExp(name) })).toBeVisible({
-        timeout: 1_000,
-      });
-    }).toPass({ timeout: 20_000 });
     const slug = `yangi-turkum-${id}`;
     await eventually(store, `/en/${slug}`, () =>
       expect(visible(store.getByRole('heading', { level: 1, name }))).toBeVisible({
@@ -246,6 +241,21 @@ test.describe('admin changes reach the storefront', () => {
       }),
     );
     await expect(visible(store.getByText('Products coming soon'))).toBeVisible();
+    await expect((await shopMenu()).getByRole('link', { name: new RegExp(name) })).toHaveCount(0);
+
+    // Its first product puts it in the menu, with no code change.
+    const categories = (await (await page.request.get(`${API}/admin/categories`)).json()) as {
+      id: string;
+      slug: string;
+    }[];
+    const created = categories.find((entry) => entry.slug === slug)!;
+    await publishProduct(page.request, product(`e2e-cat-${id}`, created.id), PICTURES.lake);
+    await expect(async () => {
+      const menu = await shopMenu();
+      await expect(menu.getByRole('link', { name: new RegExp(name) })).toBeVisible({
+        timeout: 1_000,
+      });
+    }).toPass({ timeout: 20_000 });
 
     // A description added later shows on its page.
     await page.getByRole('button', { name: `Edit: ${name}` }).click();
@@ -271,7 +281,7 @@ test.describe('admin changes reach the storefront', () => {
     await store.context().close();
   });
 
-  test('a new collection shows at once and lists a product added in the product editor', async ({
+  test('a new collection joins the menu with its first product, added in the product editor', async ({
     page,
     browser,
   }) => {
@@ -290,14 +300,10 @@ test.describe('admin changes reach the storefront', () => {
       await store.getByRole('button', { name: 'Collections', exact: true }).click();
       return store.locator('[id$="-collections"]');
     };
-    await expect(async () => {
-      const menu = await collectionsMenu();
-      await expect(
-        menu.getByRole('link', { name: new RegExp(`${name}.*Coming soon`) }),
-      ).toBeVisible({
-        timeout: 1_000,
-      });
-    }).toPass({ timeout: 20_000 });
+    // Without products it waits outside the menus (shoppers see only what is for sale).
+    await expect(
+      (await collectionsMenu()).getByRole('link', { name: new RegExp(name) }),
+    ).toHaveCount(0);
 
     // A product put in the collection from the product editor appears on its page and in the menu.
     const slug = `e2e-coll-${id}`;
@@ -312,9 +318,11 @@ test.describe('admin changes reach the storefront', () => {
         timeout: 1_000,
       }),
     );
-    const menu = await collectionsMenu();
-    // With a product the collection no longer says "Coming soon" (menus show no counts).
-    await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
+    // With a product the collection is in the menu (menus show no counts).
+    await expect(async () => {
+      const menu = await collectionsMenu();
+      await expect(menu.getByRole('link', { name, exact: true })).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
 
     // Tidy up for the other journeys: the collection and the category are switched off.
     const collections = (await (await page.request.get(`${API}/admin/collections`)).json()) as {

@@ -83,13 +83,16 @@ change when the first non-tea category goes live.
   answered with a real **308** by the proxy; data-dependent redirects inside a streamed page are
   client-side (meta refresh) because the status is sent before the data is known. Renamed products
   and collections redirect the same way (`GET /catalog/redirects/{products|collections}/:slug`).
-- Navigation (desktop "Catalogue" panel, phone drawer, the home page's category cards, footer)
-  is built from `GET /catalog/categories` through one shared tree (`apps/web/src/lib/navigation.ts`):
-  every active category appears, in the admin's order, top-level categories with their
-  subcategories, as soon as it is created in the admin area (one without products yet says
-  "coming soon", and its page explains it instead of an empty grid); it disappears when
-  deactivated. Collections follow the same rule. The home page's picture cards and the footer's
-  shortcuts list only categories that have products. Each category and collection carries its own cover
+- Navigation (desktop "Catalogue" panel, phone drawer, the home page's ribbon, cards and tiles,
+  the catalogue's chips, search) is built from `GET /catalog/categories` through one shared tree
+  (`apps/web/src/lib/navigation.ts`): **only active categories with products appear**, in the
+  admin's order, top-level categories with their subcategories (a top-level category counts its
+  subcategories' products). TERAN sells green tea only for now, so the tree shows just that; a
+  category created in the admin area — black tea, gift sets, coffee — appears everywhere by itself
+  once its first product is published, with no code change (ADR-036). Its page already answers
+  before that and says products are coming ("coming soon"), with `noindex`, and the sitemap and
+  search suggestions leave it out until then. It disappears when deactivated. Collections follow
+  the same rule. Each category and collection carries its own cover
   (`image`), uploaded in the admin area (`POST /admin/categories/:id/image`; WebP renditions,
   alternative text per language); cards, menu thumbnails, the listing header and the page's share
   image use it. Without one, the storefront shows the category's illustration or the neutral TERAN

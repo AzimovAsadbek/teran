@@ -136,7 +136,10 @@ export function CategoryChipRow({ label, items }: { label: string; items: ChipLi
   );
 }
 
-/** Top-level categories as links ("All products" first), for the all-products listing. */
+/**
+ * Top-level categories with products as links ("All products" first), for the all-products
+ * listing; a new category joins them once it has products.
+ */
 export async function CategoryChips({
   active,
   categories,
@@ -149,7 +152,7 @@ export async function CategoryChips({
   const items: ChipLink[] = [
     { href: '/catalog', name: t('shopAllTitle'), current: active === undefined },
     ...categories
-      .filter((category) => category.parentSlug === null)
+      .filter((category) => category.parentSlug === null && category.productCount > 0)
       .map((category) => ({
         href: `/${category.path}`,
         name: category.name,

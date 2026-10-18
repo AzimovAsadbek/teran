@@ -593,3 +593,30 @@ stream, an unknown or renamed product, article, category or collection answered 
 are rendered without streaming (a little slower for it only). Admin-entered Instagram and YouTube
 addresses appear in the networks menu, the footer and the structured data as soon as they are
 saved.
+
+## ADR-036: Only what is for sale is shown; tea photographs throughout
+
+**Context.** TERAN sells five green teas and nothing else for now. The storefront still listed
+empty categories and collections left from the demonstration catalogue (black tea, gift sets, a
+test collection, gift ideas) as "coming soon" in its menus, home ribbon, tiles and catalogue chips,
+and many page pictures (ADR-034) showed other products: mugs, tins, gift boxes, branded cups and
+bags, lattes and iced drinks. On 2026-10-18 the owner asked for tea only, with the rest to appear
+by itself once TERAN adds such products (coffee is planned).
+
+**Decision.**
+
+- The navigation tree (`categoryTree`, `navCollections` in `lib/navigation.ts`) holds only
+  categories and collections with visible products; every menu, the ribbon, the bento and collage,
+  the hero's collection slide, the catalogue's chips and the search sidebar use it or filter the
+  same way. The API leaves empty categories and collections out of the sitemap and the search
+  suggestions. An empty category's or collection's own page still answers ("coming soon") with
+  `noindex`, so a link shared early does not break.
+- Every page picture that showed another product was replaced by a free tea photograph (Unsplash
+  License; docs/design/reference-assets.md, sections 3 and 4), bright as well as dark ones. The
+  bento's third and fourth campaign pictures, the unused pair picture, the gift-sets cover (another
+  brand's tin) and the genmaicha photograph shown first for TERAN 8009 were taken out.
+
+**Consequences.** A new category or collection appears everywhere once its first product is
+published, and its pictures should be chosen then; nothing in code names a category. The
+end-to-end journeys check that an empty category or collection stays out of the menus until its
+first product.

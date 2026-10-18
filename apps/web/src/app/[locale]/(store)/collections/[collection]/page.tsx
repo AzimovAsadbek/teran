@@ -40,7 +40,8 @@ export async function generateMetadata({
     href: `/collections/${collection.slug}`,
     query: filters.page > 1 ? `page=${filters.page}` : '',
     locale,
-    noIndex: hasRefinements(filters),
+    // A collection without products yet ("coming soon") is not offered to search engines.
+    noIndex: hasRefinements(filters) || collection.productCount === 0,
     image: coverShareImage(collection.image),
   });
 }

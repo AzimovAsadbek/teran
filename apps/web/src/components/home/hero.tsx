@@ -87,10 +87,11 @@ async function FeaturedSlides({
     .map((slot) => visualFor(settings, slot))
     .filter((photo) => photo !== null);
   if (photos.length > 0) {
-    const collection =
-      collections.find((item) => item.slug === PREMIUM_COLLECTION_SLUG) ?? collections[0];
+    // The premium collection, or another with products; none stocked: the brand slide alone.
+    const stocked = collections.filter((item) => item.productCount > 0);
+    const collection = stocked.find((item) => item.slug === PREMIUM_COLLECTION_SLUG) ?? stocked[0];
     const copy = brandCopy[locale];
-    const slides = photos.map((photo, index): HeroSlideData => {
+    const slides = (collection ? photos : photos.slice(0, 1)).map((photo, index): HeroSlideData => {
       if (index === 0 || !collection) {
         return { ...brand, key: `photo-${index}`, tone: 'photo', art: undefined, photo };
       }

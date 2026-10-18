@@ -163,9 +163,9 @@ export async function PromoStrip() {
 /* ── 3. Category marquee ─────────────────────────────────────────────────────────────────── */
 
 /**
- * The reference's ribbon: the catalogue's categories and the pack's slogan, colour stickers of
- * TERAN's tea things between, in the reference's sticker style. Every word is a link, as the reference's: a category to its page, the slogan to TERAN's
- * story.
+ * The reference's ribbon: the catalogue's categories with products and the pack's slogan, colour
+ * stickers of TERAN's tea things between, in the reference's sticker style. Every word is a link,
+ * as the reference's: a category to its page, the slogan to TERAN's story.
  */
 export async function CategoryMarquee() {
   await connection();
@@ -621,10 +621,10 @@ export async function BentoSection() {
     getCollections(locale).catch(() => []),
     getPublicSettings(locale).catch(() => null),
   ]);
-  // Campaign photographs (Admin → Settings) fill the tiles, as the reference's; with all four set
-  // the bento shows four tiles even when fewer categories have products (empty ones last).
+  // Campaign photographs (Admin → Settings) fill the tiles, as the reference's; a tile without one
+  // shows a product of its own category or collection. Only stocked categories and collections
+  // make tiles, so a new one (coffee, say) appears here once it has products.
   const photos = [1, 2, 3, 4].map((number) => visualFor(settings, `home.bento.${number}`));
-  const fourPhotos = photos.every((photo) => photo !== null);
   const tree = categoryTree(categories);
   const candidates = [
     ...browsableCategories(tree).map((category) => ({
@@ -641,17 +641,6 @@ export async function BentoSection() {
         href: `/collections/${collection.slug}`,
         query: `collection=${collection.slug}`,
       })),
-    ...(fourPhotos
-      ? tree
-          .flatMap((category) => [category, ...category.children])
-          .filter((category) => category.productCount === 0)
-          .map((category) => ({
-            key: `e-${category.path}`,
-            name: category.name,
-            href: `/${category.path}`,
-            query: `category=${category.slug}`,
-          }))
-      : []),
   ].slice(0, 4);
   if (candidates.length < 2) return null;
   const products = await Promise.all(

@@ -67,6 +67,7 @@ async function WholesalePicture({
   contain = false,
   sizes,
   priority = false,
+  phoneBelow,
   className,
 }: {
   slot: string;
@@ -74,6 +75,8 @@ async function WholesalePicture({
   contain?: boolean;
   sizes: string;
   priority?: boolean;
+  /** The width under which the picture's phone crop shows (VisualPicture's 750 px by default). */
+  phoneBelow?: number;
   className?: string;
 }) {
   await connection();
@@ -82,7 +85,7 @@ async function WholesalePicture({
   if (visual) {
     return (
       <div className={cn('absolute inset-0', className)}>
-        <VisualPicture visual={visual} sizes={sizes} priority={priority} />
+        <VisualPicture visual={visual} sizes={sizes} priority={priority} phoneBelow={phoneBelow} />
       </div>
     );
   }
@@ -246,12 +249,14 @@ export default async function WholesalePage() {
         className="relative flex flex-col overflow-hidden min-[61.875rem]:min-h-[36.5625rem] min-[61.875rem]:justify-center"
       >
         <Frame className="relative order-2 -mt-6 aspect-[2105/1480] w-full min-[61.875rem]:absolute min-[61.875rem]:inset-0 min-[61.875rem]:mt-0 min-[61.875rem]:aspect-auto">
+          {/* The frame keeps the phone crop's proportions below 990 px, so that crop shows there. */}
           <WholesalePicture
             slot="wholesale.hero"
             art={packXc2025}
             contain
             sizes="100vw"
             priority
+            phoneBelow={990}
             className="min-[61.875rem]:object-right"
           />
         </Frame>

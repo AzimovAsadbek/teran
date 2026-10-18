@@ -690,15 +690,27 @@ describe('multi-category catalogue', () => {
   });
 
   it('publishes category paths in the sitemap and search suggestions', async () => {
-    await setUpShop();
+    const { admin, tea } = await setUpShop();
+    // Without products, a category or collection waits: it is in neither until it has some.
+    await admin
+      .post(`${API}/admin/categories`)
+      .send(taxonomy('green-gifts', { position: 2 }))
+      .expect(201);
+    await admin
+      .post(`${API}/admin/categories`)
+      .send(taxonomy('green-oolong', { parentId: tea.id }))
+      .expect(201);
+    await admin.post(`${API}/admin/collections`).send(taxonomy('green-picks')).expect(201);
     const sitemap = (await anonymous().get(`${API}/catalog/sitemap`).expect(200)).body as {
       categories: { slug: string; path: string }[];
+      collections: { slug: string }[];
     };
     expect(sitemap.categories.map((entry) => entry.path).sort()).toEqual([
       'coffee',
       'tea',
       'tea/green-tea',
     ]);
+    expect(sitemap.collections).toEqual([]);
     const suggestions = (
       await anonymous().get(`${API}/catalog/search/suggest?q=green&locale=uz`).expect(200)
     ).body as { categories: { path: string }[] };

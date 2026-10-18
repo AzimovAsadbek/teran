@@ -125,36 +125,42 @@ function navCategory(category: CategoryDto): NavCategory {
 }
 
 /**
- * Top-level categories with their subcategories, in the API's order (the admin's positions). Every
- * active category is listed as soon as it is created in the admin area; one without products yet
- * says so ("coming soon") and its page explains it, so nothing added in the admin stays hidden.
+ * Top-level categories with their subcategories, in the API's order (the admin's positions), for
+ * shoppers: only categories with products. A category created in the admin area appears in the
+ * menus and on the home page by itself as soon as its first product is published (TERAN sells tea
+ * only for now; a coffee category, say, shows once it has coffee). A top-level category counts its
+ * subcategories' products, so it stays while any of them has some.
  */
 export function categoryTree(categories: CategoryDto[]): NavCategoryTree[] {
   return categories
-    .filter((category) => category.parentSlug === null)
+    .filter((category) => category.parentSlug === null && category.productCount > 0)
     .map((top) => ({
       ...navCategory(top),
-      children: categories.filter((child) => child.parentSlug === top.slug).map(navCategory),
+      children: categories
+        .filter((child) => child.parentSlug === top.slug && child.productCount > 0)
+        .map(navCategory),
     }));
 }
 
-/** Active collections in the API's order (one without products yet says so, like categories). */
+/** Active collections with products, in the API's order (like categories, empty ones wait). */
 export function navCollections(collections: CollectionDto[]): NavCollection[] {
-  return collections.map((collection) => ({
-    slug: collection.slug,
-    name: collection.name,
-    description: collection.description,
-    productCount: collection.productCount,
-    illustrationKey: collection.illustrationKey,
-    image: collection.image,
-  }));
+  return collections
+    .filter((collection) => collection.productCount > 0)
+    .map((collection) => ({
+      slug: collection.slug,
+      name: collection.name,
+      description: collection.description,
+      productCount: collection.productCount,
+      illustrationKey: collection.illustrationKey,
+      image: collection.image,
+    }));
 }
 
 /**
  * The categories shoppers browse directly, as the home page's picture cards: subcategories with
  * products, or a top-level category with products when none of its subcategories has any, in menu
- * order. Cards are for stocked categories only (an empty card would lead nowhere); the menus list
- * every active category.
+ * order (the tree holds stocked categories only, so the filters below only matter for a tree built
+ * elsewhere).
  */
 export function browsableCategories(tree: NavCategoryTree[]): NavCategory[] {
   return tree.flatMap((top) => {

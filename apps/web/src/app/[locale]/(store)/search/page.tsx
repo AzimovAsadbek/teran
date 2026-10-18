@@ -98,8 +98,11 @@ async function SearchSidebar({ searchParams }: { searchParams: Promise<RawSearch
       .then((page) => page.items)
       .catch(() => []),
   ]);
+  // Categories with products only: an empty one would lead to a "coming soon" page.
   const matchingCategories = categories
-    .filter((category) => category.name.toLocaleLowerCase().includes(q))
+    .filter(
+      (category) => category.productCount > 0 && category.name.toLocaleLowerCase().includes(q),
+    )
     .slice(0, 8);
   const matchingArticles = articles
     .filter(

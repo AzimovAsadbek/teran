@@ -304,3 +304,25 @@ handle is cut, as with the reference's pictures), the words on dark ground every
 proportions (about 820 × 1130 px) but showed the wide picture's middle quarter, blown up and
 blurred. The slide's picture now switches to its phone crop below 900 px, where the slide's height
 does (`VisualPicture` `phoneBelow`); the other page pictures keep 750 px.
+
+## Tea only (2026-10-18)
+
+Every page picture that showed another product now shows tea (32 files, docs/design/reference-
+assets.md section 4), and empty categories and collections are out of the menus, the home page,
+the catalogue's chips, search, the sitemap and search suggestions until they have products
+(ADR-036).
+
+Checked locally: the menus, the home ribbon and the tiles list only "Tea", "Green tea" and the
+premium collection in all three languages; home, about, help centre, contact, for business and the
+catalogue at 1440 px, home and for business at 390 px, the hero at 360, 390 and 820 px. Under the
+words the pictures stay dark enough for the yellow, white and pink titles (measured average
+luminance 0.05–0.13 under light text, 0.75–0.88 under dark text).
+
+Tests: storefront unit 52 passed (a new test for the navigation tree), API integration
+catalog-tree and publishing 20 passed (the sitemap and suggestions leave empty categories and
+collections out), end-to-end 51 passed (a new category or collection joins the menus with its
+first product).
+
+**Found and fixed**: on phones the first slide's words sat on a bright green photograph (contrast
+1.6:1): its phone crop now has deep green under the words and the glass below them. From 750 to
+989 px the for-business hero showed a slice of its wide picture; its phone crop shows there now.

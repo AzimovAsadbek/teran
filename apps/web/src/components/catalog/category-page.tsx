@@ -48,7 +48,8 @@ export async function categoryMetadata(
     href: `/${category.path}`,
     query: filters.page > 1 ? `page=${filters.page}` : '',
     locale,
-    noIndex: hasRefinements(filters),
+    // A category without products yet ("coming soon") is not offered to search engines.
+    noIndex: hasRefinements(filters) || category.productCount === 0,
     image: coverShareImage(category.image),
   });
 }
@@ -82,11 +83,14 @@ async function CategoryListing({
   const top = parent ?? category;
   const chips = [
     { href: `/${top.path}`, name: t('allIn', { name: top.name }), current: parent === null },
-    ...subcategories.map((child) => ({
-      href: `/${child.path}`,
-      name: child.name,
-      current: child.slug === category.slug,
-    })),
+    // Subcategories with products (and the current one, which may be new and still empty).
+    ...subcategories
+      .filter((child) => child.productCount > 0 || child.slug === category.slug)
+      .map((child) => ({
+        href: `/${child.path}`,
+        name: child.name,
+        current: child.slug === category.slug,
+      })),
   ];
   const paragraphs = (category.body ?? '')
     .split(/\n\s*\n/)

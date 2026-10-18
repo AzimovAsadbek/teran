@@ -47,6 +47,21 @@ const PUBLIC_CATEGORY_WHERE = {
   OR: [{ parentId: null }, { parent: { isActive: true } }],
 } satisfies Prisma.CategoryWhereInput;
 
+/**
+ * A category shoppers are led to: visible products of its own or in an active subcategory. The
+ * storefront lists only these (search suggestions, the sitemap, its menus), so a new category —
+ * coffee, say — appears by itself once it has products.
+ */
+function stockedCategoryWhere(now: Date = new Date()): Prisma.CategoryWhereInput {
+  const visible = visibleProductWhere(now);
+  return {
+    OR: [
+      { products: { some: visible } },
+      { children: { some: { isActive: true, products: { some: visible } } } },
+    ],
+  };
+}
+
 type StageImageRow = Prisma.ProductImageGetPayload<object>;
 type CategoryRow = Prisma.CategoryGetPayload<{
   include: { translations: true; parent: { select: { slug: true } } };
@@ -340,13 +355,18 @@ export class CatalogService {
       }),
       this.prisma.category.findMany({
         where: {
-          ...PUBLIC_CATEGORY_WHERE,
-          translations: {
-            some: {
-              locale: { in: localeChain(locale) },
-              name: { contains: q, mode: 'insensitive' },
+          AND: [
+            PUBLIC_CATEGORY_WHERE,
+            stockedCategoryWhere(),
+            {
+              translations: {
+                some: {
+                  locale: { in: localeChain(locale) },
+                  name: { contains: q, mode: 'insensitive' },
+                },
+              },
             },
-          },
+          ],
         },
         include: {
           translations: { where: { locale: { in: localeChain(locale) } } },
@@ -374,12 +394,13 @@ export class CatalogService {
         select: { slug: true, updatedAt: true },
         orderBy: { slug: 'asc' },
       }),
+      // Categories and collections with products only: an empty one is a "coming soon" page.
       this.prisma.category.findMany({
-        where: PUBLIC_CATEGORY_WHERE,
+        where: { AND: [PUBLIC_CATEGORY_WHERE, stockedCategoryWhere()] },
         select: { slug: true, updatedAt: true, parent: { select: { slug: true } } },
       }),
       this.prisma.collection.findMany({
-        where: { isActive: true },
+        where: { isActive: true, products: { some: { product: visibleProductWhere() } } },
         select: { slug: true, updatedAt: true },
       }),
       this.prisma.article.findMany({

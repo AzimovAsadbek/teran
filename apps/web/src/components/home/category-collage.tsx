@@ -36,9 +36,8 @@ function tileSpan(index: number, count: number): 'wide' | 'narrow' | 'full' {
 /**
  * The catalogue as a collage of cream tiles, each with its name, a picture (the category's own,
  * or one of its products standing) and a pill. Built from the API's tree in menu order: stocked
- * categories and any category given its own cover in the admin area (a picture chosen for it, even
- * before its first product), then collections likewise, up to six; a new category appears here
- * without code changes.
+ * categories (a top-level category too when it has its own cover), then stocked collections, up to
+ * six; a new category appears here without code changes once it has products.
  */
 export async function CategoryCollage() {
   await connection();
@@ -53,7 +52,9 @@ export async function CategoryCollage() {
   const sources = [
     ...tree
       .flatMap((top) => [top, ...top.children])
-      .filter((category) => stocked.has(category.slug) || category.image)
+      .filter(
+        (category) => stocked.has(category.slug) || (category.image && category.productCount > 0),
+      )
       .map((category) => ({
         key: `c-${category.path}`,
         name: category.name,
@@ -62,7 +63,7 @@ export async function CategoryCollage() {
         query: `category=${category.slug}`,
       })),
     ...collections
-      .filter((collection) => collection.productCount > 0 || collection.image)
+      .filter((collection) => collection.productCount > 0)
       .map((collection) => ({
         key: `k-${collection.slug}`,
         name: collection.name,

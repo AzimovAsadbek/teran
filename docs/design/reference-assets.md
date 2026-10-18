@@ -11,7 +11,7 @@ under `apps/api/storage/`, which git ignores, each with a `manifest.json` listin
 place it fills and the reference address it was taken from. Both are loaded with
 `apps/api/scripts/import-visuals.ts` (ADR-028).
 
-## 1. `storage/reference-assets/` — unbranded pictures (27 files, go live)
+## 1. `storage/reference-assets/` — unbranded pictures (14 entries left, go live)
 
 Photographs and illustrations without the DAVIDsTEA name, packs or products, and none shown as a
 TERAN product. They are the pictures that go to the live site with the design (the owner asked on
@@ -42,13 +42,13 @@ On the live site this runs against the production database with the Blob token (
 the production seed, docs/deployment/vercel.md), only when the owner asks for a deploy. Done on
 2026-10-18 with the release: 23 places filled from the 27 files (four are phone crops).
 
-## 2. `storage/reference-mockup/` — the reference's campaign and product pictures (35 entries)
+## 2. `storage/reference-mockup/` — the reference's campaign and product pictures (11 entries)
 
 **Live since 2026-10-18.** On 2026-10-18 TERAN asked for tea photographs instead of the
 reference's drinks and merchandise in four home places (`home.hero.2`, `home.banner.2`,
 `home.banner.3`, `home.feature`): they now come from section 3, and their eight entries were taken
 out of this manifest and of `storage/reference-partner/` (43 → 35), so a later import of either
-folder cannot bring the old pictures back there. The files themselves were kept. TERAN and the owner decided that the live site shows these pictures as
+folder cannot bring the old pictures back there. The files themselves were kept. The second batch (section 4) replaced or removed the rest of the campaign pictures: what remains of this folder is the teas' leaf and cup photographs (TERAN 8009 without its genmaicha photograph), the green-tea category cover and the premium collection's cover. TERAN and the owner decided that the live site shows these pictures as
 the local presentation does (TERAN preferred the leaf and cup photographs to its own pack
 photographs as the first pictures of its teas, and the owner wants to advertise DAVIDsTEA, under
 the written permission the owner states TERAN holds). They were loaded into production from
@@ -122,6 +122,46 @@ corepack pnpm --filter @teran/api visuals:import --dir storage/tea-photos --forc
 
 `--force` because the places already held the reference's pictures (they are replaced, and their
 stored files deleted). On the live site this ran on 2026-10-18, as section 1 describes.
+
+## 4. `storage/tea-photos-2/` — every other picture that showed another product (32 files, go live)
+
+On 2026-10-18 the owner asked for tea only everywhere: the rest of the reference's campaign
+pictures (mugs, tins, gift boxes, branded cups, bags and staff, lattes, iced and fruit drinks) were
+replaced, and the empty demonstration categories hidden (ADR-036). Bright and coloured photographs
+were chosen as well as dark ones, all free under the Unsplash License and checked on their pages;
+the manifest lists each file's place, source and photographer.
+
+| Place                                            | Photograph (photographer)                                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `home.hero.1`                                    | Green tea in a tall glass beside a bowl of leaves (Tang Don)                                         |
+| `home.banner.1`                                  | White kyusu teapot and a cup of green tea, from above (Vincent Roman)                                |
+| `home.bento.1`, `home.bento.2`                   | Leaves poured into a clay teapot (Danish Prakash); glass teapots on a tray (Nguyễn Bình)             |
+| `home.pair.2`                                    | Tea pickers with a red umbrella on a hillside (Ama Journey)                                          |
+| `menu.shop`, `menu.learn`                        | Longjing on a tea table (Tang Don); tea poured into glass cups (Raychan)                             |
+| `menu.collections`, `menu.about`                 | A tea tasting (Nepal Tea Collective); tea gardens in Munnar (Vivek Kumar)                            |
+| `banner:catalog`                                 | Rows of tea bushes (Colin Roe)                                                                       |
+| `about.hero`                                     | A picker in a tea plantation (一只猫的橘)                                                            |
+| `help.banner`                                    | Leaves round a cup of tea (T ed) and the white teapot (Vincent Roman), on light grey                 |
+| `help.ordering`, `help.payment`, `help.delivery` | Glass teapot in a garden (Jessie Maxwell); cups of tea (Dmitriy Sarychev); pickers (Long Nguyen)     |
+| `help.tea`, `help.returns`                       | A gaiwan of green tea (Jia Ye); a tea table set (五玄土 ORIENTO)                                     |
+| `contact.picture`                                | Tea poured from a glass teapot (Prefix)                                                              |
+| `wholesale.hero`                                 | A white teapot and cup, from above (Wengang Zhai)                                                    |
+| `wholesale.card.1` … `wholesale.card.3`          | Baskets of loose tea (MChe Lee); a teapot on a tray (Content Pixie); tea canisters (Jonathan Phelps) |
+| `wholesale.why`, `wholesale.community`           | Pickers on a hillside (feifei liang); a tasting table (ogkgo)                                        |
+| `wholesale.flavour`, `wholesale.map`             | Glasses of loose tea (Maria Kovalets); misty tea hills (Ravi Pinisetti)                              |
+| `cover:category:tea`                             | Leaves round a cup of tea, cut out (T ed)                                                            |
+
+```bash
+corepack pnpm --filter @teran/api visuals:import --dir storage/tea-photos-2 --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/remove-batch-2 --remove
+```
+
+`storage/remove-batch-2/` takes out what had no tea replacement: the bento's third and fourth
+campaign pictures (those tiles show their own category's product when there are four stocked
+categories), the pair picture no longer shown, the gift-sets cover (another brand's tin; its
+`applied.json` names the cover to remove, per database) and the genmaicha photograph shown first
+for TERAN 8009. The eight-plus-five places replaced here were taken out of the manifests of
+sections 1 and 2, so importing those folders again cannot bring the old pictures back.
 
 ## Not copied
 

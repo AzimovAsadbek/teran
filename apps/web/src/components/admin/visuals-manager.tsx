@@ -10,6 +10,8 @@ export interface VisualPlace {
   /** The size the place needs, in words. */
   hint: string;
   picture: { image: ImageDto; mobile: ImageDto | null; source: string | null } | null;
+  /** A film plays over the picture (set by the import script; a new picture replaces it). */
+  film: boolean;
 }
 
 /**
@@ -31,6 +33,9 @@ export function VisualsManager({ places }: { places: VisualPlace[] }) {
               <p className="mt-1 truncate text-caption text-fg-subtle" title={place.picture.source}>
                 {t('settings.visualSource', { source: place.picture.source })}
               </p>
+            ) : null}
+            {place.film ? (
+              <p className="mt-1 text-caption text-fg-subtle">{t('settings.visualFilm')}</p>
             ) : null}
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>

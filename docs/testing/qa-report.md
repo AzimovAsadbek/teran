@@ -326,3 +326,29 @@ first product).
 **Found and fixed**: on phones the first slide's words sat on a bright green photograph (contrast
 1.6:1): its phone crop now has deep green under the words and the glass below them. From 750 to
 989 px the for-business hero showed a slice of its wide picture; its phone crop shows there now.
+
+## Films on the home page (2026-10-18)
+
+The first view is one view over the owner's film, and the three large banners play films (ADR-037,
+docs/design/reference-assets.md section 5).
+
+Checked locally in Google Chrome at 1440 and 390 px: each film is fetched when its place comes
+near, fades in over its first frame, plays only on screen and repeats; its pause button stops and
+resumes it (the first view's at the bottom left; the banners' at the bottom left on phones and the
+top right from 1024 px); with reduced motion only the first frames show. The loops: the step from
+each file's last frame to its first is no larger than its ordinary frame steps; halfway through
+each dissolve no rim or outline doubles; in Chrome the banner films repeat without a held frame,
+and the first view's held one frame once in two repetitions (about 70 ms). Colours match the source
+frames within 1 %, except the owner's film, which Chrome showed slightly greener than its own colour
+tags say: the prepared film follows its tags (greens about 6 % deeper).
+
+Tests: storefront unit 55 passed (3 new for the looping film), API unit 102, contracts 30, API
+integration 136 (a new picture in Admin replaces a place's film and deletes its file), end-to-end
+51 passed.
+
+**Found and fixed**: a helper exported from the film's client module was called on the server and
+broke the home page's banners (an error page); it lives in `lib/visuals.ts` now. The first version
+dissolved the film's end into its start in the browser with two players taking turns: the moving
+footage showed two moments half-transparent for 1.6 s; the loops are prepared in the files now. An
+end-to-end test expected the product's address without the pack the product page adds
+(`?variant=…`) and failed when the page loaded quickly; it accepts the pack now.

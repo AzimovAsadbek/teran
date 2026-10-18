@@ -121,7 +121,10 @@ corepack pnpm --filter @teran/api visuals:import --dir storage/tea-photos --forc
 ```
 
 `--force` because the places already held the reference's pictures (they are replaced, and their
-stored files deleted). On the live site this ran on 2026-10-18, as section 1 describes.
+stored files deleted). On the live site this ran on 2026-10-18, as section 1 describes. Later that
+day `home.banner.2`, `home.banner.3` and `home.feature` got films (section 5); their entries were
+taken out of this manifest, so importing it again cannot replace the films, and `home.hero.2` is
+no longer shown (the first view does not rotate, ADR-037).
 
 ## 4. `storage/tea-photos-2/` — every other picture that showed another product (32 files, go live)
 
@@ -161,7 +164,53 @@ campaign pictures (those tiles show their own category's product when there are 
 categories), the pair picture no longer shown, the gift-sets cover (another brand's tin; its
 `applied.json` names the cover to remove, per database) and the genmaicha photograph shown first
 for TERAN 8009. The eight-plus-five places replaced here were taken out of the manifests of
-sections 1 and 2, so importing those folders again cannot bring the old pictures back.
+sections 1 and 2, so importing those folders again cannot bring the old pictures back. `home.hero.1`
+plays the owner's film since (section 5); its entries were taken out of this manifest the same way.
+
+## 5. `storage/hero-video/` and `storage/banner-films/` — films (go live)
+
+The home page's first view plays the owner's film of tea gardens; its three large banners play
+films the owner chose from Pinterest pins they sent (ADR-037). Each place's picture is its film's
+first frame (shown at once, and instead of the film with reduced motion); phones (under 750 px) get
+a portrait film and its first frame where there is one.
+
+| Place           | Wide screens                                                                                                            | Phones                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `home.hero.1`   | The owner's file (`e5fc48b6396126521790b49cdd8c5401.mp4`, 596 × 336): all 14.2 s, the last 2 s dissolved into the start | The same film                                                                                     |
+| `home.banner.2` | Pin 303500462412572098, a glass teapot brewing (736 × 414), mirrored: 2.0–7.9 s, 1.8 s dissolve, push-in matched        | Pin 658721883031198221, a full glass by a garden window (720 × 1280): 16.5–23.2 s, 1.6 s dissolve |
+| `home.banner.3` | Pin 303500462412916136, tea poured into a glass cup, mirrored: 2.0–7.2 s, 1.6 s dissolve                                | Pin 479914904048894517, tea poured into a floral porcelain cup: 7.9–13.7 s, 1.4 s dissolve        |
+| `home.feature`  | Pin 597008494397410310, an evening tray with a book and candles: 8.0–9.95 s forwards and back, 25 fps                   | Pin 308496643241119471, tea poured from a glass teapot: 5.1–13.2 s, 2 s dissolve                  |
+
+(Pins: `https://www.pinterest.com/pin/<number>/`.) Each film was prepared as a loop with
+`apps/api/scripts/loop-film.swift` (macOS, AVFoundation), so the storefront only has to repeat it:
+
+1. **The part.** Frames every 0.1 s were compared, by colour and by edges, for the start and end
+   whose surroundings differ least: the calm part of each clip (a full glass, a steady pour, the
+   candles after the pour), never a cup emptying or a teapot appearing.
+2. **The seam.** The part's last 1.4–2 s dissolve into its first (smoothstep), in the file, so its
+   last frame flows into its first. The teapot film's camera pushes in (2.4 % a second about the
+   teapot): both layers are scaled during the dissolve so the outlines stay single, and the whole
+   film is magnified 10 % to keep the edges filled. The evening tray barely moves: it plays forwards
+   then backwards instead.
+3. **The file.** Muted H.264 (High profile), Rec. 709, a key frame every 2 s, 1.2–2 Mbit/s
+   (0.5–2.2 MB; the owner's 4.1 MB film is 2.2 MB); mirrored where the subject must stand on the
+   side the words leave free.
+4. **Checked.** The dissolve's middle frame shows no doubled rim or outline; the step from the
+   file's last frame to its first is no larger than its ordinary frame-to-frame steps; colours
+   match the source frames (within 1 %); the first frame, upscaled to 1920 (1080 on phones), is
+   the poster.
+
+```bash
+swift apps/api/scripts/loop-film.swift in=pin.mp4 out=banner-2-film.mp4 start=2.0 end=7.9 \
+  fade=1.8 flip=1 bitrate=1400000 zoom=0.024,0.475,0.44
+corepack pnpm --filter @teran/api visuals:import --dir storage/hero-video --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/banner-films --force
+```
+
+**Rights.** The first view's film was supplied by the owner. The banner films are other creators'
+work found on Pinterest, used at the owner's request: a pin grants no licence, so TERAN should get
+the creators' permission or replace them with its own footage (the places keep working with any
+prepared film, or with a picture uploaded in Admin, which replaces the film).
 
 ## Not copied
 

@@ -7,7 +7,10 @@
  *
  * The folder holds the files and a manifest.json listing, for each file, the place it is for:
  * - a page-picture place (`about.hero`, `banner:catalog`, …; see FIXED_VISUAL_SLOTS), with an
- *   optional `mobile` variant for screens under 750 px;
+ *   optional `mobile` variant for screens under 750 px, an optional `video` (an MP4 or WebM film
+ *   that loops there, the picture being its poster; the home page's first view and its large
+ *   banners) and `video-mobile` (a film for phones), each with an optional `focus` [x, y] percent
+ *   (the point kept in view). Films play in a plain loop: their end must flow into their start;
  * - `banner:category:<slug>` or `banner:collection:<slug>`, stored under the item's id;
  * - `article:<slug>`, the cover of a journal article;
  * - `cover:category:<slug>` or `cover:collection:<slug>`, the cover of a category or collection;
@@ -43,6 +46,7 @@ import {
   type ImageStore,
   productImagePrefix,
   storeImage,
+  storeVideo,
   type StoredImage,
   taxonomyImagePrefix,
   visualImagePrefix,
@@ -58,13 +62,19 @@ const manifestSchema = z.object({
   assets: z.array(
     z.object({
       slot: z.string().min(1),
-      /** `mobile`: the crop for phones; `1`, `2`, …: the order of a product's photographs. */
+      /**
+       * `mobile`: the crop for phones; `video` and `video-mobile`: films playing in the place;
+       * `1`, `2`, …: the order of a product's photographs.
+       */
       variant: z
         .string()
-        .regex(/^(?:default|desktop|mobile|[1-9])$/)
+        .regex(/^(?:default|desktop|mobile|video|video-mobile|[1-9])$/)
         .default('default'),
+      /** Films: the point kept in view where the frame crops them (percent). */
+      focus: z.tuple([z.number().min(0).max(100), z.number().min(0).max(100)]).optional(),
       file: z.string().regex(/^[A-Za-z0-9._-]+$/),
-      source: z.url(),
+      /** The address it was taken from, or who supplied it (e.g. a file the owner provided). */
+      source: z.string().min(1).max(500),
     }),
   ),
 });
@@ -213,20 +223,24 @@ function parsePlace(
 async function fillPlace(run: Run, name: string, entries: Entry[]): Promise<number> {
   const place = parsePlace(name);
   if (place.kind === 'product') return addProductPhotos(run, name, place.slug, entries);
-  const main = entries.find((entry) => entry.variant !== 'mobile');
+  const main = entries.find((entry) => isPicture(entry) && entry.variant !== 'mobile');
   if (!main) {
     console.warn(`  ${name}: no main picture in the manifest, skipped`);
     return 0;
   }
   if (place.kind === 'cover') return setCover(run, name, place.owner, place.slug, main);
-  return setVisual(run, name, main, entries.find((entry) => entry.variant === 'mobile') ?? null);
+  return setVisual(run, name, main, {
+    mobile: entries.find((entry) => entry.variant === 'mobile') ?? null,
+    video: entries.find((entry) => entry.variant === 'video') ?? null,
+    mobileVideo: entries.find((entry) => entry.variant === 'video-mobile') ?? null,
+  });
 }
 
 async function removePlace(run: Run, name: string, entries: Entry[]): Promise<number> {
   const place = parsePlace(name);
   if (place.kind === 'product') return removeProductPhotos(run, name, place.slug, entries);
   if (place.kind === 'cover') return removeCover(run, name, place.owner, place.slug);
-  const main = entries.find((entry) => entry.variant !== 'mobile');
+  const main = entries.find((entry) => isPicture(entry) && entry.variant !== 'mobile');
   return main ? removeVisual(run, name, main) : 0;
 }
 
@@ -462,12 +476,18 @@ async function visualSlot(prisma: PrismaClient, name: string): Promise<string | 
   return slot;
 }
 
+/** A picture entry (not a film). */
+function isPicture(entry: Entry): boolean {
+  return entry.variant !== 'video' && entry.variant !== 'video-mobile';
+}
+
 async function setVisual(
   run: Run,
   name: string,
   main: Entry,
-  mobile: Entry | null,
+  extra: { mobile: Entry | null; video: Entry | null; mobileVideo: Entry | null },
 ): Promise<number> {
+  const { mobile, video, mobileVideo } = extra;
   const slot = await visualSlot(run.prisma, name);
   if (!slot) return 0;
   const current = run.visuals[slot];
@@ -488,18 +508,85 @@ async function setVisual(
   const phone = mobile
     ? await storeImage(await run.read(mobile), run.store, visualImagePrefix(), WIDE_PICTURE)
     : null;
+  const film = video ? await storeFilm(run, video) : null;
+  const phoneFilm = mobileVideo ? await storeFilm(run, mobileVideo) : null;
   run.visuals[slot] = {
     image: picture(image),
     mobile: phone ? picture(phone) : null,
+    video: film,
+    mobileVideo: phoneFilm,
     source: main.source,
   };
   run.visualsChanged = true;
-  if (current)
-    run.obsolete.push(current.image.key, ...(current.mobile ? [current.mobile.key] : []));
+  if (current) run.obsolete.push(...visualKeys(current));
   console.log(
-    `  ${name}: set (${image.width}×${image.height}${phone ? `, phone ${phone.width}×${phone.height}` : ''})`,
+    `  ${name}: set (${image.width}×${image.height}${phone ? `, phone ${phone.width}×${phone.height}` : ''}${film ? `, film ${film.width ?? '?'}×${film.height ?? '?'}` : ''}${phoneFilm ? `, phone film ${phoneFilm.width ?? '?'}×${phoneFilm.height ?? '?'}` : ''})`,
   );
   return 1;
+}
+
+/** Every stored file of a place: its picture, phone crop and film. */
+function visualKeys(visual: VisualsSetting[string]): string[] {
+  return [
+    visual.image.key,
+    ...(visual.mobile ? [visual.mobile.key] : []),
+    ...(visual.video ? [visual.video.key] : []),
+    ...(visual.mobileVideo ? [visual.mobileVideo.key] : []),
+  ];
+}
+
+/**
+ * Keeps a film as it is (MP4 or WebM, checked by its first bytes) with its frame size and the
+ * point kept in view.
+ */
+async function storeFilm(run: Run, entry: Entry) {
+  const file = await run.read(entry);
+  const stored = await storeVideo(file, run.store, visualImagePrefix());
+  const size = stored.type === 'video/mp4' ? mp4FrameSize(file) : null;
+  return {
+    key: stored.storageKey,
+    type: stored.type,
+    width: size?.width ?? null,
+    height: size?.height ?? null,
+    focusX: entry.focus?.[0] ?? 50,
+    focusY: entry.focus?.[1] ?? 50,
+  };
+}
+
+/** The frame size of an MP4's first video track, from its track header (`tkhd`); null if absent. */
+function mp4FrameSize(file: Buffer): { width: number; height: number } | null {
+  const walk = (start: number, end: number): { width: number; height: number } | null => {
+    let at = start;
+    while (at + 8 <= end) {
+      let size = file.readUInt32BE(at);
+      const type = file.toString('latin1', at + 4, at + 8);
+      let header = 8;
+      if (size === 1) {
+        size = Number(file.readBigUInt64BE(at + 8));
+        header = 16;
+      } else if (size === 0) {
+        size = end - at;
+      }
+      if (size < header || at + size > end) return null;
+      const body = at + header;
+      if (type === 'tkhd') {
+        const offset = file[body] === 1 ? body + 88 : body + 76;
+        const width = Math.round(file.readUInt32BE(offset) / 65536);
+        const height = Math.round(file.readUInt32BE(offset + 4) / 65536);
+        if (width > 0 && height > 0) return { width, height };
+      } else if (type === 'moov' || type === 'trak') {
+        const found = walk(body, at + size);
+        if (found) return found;
+      }
+      at += size;
+    }
+    return null;
+  };
+  try {
+    return walk(0, file.length);
+  } catch {
+    return null;
+  }
 }
 
 /** Takes a place's picture out when it is still the one from this folder's source. */
@@ -509,7 +596,7 @@ async function removeVisual(run: Run, name: string, main: Entry): Promise<number
   if (!slot || !current || current.source !== main.source) return 0;
   delete run.visuals[slot];
   run.visualsChanged = true;
-  run.obsolete.push(current.image.key, ...(current.mobile ? [current.mobile.key] : []));
+  run.obsolete.push(...visualKeys(current));
   console.log(`  ${name}: removed`);
   return 1;
 }

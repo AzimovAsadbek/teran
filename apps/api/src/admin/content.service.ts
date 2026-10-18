@@ -132,7 +132,18 @@ export class AdminContentService {
     try {
       await this.settings.update(
         'visuals',
-        { ...visuals, [slot]: { image: image!, mobile: mobile ?? keptMobile, source } },
+        // A new picture also replaces a film playing in the place (films come from the import
+        // script, docs/reference-assets.md): what is uploaded here is what the place shows.
+        {
+          ...visuals,
+          [slot]: {
+            image: image!,
+            mobile: mobile ?? keptMobile,
+            video: null,
+            mobileVideo: null,
+            source,
+          },
+        },
         actor.userId,
       );
       await this.audit.record({
@@ -150,6 +161,8 @@ export class AdminContentService {
     if (previous) {
       await deleteStoredImage(this.images, previous.image.key);
       if (previous.mobile && !keptMobile) await deleteStoredImage(this.images, previous.mobile.key);
+      if (previous.video) await deleteStoredImage(this.images, previous.video.key);
+      if (previous.mobileVideo) await deleteStoredImage(this.images, previous.mobileVideo.key);
     }
     this.revalidation.notify('settings');
     return this.settings.getAll();
@@ -220,6 +233,8 @@ export class AdminContentService {
   private async deleteVisualFiles(visual: VisualsSetting[string]): Promise<void> {
     await deleteStoredImage(this.images, visual.image.key);
     if (visual.mobile) await deleteStoredImage(this.images, visual.mobile.key);
+    if (visual.video) await deleteStoredImage(this.images, visual.video.key);
+    if (visual.mobileVideo) await deleteStoredImage(this.images, visual.mobileVideo.key);
   }
 
   // ─── Delivery methods ──────────────────────────────────────────────────────

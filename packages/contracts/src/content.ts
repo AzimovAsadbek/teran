@@ -145,8 +145,10 @@ export const FIXED_VISUAL_SLOTS = [
   'wholesale.map',
   // Tea 101: the picture beside "how much do I need?".
   'tea101.amount',
-  // The home page, in the reference's order: feature slides, the three campaign banners, the
-  // bento's four tiles, the feature band, the statement band and the pair's two pictures.
+  // The home page, in the reference's order: the first view (its picture and film), the three
+  // campaign banners, the bento's four tiles, the feature band, the statement band and the pair's
+  // two pictures. `home.hero.2` was the second slide: kept for stored data, no longer shown (the
+  // first view does not rotate, ADR-037).
   'home.hero.1',
   'home.hero.2',
   'home.banner.1',
@@ -195,10 +197,49 @@ export const storedPictureSchema = z.object({
   height: z.number().int().positive(),
 });
 
+export const videoTypeSchema = z.enum(['video/mp4', 'video/webm']);
+
+/** The point of a film kept in view where its frame crops it (percent of its width and height). */
+const filmFocusSchema = z.object({
+  focusX: z.number().min(0).max(100).default(50),
+  focusY: z.number().min(0).max(100).default(50),
+});
+
+/**
+ * A stored film, kept as it was uploaded at `<key>/video.mp4` (or `.webm`). It plays in a plain
+ * loop, so it is prepared as one: its end flows into its beginning (docs/reference-assets.md).
+ */
+export const storedVideoSchema = z
+  .object({
+    key: z.string().min(1).max(200),
+    type: videoTypeSchema,
+    width: z.number().int().positive().nullable().default(null),
+    height: z.number().int().positive().nullable().default(null),
+  })
+  .extend(filmFocusSchema.shape);
+
+/** A place's film as the storefront plays it. */
+export const publicFilmSchema = z
+  .object({
+    src: z.string(),
+    type: videoTypeSchema,
+    width: z.number().int().positive().nullable(),
+    height: z.number().int().positive().nullable(),
+  })
+  .extend(filmFocusSchema.shape);
+export type PublicFilmDto = z.infer<typeof publicFilmSchema>;
+
 export const visualSchema = z.object({
   image: storedPictureSchema,
   /** A taller crop for screens under 750 px, as the reference's banners have; optional. */
   mobile: storedPictureSchema.nullable().default(null),
+  /**
+   * A muted film that loops in the place, the picture being its poster (shown until it plays,
+   * and instead of it with reduced motion): the home page's first view and its large banners.
+   */
+  video: storedVideoSchema.nullable().default(null),
+  /** A film for screens under 750 px (usually an upright one), the phone crop being its poster. */
+  mobileVideo: storedVideoSchema.nullable().default(null),
   /** Where the picture comes from (e.g. a licensed source), kept for the asset manifest. */
   source: z.string().max(500).nullable().default(null),
 });
@@ -212,6 +253,8 @@ export type VisualsSetting = z.infer<typeof visualsSettingSchema>;
 export const publicVisualSchema = z.object({
   image: imageSchema,
   mobile: imageSchema.nullable(),
+  video: publicFilmSchema.nullable().default(null),
+  mobileVideo: publicFilmSchema.nullable().default(null),
 });
 export type PublicVisualDto = z.infer<typeof publicVisualSchema>;
 

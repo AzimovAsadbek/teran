@@ -620,3 +620,41 @@ by itself once TERAN adds such products (coffee is planned).
 published, and its pictures should be chosen then; nothing in code names a category. The
 end-to-end journeys check that an empty category or collection stays out of the menus until its
 first product.
+
+## ADR-037: Films in the home page's first view and large banners, without rotation
+
+**Context.** On 2026-10-18 the owner asked for the home page's first view to be one film of tea
+gardens they supplied, with TERAN's words over it and no carousel, and for films in the three large
+banners ("A choice for every taste", "Contact us to order", "Tea school"), chosen from Pinterest
+pins they sent. Both films had to repeat without the repetition being noticeable. A first version
+dissolved the film's end into its start in the browser with two players taking turns; the moving
+footage then showed both moments at once, half-transparent, for a second and a half, and the
+players' timing depended on the device.
+
+**Decision.**
+
+- The first view is one view: TERAN's words over `home.hero.1`'s film (or its picture, or the lake
+  painted on the packs). The slider, its dots, arrows and rotation are gone; `home.hero.2` stays in
+  the settings' schema for stored data but is no longer shown or offered in Admin.
+- A page picture can carry a film (`video`) and a phone film (`mobileVideo`, under 750 px), each
+  with the point kept in view (`focusX`, `focusY`); the picture is the film's first frame, painted
+  at once and shown instead of the film with reduced motion or a data-saving connection. Films are
+  set by the import script (`visuals:import`, variants `video` and `video-mobile`); a new picture
+  uploaded in Admin replaces the place's film too, and Admin says so on places that play one.
+- Films are prepared as loops before upload: the part of the source where the least changes is
+  kept, and its last second or two dissolve into its first in the file itself (with any camera
+  movement measured and matched during the dissolve, so nothing doubles), or a still scene plays
+  forwards then backwards. The file's end then continues exactly into its start, and the storefront
+  plays it with the browser's own `loop` (`LoopingFilm`), one player, no timing of its own. The
+  films are re-encoded muted at 1.2–2 Mbit/s: the first view's film went from 4.1 MB to 2.2 MB.
+- A film is fetched whole once the page has loaded and the place comes within a screen of view,
+  fades in over its poster, plays only while on screen, and has a round pause button (WCAG 2.2.2):
+  at the bottom left of the first view, in line with the words, and in the banners at the bottom
+  left on phones and the top right from 1024 px, away from the words and from the chat and
+  networks buttons floating at the bottom right. A veil darkens the words' side over a film.
+
+**Consequences.** A film uploaded without preparation would show a cut at each repetition; the
+steps are in docs/design/reference-assets.md, section 5. The banner films come from third-party
+creators on Pinterest and the first view's from the owner: TERAN should confirm it may use them
+(section 5). Films are decorative; the words carry the meaning, so search engines and screen
+readers lose nothing without them.

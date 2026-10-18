@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import request from 'supertest';
@@ -16,6 +16,7 @@ import {
   type ProductUpsertInput,
   type UserRole,
 } from '@teran/contracts';
+import type { Prisma } from '../src/generated/prisma/client.js';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { TEST_ENV } from './test-env.js';
 import {
@@ -604,6 +605,33 @@ describe('admin API', () => {
       expect(existsSync(join(uploads, stored.image.key, '320.webp'))).toBe(false);
       expect(replaced.body.visuals['banner:catalog'].mobile.key).toBe(stored.mobile.key);
       expect(existsSync(join(uploads, stored.mobile.key, '320.webp'))).toBe(true);
+
+      // A film playing in the place (set by the import script) is replaced by a new picture too.
+      const filmKey = `visuals/${randomUUID()}/film12345678`;
+      mkdirSync(join(uploads, filmKey), { recursive: true });
+      writeFileSync(join(uploads, filmKey, 'video.mp4'), 'film');
+      const row = await ctx.prisma.siteSetting.findUniqueOrThrow({ where: { key: 'visuals' } });
+      const withFilm = row.value as Record<string, Prisma.InputJsonObject>;
+      withFilm['banner:catalog'] = {
+        ...withFilm['banner:catalog'],
+        video: { key: filmKey, type: 'video/mp4', width: 736, height: 414 },
+      };
+      await ctx.prisma.siteSetting.update({ where: { key: 'visuals' }, data: { value: withFilm } });
+      const playing = await request(server()).get(`${API}/content/settings?locale=uz`).expect(200);
+      expect(playing.body.visuals['banner:catalog'].video).toEqual({
+        src: `/uploads/${filmKey}/video.mp4`,
+        type: 'video/mp4',
+        width: 736,
+        height: 414,
+        focusX: 50,
+        focusY: 50,
+      });
+      const pictured = await agent
+        .post(`${API}/admin/settings/visuals/banner:catalog`)
+        .attach('file', await png(600), { filename: 'still.png', contentType: 'image/png' })
+        .expect(201);
+      expect(pictured.body.visuals['banner:catalog'].video).toBeNull();
+      expect(existsSync(join(uploads, filmKey, 'video.mp4'))).toBe(false);
 
       // The phone crop on its own: replaced, then removed.
       const phone = await agent

@@ -239,8 +239,11 @@ function MegaPanel({
       )}
     >
       {opened ? (
-        <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain px-12 pt-[1.9375rem] pb-10">
-          {children}
+        // The panel's colour spans the window; its content keeps to the header's frame (the same
+        // 1920 px container and gutters), so the columns start under the menu buttons and the
+        // picture ends under the account button, however wide the screen.
+        <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain">
+          <div className="container-page pt-[1.9375rem] pb-10">{children}</div>
         </div>
       ) : null}
     </div>
@@ -484,9 +487,11 @@ function CollectionsPanel({ navigation }: { navigation: Navigation }) {
     <div className="grid min-h-[19.375rem] grid-cols-[minmax(0,1fr)_16.25rem] gap-x-10">
       <div className="min-w-0">
         <p className={COLUMN_HEADING}>{t('collections')}</p>
-        <ul className="mt-4 columns-3 gap-x-14 [&>li]:mb-2">
+        {/* Columns of up to seven links, filled one after another from the left, so a few
+            collections stay together instead of spreading across the panel. */}
+        <ul className="mt-4 grid auto-cols-[minmax(0,18rem)] grid-flow-col grid-rows-[repeat(7,auto)] justify-start gap-x-14 gap-y-2">
           {collections.map((collection) => (
-            <li key={collection.slug} className="break-inside-avoid">
+            <li key={collection.slug}>
               <Link href={`/collections/${collection.slug}`} className={COLUMN_LINK}>
                 {collection.name}
                 {collection.productCount === 0 ? (
@@ -495,7 +500,7 @@ function CollectionsPanel({ navigation }: { navigation: Navigation }) {
               </Link>
             </li>
           ))}
-          <li className="break-inside-avoid">
+          <li>
             <Link href="/catalog" className={COLUMN_LINK_STRONG}>
               {t('shopAll')}
               <ArrowRight aria-hidden className="h-4 w-4" />
@@ -524,7 +529,7 @@ function LearnPanel({ navigation }: { navigation: Navigation }) {
   const coverSources = cover?.cover ? imageSources(cover.cover, 480) : null;
   return (
     <div className="grid min-h-[19.375rem] grid-cols-[minmax(0,1fr)_16.25rem] gap-x-10">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] content-start gap-x-10">
+      <div className="grid min-w-0 grid-cols-[minmax(0,24rem)_minmax(0,18rem)] content-start gap-x-14">
         <div className="min-w-0">
           <p className={COLUMN_HEADING}>{t('articles')}</p>
           <ul className="mt-4 flex flex-col gap-2">
@@ -584,7 +589,7 @@ function AboutPanel({ navigation }: { navigation: Navigation }) {
   const t = useTranslations('Nav');
   return (
     <div className="grid min-h-[19.375rem] grid-cols-[minmax(0,1fr)_16.25rem] gap-x-10">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] content-start gap-x-10">
+      <div className="grid min-w-0 grid-cols-[repeat(2,minmax(0,18rem))] content-start gap-x-14">
         <div>
           <p className={COLUMN_HEADING}>{t('brandWorld')}</p>
           <ul className="mt-4 flex flex-col gap-2">

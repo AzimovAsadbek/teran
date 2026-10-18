@@ -236,11 +236,47 @@ describe('page pictures', () => {
 
   it('keeps a picture with an optional phone crop and source', () => {
     const parsed = visualsSettingSchema.parse({ 'about.hero': { image: picture } });
-    expect(parsed['about.hero']).toEqual({ image: picture, mobile: null, source: null });
+    expect(parsed['about.hero']).toEqual({
+      image: picture,
+      mobile: null,
+      video: null,
+      mobileVideo: null,
+      source: null,
+    });
     expect(
       visualsSettingSchema.safeParse({ 'about.hero': { image: { ...picture, widths: [] } } })
         .success,
     ).toBe(false);
+  });
+
+  it('keeps a film with its poster, MP4 or WebM only', () => {
+    const film = {
+      key: 'visuals/' + id + '/film',
+      type: 'video/mp4',
+      width: 596,
+      height: 336,
+      focusX: 60,
+      focusY: 45,
+    };
+    const parsed = visualsSettingSchema.parse({ 'home.hero.1': { image: picture, video: film } });
+    expect(parsed['home.hero.1']?.video).toEqual(film);
+    expect(
+      visualsSettingSchema.safeParse({
+        'home.hero.1': { image: picture, video: { ...film, type: 'video/quicktime' } },
+      }).success,
+    ).toBe(false);
+    // Older settings without a size still read.
+    const sizeless = visualsSettingSchema.parse({
+      'home.hero.1': { image: picture, video: { key: film.key, type: 'video/webm' } },
+    });
+    expect(sizeless['home.hero.1']?.video).toEqual({
+      key: film.key,
+      type: 'video/webm',
+      width: null,
+      height: null,
+      focusX: 50,
+      focusY: 50,
+    });
   });
 });
 

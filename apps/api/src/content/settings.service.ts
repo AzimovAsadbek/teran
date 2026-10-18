@@ -9,12 +9,14 @@ import {
   type ContactSetting,
   type ImageDto,
   type Locale,
+  type PublicFilmDto,
   type PublicSettingsDto,
   type SettingKey,
   type StoresSetting,
   type VisualsSetting,
 } from '@teran/contracts';
 import { PUBLIC_UPLOADS_PATH } from '../catalog/catalog.mapper.js';
+import { videoFileName } from '../media/image-processing.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -45,6 +47,13 @@ export interface SettingValues {
   stores: StoresSetting;
   /** Page pictures by place (Admin → Settings → Page pictures). */
   visuals: VisualsSetting;
+}
+
+/** A place's film as the storefront plays it: the file's address and how it loops. */
+export function visualVideo(video: VisualsSetting[string]['video']): PublicFilmDto | null {
+  if (!video) return null;
+  const { key, ...play } = video;
+  return { src: `${PUBLIC_UPLOADS_PATH}/${key}/${videoFileName(video.type)}`, ...play };
 }
 
 /** A stored page picture as an image the storefront can render (decorative: no alt text). */
@@ -140,6 +149,8 @@ export class SettingsService {
           {
             image: visualImage(visual.image),
             mobile: visual.mobile ? visualImage(visual.mobile) : null,
+            video: visualVideo(visual.video),
+            mobileVideo: visualVideo(visual.mobileVideo),
           },
         ]),
       ),

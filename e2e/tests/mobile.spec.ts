@@ -46,37 +46,21 @@ test.describe('phone', () => {
     await expectNoSidewaysScroll(page);
   });
 
-  test('the hero slides change by themselves and by swiping, and wait with reduced motion @mobile', async ({
+  test('the hero is one view: TERAN’s words and a pill to the teas, without rotation @mobile', async ({
     page,
   }) => {
-    const hero = page.getByRole('region', { name: 'TERAN products' });
-    const current = () => hero.locator('button[aria-current="true"]').getAttribute('aria-label');
     await page.goto('/en');
-    // One page heading, outside the slides, so it stays while they change.
-    await expect(hero.getByRole('heading', { level: 1 })).toHaveCount(1);
-    const first = await current();
-    expect(first).toMatch(/^1 \/ \d+/);
-    // It moves on by itself after about five seconds.
-    await expect.poll(current, { timeout: 9_000 }).not.toBe(first);
-
-    // A swipe to the right brings the previous slide back.
-    const box = (await hero.boundingBox())!;
-    const y = box.y + box.height * 0.6;
-    await page.mouse.move(box.x + box.width * 0.2, y);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.5, y, { steps: 6 });
-    await page.mouse.move(box.x + box.width * 0.8, y, { steps: 6 });
-    await page.mouse.up();
-    await expect.poll(current).toBe(first);
+    // One page heading (for screen readers), the tagline in view and the pill to the teas.
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+    await expect(page.getByText('Deep Taste.', { exact: true }).first()).toBeVisible();
+    const pill = page.getByRole('link', { name: 'Shop teas', exact: true }).first();
+    await expect(pill).toBeVisible();
+    // No carousel: no slides, no dots to choose one.
+    await expect(page.locator('[aria-roledescription="carousel"]')).toHaveCount(0);
+    await expect(page.locator('[aria-roledescription="slide"]')).toHaveCount(0);
     await expectNoSidewaysScroll(page);
-
-    // With reduced motion nothing changes by itself.
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.reload();
-    const still = await current();
-    await page.waitForTimeout(6_500);
-    expect(await current()).toBe(still);
-    await expect(hero.getByRole('heading', { level: 1 })).toHaveCount(1);
+    await pill.click();
+    await expect(page).toHaveURL(/\/en\/catalog$/);
   });
 
   test('a category with a very long name fits the phone, on its page and in the menu @mobile', async ({

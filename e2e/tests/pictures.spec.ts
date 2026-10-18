@@ -78,7 +78,8 @@ test.describe('pictures', () => {
   }) => {
     await page.goto('/en/wholesale');
     await visible(page.getByRole('link', { name: 'TERAN XC2025' })).click();
-    await expect(page).toHaveURL(/\/en\/products\/teran-xc2025$/);
+    // The product page keeps the chosen pack in the address once it has loaded.
+    await expect(page).toHaveURL(/\/en\/products\/teran-xc2025(?:\?variant=[^&]+)?$/);
     await expect(page.getByRole('heading', { level: 1, name: 'TERAN XC2025' })).toBeVisible();
 
     await page.goto('/en');

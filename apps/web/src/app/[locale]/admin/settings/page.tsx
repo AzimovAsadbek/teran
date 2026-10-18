@@ -64,6 +64,7 @@ export default async function AdminSettingsPage() {
             source: visual.source,
           }
         : null,
+      film: Boolean(visual?.video ?? visual?.mobileVideo),
     };
   };
   const banner = t('settings.visualSizeBanner');
@@ -112,13 +113,7 @@ export default async function AdminSettingsPage() {
         t('settings.visualSizeTile'),
       ),
     ),
-    ...[1, 2].map((number) =>
-      place(
-        `home.hero.${number}`,
-        t('settings.visualSlots.homeHero', { number }),
-        t('settings.visualSizeSlide'),
-      ),
-    ),
+    place('home.hero.1', t('settings.visualSlots.homeHero'), t('settings.visualSizeSlide')),
     ...[1, 2, 3].map((number) =>
       place(
         `home.banner.${number}`,

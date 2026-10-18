@@ -173,9 +173,7 @@ export function StoreMap({
   // The tiles drawn since the page started (keys), and the view a zoom left with those of its
   // tiles that had been drawn: they stay underneath until the new zoom's tiles are all drawn.
   const [arrived, setArrived] = useState<ReadonlySet<string>>(() => new Set());
-  const [backdrop, setBackdrop] = useState<{ view: View; keys: ReadonlySet<string> } | null>(
-    null,
-  );
+  const [backdrop, setBackdrop] = useState<{ view: View; keys: ReadonlySet<string> } | null>(null);
   const arrive = (key: string) =>
     setArrived((current) => (current.has(key) ? current : new Set(current).add(key)));
 

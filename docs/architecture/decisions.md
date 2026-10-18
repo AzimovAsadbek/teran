@@ -774,6 +774,15 @@ at its source and drawn 3750 device pixels wide; page pictures stopped at 2560 p
   card is drawn wider than the copy on the screen (a 316 to 431 px card at 2×), so the steam is as
   sharp as the picture around it; phones keep the copy.
 
+**Revised 2026-10-19.** The owner found the first view's film "strange" and soft. Its loop
+dissolved the clip's end into its start while the camera drifts, so for 1.5 s of every 7.7 s two
+views showed at once (doubled trees); the three banners doubled the same way (a pitcher, a teapot,
+a hand). The films were made again without any blend: the first view plays forwards and back with
+its speed easing to a stop at each end (`loop-film.swift` `mode=bounce ease=1.15`: wind-blown
+leaves read the same either way), the banners play straight from the two frames most alike and
+start again with a plain cut (`mode=cut`; pouring cannot play backwards). Their copies have a
+little more bitrate (0.09 bits per pixel for the first view, 0.06 for the banners) and sharpening.
+
 **Consequences.** On a 1440 px window at 2× the first view now draws a 3200 px film (10.7 MB, after
 the page has loaded) instead of a 1192 px one; a 1× screen gets 1920 px (3.9 MB) and a phone 1080 ×
 1920 (4 MB). Storage holds seven files per film. Pictures and films whose sources are small (the

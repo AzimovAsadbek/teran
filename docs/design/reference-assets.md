@@ -305,18 +305,24 @@ License: free to use, no attribution required; the authors are named in the mani
 | `home.banner.3` | Tea poured from a celadon teapot, #6691563 (RDNE Stock project)                     | 3840 × 2160, 24 fps | 9.9 s           |
 | `home.feature`  | Gongfu tea with a gaiwan, #6540435 (Tima Miroshnichenko)                            | 3840 × 2160, 25 fps | 12.6 s          |
 
-Each was made a seamless loop at full size with `apps/api/scripts/loop-film.swift` (the last 1.4–1.6
-s dissolve into the first; no frames matched closely enough for a cut), then copied with
-`upscale-film.swift` (Lanczos, a touch of sharpening) at 1280, 1920, 2560, 3200 and 3840 px, and as
-the 9:16 part phones show at 1080 × 1920 and 720 × 1280. The storefront plays the narrowest copy
-that fills its frame's device pixels: for the first view, 1920 px (3.9 MB) on a 1× screen, 3200 px
-(10.7 MB) in a 1440 px window at 2×, 3840 px (15 MB) only on the largest screens, 1080 × 1920 (4 MB)
-on phones; each film is fetched once the page has loaded and its place comes near. Posters are each
-film's first frame at full size (4096 or 3840 px, the phone's 1215 × 2160).
+On 2026-10-19 the films were made again (`storage/hd-films-2/`, replacing `storage/hd-films/`):
+their first loops dissolved the last 1.4–1.6 s into the first, and as the camera or a hand moves in
+all four, two views showed at once at every restart. Now no frame is blended. The first view plays
+1.0–4.5 s of its clip forwards and back, its speed easing to a stop at each end (`loop-film.swift
+mode=bounce ease=1.15`, 9.5 s); the banners play from the two frames most alike and start again
+with a plain cut (`mode=cut`: the gaiwan tray 1.48–11.48 s, mirrored, 10 s; the celadon pour
+0.33–8.34 s, 8 s; the gongfu tray 0.56–14.60 s, 14 s). Each is copied with `upscale-film.swift`
+(Lanczos and some sharpening) at 1280, 1920, 2560, 3200 and 3840 px, and as the 9:16 part phones
+show at 1080 × 1920 and 720 × 1280, at 0.09 bits per pixel for the first view and 0.06 for the
+banners. The storefront plays the narrowest copy that fills its frame's device pixels: for the
+first view, 1920 px (6.1 MB) on a 1× screen, 3200 px (16.9 MB) in a 1440 px window at 2×, 3840 px
+(24 MB) only on the largest screens, 1080 × 1920 (5.8 MB) on phones; each film is fetched once the
+page has loaded and its place comes near. Posters are each film's first frame at full size (4096 or
+3840 px, the phone's 1215 × 2160).
 
 `storage/hd-pictures/` replaces the page pictures that were smaller than large screens need with
 Pexels photographs of the same subjects, cropped to each place's proportions so the layout stays:
-the values band (Shah-i-Zinda, 900 px → 5120 px), the two bento tiles and the business card (up to
+the values band (Shah-i-Zinda, 900 px → 5120 px; replaced on 2026-10-19, below), the two bento tiles and the business card (up to
 1536 px → 3200 px), the wholesale first view (cups on the right, clear of the words; 5120 px) and
 the dealer section's backdrop (5120 px), and an About timeline picture (705 → 2400 px). Not
 replaced: the story band (the only fitting photograph put its tea set where the words are), the
@@ -324,10 +330,17 @@ wholesale flavour band (its words are dark and sit on the picture's light top) a
 cups (the photograph found showed coffee too).
 
 ```bash
-corepack pnpm --filter @teran/api visuals:import --dir storage/hd-films --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-films-2 --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-pictures --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-values --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-rerender --force
 ```
+
+`storage/hd-values/` (2026-10-19) holds the values band's photograph: the owner found Samarkand's
+Shah-i-Zinda odd on a tea site and chose Longjing tea terraces in Hangzhou, China, with tea pickers
+(Pexels #16325662, Bluesea Tea), 16:9 at 5120 px and a 0.93:1 phone crop from the terraces on the
+left. Its entries left `storage/hd-pictures/`, so importing that folder again cannot bring
+Samarkand back.
 
 `storage/hd-rerender/` holds the catalogue and help-centre banners of section 4 again (3700 and 3800
 px) and the four journal covers of `storage/reference-assets/` (1921 to 2560 px): imported anew,

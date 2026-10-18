@@ -6,9 +6,17 @@
 //             With `zoom=rate,cx,cy` (a camera pushing in at `rate` per second about that point,
 //             in fractions of the frame), both layers are scaled during the dissolve so they stay
 //             aligned; the whole film is then magnified by exp(rate × length) to keep edges filled.
+//             A dissolve shows two moments at once: where the camera or a hand moves, the
+//             picture doubles for `fade` seconds (2026-10-19: all four home films did), so it
+//             suits only still shots in which only small things move (steam, leaves).
 //   bounce:   the part plays forwards then backwards (length 2 × (end - start)), for still scenes.
-// Usage: swift loop-film.swift in=… out=… start=… end=… [fade=1.6] [mode=dissolve|bounce]
-//        [flip=1] [bitrate=1400000] [fps=25] [zoom=0.024,0.475,0.44]
+//             With `ease=speed`, the speed eases to a stop at each end (a cosine in time; `speed`
+//             is the top speed, 1 = as filmed), so a drifting camera turns round smoothly and the
+//             picture never doubles: for wind-blown leaves, not for anything poured or handled.
+//   cut:      the part plays as it is; the browser's loop starts it again (a plain cut, best at
+//             two frames that look alike): for moving shots that cannot play backwards.
+// Usage: swift loop-film.swift in=… out=… start=… end=… [fade=1.6] [mode=dissolve|bounce|cut]
+//        [ease=1.15] [flip=1] [bitrate=1400000] [fps=25] [zoom=0.024,0.475,0.44]
 import AVFoundation
 import CoreVideo
 import Foundation
@@ -138,22 +146,42 @@ guard reader.startReading() else { print("reader:", reader.error as Any); exit(1
 writer.startWriting()
 writer.startSession(atSourceTime: .zero)
 
+var written = 0
+func write(_ buffer: CVPixelBuffer) {
+  while !writerInput.isReadyForMoreMediaData { usleep(2000) }
+  if !adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(written), timescale: fps)) {
+    print("append failed:", writer.error as Any); exit(1)
+  }
+  written += 1
+}
+// Only a bounce needs every frame at hand (4K frames are 33 MB each); the others are written as
+// they are read.
 var frames: [CVPixelBuffer] = []
 while let sample = frameOutput.copyNextSampleBuffer() {
-  if let buffer = CMSampleBufferGetImageBuffer(sample) { frames.append(buffer) }
+  guard let buffer = CMSampleBufferGetImageBuffer(sample) else { continue }
+  if mode == "bounce" { frames.append(buffer) } else { write(buffer) }
 }
 if reader.status == .failed { print("reader failed:", reader.error as Any); exit(1) }
 if mode == "bounce" && frames.count > 2 {
-  frames += frames[1..<(frames.count - 1)].reversed()
-}
-for (index, buffer) in frames.enumerated() {
-  while !writerInput.isReadyForMoreMediaData { usleep(2000) }
-  if !adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(index), timescale: fps)) {
-    print("append failed:", writer.error as Any); exit(1)
+  if let speed = options["ease"].flatMap(Double.init), speed > 0 {
+    // Position p(j) = last × (1 − cos 2πj/total) / 2: 0 → last → 0, its top speed π × last /
+    // total frames per frame. Each output frame is the nearest filmed one (no blending).
+    let last: Double = Double(frames.count - 1)
+    let total: Int = Int((Double.pi * last / speed).rounded())
+    func position(_ j: Int) -> Int {
+      let turn: Double = 2 * Double.pi * Double(j) / Double(total)
+      let p: Double = last * (1 - cos(turn)) / 2
+      return Int(p.rounded())
+    }
+    let filmed = frames
+    frames = (0..<total).map { (j: Int) -> CVPixelBuffer in filmed[position(j)] }
+  } else {
+    frames += frames[1..<(frames.count - 1)].reversed()
   }
 }
+for buffer in frames { write(buffer) }
 writerInput.markAsFinished()
 await writer.finishWriting()
 if writer.status != .completed { print("writer:", writer.error as Any); exit(1) }
 let bytes = (try FileManager.default.attributesOfItem(atPath: target.path)[.size] as? Int) ?? 0
-print("\(target.lastPathComponent): \(width)×\(height) \(fps) fps, \(frames.count) frames = \(String(format: "%.2f", Double(frames.count) / Double(fps))) s, \(bytes / 1024) KB")
+print("\(target.lastPathComponent): \(width)×\(height) \(fps) fps, \(written) frames = \(String(format: "%.2f", Double(written) / Double(fps))) s, \(bytes / 1024) KB")

@@ -1,5 +1,5 @@
 import type { ProductFilmDto } from '@teran/contracts';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setMotionPaused } from '@/lib/motion';
 import { ProductFilm } from './product-film';
@@ -40,6 +40,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Unmounted while the media mocks are still in place: a film still loading when a test ends
+  // must not reach jsdom's play(), which is not implemented (it returns nothing to catch).
+  cleanup();
   act(() => setMotionPaused(false));
   vi.unstubAllGlobals();
   vi.restoreAllMocks();

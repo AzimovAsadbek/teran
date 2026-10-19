@@ -384,7 +384,9 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   cuts out the logo set (`teran-logo`, `-emblem`, `-wordmark`, and `-lockup` with the pack's line
   and rule, used for the social image), the artwork (`art/lake`, `art/terraces`, `art/sprig-1`), the pack fronts (`packs/*`) and
   the ornaments (`ornaments/*.svg`), and `scripts/generate-brand-assets.mjs` makes the favicon, app
-  icons (emblem on ivory) and the default social image (1200×630) from the logo set. The logo set
+  icons (since 2026-10-19 round, at the owner's request: the emblem glowing on a deep green disc in
+  a thin gold ring, transparent around it; the home-screen icon fills its square) and the default
+  social image (1200×630) from the logo set. The logo set
   is PNG (the artwork WebP); the web app imports them through `next/image`, which serves modern
   formats.
 - **Ornaments** (`components/brand/ornaments.tsx`): the pack's four ringed icons, alone

@@ -300,7 +300,7 @@ License: free to use, no attribution required; the authors are named in the mani
 
 | Place           | Film (Pexels)                                                                       | Source              | Loop            |
 | --------------- | ----------------------------------------------------------------------------------- | ------------------- | --------------- |
-| `home.hero.1`   | Tea bushes before mountains, #8191045 (Roman Odintsov)                              | 4096 × 2160, 30 fps | 7.7 s, dissolve |
+| `home.hero.1`   | Tea bushes before mountains, #8191045 (Roman Odintsov); replaced on 2026-10-19      | 4096 × 2160, 30 fps | 7.7 s, dissolve |
 | `home.banner.2` | Teas on a tray, tea poured into a pitcher, #6540437 (Tima Miroshnichenko), mirrored | 3840 × 2160, 25 fps | 13.3 s          |
 | `home.banner.3` | Tea poured from a celadon teapot, #6691563 (RDNE Stock project)                     | 3840 × 2160, 24 fps | 9.9 s           |
 | `home.feature`  | Gongfu tea with a gaiwan, #6540435 (Tima Miroshnichenko)                            | 3840 × 2160, 25 fps | 12.6 s          |
@@ -329,8 +329,18 @@ replaced: the story band (the only fitting photograph put its tea set where the 
 wholesale flavour band (its words are dark and sit on the picture's light top) and the Tea 101
 cups (the photograph found showed coffee too).
 
+Later on 2026-10-19 the owner asked for a sharper, brighter first view and chose, from eight 4K
+Pexels clips shown as mock-ups of the first view, a drone drifting over sunlit tea gardens in
+Bangladesh (#31025015, Somogro Bangladesh; 3840 × 2160 at 60 fps, a 69 Mbit/s source, much
+crisper than the first one). `storage/hd-hero-3/` holds it: 0.4–4.4 s forwards and back with eased
+turns (`mode=bounce ease=1.25`, 30 fps, 10 s; the later seconds pass tree trunks close to the
+camera), copied at 0.14 bits per pixel (0.12 at 3840 px; a 100 % comparison showed 0.085 smudging
+the leaves): 1920 px 10.9 MB, 3200 px 30.2 MB, 3840 px 37.3 MB, the phone's 1080 × 1920 8.5 MB.
+The first view's entries left `storage/hd-films-2/`.
+
 ```bash
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-films-2 --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-hero-3 --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-pictures --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-values --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-rerender --force

@@ -550,3 +550,31 @@ the drawer and bar links, one product row with tabs on the home page. CI: the un
 failed since c3cc3aa on a test race (a film test could reach jsdom's unimplemented `play()` after
 its mocks were restored; fixed in 12222a0, all five jobs green again). End-to-end 51 passed (the
 journey test now takes "Register" from the bar).
+
+## Phone banners, the promo strip again, a sharper first view (2026-10-19, later)
+
+The owner asked for the home page's campaign banners on phones to be lower, with their words in
+the middle and space between them as on wide screens; for the black strip under the header back;
+and for a sharper, brighter film in the first view.
+
+- **Banners on phones.** They were full width, 538 px high and touching each other, their words at
+  the top. Now inset between the page's gutters with rounded corners and 24 px between them, 448 px
+  high, the words in the middle (over a film, the veil sits behind them); the brewing band takes the
+  same shape below 1024 px. Banners with TERAN's packs below their words still grow to fit.
+- **The promo strip.** It had not been removed: it shows the "TERAN premium" collection, which was
+  deleted in the admin area at 01:28 (the audit log: three cover changes, then `collection.delete`);
+  the other collections had been inactive since 10-17. The collection was recreated as seeded (same
+  id and slug, its three names, the five teas; an audit entry records it), and the strip no longer
+  depends on it: without a collection it keeps TERAN's own words and leads to the catalogue. The
+  gallery banner's pill likewise leads to the catalogue while the collection is missing (it led to
+  a missing page).
+- **The first view.** Eight 4K Pexels clips were shown to the owner as mock-ups of the first view on
+  a desktop and a phone; the owner chose sunlit tea gardens in Bangladesh (a 69 Mbit/s source,
+  sharper than the first clip at 100 %). Prepared without blending (forwards and back, eased), its
+  copies at 0.14 bits per pixel (`storage/hd-hero-3`, docs/design/reference-assets.md section 9).
+
+The production database's port 5432 stalled from this network on the day (the connection opened
+but the handshake never finished, while the site and Neon's HTTPS endpoint answered): the read-only
+checks and the collection's restore went through Neon's SQL over HTTPS, the import through a local
+relay carrying the Postgres protocol over a secure WebSocket to Neon's proxy, as Neon's own
+serverless driver does. Neither needed a new package or a change to the project.

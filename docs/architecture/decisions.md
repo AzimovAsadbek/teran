@@ -782,6 +782,9 @@ its speed easing to a stop at each end (`loop-film.swift` `mode=bounce ease=1.15
 leaves read the same either way), the banners play straight from the two frames most alike and
 start again with a plain cut (`mode=cut`; pouring cannot play backwards). Their copies have a
 little more bitrate (0.09 bits per pixel for the first view, 0.06 for the banners) and sharpening.
+The first view then got a sharper, brighter clip chosen by the owner (sunlit tea gardens, a 69
+Mbit/s 4K source; `storage/hd-hero-3`), its copies at 0.14 bits per pixel: a drone moving over
+leaves changes every pixel, and less smudged them at 100 %.
 
 **Consequences.** On a 1440 px window at 2× the first view now draws a 3200 px film (10.7 MB, after
 the page has loaded) instead of a 1192 px one; a 1× screen gets 1920 px (3.9 MB) and a phone 1080 ×

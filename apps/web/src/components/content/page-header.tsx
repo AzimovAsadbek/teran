@@ -7,8 +7,8 @@ import { cn } from '@/lib/cn';
  * Header of the information pages on the reference's templates.
  * - `light` (help and policy pages): the reference's page banner: a warm pale band (320 px on
  *   phones, 260 px from 750 px) with the title in the soft serif, 40 px, in lower case; an intro,
- *   when a page has one, sits centred under it. `size="large"` is the store locator's taller band
- *   (400 px from 750 px) with its 18 px tagline, 600 px wide.
+ *   when a page has one, sits centred under it. `size="large"` is a taller band (400 px from
+ *   750 px) with an 18 px tagline, 600 px wide.
  * - `teal`: the same band in the brand's teal with white words (Tea 101); its tagline runs 1000 px
  *   wide.
  * - `brand` (journal, business): a brand-coloured band, or with `image` a full-bleed picture under a

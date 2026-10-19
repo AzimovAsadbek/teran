@@ -1,7 +1,16 @@
 'use client';
 
 import { STORE_KINDS, type PublicStoreDto, type StoreKind } from '@teran/contracts';
-import { ChevronDown, LoaderCircle, LocateFixed, Phone, Search, X } from 'lucide-react';
+import {
+  ChevronDown,
+  Clock,
+  LoaderCircle,
+  LocateFixed,
+  MapPin,
+  Phone,
+  Search,
+  X,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
@@ -13,9 +22,11 @@ import { StoreMap } from './store-map';
  * The store locator on the reference's (its Storepoint widget): a white panel with a search row
  * across the top (the search field with "use my location", the radius, the kind filter), the
  * stores on the left and the map on the right; on phones the search, the map, then the list.
- * TERAN's stores come from Admin → Settings → Stores; the search matches their names and
+ * TERAN's stores come from Admin → Store addresses; the search matches their names and
  * addresses, and once the visitor shares their location the list keeps the stores within the
- * radius, nearest first. Nothing is invented when there are none.
+ * radius, nearest first. Nothing is invented when there are none. With a single store there is
+ * nothing to search: the panel shows that store, chosen on the map, with its details and the ways
+ * to get there (Google Maps directions, Yandex Maps), on phones its card above the map.
  */
 
 const RADII = [5, 10, 25, 50, 100] as const;
@@ -155,11 +166,14 @@ function StoreCard({
   selected,
   distance,
   onSelect,
+  prominent = false,
 }: {
   store: PublicStoreDto;
   selected: boolean;
   distance: number | null;
   onSelect: () => void;
+  /** The only store: larger type and no list behaviour around it. */
+  prominent?: boolean;
 }) {
   const t = useTranslations('Stores');
   const tc = useTranslations('Common');
@@ -172,22 +186,71 @@ function StoreCard({
     unit: 'kilometer',
     maximumFractionDigits: 1,
   });
+  const icon = 'mt-0.5 h-4 w-4 shrink-0 text-[#107e84]';
 
   return (
     <li
       data-store={store.id}
       aria-current={selected ? 'true' : undefined}
       className={cn(
-        'border-b border-black/10 p-5 transition-colors',
+        'border-b border-black/10 transition-colors',
+        prominent ? 'p-6 min-[61.875rem]:p-8' : 'p-5',
         // The chosen store: the reference's teal bar on the left over the pointed-at shade.
-        selected
+        selected && !prominent
           ? 'bg-black/[0.02] shadow-[inset_4px_0_0_#107e84]'
           : 'bg-white hover:bg-black/[0.02]',
+        prominent && 'border-b-0 hover:bg-white',
       )}
     >
+      {picture && store.image && prominent ? (
+        // eslint-disable-next-line @next/next/no-img-element -- pre-sized upload
+        <img
+          src={picture.src}
+          srcSet={picture.srcSet}
+          sizes="(min-width: 90rem) 36rem, (min-width: 61.875rem) 40vw, 92vw"
+          width={store.image.width}
+          height={store.image.height}
+          alt={store.image.alt}
+          loading="lazy"
+          decoding="async"
+          className="mb-5 aspect-[16/9] w-full rounded-[0.5rem] object-cover"
+        />
+      ) : null}
       <div className="flex justify-between gap-5">
-        <div className="flex min-w-0 flex-1 flex-col gap-2 text-[0.875rem] leading-[1.05rem] font-medium min-[61.875rem]:max-w-[14.125rem]">
-          <h2 className="text-[1.125rem] leading-6 font-semibold text-black">
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col font-medium',
+            prominent
+              ? 'gap-3.5 text-[1rem] leading-[1.45rem]'
+              : 'gap-2.5 text-[0.875rem] leading-[1.15rem] min-[61.875rem]:max-w-[16rem]',
+          )}
+        >
+          {store.kinds.length > 0 ? (
+            <div>
+              <p className="sr-only">{t('kindsGroup')}</p>
+              <ul className="flex flex-wrap gap-1">
+                {store.kinds.map((kind) => (
+                  <li
+                    key={kind}
+                    className={cn(
+                      'rounded-full px-2.5 pt-[0.3125rem] pb-0.5 text-[0.75rem] leading-3 font-semibold text-[#2f3a36]',
+                      KIND_COLOURS[kind],
+                    )}
+                  >
+                    {t(`kind.${kind}`)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <h2
+            className={cn(
+              'font-semibold text-black',
+              prominent
+                ? 'font-heading text-[1.75rem] leading-[2.1rem] [--display-weight:600]'
+                : 'text-[1.125rem] leading-6',
+            )}
+          >
             <button
               type="button"
               onClick={onSelect}
@@ -202,56 +265,44 @@ function StoreCard({
               {t('distance', { distance: km.format(distance) })}
             </p>
           ) : null}
-          {store.kinds.length > 0 ? (
-            <div className="flex flex-col gap-0.5">
-              <p className="text-[0.6875rem] leading-[1.05rem] text-black/70">{t('kindsGroup')}</p>
-              <ul className="flex flex-wrap gap-0.5">
-                {store.kinds.map((kind) => (
-                  <li
-                    key={kind}
-                    className={cn(
-                      'rounded-[0.3125rem] px-[0.3125rem] pt-[0.3125rem] pb-0.5 text-[0.75rem] leading-3 text-[#444]',
-                      KIND_COLOURS[kind],
-                    )}
-                  >
-                    {t(`kind.${kind}`)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          <p id={addressId} className="font-normal whitespace-pre-line text-black">
-            {store.address}
+          <p className="flex gap-2.5">
+            <MapPin aria-hidden className={icon} />
+            <span id={addressId} className="font-normal whitespace-pre-line text-black">
+              {store.address}
+            </span>
           </p>
           {rows.length > 0 ? (
-            <dl className="flex flex-col gap-1">
-              {rows.map((row, index) =>
-                row.time ? (
-                  <div key={index} className="flex gap-[0.3125rem]">
-                    <dt className="w-[5.625rem] shrink-0 text-[#444]">{row.day}</dt>
-                    <dd className="text-black">{row.time}</dd>
-                  </div>
-                ) : (
-                  <div key={index}>
-                    <dt className="sr-only">{t('hours')}</dt>
-                    <dd className="text-[#444]">{row.day}</dd>
-                  </div>
-                ),
-              )}
-            </dl>
+            <div className="flex gap-2.5">
+              <Clock aria-hidden className={icon} />
+              <dl className="flex flex-col gap-1">
+                {rows.map((row, index) =>
+                  row.time ? (
+                    <div key={index} className="flex gap-[0.3125rem]">
+                      <dt className="w-[5.625rem] shrink-0 text-[#444]">{row.day}</dt>
+                      <dd className="text-black">{row.time}</dd>
+                    </div>
+                  ) : (
+                    <div key={index}>
+                      <dt className="sr-only">{t('hours')}</dt>
+                      <dd className="text-black">{row.day}</dd>
+                    </div>
+                  ),
+                )}
+              </dl>
+            </div>
           ) : null}
           {store.phone ? (
-            <p className="flex items-center gap-2">
-              <Phone aria-hidden className="h-3.5 w-3.5 shrink-0 fill-black" strokeWidth={0} />
+            <p className="flex items-center gap-2.5">
+              <Phone aria-hidden className={cn(icon, 'mt-0')} />
               <a
                 href={`tel:${store.phone.replace(/[^\d+]/g, '')}`}
-                className="py-0.5 text-[#107e84] underline-offset-2 hover:underline"
+                className="py-0.5 font-semibold text-[#107e84] underline-offset-2 hover:underline"
               >
                 {store.phone}
               </a>
             </p>
           ) : null}
-          <p className="flex py-[0.3125rem]">
+          <p className="flex flex-wrap gap-2 pt-1">
             <a
               href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
               target="_blank"
@@ -265,9 +316,21 @@ function StoreCard({
                 — {store.name} ({tc('opensInNewTab')})
               </span>
             </a>
+            <a
+              href={`https://yandex.uz/maps/?pt=${store.longitude},${store.latitude}&z=17&l=map`}
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              className="rounded-[3.125rem] border border-[#107e84] px-5 pt-[0.5625rem] pb-[0.3125rem] text-[1rem] leading-[1.05rem] font-medium text-[#107e84] transition-colors hover:bg-[#107e84]/[0.06]"
+            >
+              {t('yandex')}
+              <span className="sr-only">
+                {' '}
+                — {store.name} ({tc('opensInNewTab')})
+              </span>
+            </a>
           </p>
         </div>
-        {picture && store.image ? (
+        {picture && store.image && !prominent ? (
           <div className="w-[40%] shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized upload */}
             <img
@@ -298,10 +361,15 @@ export function StoreLocator({ stores }: { stores: PublicStoreDto[] | null }) {
   const [kinds, setKinds] = useState<StoreKind[]>([]);
   const [here, setHere] = useState<Position | null>(null);
   const [locating, setLocating] = useState<'idle' | 'busy' | 'denied' | 'failed'>('idle');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The only store starts chosen (its bubble open on the map).
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    stores?.length === 1 ? (stores[0]?.id ?? null) : null,
+  );
   const [menu, setMenu] = useState<'radius' | 'kinds' | null>(null);
 
   const all = useMemo(() => stores ?? [], [stores]);
+  // With one store there is nothing to search or filter.
+  const single = all.length === 1;
   const present = STORE_KINDS.filter((kind) => all.some((store) => store.kinds.includes(kind)));
   const km = new Intl.NumberFormat(locale, {
     style: 'unit',
@@ -369,13 +437,23 @@ export function StoreLocator({ stores }: { stores: PublicStoreDto[] | null }) {
   else status = t('found', { count: shown.length });
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[0.3125rem] border border-black/10 bg-white text-black shadow-[0_0_10px_rgb(0_0_0_/_3%)] min-[61.875rem]:grid min-[61.875rem]:h-[37.5rem] min-[61.875rem]:grid-cols-[2fr_3fr] min-[61.875rem]:grid-rows-[auto_minmax(0,1fr)]">
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden rounded-[0.3125rem] border border-black/10 bg-white text-black shadow-[0_0_10px_rgb(0_0_0_/_3%)] min-[61.875rem]:grid min-[61.875rem]:grid-cols-[2fr_3fr]',
+        single
+          ? 'min-[61.875rem]:min-h-[32rem] min-[61.875rem]:grid-rows-[minmax(0,1fr)]'
+          : 'min-[61.875rem]:h-[37.5rem] min-[61.875rem]:grid-rows-[auto_minmax(0,1fr)]',
+      )}
+    >
       <p role="status" className="sr-only">
         {status}
       </p>
 
-      {/* The search row. */}
-      <div className="relative z-10 order-1 border-b border-black/10 p-[0.3125rem] min-[61.875rem]:col-span-2 min-[61.875rem]:px-5 min-[61.875rem]:py-4">
+      {/* The search row (not for a single store). */}
+      <div
+        hidden={single}
+        className="relative z-10 order-1 border-b border-black/10 p-[0.3125rem] min-[61.875rem]:col-span-2 min-[61.875rem]:px-5 min-[61.875rem]:py-4"
+      >
         <div className="flex flex-col gap-2.5 min-[61.875rem]:flex-row min-[61.875rem]:flex-wrap">
           <div className="flex flex-col rounded-[0.3125rem] bg-black/[0.03] min-[61.875rem]:flex-row">
             <div className="flex h-11 items-center rounded-[0.3125rem] has-[input:focus]:outline-2 has-[input:focus]:-outline-offset-2 has-[input:focus]:outline-[#107e84] min-[61.875rem]:w-[16.9375rem]">
@@ -512,7 +590,14 @@ export function StoreLocator({ stores }: { stores: PublicStoreDto[] | null }) {
         ref={listRef}
         role="region"
         aria-label={t('results')}
-        className="order-3 min-[61.875rem]:order-none min-[61.875rem]:col-start-1 min-[61.875rem]:row-start-2 min-[61.875rem]:overflow-y-auto"
+        className={cn(
+          'min-[61.875rem]:order-none min-[61.875rem]:col-start-1 min-[61.875rem]:overflow-y-auto',
+          // A single store's card comes before the map on phones; beside it, it stands in the
+          // middle of the panel's height.
+          single
+            ? 'order-1 min-[61.875rem]:row-start-1 min-[61.875rem]:flex min-[61.875rem]:items-center [&>ul]:w-full'
+            : 'order-3 min-[61.875rem]:row-start-2',
+        )}
       >
         {stores === null ? (
           <div className="p-5 text-[0.9375rem]">{t('unavailable')}</div>
@@ -560,6 +645,7 @@ export function StoreLocator({ stores }: { stores: PublicStoreDto[] | null }) {
                 distance={distance}
                 selected={store.id === selectedId}
                 onSelect={() => setSelectedId(store.id)}
+                prominent={single}
               />
             ))}
           </ul>
@@ -567,7 +653,14 @@ export function StoreLocator({ stores }: { stores: PublicStoreDto[] | null }) {
       </div>
 
       {/* The map. */}
-      <div className="order-2 h-[15.8125rem] border-b border-black/10 min-[61.875rem]:order-none min-[61.875rem]:col-start-2 min-[61.875rem]:row-start-2 min-[61.875rem]:h-auto min-[61.875rem]:border-b-0">
+      <div
+        className={cn(
+          'order-2 border-black/10 min-[61.875rem]:order-none min-[61.875rem]:col-start-2 min-[61.875rem]:h-auto',
+          single
+            ? 'h-[20rem] border-t min-[61.875rem]:row-start-1 min-[61.875rem]:border-t-0 min-[61.875rem]:border-l'
+            : 'h-[15.8125rem] border-b min-[61.875rem]:row-start-2 min-[61.875rem]:border-b-0',
+        )}
+      >
         <StoreMap
           points={shown.map(({ store }) => store)}
           selectedId={selected?.id ?? null}

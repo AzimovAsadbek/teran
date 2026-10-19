@@ -11,6 +11,7 @@ import {
   Inbox,
   Layers,
   Mail,
+  MapPin,
   Menu,
   ScrollText,
   Send,
@@ -47,6 +48,7 @@ type NavKey =
   | 'collections'
   | 'journal'
   | 'media'
+  | 'stores'
   | 'telegram'
   | 'newsletter'
   | 'settings'
@@ -92,6 +94,7 @@ const NAV: { group: 'sales' | 'catalogue' | 'site' | 'setup'; items: NavItem[] }
     items: [
       { key: 'journal', href: '/admin/journal', icon: BookOpen },
       { key: 'media', href: '/admin/media', icon: Images },
+      { key: 'stores', href: '/admin/stores', icon: MapPin, adminOnly: true },
       { key: 'telegram', href: '/admin/telegram', icon: Send },
       { key: 'newsletter', href: '/admin/newsletter', icon: Mail },
     ],

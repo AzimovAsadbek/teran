@@ -81,7 +81,7 @@ export const storeKindSchema = z.enum(STORE_KINDS);
 export type StoreKind = z.infer<typeof storeKindSchema>;
 
 /**
- * A point of sale on the store locator (Admin → Settings → Stores), entered by TERAN: nothing is
+ * A point of sale on the store locator (Admin → Store addresses), entered by TERAN: nothing is
  * shown until it is. The address is required in Uzbek (Russian and English fall back to it); the
  * place on the map comes from its latitude and longitude.
  */
@@ -104,6 +104,23 @@ export type StoreSetting = z.infer<typeof storeSchema>;
 
 export const storesSettingSchema = z.array(storeSchema).max(200);
 export type StoresSetting = z.infer<typeof storesSettingSchema>;
+
+/** An address to look up on the map (Admin → Store addresses), in the language it is written in. */
+export const storeGeocodeQuerySchema = z.object({
+  q: z.string().trim().min(2).max(200),
+  locale: localeSchema.default('uz'),
+});
+export type StoreGeocodeQuery = z.output<typeof storeGeocodeQuerySchema>;
+
+/** Places found for an address (OpenStreetMap's Nominatim), the likeliest first. */
+export const storeGeocodeSchema = z.object({
+  /** The words the places were found by: the address as written, or a shorter form of it. */
+  query: z.string(),
+  results: z
+    .array(z.object({ label: z.string(), latitude: z.number(), longitude: z.number() }))
+    .max(5),
+});
+export type StoreGeocodeDto = z.infer<typeof storeGeocodeSchema>;
 
 export const SETTING_KEYS = ['announcement', 'contact', 'stores'] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];

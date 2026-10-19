@@ -1,18 +1,15 @@
 import {
-  storePictureSlot,
   type AdminTaxonomy,
   type AnnouncementSetting,
   type ContactSetting,
   type ImageDto,
   type Locale,
-  type StoresSetting,
   type VisualsSetting,
 } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { AnnouncementForm, ContactForm } from '@/components/admin/settings-forms';
-import { StoresForm } from '@/components/admin/stores-form';
 import { VisualsManager, type VisualPlace } from '@/components/admin/visuals-manager';
 import { AccessDenied, AdminPageHeader, Panel } from '@/components/admin/ui';
 import { helpCentre } from '@/content/pages/faq';
@@ -33,7 +30,6 @@ export default async function AdminSettingsPage() {
     adminGet<{
       announcement: AnnouncementSetting | null;
       contact: ContactSetting;
-      stores?: StoresSetting;
       visuals?: VisualsSetting;
     }>('/settings'),
     adminGet<AdminTaxonomy[]>('/categories').catch(() => null),
@@ -154,13 +150,6 @@ export default async function AdminSettingsPage() {
         banner,
       ),
     ),
-    ...(settings.stores ?? []).map((store) =>
-      place(
-        storePictureSlot(store.id),
-        t('settings.visualSlots.storePicture', { name: store.name }),
-        t('settings.visualSizeTile'),
-      ),
-    ),
   ];
   return (
     <>
@@ -172,10 +161,6 @@ export default async function AdminSettingsPage() {
         <Panel title={t('settings.contact')}>
           <p className="mb-4 text-body-sm text-fg-subtle">{t('settings.contactHint')}</p>
           <ContactForm value={settings.contact} />
-        </Panel>
-        <Panel title={t('settings.stores')}>
-          <p className="mb-4 text-body-sm text-fg-subtle">{t('settings.storesHint')}</p>
-          <StoresForm value={settings.stores ?? []} />
         </Panel>
         <Panel title={t('settings.visuals')}>
           <p className="mb-4 text-body-sm text-fg-subtle">{t('settings.visualsHint')}</p>

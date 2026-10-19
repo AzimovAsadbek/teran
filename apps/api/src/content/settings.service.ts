@@ -47,7 +47,7 @@ const SCHEMAS = {
 export interface SettingValues {
   announcement: AnnouncementSetting | null;
   contact: ContactSetting;
-  /** Points of sale on the store locator (Admin → Settings → Stores). */
+  /** Points of sale on the store locator (Admin → Store addresses). */
   stores: StoresSetting;
   /** Page pictures by place (Admin → Settings → Page pictures). */
   visuals: VisualsSetting;

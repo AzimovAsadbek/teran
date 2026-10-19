@@ -486,8 +486,8 @@ sale, and the storefront's policy allowed no third-party origin.
 
 **Decision.** Stores are a site setting (`stores`: a list of up to 200 entries with a name, the
 address and opening hours in the three languages, a phone, latitude and longitude, kinds — shop,
-official dealer, wholesale — and whether it is shown), edited under Admin → Settings → Stores and
-saved with `PUT /admin/settings/stores` (admins only). Each store's picture is a page-picture place
+official dealer, wholesale — and whether it is shown), edited under Admin → Store addresses
+(Settings until ADR-044) and saved with `PUT /admin/settings/stores` (admins only). Each store's picture is a page-picture place
 (`store:<id>`, ADR-028). The public settings carry the shown stores with the address and hours in
 the visitor's language. `/stores` draws the reference's panel itself: the search matches names and
 addresses in the browser; "use my location" asks the browser (the visitor is prompted) and then
@@ -928,3 +928,37 @@ free tier (10 GB stored, a million writes and ten million reads a month) covers 
 bucket's `r2.dev` address is Cloudflare's development address (rate-limited); a custom domain on
 Cloudflare (the domain's DNS moved there) is the production step, with only `R2_PUBLIC_URL` and
 `UPLOADS_ORIGIN` to change. Files in the suspended Blob store stay there.
+
+## ADR-044: Store addresses on their own admin page, placed on a map
+
+**Context.** On 2026-10-19 the owner gave TERAN's first address (Namangan, Dashtbogʻ MFY,
+Turaqoʻrgʻon koʻchasi, 200-uy) and asked for stores to be added and their addresses changed in the
+admin area, and for the store page to look better. Stores could already be edited (ADR-032), but
+inside the long Settings page, with the place on the map typed as "latitude, longitude"; and the
+store page showed its search, radius and kind filter even with one store.
+
+**Decision.**
+
+- Stores have their own admin page, Admin → Store addresses (`/admin/stores`, administrators only,
+  under "Site"), with each store's picture under the list; Settings no longer carries them. The
+  data stays the `stores` site setting, saved whole as before.
+- Each store is a card folded to its name, address and state, opened to edit it. Its place is set
+  on the storefront's own map: a click (not a drag) puts the pin there (`StoreMap` `onPick`); a
+  search sends the address to OpenStreetMap's geocoder through the API
+  (`GET /admin/settings/stores/geocode`, administrators only, 20 a minute), which keeps its usage
+  policy (an identifying User-Agent, one request a second, answers remembered for a day, no
+  autocomplete) and, when the address finds nothing, tries it without the house and the
+  neighbourhood council, then its region and city alone. Typed or found places bring the map to
+  them; the coordinates field stays for pasting from Google or Yandex Maps. A new store starts
+  with the shop's contact phone and hours.
+- The store page: with one store there is nothing to search, so its card stands beside the map
+  (above it on phones) and the store starts chosen, its bubble open; every card has icons for
+  address, hours and phone, and Yandex Maps beside Google's directions (Yandex is the map most
+  used in Uzbekistan). Under the stores, a band offers the phone, Telegram and wholesale
+  partnership. The banner is the ordinary height, so the store shows on the first screen.
+
+**Consequences.** The API makes one outbound request per search, from the server (the browser's
+policy is unchanged); the address an administrator types is the only thing sent. Nominatim knows
+Namangan's streets but not every house: the owner's address finds the street's side lanes and the
+town, and the exact house is clicked on the map (house 200 is in OpenStreetMap at 40.990448,
+71.641952, which is where TERAN Namangan was placed).

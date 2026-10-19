@@ -160,6 +160,11 @@ policy asks). It is allowed on every page rather than on `/stores` alone because
 through an in-app link keeps the policy of the document the visitor first loaded. The map credits
 OpenStreetMap's contributors, as its licence requires.
 
+The admin area's address search (Admin → Store addresses, ADR-044) does not loosen the policy: the
+browser asks the API (`GET /admin/settings/stores/geocode`, administrators only, rate-limited), and
+the API asks OpenStreetMap's Nominatim with an identifying User-Agent, at most once a second, sending
+only the address the administrator typed.
+
 **Why `'unsafe-inline'` instead of nonces.** A nonce must be unique per response, which forces
 every page to render on each request and gives up static prerendering and the partial
 prerendering of Cache Components. Next.js inlines its hydration data, so a static policy has to

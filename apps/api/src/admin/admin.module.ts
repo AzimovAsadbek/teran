@@ -7,6 +7,7 @@ import { PaymentsModule } from '../payments/payments.module.js';
 import { TelegramModule } from '../telegram/telegram.module.js';
 import { AdminContentController } from './content.controller.js';
 import { AdminContentService } from './content.service.js';
+import { GeocodeService } from './geocode.service.js';
 import { AdminDashboardController } from './dashboard.controller.js';
 import { AdminDashboardService } from './dashboard.service.js';
 import { AdminInquiriesController } from './inquiries.controller.js';
@@ -70,6 +71,7 @@ import { AdminTaxonomyService } from './taxonomy.service.js';
     AdminPeopleService,
     AdminInquiriesService,
     AdminContentService,
+    GeocodeService,
   ],
 })
 export class AdminModule {}

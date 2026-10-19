@@ -873,7 +873,8 @@
       "menu": "Boʻlimlar",
       "closeMenu": "Menyuni yopish",
       "newCount": "{count, plural, other {# ta yangi}}",
-      "telegram": "Telegram kanal"
+      "telegram": "Telegram kanal",
+      "stores": "Doʻkon manzillari"
     },
     "common": {
       "save": "Saqlash",
@@ -1461,8 +1462,6 @@
       "visualSizeTile": "Kamida 1300 × 730 px.",
       "visualSizeMenu": "Kamida 520 × 620 px.",
       "visualSizePortrait": "Tik rasm: kamida 1100 × 1550 px.",
-      "stores": "Doʻkonlar",
-      "storesHint": "Doʻkon topish sahifasidagi (/stores) savdo nuqtalari, shu tartibda. Faqat faollari koʻrsatiladi. Saqlangandan soʻng rasmlari «Sahifa rasmlari» boʻlimida qoʻyiladi.",
       "storesEmpty": "Hozircha doʻkon qoʻshilmagan. Doʻkon topish sahifasi boʻsh roʻyxat va TERAN bilan bogʻlanish taklifini koʻrsatadi.",
       "storeNew": "Yangi doʻkon",
       "storeName": "Nomi",
@@ -1471,7 +1470,7 @@
       "storeHours": "Ish vaqti",
       "storeHoursHint": "Har bir kun yoki kunlar guruhi alohida qatorda, masalan: «Du–Ju 9:00–18:00».",
       "storeCoordinates": "Xaritadagi joyi",
-      "storeCoordinatesHint": "Kenglik va uzunlik, xarita xizmati nusxalagandek: Google yoki Yandex xaritada joyni sichqonchaning oʻng tugmasi bilan bosib nusxalang, masalan 40.998, 71.672.",
+      "storeCoordinatesHint": "Xaritada joy bosilganda oʻzi toʻladi. Qoʻlda ham yozish mumkin: kenglik va uzunlik, masalan 40.990448, 71.641952 (Google yoki Yandex xaritada joyni oʻng tugma bilan bosib nusxalang).",
       "storeCheckMap": "Xaritada tekshirish",
       "storeKinds": "Turi",
       "storeKind": {
@@ -1863,6 +1862,37 @@
       "asCard": "Kartochka koʻrinishi",
       "asCardHint": "Katalog, qidiruv va bosh sahifada shunday koʻrinadi.",
       "asArticleCardHint": "Jurnal roʻyxati va bosh sahifada shunday koʻrinadi."
+    },
+    "stores": {
+      "title": "Doʻkon manzillari",
+      "intro": "Saytdagi «Doʻkon topish» sahifasida (/stores) koʻrsatiladigan savdo nuqtalari. Doʻkon qoʻshing, manzilini yozing va xaritada joyini belgilang: «Saytda koʻrsatish» belgilangan doʻkonlar saytda chiqadi.",
+      "viewOnSite": "Sahifani ochish",
+      "listTitle": "Doʻkonlar",
+      "picturesTitle": "Doʻkon rasmlari",
+      "picturesHint": "Har bir doʻkonning kartochkasida koʻrinadigan rasm (ixtiyoriy). Yangi doʻkonning rasmini u saqlangandan soʻng qoʻyish mumkin.",
+      "noAddress": "Manzil hali yozilmagan",
+      "shown": "Saytda",
+      "hidden": "Yashirilgan",
+      "edit": "Tahrirlash",
+      "fold": "Yigʻish",
+      "sectionMain": "Asosiy",
+      "nameHint": "Saytda shunday koʻrinadi, masalan: «TERAN Namangan».",
+      "addressHint": "Toʻliq manzil: viloyat, shahar, mahalla, koʻcha va uy.",
+      "sectionShow": "Saytda koʻrinishi",
+      "mapRegion": "Xarita: doʻkon joyini bosing",
+      "zoomIn": "Yaqinlashtirish",
+      "zoomOut": "Uzoqlashtirish",
+      "attribution": "OpenStreetMap hissadorlari",
+      "close": "Yopish",
+      "mapHint": "Belgi notoʻgʻri joyda boʻlsa, xaritada doʻkon turgan aniq joyni bosing. Xaritani sichqoncha bilan suring, + va − bilan yaqinlashtiring.",
+      "mapHintEmpty": "Joyni belgilash uchun manzilni qidiring yoki xaritada doʻkon turgan joyni bosing.",
+      "findLabel": "Xaritadan manzil qidirish",
+      "findPlaceholder": "Masalan: Namangan, Toʻraqoʻrgʻon koʻchasi",
+      "find": "Topish",
+      "finding": "Qidirilmoqda…",
+      "findFailed": "Xarita qidiruvi hozir ishlamayapti. Joyni xaritada bosing yoki koordinatalarni kiriting.",
+      "notFound": "Hech narsa topilmadi. Qisqaroq yozing (masalan, shahar va koʻcha) yoki joyni xaritada bosing.",
+      "foundBy": "«{query}» boʻyicha topildi. Mosini tanlang, keyin aniq joyni xaritada bosing."
     }
   },
   "Payment": {
@@ -1993,7 +2023,7 @@
     "metaTitle": "Doʻkon topish",
     "metaDescription": "TERAN choylari sotiladigan savdo nuqtalari: manzillar, ish vaqti, telefonlar va xaritada yoʻnalish.",
     "title": "Doʻkon topish",
-    "tagline": "Sizga eng yaqin TERAN savdo nuqtasini toping. Manzil yoki nom boʻyicha qidiring va xaritadagi har bir doʻkonning ish vaqti hamda telefonini koʻring.",
+    "tagline": "TERAN choylarini xarid qilish mumkin boʻlgan manzillar: ish vaqti, telefon va xaritada yoʻl.",
     "searchLabel": "Shahar, manzil yoki doʻkon nomi",
     "searchPlaceholder": "Shahar yoki manzil",
     "nearYou": "Joylashuvingiz atrofida",
@@ -2028,7 +2058,10 @@
     "emptyWholesale": "Ulgurji hamkorlik",
     "noMatches": "Qidiruvingizga mos doʻkon topilmadi.",
     "noneNear": "{distance} radiusda doʻkon topilmadi. Radiusni kattalashtiring yoki filtrlarni tozalang.",
-    "reset": "Filtrlarni tozalash"
+    "reset": "Filtrlarni tozalash",
+    "yandex": "Yandex Xaritalarda ochish",
+    "helpTitle": "Savolingiz bormi?",
+    "helpText": "Doʻkon, ulgurji xarid yoki hamkorlik haqida qoʻngʻiroq qiling yoki Telegramda yozing."
   },
   "Tea101": {
     "metaTitle": "Choy alifbosi: choy turlari boʻyicha qoʻllanma",

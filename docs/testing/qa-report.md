@@ -688,3 +688,31 @@ home page in three languages names the new film; 247 picture and film addresses 
 200 from R2. In the browser at 1120 px the first view plays the 2560 px copy (9.25 s) and on a 375
 px phone at 2× the 720 × 960 one, both fetched whole across origins; the gallery band shows the new
 poster.
+
+## Store addresses in the admin area, and a better store page (2026-10-19, night)
+
+The owner gave TERAN's first address (Namangan viloyati, Namangan shahri, Dashtbogʻ MFY,
+Turaqoʻrgʻon koʻchasi, 200-uy), asked for stores to be added and their addresses changed in the
+admin area, and for the store page to look better (ADR-044).
+
+- **Admin → Store addresses** (`/admin/stores`) replaces the panel inside Settings: folded cards
+  per store; the place set by clicking the map, by searching the address (the API asks
+  OpenStreetMap's Nominatim) or by typing coordinates; new stores start with the contact phone and
+  hours; the store pictures sit under the list.
+- **The store page**: one store has no search row and starts chosen beside the map (above it on
+  phones); cards gained icons and a Yandex Maps link; a band under the stores offers the phone,
+  Telegram and wholesale partnership; the banner is the ordinary height.
+- **Production**: the `stores` setting holds "TERAN Namangan" at OpenStreetMap's house 200 on
+  Toʻraqoʻrgʻon koʻchasi (40.990448, 71.641952), with the contact phone and hours (09:00 - 18:00),
+  as a shop, shown; written in one transaction with an audit row.
+
+Checks: contracts 34, web 70 (3 new: a click on the map picks the place, a drag does not, the
+storefront map stays a map) and API 111 unit tests (5 new for the address search); API integration
+141 (new: the search for administrators only, 400 for a one-letter address, 403 for managers, 401
+for visitors); end to end 53 (new: one store placed by a click on the admin map is shown chosen,
+without the search, with the Yandex link and the help band; the store journey now starts at
+Admin → Store addresses); ESLint, TypeScript and the message check (1874 keys × 3). On the local
+stack the real search for the owner's address found Turaqoʻrgʻon's side lanes in Namangan (the
+house itself is clicked on the map); coordinates typed into the field moved the map to them, a click
+kept the view. Screenshots at 1440 px and 390 px: the card beside (above) the map with its bubble,
+the help band, and the admin card's sections.

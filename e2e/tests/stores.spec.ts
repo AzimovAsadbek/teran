@@ -2,9 +2,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { API, signInAsAdmin } from './support/admin.ts';
 
 /*
- * The store locator shows the stores entered under Admin → Settings → Stores: their names,
+ * The store locator shows the stores entered under Admin → Store addresses: their names,
  * addresses, hours, phones and kinds, a search over names and addresses, the kind filter and
- * directions to each; with none entered it invites visitors to get in touch instead.
+ * directions to each; a single store is shown chosen, without the search; with none entered it
+ * invites visitors to get in touch instead.
  */
 
 /** Reloads a storefront page until the expectation holds (settings refresh within a second). */
@@ -33,7 +34,7 @@ test.describe('store locator', () => {
     page,
     browser,
   }) => {
-    await signInAsAdmin(page, '/admin/settings');
+    await signInAsAdmin(page, '/admin/stores');
     const panel = page
       .locator('section')
       .filter({ has: page.getByRole('heading', { name: 'Stores', exact: true }) });
@@ -117,6 +118,52 @@ test.describe('store locator', () => {
       'href',
       '/en/contact',
     );
+  });
+
+  test('a single store is shown chosen, placed with a click on the admin map', async ({
+    page,
+    browser,
+  }) => {
+    await signInAsAdmin(page);
+    const emptied = await page.request.put(`${API}/admin/settings/stores`, { data: [] });
+    expect(emptied.status()).toBe(200);
+    await page.goto('/en/admin/stores');
+    const panel = page
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: 'Stores', exact: true }) });
+    await panel.getByRole('button', { name: 'Add a store' }).click();
+    const card = panel.locator('ol > li').first();
+    await card.getByLabel(/^Name/).fill('E2E Namangan shop');
+    await card
+      .getByLabel(/^Address · Uzbek/)
+      .fill('Namangan shahri, Toʻraqoʻrgʻon koʻchasi, 200-uy');
+    await card.getByLabel(/^Address · English/).fill('200 Turakurgan street, Namangan');
+    // A click on the map places the store: its coordinates fill themselves in.
+    const coordinates = card.getByLabel(/^Place on the map/);
+    await expect(coordinates).toHaveValue('');
+    await card.getByRole('region', { name: /^Map: click/ }).click();
+    await expect(coordinates).toHaveValue(/^\d+(\.\d+)?, \d+(\.\d+)?$/);
+    await panel.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(panel.getByText('Saved', { exact: true })).toBeVisible();
+
+    try {
+      const visitor = await (await browser.newContext()).newPage();
+      const main = visitor.getByRole('main');
+      await eventually(visitor, '/en/stores', () =>
+        expect(main.getByRole('status')).toHaveText('1 store found', { timeout: 1_000 }),
+      );
+      // Nothing to search with one store: it is shown chosen, with both map links.
+      await expect(main.getByLabel('City, address or store name')).toBeHidden();
+      const list = main.getByRole('region', { name: 'Stores', exact: true });
+      await expect(list.locator('li[aria-current="true"]')).toContainText('E2E Namangan shop');
+      await expect(list.getByRole('link', { name: /^Open in Yandex Maps/ })).toHaveAttribute(
+        'href',
+        /^https:\/\/yandex\.uz\/maps\/\?pt=/,
+      );
+      await expect(main.getByRole('heading', { name: 'Any questions?' })).toBeVisible();
+    } finally {
+      await page.request.put(`${API}/admin/settings/stores`, { data: [] });
+    }
   });
 
   test('the map groups nearby stores, opens a store’s bubble and follows the list', async ({

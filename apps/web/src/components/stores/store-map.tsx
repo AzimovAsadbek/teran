@@ -148,6 +148,9 @@ function Pin({ selected }: { selected: boolean }) {
   );
 }
 
+/** How far a pointer may move between pressing and letting go for it to count as a click. */
+const CLICK_SLOP = 6;
+
 export function StoreMap({
   points,
   selectedId,
@@ -155,6 +158,7 @@ export function StoreMap({
   user,
   popup,
   labels,
+  onPick,
 }: {
   points: readonly MapPoint[];
   selectedId: string | null;
@@ -163,12 +167,19 @@ export function StoreMap({
   /** What the chosen store's bubble says (its name and address), as the reference's info window. */
   popup: { title: string; text: string } | null;
   labels: { region: string; zoomIn: string; zoomOut: string; attribution: string; close: string };
+  /**
+   * The admin area's location picker: a click on the map (not a drag) gives the place clicked.
+   * The storefront leaves it out.
+   */
+  onPick?: (place: { latitude: number; longitude: number }) => void;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   // The frame's size once measured (null on the server and before the first measurement).
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [view, setView] = useState<View>(COUNTRY);
   const drag = useRef<{ x: number; y: number } | null>(null);
+  // Where the pointer went down, to tell a click (a pick) from a drag.
+  const press = useRef<{ x: number; y: number } | null>(null);
   const box = size ?? FIRST_BOX;
   // The tiles drawn since the page started (keys), and the view a zoom left with those of its
   // tiles that had been drawn: they stay underneath until the new zoom's tiles are all drawn.
@@ -305,6 +316,7 @@ export function StoreMap({
     if ((event.target as HTMLElement).closest('button, a')) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { x: event.clientX, y: event.clientY };
+    press.current = { x: event.clientX, y: event.clientY };
   }
   function onPointerMove(event: PointerEvent<HTMLDivElement>) {
     const last = drag.current;
@@ -317,8 +329,15 @@ export function StoreMap({
       return { ...unproject({ x: p.x - dx, y: p.y - dy }, current.zoom), zoom: current.zoom };
     });
   }
-  function onPointerUp() {
+  function onPointerUp(event: PointerEvent<HTMLDivElement>) {
     drag.current = null;
+    const start = press.current;
+    press.current = null;
+    if (!onPick || !start || event.type !== 'pointerup') return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > CLICK_SLOP) return;
+    const offset = fromPointer(event.clientX, event.clientY);
+    const place = unproject({ x: centre.x + offset.x, y: centre.y + offset.y }, view.zoom);
+    onPick({ latitude: place.lat, longitude: place.lng });
   }
 
   const userPoint = user ? project(user.latitude, user.longitude, view.zoom) : null;
@@ -339,7 +358,10 @@ export function StoreMap({
         if ((event.target as HTMLElement).closest('button, a')) return;
         zoomAt(view.zoom + 1, fromPointer(event.clientX, event.clientY));
       }}
-      className="relative h-full w-full cursor-grab touch-pan-y overflow-hidden bg-[#e5e3df] select-none active:cursor-grabbing"
+      className={cn(
+        'relative h-full w-full touch-pan-y overflow-hidden bg-[#e5e3df] select-none active:cursor-grabbing',
+        onPick ? 'cursor-crosshair' : 'cursor-grab',
+      )}
     >
       <div aria-hidden className="absolute inset-0">
         {under.map((tile) => (

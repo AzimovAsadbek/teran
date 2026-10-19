@@ -634,6 +634,54 @@ describe('admin API', () => {
       expect(cleared.body.stores).toEqual([]);
     });
 
+    it("finds a store's address on the map, for administrators only", async () => {
+      // OpenStreetMap's geocoder answers from here; every other request goes out as usual.
+      const realFetch = globalThis.fetch;
+      const asked: string[] = [];
+      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        const url = input instanceof Request ? input.url : String(input);
+        if (!url.startsWith('https://nominatim.openstreetmap.org/')) return realFetch(input, init);
+        asked.push(url);
+        return Response.json([
+          { display_name: 'Toʻraqoʻrgʻon koʻchasi, Namangan', lat: '40.990448', lon: '71.641952' },
+        ]);
+      });
+      try {
+        const { agent } = await signedIn('ADMIN');
+        const found = await agent
+          .get(`${API}/admin/settings/stores/geocode`)
+          .query({ q: 'Toʻraqoʻrgʻon koʻchasi, Namangan', locale: 'uz' })
+          .expect(200);
+        expect(found.body).toEqual({
+          query: 'Toʻraqoʻrgʻon koʻchasi, Namangan',
+          results: [
+            {
+              label: 'Toʻraqoʻrgʻon koʻchasi, Namangan',
+              latitude: 40.990448,
+              longitude: 71.641952,
+            },
+          ],
+        });
+        expect(found.headers['cache-control']).toContain('no-store');
+        expect(new URL(asked[0]!).searchParams.get('countrycodes')).toBe('uz');
+
+        // Too short to look up; managers and visitors may not.
+        await agent.get(`${API}/admin/settings/stores/geocode`).query({ q: 'x' }).expect(400);
+        const manager = await signedIn('MANAGER');
+        await manager.agent
+          .get(`${API}/admin/settings/stores/geocode`)
+          .query({ q: 'Namangan' })
+          .expect(403);
+        await request(server())
+          .get(`${API}/admin/settings/stores/geocode`)
+          .query({ q: 'Namangan' })
+          .expect(401);
+        expect(asked).toHaveLength(1);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
     it('sets, replaces and removes page pictures, and refuses unknown places', async () => {
       const { agent } = await signedIn('ADMIN');
       const wide = await sharp({

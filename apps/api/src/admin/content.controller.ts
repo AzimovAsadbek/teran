@@ -22,6 +22,7 @@ import {
   deliveryMethodUpsertSchema,
   idSchema,
   localeQuerySchema,
+  storeGeocodeQuerySchema,
   storesSettingSchema,
   visualSlotSchema,
   type AdminArticle,
@@ -31,8 +32,11 @@ import {
   type ContactSetting,
   type LocaleQuery,
   type Paginated,
+  type StoreGeocodeDto,
+  type StoreGeocodeQuery,
   type StoresSetting,
 } from '@teran/contracts';
+import { Throttle } from '@nestjs/throttler';
 import type { z } from 'zod';
 import { RequireStaff } from '../auth/auth.guard.js';
 import { ApiException } from '../common/errors/api-exception.js';
@@ -40,6 +44,7 @@ import { ArticlesService } from '../content/articles.service.js';
 import type { SettingValues } from '../content/settings.service.js';
 import { CurrentActor, type Actor } from './admin-support.js';
 import { AdminContentService } from './content.service.js';
+import { GeocodeService } from './geocode.service.js';
 
 type DeliveryPayload = z.output<typeof deliveryMethodUpsertSchema>;
 type ArticlePayload = z.output<typeof articleUpsertSchema>;
@@ -51,6 +56,7 @@ export class AdminContentController {
   constructor(
     private readonly content: AdminContentService,
     private readonly articlesPublic: ArticlesService,
+    private readonly geocode: GeocodeService,
   ) {}
 
   @Get('settings')
@@ -92,6 +98,19 @@ export class AdminContentController {
     @CurrentActor() actor: Actor,
   ): Promise<SettingValues> {
     return this.content.updateSetting('stores', body, actor);
+  }
+
+  @Get('settings/stores/geocode')
+  @RequireStaff(['ADMIN'])
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({
+    summary: "Find a store's address on the map (OpenStreetMap; administrators only)",
+  })
+  geocodeStore(
+    @Query({ schema: storeGeocodeQuerySchema }) query: StoreGeocodeQuery,
+  ): Promise<StoreGeocodeDto> {
+    return this.geocode.find(query.q, query.locale);
   }
 
   @Post('settings/visuals/:slot')

@@ -873,7 +873,8 @@
       "menu": "Sections",
       "closeMenu": "Close menu",
       "newCount": "{count, plural, other {# new}}",
-      "telegram": "Telegram channel"
+      "telegram": "Telegram channel",
+      "stores": "Store addresses"
     },
     "common": {
       "save": "Save",
@@ -1461,8 +1462,6 @@
       "visualSizeTile": "At least 1300 × 730 px.",
       "visualSizeMenu": "At least 520 × 620 px.",
       "visualSizePortrait": "Portrait: at least 1100 × 1550 px.",
-      "stores": "Stores",
-      "storesHint": "The points of sale on the store locator (/stores), in this order. Only active stores are shown. Their pictures are set under Page pictures once saved.",
       "storesEmpty": "No stores yet. The store locator shows an empty list and invites visitors to contact TERAN.",
       "storeNew": "New store",
       "storeName": "Name",
@@ -1471,7 +1470,7 @@
       "storeHours": "Opening hours",
       "storeHoursHint": "One line per day or group of days, e.g. “Mon–Fri 9:00–18:00”.",
       "storeCoordinates": "Place on the map",
-      "storeCoordinatesHint": "Latitude and longitude, as a map service copies them: right-click the place in Google or Yandex Maps and copy, e.g. 40.998, 71.672.",
+      "storeCoordinatesHint": "Fills itself in when you click the map. It can also be typed: latitude and longitude, e.g. 40.990448, 71.641952 (right-click the place in Google or Yandex Maps and copy).",
       "storeCheckMap": "Check on the map",
       "storeKinds": "Kind",
       "storeKind": {
@@ -1863,6 +1862,37 @@
       "asCard": "As a card",
       "asCardHint": "How it appears in the catalogue, search and on the home page.",
       "asArticleCardHint": "How it appears in the journal and on the home page."
+    },
+    "stores": {
+      "title": "Store addresses",
+      "intro": "The points of sale on the “Store locator” page (/stores). Add a store, write its address and mark it on the map: stores marked “Show on the storefront” appear there.",
+      "viewOnSite": "Open the page",
+      "listTitle": "Stores",
+      "picturesTitle": "Store pictures",
+      "picturesHint": "The picture on each store’s card (optional). A new store’s picture can be added once the store is saved.",
+      "noAddress": "No address yet",
+      "shown": "On the site",
+      "hidden": "Hidden",
+      "edit": "Edit",
+      "fold": "Collapse",
+      "sectionMain": "Main details",
+      "nameHint": "As the site shows it, e.g. “TERAN Namangan”.",
+      "addressHint": "The full address: region, city, mahalla, street and house.",
+      "sectionShow": "On the site",
+      "mapRegion": "Map: click the store’s place",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "attribution": "OpenStreetMap contributors",
+      "close": "Close",
+      "mapHint": "If the pin is off, click the store’s exact spot on the map. Drag to move the map; + and − zoom.",
+      "mapHintEmpty": "Search for the address or click the store’s place on the map to mark it.",
+      "findLabel": "Find the address on the map",
+      "findPlaceholder": "E.g. Namangan, Turakurgan street",
+      "find": "Find",
+      "finding": "Searching…",
+      "findFailed": "The map search is not available right now. Click the place on the map or type its coordinates.",
+      "notFound": "Nothing found. Try fewer words (say, the city and street) or click the place on the map.",
+      "foundBy": "Found for “{query}”. Pick the right one, then click the exact spot on the map."
     }
   },
   "Payment": {
@@ -1993,7 +2023,7 @@
     "metaTitle": "Store locator",
     "metaDescription": "Where to buy TERAN tea: addresses, opening hours, phone numbers and directions on the map.",
     "title": "Store locator",
-    "tagline": "Find the TERAN point of sale closest to you. Search by address or name to see the opening hours and phone number of every store on the map.",
+    "tagline": "Where to buy TERAN tea: addresses, opening hours, phones and directions on the map.",
     "searchLabel": "City, address or store name",
     "searchPlaceholder": "City or address",
     "nearYou": "Near your location",
@@ -2028,7 +2058,10 @@
     "emptyWholesale": "Wholesale partnership",
     "noMatches": "No stores match your search.",
     "noneNear": "No stores within {distance}. Widen the radius or clear the filters.",
-    "reset": "Clear filters"
+    "reset": "Clear filters",
+    "yandex": "Open in Yandex Maps",
+    "helpTitle": "Any questions?",
+    "helpText": "Call us or write on Telegram about the store, buying in bulk or becoming a partner."
   },
   "Tea101": {
     "metaTitle": "Tea 101: a guide to the kinds of tea",

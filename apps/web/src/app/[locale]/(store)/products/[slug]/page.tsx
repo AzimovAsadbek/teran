@@ -31,13 +31,13 @@ import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { ShareButton } from '@/components/product/share-button';
 import { ContactToOrder } from '@/components/social/contact-to-order';
 import { packLabel } from '@/lib/format';
-import { showPrices, siteUrl } from '@/lib/site';
+import { absoluteUrl, showPrices } from '@/lib/site';
 
 function largestImageUrl(product: ProductDetailDto): string | null {
   const image = product.images[0];
   if (!image) return null;
   const width = image.widths.includes(1280) ? 1280 : image.widths[image.widths.length - 1];
-  return `${siteUrl}${image.src}/${width}.webp`;
+  return absoluteUrl(`${image.src}/${width}.webp`);
 }
 
 export async function generateMetadata({
@@ -114,8 +114,8 @@ async function ProductView({
     url: productUrl,
     name: product.name,
     description: product.shortDescription ?? product.description ?? undefined,
-    image: product.images.map(
-      (image) => `${siteUrl}${image.src}/${image.widths[image.widths.length - 1]}.webp`,
+    image: product.images.map((image) =>
+      absoluteUrl(`${image.src}/${image.widths[image.widths.length - 1]}.webp`),
     ),
     sku: initialVariant.sku,
     ...(initialVariant.barcode ? { gtin13: initialVariant.barcode } : {}),

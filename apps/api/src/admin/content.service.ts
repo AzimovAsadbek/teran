@@ -26,7 +26,6 @@ import type { Env } from '../config/env.js';
 import {
   articleImagePrefix,
   deleteStoredImage,
-  imageStore,
   type ImageStore,
   storeImage,
   type StoredImage,
@@ -45,6 +44,7 @@ import {
   translationRows,
   type Actor,
 } from './admin-support.js';
+import { configuredImageStore } from '../media/configured-store.js';
 
 type DeliveryPayload = z.output<typeof deliveryMethodUpsertSchema>;
 type ArticlePayload = z.output<typeof articleUpsertSchema>;
@@ -73,10 +73,7 @@ export class AdminContentService {
     private readonly telegram: TelegramService,
     config: ConfigService<Env, true>,
   ) {
-    this.images = imageStore({
-      uploadsDir: config.get('UPLOADS_DIR', { infer: true }),
-      blobToken: config.get('BLOB_READ_WRITE_TOKEN', { infer: true }),
-    });
+    this.images = configuredImageStore(config);
   }
 
   // ─── Site settings ─────────────────────────────────────────────────────────

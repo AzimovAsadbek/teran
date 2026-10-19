@@ -13,7 +13,7 @@ import type {
 import { ApiException } from '../common/errors/api-exception.js';
 import type { Env } from '../config/env.js';
 import type { TelegramPost } from '../generated/prisma/client.js';
-import { imageStore, type ImageStore } from '../media/image-processing.js';
+import { type ImageStore } from '../media/image-processing.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TelegramApiError, TelegramClient } from './telegram.client.js';
 import {
@@ -22,6 +22,7 @@ import {
   telegramPhoto,
   type ComposedPost,
 } from './telegram.composer.js';
+import { configuredImageStore } from '../media/configured-store.js';
 
 /** How long a sender holds a post; after that an unfinished send counts as "outcome unknown". */
 const CLAIM_MS = 90_000;
@@ -76,10 +77,7 @@ export class TelegramService {
             chatId: this.channel,
           })
         : null;
-    this.images = imageStore({
-      uploadsDir: config.get('UPLOADS_DIR', { infer: true }),
-      blobToken: config.get('BLOB_READ_WRITE_TOKEN', { infer: true }),
-    });
+    this.images = configuredImageStore(config);
   }
 
   /**

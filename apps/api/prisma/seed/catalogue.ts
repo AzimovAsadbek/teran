@@ -18,6 +18,7 @@ import { productSearchText } from '../../src/catalog/product-search.js';
 import {
   deleteStoredImage,
   imageStore,
+  r2ConfigFrom,
   type ImageStore,
   productImagePrefix,
   storeImage,
@@ -59,9 +60,13 @@ export function uploadsDirectory(): string {
   return resolve(process.env.UPLOADS_DIR ?? './storage/uploads');
 }
 
-/** Images go where the API keeps them: Vercel Blob when BLOB_READ_WRITE_TOKEN is set, else the directory. */
+/** Images go where the API keeps them: R2 when R2_* is set, Vercel Blob with BLOB_READ_WRITE_TOKEN, else the directory. */
 export function seedImageStore(uploadsDir: string): ImageStore {
-  return imageStore({ uploadsDir, blobToken: process.env.BLOB_READ_WRITE_TOKEN });
+  return imageStore({
+    uploadsDir,
+    blobToken: process.env.BLOB_READ_WRITE_TOKEN,
+    r2: r2ConfigFrom(process.env),
+  });
 }
 
 /** The real TERAN emblem, composited onto the demo packshots. */

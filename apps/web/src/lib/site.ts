@@ -4,6 +4,14 @@ export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:30
   '',
 );
 
+/**
+ * An address the outside world can open (structured data, social previews): picture addresses
+ * that are absolute already (object storage, ADR-043) stay as they are, site paths get the site.
+ */
+export function absoluteUrl(path: string): string {
+  return /^https?:\/\//.test(path) ? path : `${siteUrl}${path}`;
+}
+
 // A production build without its address would publish localhost in every canonical URL.
 if (process.env.VERCEL_ENV === 'production' && !process.env.NEXT_PUBLIC_SITE_URL) {
   throw new Error('NEXT_PUBLIC_SITE_URL must be set for a production deployment');

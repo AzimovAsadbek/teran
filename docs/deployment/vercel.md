@@ -35,13 +35,13 @@ default is the US east coast, which adds a transatlantic round trip to every que
 
 ## What differs from the container
 
-| Concern        | Container                  | Vercel                                                                                                                                                                                                                            |
-| -------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product images | `UPLOADS_DIR` on a volume  | Vercel Blob (`BLOB_READ_WRITE_TOKEN`); the storefront rewrites `/uploads/*` to the store (`UPLOADS_ORIGIN`)                                                                                                                       |
-| Gallery films  | `UPLOADS_DIR`, up to 64 MB | Blob as well. A function accepts request bodies of at most 4.5 MB, so films (up to 512 MB) are uploaded from the browser straight to Blob with a short-lived token from the API, which then checks the file; photos stay ≤ 4.5 MB |
-| Scheduled jobs | Timers in the API process  | Vercel Cron calls `GET /api/v1/internal/jobs/run` with `Authorization: Bearer $CRON_SECRET`                                                                                                                                       |
-| Database       | PostgreSQL container       | Neon; the function uses the direct address (`DATABASE_URL_UNPOOLED`), a pool of 3                                                                                                                                                 |
-| Rate limits    | One process                | Counted per function instance (weaker)                                                                                                                                                                                            |
+| Concern        | Container                  | Vercel                                                                                                                                                                                                                           |
+| -------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product images | `UPLOADS_DIR` on a volume  | Cloudflare R2 since 2026-10-19 (`R2_*`, ADR-043): pages read pictures and films straight from the bucket's public address; `/uploads/*` is rewritten there too (`UPLOADS_ORIGIN`). Before: Vercel Blob (`BLOB_READ_WRITE_TOKEN`) |
+| Gallery films  | `UPLOADS_DIR`, up to 64 MB | A function accepts request bodies of at most 4.5 MB. With Blob, films (up to 512 MB) went from the browser straight to Blob with a short-lived token; with R2, larger films are added with `scripts/add-gallery-film.ts`         |
+| Scheduled jobs | Timers in the API process  | Vercel Cron calls `GET /api/v1/internal/jobs/run` with `Authorization: Bearer $CRON_SECRET`                                                                                                                                      |
+| Database       | PostgreSQL container       | Neon; the function uses the direct address (`DATABASE_URL_UNPOOLED`), a pool of 3                                                                                                                                                |
+| Rate limits    | One process                | Counted per function instance (weaker)                                                                                                                                                                                           |
 
 On the Hobby plan Vercel Cron runs **once a day** (03:15 UTC): unpaid online orders are then
 cancelled and their stock returned once a day rather than within minutes of the payment window
@@ -49,8 +49,16 @@ ending. A Pro plan allows a schedule of every few minutes (change `crons` in
 `apps/api/vercel.json`). Vercel's Hobby plan is for non-commercial use; a live shop needs Pro or
 the Docker deployment.
 
-The API refuses to start on Vercel without a Blob token, because images written to the function's
-disk would be lost.
+The API refuses to start on Vercel without R2 or a Blob token, because images written to the
+function's disk would be lost.
+
+**Blob suspended, 2026-10-19.** On the Hobby plan the Blob store (`teran-media`, 373 MB, 680 files)
+was suspended at 16:02 once its included usage was used up (4K films, many imports and checks):
+every picture and film answered 403 "Your store is blocked", and its files could be listed but not
+read back. The owner chose Cloudflare R2 (10 GB free, no charge for traffic). `scripts/restore-media.ts`
+rebuilt every picture and film that has a local source under the keys the database holds; pictures
+uploaded in the admin area that had none were taken off their places (ADR-043). The suspended store
+is kept: its files could be copied over if it is ever unblocked.
 
 Vercel's CDN keeps what Blob answers through the `/uploads` rewrite (Blob sends a one-year
 `Cache-Control`) under the file's address alone, whatever byte range was asked for. A film played
@@ -77,22 +85,23 @@ a post that waits for a retry is processed by the daily cron on the Hobby plan.
 
 API (`teran-api`, Production):
 
-| Variable                                                             | Value                                                                                                                                                                |
-| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, …                           | Added by the Neon integration                                                                                                                                        |
-| `BLOB_READ_WRITE_TOKEN`                                              | Added by connecting the Blob store                                                                                                                                   |
-| `NODE_ENV`                                                           | `production` (set by Vercel)                                                                                                                                         |
-| `WEB_ORIGIN`                                                         | The storefront's address, e.g. `https://teran-web.vercel.app`                                                                                                        |
-| `WEB_REVALIDATE_URL`                                                 | `<storefront>/api/revalidate`                                                                                                                                        |
-| `APP_SECRET`, `INTERNAL_API_KEY`, `REVALIDATE_SECRET`, `CRON_SECRET` | Random, at least 32 characters each, generated for this deployment                                                                                                   |
-| `COOKIE_SECURE`                                                      | `true`                                                                                                                                                               |
-| `DATABASE_POOL_MAX`                                                  | `3`                                                                                                                                                                  |
-| `UPLOADS_DIR`                                                        | `/tmp/teran-uploads` (the only writable place; images go to Blob)                                                                                                    |
-| `CHECKOUT_ENABLED`                                                   | Not set: online ordering is closed (carts, orders, payments refused) while the storefront takes orders by phone; `true` together with `NEXT_PUBLIC_SHOW_PRICES=true` |
-| `PAYMENT_PROVIDER_MODE`, `ALLOW_DEMO_PAYMENTS`                       | `demo`, `true` — simulated payments, an explicit decision for this site                                                                                              |
-| `PAYMENT_METHODS_ENABLED`                                            | `CASH_ON_DELIVERY,CLICK,PAYME,CARD`                                                                                                                                  |
-| `TELEGRAM_MODE`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`         | **Not configured.** `disabled` by default; see ../architecture/telegram.md                                                                                           |
-| `ANTHROPIC_API_KEY`                                                  | **Not configured.** The advisor runs rule-based; see ../architecture/product-advisor.md                                                                              |
+| Variable                                                                                | Value                                                                                                                                                                |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, …                                              | Added by the Neon integration                                                                                                                                        |
+| `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` | Cloudflare R2: the account's S3 endpoint, an API token with Object Read & Write on the bucket, the bucket (`teran-media`) and its public address (all five or none)  |
+| `BLOB_READ_WRITE_TOKEN`                                                                 | Added by connecting the Blob store; unused while R2 is set                                                                                                           |
+| `NODE_ENV`                                                                              | `production` (set by Vercel)                                                                                                                                         |
+| `WEB_ORIGIN`                                                                            | The storefront's address, e.g. `https://teran-web.vercel.app`                                                                                                        |
+| `WEB_REVALIDATE_URL`                                                                    | `<storefront>/api/revalidate`                                                                                                                                        |
+| `APP_SECRET`, `INTERNAL_API_KEY`, `REVALIDATE_SECRET`, `CRON_SECRET`                    | Random, at least 32 characters each, generated for this deployment                                                                                                   |
+| `COOKIE_SECURE`                                                                         | `true`                                                                                                                                                               |
+| `DATABASE_POOL_MAX`                                                                     | `3`                                                                                                                                                                  |
+| `UPLOADS_DIR`                                                                           | `/tmp/teran-uploads` (the only writable place; images go to Blob)                                                                                                    |
+| `CHECKOUT_ENABLED`                                                                      | Not set: online ordering is closed (carts, orders, payments refused) while the storefront takes orders by phone; `true` together with `NEXT_PUBLIC_SHOW_PRICES=true` |
+| `PAYMENT_PROVIDER_MODE`, `ALLOW_DEMO_PAYMENTS`                                          | `demo`, `true` — simulated payments, an explicit decision for this site                                                                                              |
+| `PAYMENT_METHODS_ENABLED`                                                               | `CASH_ON_DELIVERY,CLICK,PAYME,CARD`                                                                                                                                  |
+| `TELEGRAM_MODE`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`                            | **Not configured.** `disabled` by default; see ../architecture/telegram.md                                                                                           |
+| `ANTHROPIC_API_KEY`                                                                     | **Not configured.** The advisor runs rule-based; see ../architecture/product-advisor.md                                                                              |
 
 Storefront (`teran-web`, Production):
 
@@ -100,7 +109,7 @@ Storefront (`teran-web`, Production):
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `API_INTERNAL_URL`                      | The API's address, e.g. `https://teran-api.vercel.app`                                                            |
 | `API_INTERNAL_KEY`, `REVALIDATE_SECRET` | The same values as the API's `INTERNAL_API_KEY` and `REVALIDATE_SECRET`                                           |
-| `UPLOADS_ORIGIN`                        | The Blob store's public address                                                                                   |
+| `UPLOADS_ORIGIN`                        | The R2 bucket's public address (`R2_PUBLIC_URL`): `/uploads` is rewritten there and pages may load from it (CSP)  |
 | `NEXT_PUBLIC_SITE_URL`                  | The storefront's address                                                                                          |
 | `NEXT_PUBLIC_DEMO_CONTENT`              | `false` since 2026-10-18 (TERAN's own teas and texts: indexable). `true` adds demonstration notices and `noindex` |
 | `NEXT_PUBLIC_SHOW_PRICES`               | Not set: prices hidden, orders by phone and messengers (ADR-027)                                                  |

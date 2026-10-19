@@ -10,7 +10,7 @@ import { getPathname } from '@/i18n/navigation';
 import { getArticle, getArticleRedirect } from '@/lib/data/content';
 import { imageSources } from '@/lib/navigation';
 import { coverShareImage, jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
-import { siteUrl } from '@/lib/site';
+import { absoluteUrl, siteUrl } from '@/lib/site';
 
 export async function generateMetadata({
   params,
@@ -60,7 +60,7 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
     dateModified: article.updatedAt,
     inLanguage: locale,
     mainEntityOfPage: url,
-    ...(article.cover ? { image: `${siteUrl}${imageSources(article.cover, 1280).src}` } : {}),
+    ...(article.cover ? { image: absoluteUrl(imageSources(article.cover, 1280).src) } : {}),
     author: { '@type': 'Organization', name: 'TERAN', url: siteUrl },
     publisher: {
       '@type': 'Organization',

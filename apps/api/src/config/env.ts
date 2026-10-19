@@ -49,6 +49,16 @@ const envObjectSchema = z.object({
   UPLOAD_MAX_BYTES: z.coerce.number().int().min(100_000).max(20_000_000).default(5_242_880),
   /** Vercel Blob read-write token: image renditions go to Blob instead of UPLOADS_DIR. */
   BLOB_READ_WRITE_TOKEN: z.string().min(20).optional(),
+  /**
+   * Cloudflare R2 through its S3 API (ADR-043): when all four are set, pictures and films go there
+   * instead of Blob or UPLOADS_DIR, and R2_PUBLIC_URL (the bucket's public address) is where the
+   * storefront reads them.
+   */
+  R2_ENDPOINT: z.url().optional(),
+  R2_ACCESS_KEY_ID: z.string().min(16).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(32).optional(),
+  R2_BUCKET: z.string().min(3).max(63).optional(),
+  R2_PUBLIC_URL: z.url().optional(),
   /** Set by Vercel on its own builds and functions ("1"). */
   VERCEL: z.string().optional(),
   /**
@@ -176,12 +186,21 @@ export const envSchema = z
     envObjectSchema,
   )
   .superRefine((env, ctx) => {
-    if (env.VERCEL && !env.BLOB_READ_WRITE_TOKEN) {
+    const r2 = [env.R2_ENDPOINT, env.R2_ACCESS_KEY_ID, env.R2_SECRET_ACCESS_KEY, env.R2_BUCKET];
+    if (r2.some(Boolean) && !(r2.every(Boolean) && env.R2_PUBLIC_URL)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['R2_ENDPOINT'],
+        message:
+          'R2 needs R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET and R2_PUBLIC_URL together',
+      });
+    }
+    if (env.VERCEL && !env.BLOB_READ_WRITE_TOKEN && !r2.every(Boolean)) {
       // Vercel functions have no lasting disk: uploads written to UPLOADS_DIR would vanish.
       ctx.addIssue({
         code: 'custom',
         path: ['BLOB_READ_WRITE_TOKEN'],
-        message: 'is required on Vercel (connect a Blob store to the project)',
+        message: 'is required on Vercel unless R2 is configured (connect a Blob store or set R2_*)',
       });
     }
     if (env.NODE_ENV === 'production') {

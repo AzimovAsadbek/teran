@@ -876,3 +876,43 @@ fabricated; the honest way to show them is to let customers give them.
 review appears before anyone reads it, so staff should check Admin → Reviews; spam is limited by
 sign-in, one review per customer and product, and 10 saves a minute. Demo customers cannot sign
 in, so the demo reset never leaves rating totals behind.
+
+## ADR-043: Pictures and films in Cloudflare R2, read straight from it
+
+**Context.** Pictures and films lived in Vercel Blob behind the storefront's `/uploads` rewrite. On
+2026-10-19 the Hobby plan's included Blob usage ran out (4K films of tens of megabytes, repeated
+imports, checks) and Vercel suspended the store: every picture and film answered 403, the files
+could be listed but not read back, and only an upgrade or the next billing period would lift it.
+Each visit's films also counted as Vercel traffic. The owner chose to move the pictures and films to
+Cloudflare.
+
+**Decision.**
+
+- The API stores files in Cloudflare R2 through its S3 API when `R2_*` is set (`media/r2-store.ts`:
+  PUT, GET with ranges, HEAD, DELETE and listing, signed with Signature Version 4 by hand, checked
+  against AWS's published examples; no SDK). R2 comes before Blob and the uploads directory. The
+  keys are unchanged (`<area>/<id>/<key>/<width>.webp`, `video.mp4`, `w<width>.mp4`, `card.mp4`,
+  `mask.png`).
+- Picture and film addresses in the API's answers start with the bucket's public address
+  (`R2_PUBLIC_URL`) instead of `/uploads`, so visitors load them from Cloudflare (free traffic), not
+  through Vercel. The storefront allows that origin in its Content Security Policy (`img-src`,
+  `media-src`, `connect-src`, from `UPLOADS_ORIGIN`), keeps the `/uploads` rewrite (to the bucket)
+  for addresses already shared, and turns absolute addresses into absolute ones only where it had
+  prefixed the site (structured data). The bucket allows the site in its CORS rules: page films are
+  fetched whole and masks are CSS images. A page film that cannot be fetched streams from its address
+  instead.
+- `scripts/restore-media.ts` rebuilds the files from the local source folders under the keys the
+  database holds: page pictures by place and recorded source, product photographs by the SHA-256 of
+  their original (or, with `--stand-ins`, the same product's local photograph in the same order and
+  size), covers by slug and size; renditions are made at the stored widths with storeImage's own
+  code (`renderRenditions`). Pictures uploaded in the admin area had no local source; with the
+  owner's agreement their places were cleared (category covers, article covers, gallery photographs)
+  so nothing shows broken, and can be uploaded again.
+- With R2 the admin area uploads films through the API (4.5 MB on Vercel); larger gallery films are
+  added with `scripts/add-gallery-film.ts`. Direct browser uploads remain a Blob feature for now.
+
+**Consequences.** The site's media no longer depends on Vercel's Blob allowance or traffic; R2's
+free tier (10 GB stored, a million writes and ten million reads a month) covers the shop. The
+bucket's `r2.dev` address is Cloudflare's development address (rate-limited); a custom domain on
+Cloudflare (the domain's DNS moved there) is the production step, with only `R2_PUBLIC_URL` and
+`UPLOADS_ORIGIN` to change. Files in the suspended Blob store stay there.

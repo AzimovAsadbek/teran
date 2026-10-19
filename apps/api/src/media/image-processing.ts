@@ -4,6 +4,7 @@ import { join, resolve, sep } from 'node:path';
 import { BlobNotFoundError, del, head, list, put } from '@vercel/blob';
 import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 import sharp, { type Metadata } from 'sharp';
+import { r2Store, type S3Config } from './r2-store.js';
 
 /**
  * Widths generated for every stored image; the storefront picks the smallest sufficient one. 480
@@ -90,8 +91,32 @@ export interface ImageStore {
   ): Promise<string>;
 }
 
-export function imageStore(options: { uploadsDir: string; blobToken?: string }): ImageStore {
+export function imageStore(options: {
+  uploadsDir: string;
+  blobToken?: string;
+  /** Cloudflare R2 (S3 API), preferred to Vercel Blob when configured (ADR-043). */
+  r2?: S3Config | null;
+}): ImageStore {
+  if (options.r2) return r2Store(options.r2);
   return options.blobToken ? blobStore(options.blobToken) : directoryStore(options.uploadsDir);
+}
+
+/** The R2 settings from the environment, or null unless all four are set. */
+export function r2ConfigFrom(env: {
+  R2_ENDPOINT?: string;
+  R2_ACCESS_KEY_ID?: string;
+  R2_SECRET_ACCESS_KEY?: string;
+  R2_BUCKET?: string;
+}): S3Config | null {
+  const { R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET } = env;
+  return R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET
+    ? {
+        endpoint: R2_ENDPOINT,
+        accessKeyId: R2_ACCESS_KEY_ID,
+        secretAccessKey: R2_SECRET_ACCESS_KEY,
+        bucket: R2_BUCKET,
+      }
+    : null;
 }
 
 function directoryStore(uploadsDir: string): ImageStore {
@@ -281,22 +306,12 @@ export async function storeImage(
   ) {
     widths.push(width);
   }
-  const pipeline = sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
-
   // Everything is decoded and encoded before anything is stored: a file whose header reads but
   // whose pixels do not decode is refused like any unreadable file, and nothing is left behind.
   let renditions: { width: number; data: Buffer }[];
   let transparent: boolean;
   try {
-    renditions = [];
-    for (const target of widths) {
-      const data = await pipeline
-        .clone()
-        .resize({ width: target, withoutEnlargement: true })
-        .webp({ quality: 82, effort: 5 })
-        .toBuffer();
-      renditions.push({ width: target, data });
-    }
+    renditions = await renderRenditions(input, widths);
     transparent = await isCutout(input, metadata);
   } catch {
     throw new ImageRejectedError('unreadable');
@@ -311,6 +326,28 @@ export async function storeImage(
     throw error;
   }
   return { storageKey, widths, width, height, transparent };
+}
+
+/**
+ * A picture's WebP renditions at the given widths (never enlarged), its EXIF orientation applied
+ * and its metadata dropped: what storeImage stores, and what a store rebuilt from the original
+ * files holds again (scripts/restore-media.ts).
+ */
+export async function renderRenditions(
+  input: Buffer,
+  widths: readonly number[],
+): Promise<{ width: number; data: Buffer }[]> {
+  const pipeline = sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
+  const renditions: { width: number; data: Buffer }[] = [];
+  for (const target of widths) {
+    const data = await pipeline
+      .clone()
+      .resize({ width: target, withoutEnlargement: true })
+      .webp({ quality: 82, effort: 5 })
+      .toBuffer();
+    renditions.push({ width: target, data });
+  }
+  return renditions;
 }
 
 /** SHA-256 of an uploaded file, to recognise the same file uploaded twice. */

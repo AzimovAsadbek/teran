@@ -42,7 +42,6 @@ import { Prisma } from '../generated/prisma/client.js';
 import {
   contentHash,
   deleteStoredImage,
-  imageStore,
   type ImageStore,
   productImagePrefix,
   storeImage,
@@ -59,6 +58,7 @@ import {
   translationRows,
   type Actor,
 } from './admin-support.js';
+import { configuredImageStore } from '../media/configured-store.js';
 
 type ListQuery = z.output<typeof adminProductListQuerySchema>;
 
@@ -115,10 +115,7 @@ export class AdminProductsService {
     private readonly telegram: TelegramService,
     config: ConfigService<Env, true>,
   ) {
-    this.images = imageStore({
-      uploadsDir: config.get('UPLOADS_DIR', { infer: true }),
-      blobToken: config.get('BLOB_READ_WRITE_TOKEN', { infer: true }),
-    });
+    this.images = configuredImageStore(config);
   }
 
   async list(query: ListQuery): Promise<Paginated<AdminProductListItem>> {

@@ -14,7 +14,6 @@ import { ApiException } from '../common/errors/api-exception.js';
 import type { Env } from '../config/env.js';
 import {
   deleteStoredImage,
-  imageStore,
   type ImageStore,
   storeImage,
   taxonomyImagePrefix,
@@ -24,6 +23,7 @@ import { RevalidationService } from '../revalidation/revalidation.service.js';
 import { nullable, toAdminTranslation, translationRows, type Actor } from './admin-support.js';
 import { taxonomyReadiness } from './readiness.js';
 import { uploadError } from './uploads.js';
+import { configuredImageStore } from '../media/configured-store.js';
 
 export type TaxonomyKind = 'category' | 'collection';
 type TaxonomyPayload = z.output<typeof taxonomyUpsertSchema>;
@@ -69,10 +69,7 @@ export class AdminTaxonomyService {
     private readonly revalidation: RevalidationService,
     config: ConfigService<Env, true>,
   ) {
-    this.images = imageStore({
-      uploadsDir: config.get('UPLOADS_DIR', { infer: true }),
-      blobToken: config.get('BLOB_READ_WRITE_TOKEN', { infer: true }),
-    });
+    this.images = configuredImageStore(config);
   }
 
   /**

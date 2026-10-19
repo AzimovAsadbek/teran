@@ -84,7 +84,11 @@ function FilmPlayer({ film, stopped }: { film: PublicFilmDto; stopped: boolean }
           objectUrl = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: film.type }));
           setUrl(objectUrl);
         })
-        .catch(() => {});
+        .catch(() => {
+          // A film the page may not read (another origin that does not allow it, a network
+          // hiccup): the player streams it from its address instead.
+          if (!abort.signal.aborted) setUrl(src);
+        });
     };
     let timer = 0;
     if (document.readyState === 'complete') timer = window.setTimeout(fetchFilm, 200);

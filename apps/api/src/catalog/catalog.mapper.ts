@@ -24,7 +24,11 @@ import {
   videoFileName,
 } from '../media/image-processing.js';
 
-export const PUBLIC_UPLOADS_PATH = '/uploads';
+/**
+ * Where pictures and films are read: the bucket's public address when they live in Cloudflare R2
+ * (ADR-043, served straight from there), else the storefront's same-origin /uploads.
+ */
+export const PUBLIC_UPLOADS_PATH = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') || '/uploads';
 
 /** A category with what links to it need: slug, name and its parent's slug for the path. */
 export function categoryRefSelect(locale: Locale) {

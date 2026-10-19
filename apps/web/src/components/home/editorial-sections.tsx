@@ -128,14 +128,14 @@ function PhotoFill({
 }
 
 /**
- * A veil on the words' side of a banner over a film (the top on phones, the left from 1024 px), so
- * the words stay readable over moving, bright footage.
+ * A veil on the words' side of a banner over a film (behind them in the middle on phones, on the
+ * left from 1024 px), so the words stay readable over moving, bright footage.
  */
 function FilmVeil() {
   return (
     <span
       aria-hidden
-      className="absolute inset-0 -z-10 bg-linear-to-b from-forest-950/70 via-forest-950/30 via-45% to-forest-950/0 to-75% lg:bg-linear-to-r lg:from-forest-950/70 lg:via-forest-950/25 lg:via-40% lg:to-forest-950/0 lg:to-70%"
+      className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_95%_60%_at_50%_50%,color-mix(in_oklab,var(--color-forest-950)_62%,transparent),color-mix(in_oklab,var(--color-forest-950)_15%,transparent))] lg:bg-none lg:bg-linear-to-r lg:from-forest-950/70 lg:via-forest-950/25 lg:via-40% lg:to-forest-950/0 lg:to-70%"
     />
   );
 }
@@ -146,9 +146,9 @@ function FilmVeil() {
  * The reference's dark promotional strip under the header (80 px), carrying TERAN's own collection
  * instead of an offer: the descriptor in teal, the collection's name and its line, the pack's
  * slogan as a tilted sticker (from 1600 px, so the line beside the name does not wrap at 1440 px)
- * and the shop pill. As on the reference the whole strip
- * leads to the collection. Phones keep the name and the pill. Hidden when no collection has
- * products.
+ * and the shop pill. As on the reference the whole strip leads to the collection. Phones keep the
+ * name and the pill. Without a collection with products it keeps TERAN's own words and leads to
+ * the catalogue.
  */
 export async function PromoStrip() {
   await connection();
@@ -160,11 +160,13 @@ export async function PromoStrip() {
   const collections = collectionList.filter((collection) => collection.productCount > 0);
   const collection =
     collections.find((candidate) => candidate.slug === PREMIUM_COLLECTION_SLUG) ?? collections[0];
-  if (!collection) return null;
   const copy = brandCopy[locale];
-  const href = `/collections/${collection.slug}`;
+  // Without a collection with products (one deleted in the admin area, say) the strip stays, in
+  // TERAN's own words, and leads to the catalogue.
+  const name = collection?.name ?? copy.collection.text.replace(/\.$/, '');
+  const href = collection ? `/collections/${collection.slug}` : '/catalog';
   return (
-    <section aria-label={collection.name} className="on-dark bg-forest-950 text-ivory-50">
+    <section aria-label={name} className="on-dark bg-forest-950 text-ivory-50">
       <div className="relative isolate mx-auto flex min-h-[5.75rem] max-w-[120rem] items-center justify-between gap-3 px-[1.375rem] py-3 min-[46.875rem]:min-h-20 min-[46.875rem]:gap-5 min-[46.875rem]:px-12 min-[46.875rem]:py-4 min-[90rem]:gap-6 min-[90rem]:px-[7.5rem] min-[160rem]:px-16">
         <StripLink href={href} />
         <p className="hidden font-headline text-[1.75rem] leading-[1.05] whitespace-nowrap text-gold-300 min-[46.875rem]:block min-[90rem]:text-[2rem]">
@@ -173,7 +175,7 @@ export async function PromoStrip() {
         <p className="min-w-0">
           {/* Phones: two lines at most (the strip stays under 100 px above the first view). */}
           <span className="block font-headline text-[1.375rem] leading-[1.1] [--headline-weight:600] [overflow-wrap:anywhere] min-[46.875rem]:inline min-[46.875rem]:text-[1.75rem] min-[46.875rem]:leading-[1.05] min-[90rem]:text-[2rem]">
-            {collection.name}
+            {name}
           </span>
           <span className="block font-condensed text-[0.875rem] leading-[1.34] min-[46.875rem]:ml-2 min-[46.875rem]:inline min-[46.875rem]:text-[1rem] min-[46.875rem]:leading-[2.1]">
             {copy.collection.heading}
@@ -239,9 +241,10 @@ export async function CategoryMarquee() {
 /* ── 5, 7, 9. Campaign banners ───────────────────────────────────────────────────────────── */
 
 /**
- * The frame of the reference's campaign banners: inset with a 32 px radius from 640 px, full
- * width on phones; 438 px high from 1440 px (380 px below, 538 px on phones), or `tall` (500 px).
- * The whole surface leads to `href`.
+ * The frame of the reference's campaign banners: inset between the page's gutters with a rounded
+ * edge, apart from each other (as on wide screens; phones too since the owner's wish of
+ * 2026-10-19); 448 px high on phones (taller where its packs need the room), 380 px from 640 px,
+ * 438 px from 1440 px, or `tall` (500 px). The whole surface leads to `href`.
  */
 function BannerFrame({
   className,
@@ -255,10 +258,10 @@ function BannerFrame({
   children: ReactNode;
 }) {
   return (
-    <section className="sm:container-page sm:py-6">
+    <section className="container-page py-3 sm:py-6">
       <div
         className={cn(
-          'relative isolate flex min-h-[33.625rem] overflow-hidden sm:min-h-[23.75rem] sm:rounded-banner',
+          'relative isolate flex min-h-[28rem] overflow-hidden rounded-[1.25rem] sm:min-h-[23.75rem] sm:rounded-banner',
           tall ? 'min-[90rem]:min-h-[31.25rem]' : 'min-[90rem]:min-h-[27.375rem]',
           className,
         )}
@@ -367,8 +370,8 @@ const PHOTO_SPARKLES: SparklePoint[] = [
 
 /**
  * The reference's photographic campaign banner: a picture filling the frame, the words on its
- * left from 1024 px (centred over its top on phones) — 110 px condensed capitals, a line of text
- * and a pill — with sparkles.
+ * left from 1024 px (in its middle on phones) — 110 px condensed capitals, a line of text and a
+ * pill — with sparkles.
  */
 function PhotoBanner({
   image,
@@ -414,7 +417,7 @@ function PhotoBanner({
       <Sparkles points={PHOTO_SPARKLES} className="-z-10 hidden text-sun lg:block" />
       {/* The words' column takes the banner's left 48 % from 1024 px, as the reference's, so the
           picture beside it stays part of the surface link. */}
-      <div className="flex w-full flex-col items-center px-6 pt-10 text-center lg:w-[48%] lg:shrink-0 lg:items-start lg:justify-center lg:px-16 lg:pt-0 lg:text-left">
+      <div className="flex w-full flex-col items-center justify-center px-6 py-10 text-center lg:w-[48%] lg:shrink-0 lg:items-start lg:px-16 lg:py-0 lg:text-left">
         <h2
           className={cn('max-w-[46rem] font-headline text-balance text-sun', bannerHeadline(title))}
         >
@@ -462,6 +465,11 @@ export async function GalleryBanner() {
     );
   }
   const copy = brandCopy[locale];
+  // The collection's page while it exists (it can be deleted in the admin area); the catalogue
+  // otherwise.
+  const premium = (await getCollections(locale).catch(() => [])).some(
+    (collection) => collection.slug === PREMIUM_COLLECTION_SLUG && collection.productCount > 0,
+  );
   return (
     <PhotoBanner
       image={terraces}
@@ -469,7 +477,7 @@ export async function GalleryBanner() {
       title={copy.collection.heading}
       text={copy.collection.text}
       cta={t('featuredCta')}
-      href={`/collections/${PREMIUM_COLLECTION_SLUG}`}
+      href={premium ? `/collections/${PREMIUM_COLLECTION_SLUG}` : '/catalog'}
     />
   );
 }
@@ -560,7 +568,14 @@ export async function OrderBanner() {
       {photo ? <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" film /> : null}
       {photo?.video ? <FilmVeil /> : null}
       <Sparkles points={ADVISOR_SPARKLES} className="-z-10 hidden text-gold-100 lg:block" />
-      <div className="flex flex-col items-center px-6 pt-10 text-center lg:w-[46%] lg:items-start lg:py-12 lg:pr-0 lg:pl-16 lg:text-left">
+      {/* Over a photograph or film the words stand in the middle on phones; above the packs
+          otherwise. */}
+      <div
+        className={cn(
+          'flex flex-col items-center px-6 pt-10 text-center lg:w-[46%] lg:items-start lg:py-12 lg:pr-0 lg:pl-16 lg:text-left',
+          photo && 'max-lg:flex-1 max-lg:justify-center max-lg:pb-10',
+        )}
+      >
         <h2 className={cn('font-headline text-balance', bannerHeadline(t('orderByContactTitle')))}>
           <TitleLink href="/contact">{t('orderByContactTitle')}</TitleLink>
         </h2>
@@ -835,21 +850,21 @@ export async function BrewingBanner({
   return (
     <section
       aria-labelledby="brewing-title"
-      className="on-dark relative isolate overflow-hidden bg-jade-700 text-ivory-50"
+      // Below 1024 px inset and rounded like the campaign banners around it (BannerFrame).
+      className="on-dark relative isolate overflow-hidden bg-jade-700 text-ivory-50 max-lg:mx-(--spacing-gutter) max-lg:my-3 max-lg:rounded-[1.25rem] sm:max-lg:my-6 sm:max-lg:rounded-banner"
       style={bandRatio(photo)}
     >
       {photo ? <PhotoFill photo={photo} sizes="100vw" film /> : null}
       {photo?.video ? <FilmVeil /> : null}
       <Sparkles points={BREWING_SPARKLES} className="-z-10 hidden text-blush lg:block" />
       <SurfaceLink href="/journal" />
-      <div className="pointer-events-none container-page grid min-h-[33.625rem] grid-cols-1 items-center gap-10 py-12 lg:min-h-[max(35rem,calc(100vw/var(--band-ratio,100)))] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:py-14">
-        {/* Over a photograph, phones get the words centred at the top, clear of its subject below
-            (as the reference's), and the text drops its mention of the guide card. */}
+      <div className="pointer-events-none container-page grid min-h-[28rem] grid-cols-1 items-center gap-10 py-12 lg:min-h-[max(35rem,calc(100vw/var(--band-ratio,100)))] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:py-14">
+        {/* Over a photograph, phones get the words centred in the middle, and the text drops its
+            mention of the guide card. */}
         <div
           className={cn(
             'pointer-events-auto',
-            photo &&
-              'max-lg:flex max-lg:flex-col max-lg:items-center max-lg:self-start max-lg:text-center',
+            photo && 'max-lg:flex max-lg:flex-col max-lg:items-center max-lg:text-center',
           )}
         >
           <p className="inline-flex bg-blush px-2.5 py-0.5 font-headline text-[1.375rem] leading-[1.1] text-teal-ink lg:text-[1.75rem]">

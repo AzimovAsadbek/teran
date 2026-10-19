@@ -211,7 +211,7 @@ test.describe('admin changes reach the storefront', () => {
     await store.context().close();
   });
 
-  test('a new category joins the menu with its first product, its texts update, and it goes when switched off', async ({
+  test('a new category is in the menu as coming soon until its first product, its texts update, and it goes when switched off', async ({
     page,
     browser,
   }) => {
@@ -227,8 +227,8 @@ test.describe('admin changes reach the storefront', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('button', { name: name, exact: true })).toBeVisible();
 
-    // Without products it stays out of the menus (shoppers see only what is for sale), while its
-    // own page already answers and says products are coming.
+    // Without products it is already in the menus, marked "coming soon" (the range TERAN plans
+    // shows from the start, ADR-041), and its own page says products are coming.
     const shopMenu = async () => {
       await store.goto('/en');
       await store.getByRole('button', { name: 'Shop', exact: true }).click();
@@ -241,9 +241,13 @@ test.describe('admin changes reach the storefront', () => {
       }),
     );
     await expect(visible(store.getByText('Products coming soon'))).toBeVisible();
-    await expect((await shopMenu()).getByRole('link', { name: new RegExp(name) })).toHaveCount(0);
+    await expect(async () => {
+      const link = (await shopMenu()).getByRole('link', { name: new RegExp(name) });
+      await expect(link).toBeVisible({ timeout: 1_000 });
+      await expect(link).toContainText('Coming soon', { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
 
-    // Its first product puts it in the menu, with no code change.
+    // Its first product drops the mark, with no code change.
     const categories = (await (await page.request.get(`${API}/admin/categories`)).json()) as {
       id: string;
       slug: string;
@@ -251,10 +255,9 @@ test.describe('admin changes reach the storefront', () => {
     const created = categories.find((entry) => entry.slug === slug)!;
     await publishProduct(page.request, product(`e2e-cat-${id}`, created.id), PICTURES.lake);
     await expect(async () => {
-      const menu = await shopMenu();
-      await expect(menu.getByRole('link', { name: new RegExp(name) })).toBeVisible({
-        timeout: 1_000,
-      });
+      const link = (await shopMenu()).getByRole('link', { name: new RegExp(name) });
+      await expect(link).toBeVisible({ timeout: 1_000 });
+      await expect(link).not.toContainText('Coming soon', { timeout: 1_000 });
     }).toPass({ timeout: 20_000 });
 
     // A description added later shows on its page.

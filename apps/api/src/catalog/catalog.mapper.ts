@@ -2,6 +2,8 @@ import {
   ILLUSTRATION_KEYS,
   MAX_LINE_QUANTITY,
   NEW_PRODUCT_DAYS,
+  ratingAverage,
+  type BrewingDto,
   type CategoryRefDto,
   type IllustrationKey,
   type ImageDto,
@@ -281,6 +283,24 @@ export function productFilm(image: StoredImageRow): ProductFilmDto | null {
   };
 }
 
+/** How to brew a product, from its brewing columns; null when none is set. */
+function brewingOf(product: SummaryProduct): BrewingDto | null {
+  const hasBrewing =
+    product.brewTempCelsius !== null ||
+    product.brewTimeMinSeconds !== null ||
+    product.brewAmountGrams !== null;
+  return hasBrewing
+    ? {
+        temperatureCelsius: product.brewTempCelsius,
+        temperatureMaxCelsius: product.brewTempMaxCelsius,
+        timeMinSeconds: product.brewTimeMinSeconds,
+        timeMaxSeconds: product.brewTimeMaxSeconds,
+        amountGrams: product.brewAmountGrams?.toString() ?? null,
+        amountMaxGrams: product.brewAmountMaxGrams?.toString() ?? null,
+      }
+    : null;
+}
+
 function isNew(publishedAt: Date | null, now: Date): boolean {
   if (!publishedAt) return false;
   return now.getTime() - publishedAt.getTime() <= NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000;
@@ -334,6 +354,16 @@ export function toProductSummary(
       ? toImageDto(secondImage, productImageAlt(secondImage, locale, name))
       : null,
     illustrationKey: asIllustrationKey(product.illustrationKey),
+    origin: translation?.origin ?? null,
+    brewing: brewingOf(product),
+    // Kept on the product as its published reviews change (ADR-042), so lists need no join.
+    rating:
+      product.ratingCount > 0
+        ? {
+            average: ratingAverage(product.ratingSum, product.ratingCount),
+            count: product.ratingCount,
+          }
+        : null,
   };
 }
 
@@ -344,10 +374,6 @@ export function toProductDetail(
 ): ProductDetailDto {
   const summary = toProductSummary(product, locale, now);
   const translation = pickTranslation(product.translations, locale);
-  const hasBrewing =
-    product.brewTempCelsius !== null ||
-    product.brewTimeMinSeconds !== null ||
-    product.brewAmountGrams !== null;
 
   return {
     ...summary,
@@ -364,18 +390,7 @@ export function toProductDetail(
     description: translation?.description ?? null,
     ingredients: translation?.ingredients ?? null,
     tastingNotes: translation?.tastingNotes ?? null,
-    origin: translation?.origin ?? null,
     caffeineLevel: product.caffeineLevel,
-    brewing: hasBrewing
-      ? {
-          temperatureCelsius: product.brewTempCelsius,
-          temperatureMaxCelsius: product.brewTempMaxCelsius,
-          timeMinSeconds: product.brewTimeMinSeconds,
-          timeMaxSeconds: product.brewTimeMaxSeconds,
-          amountGrams: product.brewAmountGrams?.toString() ?? null,
-          amountMaxGrams: product.brewAmountMaxGrams?.toString() ?? null,
-        }
-      : null,
     images: product.images.map((image) =>
       toImageDto(image, productImageAlt(image, locale, summary.name)),
     ),

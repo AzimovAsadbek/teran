@@ -1,6 +1,12 @@
 import type { CategoryDto, CollectionDto } from '@teran/contracts';
 import { describe, expect, it } from 'vitest';
-import { browsableCategories, categoryTree, coverSizes, navCollections } from './navigation';
+import {
+  browsableCategories,
+  categoryTree,
+  coverSizes,
+  menuCategoryTree,
+  navCollections,
+} from './navigation';
 
 function category(
   slug: string,
@@ -57,6 +63,27 @@ describe('the catalogue shoppers see', () => {
   it('shows a new category, coffee say, by itself once it has products', () => {
     const tree = categoryTree([category('tea', 5), category('coffee', 2)]);
     expect(tree.map((top) => top.slug)).toEqual(['tea', 'coffee']);
+  });
+
+  it('gives the menus every category, empty ones too, in the API order', () => {
+    const categories = [
+      category('tea', 5),
+      category('green-tea', 5, 'tea'),
+      category('black-tea', 0, 'tea'),
+      category('coffee', 0),
+      category('coffee-beans', 0, 'coffee'),
+      category('gift-sets', 0),
+    ];
+    const menu = menuCategoryTree(categories);
+    expect(menu.map((top) => [top.slug, top.children.map((child) => child.slug)])).toEqual([
+      ['tea', ['green-tea', 'black-tea']],
+      ['coffee', ['coffee-beans']],
+      ['gift-sets', []],
+    ]);
+    // Their counts stay, so the menus can mark the empty ones "coming soon".
+    expect(menu.find((top) => top.slug === 'coffee')?.productCount).toBe(0);
+    // The home page's sections still see only what is for sale.
+    expect(categoryTree(categories).map((top) => top.slug)).toEqual(['tea']);
   });
 
   it('lists only collections with products', () => {

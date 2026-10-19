@@ -23,6 +23,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { ReviewsModule } from './reviews/reviews.module.js';
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 
@@ -88,6 +89,7 @@ function requestId(request: IncomingMessage): string {
     CoreModule,
     HealthModule,
     CatalogModule,
+    ReviewsModule,
     ContentModule,
     OrdersModule,
     PaymentsModule,

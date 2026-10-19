@@ -1,4 +1,5 @@
 import type { ProductSummaryDto } from '@teran/contracts';
+import { ArrowRight, Leaf, MapPin, Package, Thermometer, Timer } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Price } from '@/components/ui/price';
 import { Link } from '@/i18n/navigation';
@@ -7,8 +8,8 @@ import { formatMoney, packLabel } from '@/lib/format';
 import { showPrices } from '@/lib/site';
 import { ProductFilm } from './product-film';
 import { ProductImage } from './product-image';
-import { OrderAction } from './order-action';
 import { QuickAdd } from './quick-add';
+import { Stars } from './stars';
 
 /** Four columns from 1024 px, three from 768 px, two on phones (between the 1.5 rem gutters). */
 export const PRODUCT_CARD_SIZES =
@@ -28,17 +29,22 @@ function discountPercent(price: string, compareAt: string | null): number | null
   return percent >= 1 ? percent : null;
 }
 
+/** "2" or "2.5" minutes from seconds, as the product page's brewing rows. */
+function minutes(seconds: number): string {
+  return Number.isInteger(seconds / 60) ? String(seconds / 60) : (seconds / 60).toFixed(1);
+}
+
 /**
- * Product card on the reference's model: a white card (8 px corners) lifted off the page by a
- * soft shadow, the picture on white, an outlined "new" pill top-left and the discount top-right,
- * then the tea type in italics, the name and price · pack size. As on the reference the picture and
- * the name lead to the product (the name, underlined while pointed at, is the keyboard's stop),
- * the card itself does not move and the second picture fades in while the pointer is on the
- * picture; a first picture with a film comes alive (product-film.tsx). While the card is pointed
- * at, the "Add to bag · price" pill shows over the picture's
- * foot (a round bag button on touch screens, quick-add.tsx); without prices, an "Order" pill to
- * the product page's ordering block (order-action.tsx). No rating row: TERAN has no reviews, and
- * none is invented.
+ * Product card: a white card with 16 px corners on a soft shadow, lifting a little while pointed
+ * at as its picture slowly grows; "new" and "few left" pills top-left, the discount top-right; the
+ * second picture fades in while the pointer is on the picture and a first picture with a film comes
+ * alive (product-film.tsx). Under the picture, from the product's own data and nothing invented:
+ * the tea type, the name, the customers' stars and their number (before the first review, an
+ * invitation to rate it; ADR-042), the origin, and chips for the brewing temperature, time and
+ * pack size. Without prices an "Order" button closes the card, outlined and filled while the card
+ * is pointed at, leading to the product page's ordering block; with prices, the price row and the
+ * "Add to bag" pill over the picture (quick-add.tsx). The picture and the name lead to the
+ * product, the stars to its reviews.
  */
 export function ProductCard({
   product,
@@ -52,6 +58,7 @@ export function ProductCard({
   sizes?: string;
 }) {
   const t = useTranslations('Product');
+  const tb = useTranslations('Brewing');
   const tc = useTranslations('Common');
   const locale = useLocale();
   const Heading = headingLevel;
@@ -69,33 +76,75 @@ export function ProductCard({
   const packPrice = product.defaultVariant
     ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
     : null;
+  // Cards kept in a visitor's browser (recently viewed) from before these fields lack them.
+  const rating = product.rating ?? null;
+  const brewing = product.brewing ?? null;
+  const origin = product.origin ?? null;
+  const average = rating
+    ? new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+        rating.average,
+      )
+    : null;
+  const chips = [
+    brewing?.temperatureCelsius != null
+      ? {
+          key: 'temperature',
+          icon: Thermometer,
+          label:
+            brewing.temperatureMaxCelsius != null
+              ? tb('celsiusRange', {
+                  min: brewing.temperatureCelsius,
+                  max: brewing.temperatureMaxCelsius,
+                })
+              : tb('celsius', { value: brewing.temperatureCelsius }),
+        }
+      : null,
+    brewing?.timeMinSeconds != null
+      ? {
+          key: 'time',
+          icon: Timer,
+          label:
+            brewing.timeMaxSeconds != null && brewing.timeMaxSeconds !== brewing.timeMinSeconds
+              ? tb('minutes', {
+                  min: minutes(brewing.timeMinSeconds),
+                  max: minutes(brewing.timeMaxSeconds),
+                })
+              : tb('minutesSingle', { min: minutes(brewing.timeMinSeconds) }),
+        }
+      : null,
+    // With prices the pack follows the price instead.
+    pack && !showPrices ? { key: 'pack', icon: Package, label: pack } : null,
+  ].filter((chip) => chip !== null);
 
   return (
-    <article className="group/card relative flex h-full flex-col overflow-hidden rounded-[0.5rem] bg-surface shadow-card">
-      <div className="group/gallery relative aspect-square overflow-hidden rounded-t-[0.75rem] bg-surface">
-        <ProductImage
-          image={product.image}
-          name={product.name}
-          sizes={sizes}
-          priority={priority}
-          className={cn(soldOut && 'opacity-60')}
-        />
-        {/* A living picture (steam rising, the tea stirring) where the first picture has a film. */}
-        {product.image?.film?.cardSrc && !soldOut ? (
-          <ProductFilm film={product.image.film} size="card" />
-        ) : null}
-        {hoverImage ? (
-          // Not displayed on touch screens, so it is never downloaded there.
+    <article className="group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-[translate,box-shadow] duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)] motion-safe:pointer-fine:hover:-translate-y-1">
+      <div className="group/gallery relative aspect-square overflow-hidden bg-surface">
+        {/* The picture, its film and its second view grow together, so they stay aligned. */}
+        <div className="absolute inset-0 transition-transform duration-700 ease-out motion-safe:pointer-fine:group-hover/card:scale-[1.04]">
           <ProductImage
-            image={hoverImage}
+            image={product.image}
             name={product.name}
             sizes={sizes}
-            decorative
-            className="absolute inset-0 hidden opacity-0 transition-opacity duration-200 ease-[ease] pointer-fine:block pointer-fine:group-hover/gallery:opacity-100"
+            priority={priority}
+            className={cn(soldOut && 'opacity-60')}
           />
-        ) : null}
+          {/* A living picture (steam rising, the tea stirring) where the first picture has a film. */}
+          {product.image?.film?.cardSrc && !soldOut ? (
+            <ProductFilm film={product.image.film} size="card" />
+          ) : null}
+          {hoverImage ? (
+            // Not displayed on touch screens, so it is never downloaded there.
+            <ProductImage
+              image={hoverImage}
+              name={product.name}
+              sizes={sizes}
+              decorative
+              className="absolute inset-0 hidden opacity-0 transition-opacity duration-200 ease-[ease] pointer-fine:block pointer-fine:group-hover/gallery:opacity-100"
+            />
+          ) : null}
+        </div>
         <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 z-[1]" />
-        <div className="pointer-events-none absolute inset-x-2 top-2 z-[2] flex items-start justify-between gap-2 min-[46.875rem]:inset-x-4 min-[46.875rem]:top-4">
+        <div className="pointer-events-none absolute inset-x-2 top-2 z-[2] flex items-start justify-between gap-2 min-[46.875rem]:inset-x-3 min-[46.875rem]:top-3">
           <div className="flex flex-wrap gap-1.5">
             {soldOut ? (
               <span className={cn(PILL, 'border-ink-700 bg-ink-700 text-ivory-50')}>
@@ -123,25 +172,66 @@ export function ProductCard({
             </span>
           ) : null}
         </div>
-        {/* Without prices there is no bag: the pill leads to the product page's ordering block. */}
         {showPrices ? (
           <QuickAdd variant={product.defaultVariant} productName={product.name} price={packPrice} />
-        ) : soldOut ? null : (
-          <OrderAction href={href} productName={product.name} />
-        )}
+        ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 px-2 pt-2 pb-2">
-        <p className="h-6 truncate text-[0.875rem] leading-6 font-medium text-fg italic">
-          {product.category.name}
+      <div className="flex flex-1 flex-col px-3 pt-3 pb-3 min-[46.875rem]:px-4 min-[46.875rem]:pt-3.5 min-[46.875rem]:pb-4">
+        <p className="flex h-5 min-w-0 items-center gap-1.5 text-[0.8125rem] leading-5 font-medium text-leaf-700">
+          <Leaf aria-hidden className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{product.category.name}</span>
         </p>
-        <Heading className="line-clamp-2 min-h-8 text-[1rem] leading-4 font-bold text-fg">
+        <Heading className="mt-1 line-clamp-2 text-[1rem] leading-5 font-bold text-fg min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6">
           <Link href={href} className="relative z-[1] hover:underline">
             {product.name}
           </Link>
         </Heading>
+        <Link
+          href={`${href}#reviews`}
+          aria-label={
+            rating && average
+              ? t('ratingLabel', { average, count: rating.count })
+              : t('rateFirstLabel', { name: product.name })
+          }
+          className="relative z-[1] mt-1.5 inline-flex w-fit items-center gap-1.5 text-[0.8125rem] leading-5 hover:underline hover:underline-offset-2"
+        >
+          <Stars value={rating?.average ?? 0} className="text-[0.875rem]" />
+          {rating ? (
+            <>
+              <span className="font-semibold text-fg">{average}</span>
+              <span className="text-fg-subtle">({rating.count})</span>
+            </>
+          ) : (
+            <span className="text-fg-subtle">{t('rateFirst')}</span>
+          )}
+        </Link>
+        {origin ? (
+          <p className="mt-1 flex min-w-0 items-center gap-1 text-[0.8125rem] leading-5 text-fg-subtle">
+            <MapPin aria-hidden className="h-3.5 w-3.5 shrink-0" />
+            <span className="sr-only">{t('origin')}: </span>
+            <span className="truncate">{origin}</span>
+          </p>
+        ) : null}
+        {chips.length > 0 ? (
+          // Two chips side by side even on a phone's half-width card.
+          <ul className="mt-2.5 flex flex-wrap gap-1 min-[46.875rem]:gap-1.5">
+            {chips.map(({ key, icon: Icon, label }) => (
+              <li
+                key={key}
+                className="inline-flex h-[1.375rem] items-center gap-0.5 rounded-full bg-jade-100 px-1.5 text-[0.6875rem] leading-none font-medium whitespace-nowrap text-teal-ink min-[46.875rem]:h-6 min-[46.875rem]:gap-1 min-[46.875rem]:px-2 min-[46.875rem]:text-[0.75rem]"
+              >
+                <Icon
+                  aria-hidden
+                  className="h-3 w-3 shrink-0 min-[46.875rem]:h-3.5 min-[46.875rem]:w-3.5"
+                />
+                {label}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {showPrices ? (
-          <p className="mt-auto flex min-h-6 flex-wrap items-baseline gap-x-1.5 text-[1rem] leading-6 font-medium">
+          <p className="mt-auto flex min-h-6 flex-wrap items-baseline gap-x-1.5 pt-3 text-[1rem] leading-6 font-medium">
             <Price
               amount={product.priceFrom}
               compareAt={product.compareAtPriceFrom}
@@ -149,9 +239,20 @@ export function ProductCard({
             />
             {pack ? <span className="text-[0.875rem] text-fg-muted">· {pack}</span> : null}
           </p>
-        ) : pack ? (
-          <p className="mt-auto min-h-6 text-[1rem] leading-6 font-medium text-fg">{pack}</p>
-        ) : null}
+        ) : soldOut ? null : (
+          // Without prices there is no bag: the button leads to the product page's ordering block.
+          <div className="mt-auto pt-3.5">
+            <Link
+              href={`${href}#order`}
+              aria-label={t('orderAction', { name: product.name })}
+              // A phone's half-width card keeps the whole word: smaller type, no arrow.
+              className="relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50"
+            >
+              <span className="truncate">{t('orderNow')}</span>
+              <ArrowRight aria-hidden className="hidden h-4 w-4 shrink-0 min-[46.875rem]:block" />
+            </Link>
+          </div>
+        )}
       </div>
     </article>
   );

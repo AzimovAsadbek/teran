@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ratingAverage,
+  reviewAuthorName,
+  reviewInputSchema,
   announcementSettingSchema,
   FIXED_VISUAL_SLOTS,
   ORDER_STATUSES,
@@ -330,5 +333,37 @@ describe('announcementSettingSchema', () => {
     for (const href of ['https://example.com', '//example.com', '//2130706433', 'catalog']) {
       expect(announcementSettingSchema.safeParse(setting(href)).success).toBe(false);
     }
+  });
+});
+
+describe('reviews', () => {
+  it('names a reviewer by first name and last initial only', () => {
+    expect(reviewAuthorName('Aziza', 'karimova')).toBe('Aziza K.');
+    expect(reviewAuthorName(' Bobur ', null)).toBe('Bobur');
+    expect(reviewAuthorName('Dilnoza', '  ')).toBe('Dilnoza');
+  });
+
+  it('averages stars to one decimal', () => {
+    expect(ratingAverage(19, 4)).toBe(4.8);
+    expect(ratingAverage(9, 2)).toBe(4.5);
+    expect(ratingAverage(0, 0)).toBe(0);
+  });
+
+  it('takes whole stars from 1 to 5 and turns an empty comment into none', () => {
+    expect(reviewInputSchema.parse({ rating: 5, comment: '  Zo‘r choy  ' })).toEqual({
+      rating: 5,
+      comment: 'Zo‘r choy',
+    });
+    expect(reviewInputSchema.parse({ rating: 3, comment: '   ' })).toEqual({
+      rating: 3,
+      comment: null,
+    });
+    expect(reviewInputSchema.parse({ rating: 1 })).toEqual({ rating: 1, comment: null });
+    for (const rating of [0, 6, 2.5]) {
+      expect(reviewInputSchema.safeParse({ rating }).success).toBe(false);
+    }
+    expect(reviewInputSchema.safeParse({ rating: 4, comment: 'x'.repeat(1001) }).success).toBe(
+      false,
+    );
   });
 });

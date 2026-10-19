@@ -171,27 +171,33 @@ function StreamedTiles({ navigation }: { navigation: Promise<Navigation> }) {
 const MAX_TILES = 5;
 
 /**
- * Picture tiles in two columns: the top-level categories, then collections with products, and
- * "all products". Everything else (subcategories, every collection, empty ones too) is one level
- * deeper under the "Shop" row.
+ * Picture tiles in two columns: the top-level categories with products, collections with
+ * products, then the categories still to come (marked so), and "all products". Everything else
+ * (subcategories, every collection, empty ones too) is one level deeper under the "Shop" row.
  */
 function Tiles({ navigation }: { navigation: Navigation }) {
   const t = useTranslations('Nav');
+  const stocked = navigation.categories.filter((category) => category.productCount > 0);
+  const coming = navigation.categories.filter((category) => category.productCount === 0);
+  const tile = (category: Navigation['categories'][number], index: number) => ({
+    key: `c-${category.slug}`,
+    href: `/${category.path}`,
+    label: category.name,
+    soon: category.productCount === 0,
+    art: <CategoryArt category={category} variant={index} sizes="10rem" />,
+  });
   const items = [
-    ...navigation.categories.map((category, index) => ({
-      key: `c-${category.slug}`,
-      href: `/${category.path}`,
-      label: category.name,
-      art: <CategoryArt category={category} variant={index} sizes="10rem" />,
-    })),
+    ...stocked.map(tile),
     ...navigation.collections
       .filter((collection) => collection.productCount > 0)
       .map((collection, index) => ({
         key: `k-${collection.slug}`,
         href: `/collections/${collection.slug}`,
         label: collection.name,
+        soon: false,
         art: <CategoryArt category={collection} variant={index + 1} sizes="10rem" />,
       })),
+    ...coming.map((category, index) => tile(category, stocked.length + index + 2)),
   ].slice(0, MAX_TILES);
   return (
     <ul className="mt-5 grid grid-cols-2 gap-3">
@@ -199,6 +205,11 @@ function Tiles({ navigation }: { navigation: Navigation }) {
         <li key={item.key}>
           <Link href={item.href} className={TILE}>
             {item.art}
+            {item.soon ? (
+              <span className="absolute top-2.5 left-2.5 rounded-full bg-ivory-50/90 px-2.5 py-1 text-[0.75rem] leading-none font-semibold text-forest-900">
+                {t('menuSoon')}
+              </span>
+            ) : null}
             <TileLabel>{item.label}</TileLabel>
           </Link>
         </li>
@@ -262,7 +273,7 @@ function CategoryLinks({ navigation }: { navigation: Promise<Navigation> }) {
               {child.name}
             </Row>
           ))}
-          <Row href={`/${category.path}`} strong>
+          <Row href={`/${category.path}`} strong soon={category.productCount === 0}>
             {t('shopIn', { name: category.name })}
           </Row>
         </Section>

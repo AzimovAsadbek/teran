@@ -170,6 +170,12 @@ enum TelegramPostStatus {
   FAILED
 }
 
+/// A product review shows at once (PUBLISHED); staff can take it off the site (HIDDEN).
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+}
+
 // ─── Identity & access ──────────────────────────────────────────────────────
 
 model User {
@@ -199,6 +205,7 @@ model User {
   confirmedPayments   Payment[]
   auditLogs           AuditLog[]
   addresses           CustomerAddress[]
+  reviews             ProductReview[]
 
   @@index([role])
 }
@@ -381,6 +388,10 @@ model Product {
   /// Lowest active variant price, denormalised for sorting and price filtering.
   /// Maintained by ProductPricing.refreshMinPrice whenever variants change.
   minPrice           Decimal?       @db.Decimal(12, 2)
+  /// Published reviews' count and the sum of their stars, denormalised for lists (the average is
+  /// sum / count). Maintained by ReviewsService whenever a review is saved, hidden or deleted.
+  ratingCount        Int            @default(0)
+  ratingSum          Int            @default(0)
   publishedAt        DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -390,6 +401,7 @@ model Product {
   images          ProductImage[]
   collections     ProductCollection[]
   attributeValues ProductAttributeValue[]
+  reviews         ProductReview[]
 
   @@index([status, categoryId])
   @@index([status, publishedAt])
@@ -623,6 +635,30 @@ model ProductImageTranslation {
 }
 
 // ─── Shopping cart ──────────────────────────────────────────────────────────
+
+/// A signed-in customer's rating of a product, 1 to 5 stars, with an optional comment (ADR-042).
+/// One per customer and product: saving again replaces it. Deleted with the product or the account.
+model ProductReview {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  productId        String       @db.Uuid
+  product          Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId           String       @db.Uuid
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating           Int
+  comment          String?
+  /// The language the comment was written in.
+  locale           Locale
+  /// The customer had a delivered order with this product when the review was saved.
+  verifiedPurchase Boolean      @default(false)
+  status           ReviewStatus @default(PUBLISHED)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([productId, userId])
+  @@index([productId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([userId])
+}
 
 model Cart {
   id        String     @id @default(uuid(7)) @db.Uuid

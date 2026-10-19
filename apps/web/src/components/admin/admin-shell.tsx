@@ -17,6 +17,7 @@ import {
   Settings,
   Shapes,
   ShieldCheck,
+  Star,
   Store,
   Truck,
   Users,
@@ -38,6 +39,7 @@ type NavKey =
   | 'dashboard'
   | 'orders'
   | 'inquiries'
+  | 'reviews'
   | 'customers'
   | 'products'
   | 'inventory'
@@ -72,6 +74,7 @@ const NAV: { group: 'sales' | 'catalogue' | 'site' | 'setup'; items: NavItem[] }
       { key: 'dashboard', href: '/admin', icon: Gauge },
       { key: 'orders', href: '/admin/orders', icon: ClipboardList, count: 'newOrders' },
       { key: 'inquiries', href: '/admin/inquiries', icon: Inbox, count: 'newInquiries' },
+      { key: 'reviews', href: '/admin/reviews', icon: Star },
       { key: 'customers', href: '/admin/customers', icon: Users },
     ],
   },

@@ -357,7 +357,14 @@ function ShopPanel({ navigation }: { navigation: Navigation }) {
             style={{ gridColumn: 1, gridRow: index + 1 }}
             className={cn(CATEGORY_TAB, 'mx-4 mb-1', index === 0 && 'mt-4')}
           >
-            <span className="line-clamp-2">{category.name}</span>
+            <span className="flex min-w-0 flex-col">
+              <span className="line-clamp-2">{category.name}</span>
+              {category.productCount === 0 ? (
+                <span className="mt-1 font-sans text-[0.75rem] leading-tight font-medium tracking-normal normal-case opacity-80">
+                  {t('menuSoon')}
+                </span>
+              ) : null}
+            </span>
           </Link>
           {category === current ? (
             <>
@@ -399,7 +406,8 @@ function FeaturedCategory({
     <FeatureCard
       href={`/${category.path}`}
       label={category.name}
-      photo={category.image ? null : photo}
+      // The menu's photograph shows TERAN's teas: an empty category (coffee, say) keeps its art.
+      photo={category.image || category.productCount === 0 ? null : photo}
     >
       <CategoryArt category={category} variant={variant} sizes="16rem" />
     </FeatureCard>
@@ -423,6 +431,9 @@ function CategoryColumns({
     >
       <div className="min-w-0">
         <p className={COLUMN_HEADING}>{category.name}</p>
+        {category.productCount === 0 ? (
+          <p className="mt-2 text-[0.9375rem] leading-snug text-fg-muted">{t('menuSoonNote')}</p>
+        ) : null}
         <ul className="mt-4 flex flex-col gap-2">
           {category.children.map((child) => (
             <li key={child.slug}>
@@ -450,16 +461,20 @@ function CategoryColumns({
       <div className="min-w-0">
         <p className={COLUMN_HEADING}>{t('browse')}</p>
         <ul className="mt-4 flex flex-col gap-2">
-          <li>
-            <Link href={`/${category.path}?sort=newest`} className={COLUMN_LINK}>
-              {t('newest')}
-            </Link>
-          </li>
-          <li>
-            <Link href={`/${category.path}`} className={COLUMN_LINK}>
-              {t('recommended')}
-            </Link>
-          </li>
+          {category.productCount > 0 ? (
+            <>
+              <li>
+                <Link href={`/${category.path}?sort=newest`} className={COLUMN_LINK}>
+                  {t('newest')}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${category.path}`} className={COLUMN_LINK}>
+                  {t('recommended')}
+                </Link>
+              </li>
+            </>
+          ) : null}
           <li>
             <Link href="/catalog?sort=newest" className={COLUMN_LINK}>
               {t('shopAll')}

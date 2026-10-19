@@ -680,7 +680,8 @@ const BENTO_TONES = [
 /**
  * Four tiles, two by two (stacked on phones), 384 px high: the catalogue's categories and
  * collections with products, each on its own colour with its name in 80 px capitals in a lighter
- * or deeper shade, a pill in that shade and a product standing on the right, with sparkles.
+ * or deeper shade, a pill in that shade and a product standing on the right, with sparkles; or the
+ * tile's campaign photograph filling it, and its film looping over it when the place has one.
  */
 export async function BentoSection() {
   await connection();
@@ -751,6 +752,9 @@ export async function BentoSection() {
                       { width: '100vw', ratio: 342 / 332 },
                     ])}
                     className={'photo' in tone ? tone.photo : undefined}
+                    // A tile whose picture carries a film plays it (the owner's wish of
+                    // 2026-10-19: tea poured in the first two tiles).
+                    film
                   />
                 ) : (
                   <Sparkles points={SPARKLES_HIGH} className={cn('-z-10', tone.spark)} />

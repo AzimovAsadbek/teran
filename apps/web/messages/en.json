@@ -97,6 +97,7 @@
     "assistant": "Ask the advisor",
     "menuCount": "{count, plural, =0 {Coming soon} one {# product} other {# products}}",
     "menuSoon": "Coming soon",
+    "menuSoonNote": "Products in this section are coming soon.",
     "learn": "Tea school",
     "media": "Gallery",
     "returns": "Returns",
@@ -376,7 +377,42 @@
     "orderAction": "Order {name}",
     "zoomImage": "Enlarge image {index}",
     "zoomTitle": "{name}: pictures",
-    "closeZoom": "Close"
+    "closeZoom": "Close",
+    "ratingLabel": "Rated {average} out of 5 ({count, plural, one {# rating} other {# ratings}})",
+    "rateFirst": "Rate it",
+    "rateFirstLabel": "Be the first to rate {name}",
+    "reviews": {
+      "title": "Customer reviews",
+      "count": "{count, plural, one {# rating} other {# ratings}}",
+      "none": "No ratings yet",
+      "basedOn": "{count, plural, one {Based on # rating} other {Based on # ratings}}",
+      "averageLabel": "Average rating: {average} out of 5",
+      "barLabel": "{stars, plural, one {# star} other {# stars}}: {count, plural, one {# rating} other {# ratings}}",
+      "empty": "No reviews yet. Be the first to rate this tea!",
+      "verified": "Verified buyer",
+      "starsOutOf": "{count} out of 5 stars",
+      "more": "Show more",
+      "formTitle": "Write a review",
+      "yourRating": "Your rating",
+      "star": "{count, plural, one {# star} other {# stars}}",
+      "comment": "Comment (optional)",
+      "commentHint": "Taste, aroma, how you brew it: anything that helps others.",
+      "submit": "Submit",
+      "update": "Save",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "chooseRating": "Choose a number of stars.",
+      "thanks": "Thank you! Your rating is saved.",
+      "yours": "Your rating",
+      "hidden": "A moderator has hidden this review from the site.",
+      "deleted": "Your rating was deleted.",
+      "deleteConfirm": "Delete your rating?",
+      "signInPrompt": "Sign in to rate this tea.",
+      "signIn": "Sign in",
+      "register": "Create an account",
+      "staffNote": "Staff accounts cannot rate products: only customers do."
+    }
   },
   "Cart": {
     "title": "Bag",
@@ -818,6 +854,7 @@
       "inventory": "Inventory",
       "customers": "Customers",
       "inquiries": "Inquiries",
+      "reviews": "Reviews",
       "newsletter": "Subscribers",
       "journal": "Articles",
       "media": "Gallery",
@@ -1207,6 +1244,27 @@
       "intro": "Messages sent from the site: the Contact page and wholesale (business) requests.",
       "saved": "Saved."
     },
+    "reviews": {
+      "title": "Reviews",
+      "intro": "Customers' ratings and comments on the teas. They show on the site at once: hide or delete unsuitable ones, and the product's average updates straight away.",
+      "status": {
+        "PUBLISHED": "On the site",
+        "HIDDEN": "Hidden"
+      },
+      "verified": "Verified buyer",
+      "stars": "{count} out of 5",
+      "noComment": "No comment, a rating only.",
+      "hide": "Hide",
+      "show": "Show on the site",
+      "delete": "Delete",
+      "deleteTitle": "Delete this review?",
+      "deleteText": "The rating and comment are deleted for good and the product's average is recalculated. To only take it off the site, choose Hide.",
+      "deleteConfirm": "Yes, delete",
+      "keep": "No, keep it",
+      "deleted": "Review deleted",
+      "hiddenDone": "Review hidden from the site",
+      "shown": "Review shown on the site again"
+    },
     "newsletter": {
       "title": "Subscribers",
       "email": "E-mail",
@@ -1499,7 +1557,10 @@
         "inquiry_contact_update": "Inquiry updated",
         "inquiry_wholesale_update": "Business inquiry updated",
         "settings_announcement_update": "Announcement updated",
-        "settings_contact_update": "Contact details updated"
+        "settings_contact_update": "Contact details updated",
+        "review_hide": "Hid a review",
+        "review_show": "Showed a review again",
+        "review_delete": "Deleted a review"
       },
       "entities": {
         "Article": "Article",
@@ -1515,7 +1576,8 @@
         "ProductVariant": "Pack size",
         "SiteSetting": "Store details",
         "System": "System",
-        "User": "User"
+        "User": "User",
+        "ProductReview": "Review"
       }
     },
     "categories": {
@@ -1642,7 +1704,10 @@
       "gift": "Gift",
       "jasmine": "Jasmine",
       "mint": "Mint",
-      "earl-grey": "Earl Grey"
+      "earl-grey": "Earl Grey",
+      "coffee": "Coffee",
+      "sweets": "Sweets",
+      "teaware": "Teaware"
     },
     "readiness": {
       "title": "Ready to publish",

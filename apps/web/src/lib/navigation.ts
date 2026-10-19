@@ -142,6 +142,22 @@ export function categoryTree(categories: CategoryDto[]): NavCategoryTree[] {
     }));
 }
 
+/**
+ * The menus' tree (the header's panels and the drawer): every active category with its
+ * subcategories, products or not, in the API's order, so the range TERAN plans (coffee, sweets,
+ * teaware…) shows from the start, an empty one marked "coming soon" and leading to its own "coming
+ * soon" page (the owner's wish of 2026-10-19, ADR-041). The home page's sections, the catalogue's
+ * chips and the search keep `categoryTree`: they show products, so only stocked categories.
+ */
+export function menuCategoryTree(categories: CategoryDto[]): NavCategoryTree[] {
+  return categories
+    .filter((category) => category.parentSlug === null)
+    .map((top) => ({
+      ...navCategory(top),
+      children: categories.filter((child) => child.parentSlug === top.slug).map(navCategory),
+    }));
+}
+
 /** Active collections with products, in the API's order (like categories, empty ones wait). */
 export function navCollections(collections: CollectionDto[]): NavCollection[] {
   return collections

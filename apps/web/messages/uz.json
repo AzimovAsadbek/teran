@@ -97,6 +97,7 @@
     "assistant": "Maslahatchidan soʻrash",
     "menuCount": "{count, plural, =0 {Tez orada} other {# ta mahsulot}}",
     "menuSoon": "Tez orada",
+    "menuSoonNote": "Bu boʻlimning mahsulotlari tez orada paydo boʻladi.",
     "learn": "Choy maktabi",
     "media": "Lavhalar",
     "returns": "Qaytarish",
@@ -376,7 +377,42 @@
     "orderAction": "{name} — buyurtma berish",
     "zoomImage": "{index}-rasmni kattalashtirib koʻrish",
     "zoomTitle": "{name} — rasmlar",
-    "closeZoom": "Yopish"
+    "closeZoom": "Yopish",
+    "ratingLabel": "Oʻrtacha baho {average} / 5 ({count, plural, other {# ta baho}})",
+    "rateFirst": "Baholang",
+    "rateFirstLabel": "{name}: birinchi boʻlib baholang",
+    "reviews": {
+      "title": "Mijozlar fikri",
+      "count": "{count, plural, other {# ta baho}}",
+      "none": "Hali baho yoʻq",
+      "basedOn": "{count, plural, other {# ta baho asosida}}",
+      "averageLabel": "Oʻrtacha baho: {average} / 5",
+      "barLabel": "{stars} yulduz: {count, plural, other {# ta baho}}",
+      "empty": "Hali sharh yoʻq. Bu choyni birinchi boʻlib baholang!",
+      "verified": "Xarid qilgan",
+      "starsOutOf": "{count} / 5 yulduz",
+      "more": "Yana koʻrsatish",
+      "formTitle": "Fikringizni qoldiring",
+      "yourRating": "Bahoyingiz",
+      "star": "{count} yulduz",
+      "comment": "Izoh (ixtiyoriy)",
+      "commentHint": "Taʼmi, ifori, qanday damlaysiz — boshqalarga foydali har qanday fikr.",
+      "submit": "Yuborish",
+      "update": "Saqlash",
+      "edit": "Tahrirlash",
+      "delete": "Oʻchirish",
+      "cancel": "Bekor qilish",
+      "chooseRating": "Yulduzlar sonini tanlang.",
+      "thanks": "Rahmat! Bahoyingiz saqlandi.",
+      "yours": "Sizning bahoyingiz",
+      "hidden": "Bu sharhni moderator saytdan yashirgan.",
+      "deleted": "Bahoyingiz oʻchirildi.",
+      "deleteConfirm": "Bahoyingiz oʻchirilsinmi?",
+      "signInPrompt": "Baho qoldirish uchun hisobingizga kiring.",
+      "signIn": "Kirish",
+      "register": "Roʻyxatdan oʻtish",
+      "staffNote": "Xodim hisobidan baho qoldirib boʻlmaydi: baholarni faqat mijozlar beradi."
+    }
   },
   "Cart": {
     "title": "Savat",
@@ -818,6 +854,7 @@
       "inventory": "Ombor",
       "customers": "Xaridorlar",
       "inquiries": "Murojaatlar",
+      "reviews": "Sharhlar",
       "newsletter": "Obunachilar",
       "journal": "Maqolalar",
       "media": "Lavhalar",
@@ -1207,6 +1244,27 @@
       "intro": "Sayt orqali yuborilgan xabarlar: «Aloqa» sahifasidan va ulgurji (biznes) hamkorlik soʻrovlari.",
       "saved": "Saqlandi."
     },
+    "reviews": {
+      "title": "Sharhlar",
+      "intro": "Mijozlar choylarga qoʻygan baholar va izohlar. Ular saytda darhol koʻrinadi: nomaqbulini yashiring yoki oʻchiring — mahsulotning oʻrtacha bahosi shu zahoti yangilanadi.",
+      "status": {
+        "PUBLISHED": "Saytda",
+        "HIDDEN": "Yashirilgan"
+      },
+      "verified": "Xarid qilgan",
+      "stars": "{count} / 5",
+      "noComment": "Izohsiz, faqat baho.",
+      "hide": "Yashirish",
+      "show": "Saytda koʻrsatish",
+      "delete": "Oʻchirish",
+      "deleteTitle": "Sharh oʻchirilsinmi?",
+      "deleteText": "Baho va izoh butunlay oʻchadi, mahsulotning oʻrtacha bahosi qayta hisoblanadi. Faqat yashirish uchun «Yashirish»ni bosing.",
+      "deleteConfirm": "Ha, oʻchirish",
+      "keep": "Yoʻq, qoldirish",
+      "deleted": "Sharh oʻchirildi",
+      "hiddenDone": "Sharh saytdan yashirildi",
+      "shown": "Sharh saytda yana koʻrinadi"
+    },
     "newsletter": {
       "title": "Obunachilar",
       "email": "E-mail",
@@ -1499,7 +1557,10 @@
         "inquiry_contact_update": "Murojaat yangilandi",
         "inquiry_wholesale_update": "Biznes murojaati yangilandi",
         "settings_announcement_update": "Sayt tepasidagi eʼlon oʻzgartirildi",
-        "settings_contact_update": "Aloqa maʼlumotlari oʻzgartirildi"
+        "settings_contact_update": "Aloqa maʼlumotlari oʻzgartirildi",
+        "review_hide": "Sharhni yashirdi",
+        "review_show": "Sharhni qayta koʻrsatdi",
+        "review_delete": "Sharhni oʻchirdi"
       },
       "entities": {
         "Article": "Maqola",
@@ -1515,7 +1576,8 @@
         "ProductVariant": "Qadoq",
         "SiteSetting": "Doʻkon maʼlumotlari",
         "System": "Tizim",
-        "User": "Foydalanuvchi"
+        "User": "Foydalanuvchi",
+        "ProductReview": "Sharh"
       }
     },
     "categories": {
@@ -1642,7 +1704,10 @@
       "gift": "Sovgʻa",
       "jasmine": "Jasmin",
       "mint": "Yalpiz",
-      "earl-grey": "Erl Grey"
+      "earl-grey": "Erl Grey",
+      "coffee": "Kofe",
+      "sweets": "Shirinliklar",
+      "teaware": "Choy idishlari"
     },
     "readiness": {
       "title": "Eʼlon qilishga tayyorlik",

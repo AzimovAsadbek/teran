@@ -70,6 +70,10 @@ export const ILLUSTRATION_KEYS = [
   'jasmine',
   'mint',
   'earl-grey',
+  // What TERAN plans beyond tea (its menus show these categories before their first product).
+  'coffee',
+  'sweets',
+  'teaware',
 ] as const;
 export const illustrationKeySchema = z.enum(ILLUSTRATION_KEYS);
 export type IllustrationKey = z.infer<typeof illustrationKeySchema>;
@@ -234,6 +238,28 @@ export const variantSchema = z.object({
 });
 export type VariantDto = z.infer<typeof variantSchema>;
 
+export const brewingSchema = z.object({
+  temperatureCelsius: z.number().int().nullable(),
+  /** Upper end of a temperature range ("80–90 °C"); null for a single temperature. */
+  temperatureMaxCelsius: z.number().int().nullable().default(null),
+  timeMinSeconds: z.number().int().nullable(),
+  timeMaxSeconds: z.number().int().nullable(),
+  amountGrams: z.string().nullable(),
+  /** Upper end of an amount range ("3–5 g"); null for a single amount. */
+  amountMaxGrams: z.string().nullable().default(null),
+});
+export type BrewingDto = z.infer<typeof brewingSchema>;
+
+/**
+ * Customers' ratings of a product (its published reviews, ADR-042): the average of their stars
+ * (1 to 5, to one decimal) and how many there are.
+ */
+export const ratingSummarySchema = z.object({
+  average: z.number().min(1).max(5),
+  count: z.number().int().positive(),
+});
+export type RatingSummaryDto = z.infer<typeof ratingSummarySchema>;
+
 export const productSummarySchema = z.object({
   id: z.uuid(),
   slug: z.string(),
@@ -260,19 +286,14 @@ export const productSummarySchema = z.object({
   /** The product's second image, shown when a card is pointed at (null with a single image). */
   hoverImage: imageSchema.nullable().default(null),
   illustrationKey: illustrationKeySchema.nullable(),
+  /** Where the tea comes from ("China, Hunan"), for the card's line under the name. */
+  origin: z.string().nullable().default(null),
+  /** How to brew it (temperature and time for the card's chips); null for products without. */
+  brewing: brewingSchema.nullable().default(null),
+  /** Customers' ratings; null until the first published review. */
+  rating: ratingSummarySchema.nullable().default(null),
 });
 export type ProductSummaryDto = z.infer<typeof productSummarySchema>;
-
-export const brewingSchema = z.object({
-  temperatureCelsius: z.number().int().nullable(),
-  /** Upper end of a temperature range ("80–90 °C"); null for a single temperature. */
-  temperatureMaxCelsius: z.number().int().nullable().default(null),
-  timeMinSeconds: z.number().int().nullable(),
-  timeMaxSeconds: z.number().int().nullable(),
-  amountGrams: z.string().nullable(),
-  /** Upper end of an amount range ("3–5 g"); null for a single amount. */
-  amountMaxGrams: z.string().nullable().default(null),
-});
 
 /** A product attribute ready for display; only attributes with a value are sent. */
 export const productAttributeSchema = z.object({
@@ -296,9 +317,7 @@ export const productDetailSchema = productSummarySchema.extend({
   description: z.string().nullable(),
   ingredients: z.string().nullable(),
   tastingNotes: z.string().nullable(),
-  origin: z.string().nullable(),
   caffeineLevel: caffeineLevelSchema.nullable(),
-  brewing: brewingSchema.nullable(),
   images: z.array(imageSchema),
   variants: z.array(variantSchema),
   seoTitle: z.string().nullable(),

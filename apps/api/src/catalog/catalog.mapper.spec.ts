@@ -63,6 +63,8 @@ describe('toProductSummary', () => {
     brewAmountMaxGrams: null,
     illustrationKey: 'green',
     minPrice: new Prisma.Decimal('45000'),
+    ratingCount: 0,
+    ratingSum: 0,
     publishedAt: new Date('2026-10-01T00:00:00Z'),
     createdAt: now,
     updatedAt: now,
@@ -119,5 +121,38 @@ describe('toProductSummary', () => {
       name: 'Yashil choy',
       path: 'tea/green-tea',
     });
+    // No reviews, no brewing guide, no origin: nothing invented for the card.
+    expect(summary.rating).toBeNull();
+    expect(summary.brewing).toBeNull();
+    expect(summary.origin).toBeNull();
+  });
+
+  it("gives the card the tea's origin, brewing ranges and customers' average", () => {
+    const summary = toProductSummary(
+      {
+        ...product,
+        brewTempCelsius: 85,
+        brewTempMaxCelsius: 90,
+        brewTimeMinSeconds: 120,
+        brewTimeMaxSeconds: 180,
+        brewAmountGrams: new Prisma.Decimal('5'),
+        ratingCount: 4,
+        ratingSum: 19,
+        translations: [{ ...product.translations[0]!, origin: 'Xitoy, Hunan' }],
+      },
+      'uz',
+      now,
+    );
+    expect(summary.origin).toBe('Xitoy, Hunan');
+    expect(summary.brewing).toEqual({
+      temperatureCelsius: 85,
+      temperatureMaxCelsius: 90,
+      timeMinSeconds: 120,
+      timeMaxSeconds: 180,
+      amountGrams: '5',
+      amountMaxGrams: null,
+    });
+    // 19 stars over 4 reviews: 4.75, shown to one decimal.
+    expect(summary.rating).toEqual({ average: 4.8, count: 4 });
   });
 });

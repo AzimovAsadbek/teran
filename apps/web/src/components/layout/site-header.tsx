@@ -8,7 +8,7 @@ import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCategories, getCollections } from '@/lib/data/catalog';
 import { getArticles, getPublicSettings } from '@/lib/data/content';
 import {
-  categoryTree,
+  menuCategoryTree,
   navArticles,
   navCollections,
   type MenuPicture,
@@ -39,9 +39,10 @@ async function loadNavigation(): Promise<Navigation> {
     const picture = visualFor(settings, `menu.${menu}`);
     if (picture) pictures[menu] = picture;
   }
-  // The same tree feeds the desktop panels, the drawer and the home page's category sections.
+  // The same tree feeds the desktop panels and the drawer: every category, empty ones marked
+  // "coming soon" (the home page's sections show stocked ones only, ADR-041).
   return {
-    categories: categoryTree(categories),
+    categories: menuCategoryTree(categories),
     collections: navCollections(collections),
     articles: navArticles(articles),
     pictures,

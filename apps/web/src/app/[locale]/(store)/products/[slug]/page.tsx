@@ -6,6 +6,7 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
+import { Stars } from '@/components/catalog/stars';
 import { ProductRail } from '@/components/home/product-rail';
 import { RailFallback } from '@/components/home/rail-sections';
 import { ProductGallery } from '@/components/product/product-gallery';
@@ -18,11 +19,13 @@ import {
 } from '@/components/product/product-info';
 import { PurchasePanel } from '@/components/product/purchase-panel';
 import { RecentlyViewed } from '@/components/product/recently-viewed';
+import { formatAverage, ReviewsSection } from '@/components/product/reviews-section';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPathname } from '@/i18n/navigation';
 import { getProduct, getRelatedProducts, getSlugRedirect } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
+import { getProductReviews } from '@/lib/data/reviews';
 import { namesFormat } from '@/lib/format';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { ShareButton } from '@/components/product/share-button';
@@ -88,10 +91,11 @@ async function ProductView({
     notFound();
   }
 
-  const [t, tc, options] = await Promise.all([
+  const [t, tc, options, reviews] = await Promise.all([
     getTranslations('Product'),
     getTranslations('Catalog'),
     getCheckoutOptions(locale).catch(() => null),
+    getProductReviews(product.slug).catch(() => null),
   ]);
   const requestedSku = Array.isArray(query.variant) ? query.variant[0] : query.variant;
   const initialVariant =
@@ -101,7 +105,8 @@ async function ProductView({
   if (!initialVariant) notFound();
 
   const productUrl = localizedUrl(`/products/${product.slug}`, locale);
-  // Mirrors exactly what the page shows: no ratings or reviews (TERAN has none yet).
+  const rating = product.rating;
+  // Mirrors exactly what the page shows: the customers' average and the reviews on the page.
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -116,6 +121,24 @@ async function ProductView({
     ...(initialVariant.barcode ? { gtin13: initialVariant.barcode } : {}),
     brand: { '@type': 'Brand', name: 'TERAN' },
     category: product.category.name,
+    ...(rating
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: rating.average,
+            ratingCount: rating.count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+          review: reviews?.items.map((review) => ({
+            '@type': 'Review',
+            author: { '@type': 'Person', name: review.authorName },
+            datePublished: review.createdAt.slice(0, 10),
+            ...(review.comment ? { reviewBody: review.comment } : {}),
+            reviewRating: { '@type': 'Rating', ratingValue: review.rating, bestRating: 5 },
+          })),
+        }
+      : {}),
     // No offer (it would publish the price) while the shop shows no prices.
     offers: !showPrices
       ? undefined
@@ -172,6 +195,25 @@ async function ProductView({
             <h1 className="mt-6 font-heading text-[1.75rem] leading-[1.2] text-fg sm:text-[2rem]">
               {product.name}
             </h1>
+            {/* The customers' stars, leading to the reviews further down (ADR-042). */}
+            <a
+              href="#reviews"
+              className="mt-2.5 inline-flex flex-wrap items-center gap-2 text-body-sm hover:underline hover:underline-offset-2"
+            >
+              <Stars value={rating?.average ?? 0} className="text-[1.125rem]" />
+              {rating ? (
+                <>
+                  <span className="font-semibold text-fg">
+                    {formatAverage(rating.average, locale)}
+                  </span>
+                  <span className="text-fg-subtle">
+                    {t('reviews.count', { count: rating.count })}
+                  </span>
+                </>
+              ) : (
+                <span className="text-fg-subtle">{t('reviews.none')}</span>
+              )}
+            </a>
             {product.isNew || (showPrices && product.onSale) ? (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {product.isNew ? <Badge tone="new">{t('badgeNew')}</Badge> : null}
@@ -234,6 +276,7 @@ async function ProductView({
       </Suspense>
       <div className="container-frame">
         <DifferenceSection product={product} />
+        <ReviewsSection slug={product.slug} reviews={reviews} />
       </div>
       <RecentlyViewed
         current={summaryOf(product)}
@@ -269,6 +312,9 @@ function summaryOf(product: ProductDetailDto): ProductSummaryDto {
     stageImage: product.stageImage,
     hoverImage: product.hoverImage,
     illustrationKey: product.illustrationKey,
+    origin: product.origin,
+    brewing: product.brewing,
+    rating: product.rating,
   };
 }
 

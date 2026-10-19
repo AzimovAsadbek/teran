@@ -11,7 +11,7 @@ interface ArtPalette {
   tint: string;
   leaf: string;
   leafDark: string;
-  accent?: 'flower' | 'berries' | 'ribbon' | 'mint' | 'cup';
+  accent?: 'flower' | 'berries' | 'ribbon' | 'mint' | 'cup' | 'beans' | 'sweet';
 }
 
 /**
@@ -31,6 +31,10 @@ const PALETTES: Record<IllustrationKey, ArtPalette> = {
   jasmine: { tint: '#edf1e6', leaf: '#4f8a3b', leafDark: '#1a5317', accent: 'flower' },
   mint: { tint: '#e1f0e2', leaf: '#4fa04a', leafDark: '#2b7a26', accent: 'mint' },
   'earl-grey': { tint: '#ece6dc', leaf: '#4a3a46', leafDark: '#2a2027', accent: 'cup' },
+  // Beyond tea: coffee beans, a wrapped sweet, a cup (the leaves stay: they are TERAN's mark).
+  coffee: { tint: '#efe4d6', leaf: '#3f6b35', leafDark: '#1f3b1a', accent: 'beans' },
+  sweets: { tint: '#f7e6e3', leaf: '#4f8a3b', leafDark: '#1a5317', accent: 'sweet' },
+  teaware: { tint: '#dfece8', leaf: '#2f6f69', leafDark: '#174240', accent: 'cup' },
 };
 
 function Leaf({ rotate, fill, vein }: { rotate: number; fill: string; vein: string }) {
@@ -141,6 +145,31 @@ export function TeaTypeArt({
         <g transform="translate(150 162)" fill="none" stroke="#d0a20a" strokeWidth="2">
           <path d="M0 0 H36 V10 C36 22, 28 28, 18 28 C8 28, 0 22, 0 10 Z" fill="#fbf7ee" />
           <path d="M36 6 C 44 6, 44 18, 35 18" />
+        </g>
+      ) : null}
+      {palette.accent === 'beans' ? (
+        <g stroke="#d0a20a" strokeWidth="0.8">
+          <g transform="translate(160 174) rotate(-30)">
+            <ellipse rx="9" ry="12" fill="#5a3426" />
+            <path d="M0 -10 C 4 -4, -4 4, 0 10" fill="none" stroke="#2f1a12" strokeWidth="1.6" />
+          </g>
+          <g transform="translate(178 160) rotate(20)">
+            <ellipse rx="7.5" ry="10" fill="#6b3f2c" />
+            <path d="M0 -8 C 3 -3, -3 3, 0 8" fill="none" stroke="#2f1a12" strokeWidth="1.4" />
+          </g>
+        </g>
+      ) : null}
+      {palette.accent === 'sweet' ? (
+        <g transform="translate(166 172) rotate(-20)" stroke="#d0a20a" strokeWidth="0.8">
+          <path d="M-12 0 L-23 -8 L-23 8 Z" fill="#eab0b4" />
+          <path d="M12 0 L23 -8 L23 8 Z" fill="#eab0b4" />
+          <ellipse rx="13" ry="9" fill="#c94f63" />
+          <path
+            d="M-5 -7 C -1 -2, -1 2, -5 7 M3 -8 C 7 -3, 7 3, 3 8"
+            fill="none"
+            stroke="#fbf8ee"
+            strokeWidth="1.4"
+          />
         </g>
       ) : null}
       {palette.accent === 'ribbon' ? (

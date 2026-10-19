@@ -612,3 +612,16 @@ page and the card, staff hide it, the author sees it hidden, staff show and dele
 category journey now expects "coming soon"); ESLint, TypeScript and the message check (1843 keys ×
 3 languages). The cards were looked at with prices hidden, as production shows them, at 1440 px
 and on a 390 px phone (the "Order" button was shortened on phones so the word stays whole).
+
+Live after the release (3345bdb, 03a33bc; both projects deployed, the API applying
+`20261019120000_product_reviews`): the category changes went in as one transaction (56 inserts,
+6 updates), `storage/hd-hero-4` and `storage/hd-bento-films` were imported (the database port
+answered again, so directly), and the storefront's caches were invalidated twice: the Uzbek home
+page had been regenerated between the import and the first invalidation and still pointed at the
+deleted films until the second. Then 267 files used by ten pages (home in three languages,
+catalogue, Tea, Coffee, a product in two languages) answered 200. In Chrome at 1440 px × 2 the
+first view plays the 3200 px copy (19.3 s) and the tiles their 1280 px films (9.4 and 16.9 s); a
+390 px phone at 3× gets the 1080 × 1440 first view and the square tile films. The menus show Tea
+(green tea, then black, white, oolong and pu-erh "coming soon"), Coffee, Confectionery, Teaware and
+Gift sets "coming soon"; the cards show "Rate it", the origin, the brewing chips and "Order"; the
+Coffee page shows its banner and "Products coming soon".

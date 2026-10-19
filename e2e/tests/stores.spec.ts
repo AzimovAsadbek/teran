@@ -160,7 +160,8 @@ test.describe('store locator', () => {
         'href',
         /^https:\/\/yandex\.uz\/maps\/\?pt=/,
       );
-      await expect(main.getByRole('heading', { name: 'Any questions?' })).toBeVisible();
+      // The store carries its own phone; the channels are in the footer, not repeated here.
+      await expect(main.getByRole('heading', { name: 'Any questions?' })).toHaveCount(0);
     } finally {
       await page.request.put(`${API}/admin/settings/stores`, { data: [] });
     }

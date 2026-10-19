@@ -700,8 +700,8 @@ admin area, and for the store page to look better (ADR-044).
   OpenStreetMap's Nominatim) or by typing coordinates; new stores start with the contact phone and
   hours; the store pictures sit under the list.
 - **The store page**: one store has no search row and starts chosen beside the map (above it on
-  phones); cards gained icons and a Yandex Maps link; a band under the stores offers the phone,
-  Telegram and wholesale partnership; the banner is the ordinary height.
+  phones); cards gained icons and a Yandex Maps link; the banner is the ordinary height. (A band of
+  contact buttons under the stores was removed again the same night, ADR-045.)
 - **Production**: the `stores` setting holds "TERAN Namangan" at OpenStreetMap's house 200 on
   Toʻraqoʻrgʻon koʻchasi (40.990448, 71.641952), with the contact phone and hours (09:00 - 18:00),
   as a shop, shown; written in one transaction with an audit row.
@@ -716,3 +716,13 @@ stack the real search for the owner's address found Turaqoʻrgʻon's side lanes 
 house itself is clicked on the map); coordinates typed into the field moved the map to them, a click
 kept the view. Screenshots at 1440 px and 390 px: the card beside (above) the map with its bubble,
 the help band, and the admin card's sections.
+
+## Contact panels only where an order is made (2026-10-19, night)
+
+The owner sent the "To order, get in touch" panel (Telegram, WhatsApp, Instagram and both phones)
+and asked for it to stay only where it is needed, as web shops do (ADR-045). On the live site it
+showed under each tea and as a full-width banner on the home page; a contact band had also just been
+added under the stores. The home banner and the stores band are gone; the panel stays on each tea's
+page (where the cards' "Order" button leads) and the bag keeps its line; the footer, the contact
+page and the floating button carry every channel; wholesale, the help centre and the store cards
+keep their own.

@@ -954,11 +954,33 @@ store page showed its search, radius and kind filter even with one store.
 - The store page: with one store there is nothing to search, so its card stands beside the map
   (above it on phones) and the store starts chosen, its bubble open; every card has icons for
   address, hours and phone, and Yandex Maps beside Google's directions (Yandex is the map most
-  used in Uzbekistan). Under the stores, a band offers the phone, Telegram and wholesale
-  partnership. The banner is the ordinary height, so the store shows on the first screen.
+  used in Uzbekistan). The banner is the ordinary height, so the store shows on the first screen.
+  (A band of contact buttons under the stores went again the same night: ADR-045.)
 
 **Consequences.** The API makes one outbound request per search, from the server (the browser's
 policy is unchanged); the address an administrator types is the only thing sent. Nominatim knows
 Namangan's streets but not every house: the owner's address finds the street's side lanes and the
 town, and the exact house is clicked on the map (house 200 is in OpenStreetMap at 40.990448,
 71.641952, which is where TERAN Namangan was placed).
+
+## ADR-045: Contact channels only where they serve
+
+**Context.** With prices hidden (ADR-027) orders go through TERAN's phones and messengers, and the
+"To order, get in touch" panel with every channel had spread: under each tea, as a large banner on
+the home page, and (for a few hours) as a band under the stores. On 2026-10-19 the owner asked for
+it to stay only where it is needed, as on ordinary shop sites: not everything everywhere.
+
+**Decision.** Each place shows contact for its own purpose, once:
+
+- the footer (every page) lists every channel, and the contact page is where they are explained;
+- the floating button (every page) opens them in one tap, as Uzbek shops do;
+- "To order, get in touch" stands only where an order is made: each tea's page (where the cards'
+  "Order" button leads, `#order`) and the bag (`/cart`, which says orders are taken by phone and
+  messenger while there are no prices);
+- a page with a purpose of its own keeps its own line: wholesale (call or write first, as dealers
+  do), the help centre (a phone when an answer is missing), a store's card (its phone);
+- the home page has no ordering banner: while the advisor is hidden its place stays empty (the
+  `home.banner.3` picture and film stay saved for when it, or another banner, returns).
+
+**Consequences.** One fewer full-width banner on the home page (two product rows now meet there),
+and the contact panel appears on the pages a buyer is about to order from.

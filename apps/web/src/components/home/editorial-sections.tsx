@@ -544,53 +544,6 @@ function PackRow() {
   );
 }
 
-/**
- * In the advisor banner's place while the advisor is hidden (lib/site showAdvisor): how to order,
- * with one pill to the contact page (its phones, Telegram and WhatsApp), as the reference's banner
- * has one pill, and the packs beside the words. 500 px high, as the reference's third banner.
- */
-export async function OrderBanner() {
-  await connection();
-  const locale = await getLocale();
-  const [t, tn, settings] = await Promise.all([
-    getTranslations('Product'),
-    getTranslations('Nav'),
-    getPublicSettings(locale).catch(() => null),
-  ]);
-  // A campaign photograph (Admin → Settings) or film behind the words, instead of the packs.
-  const photo = visualFor(settings, 'home.banner.3');
-  return (
-    <BannerFrame
-      href="/contact"
-      tall
-      className="on-dark flex-col bg-matcha text-ivory-50 lg:flex-row lg:items-center"
-    >
-      {photo ? <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" film /> : null}
-      {photo?.video ? <FilmVeil /> : null}
-      <Sparkles points={ADVISOR_SPARKLES} className="-z-10 hidden text-gold-100 lg:block" />
-      {/* Over a photograph or film the words stand in the middle on phones; above the packs
-          otherwise. */}
-      <div
-        className={cn(
-          'flex flex-col items-center px-6 pt-10 text-center lg:w-[46%] lg:items-start lg:py-12 lg:pr-0 lg:pl-16 lg:text-left',
-          photo && 'max-lg:flex-1 max-lg:justify-center max-lg:pb-10',
-        )}
-      >
-        <h2 className={cn('font-headline text-balance', bannerHeadline(t('orderByContactTitle')))}>
-          <TitleLink href="/contact">{t('orderByContactTitle')}</TitleLink>
-        </h2>
-        <p className="mt-5 max-w-[24rem] text-[0.9375rem] leading-[1.4] lg:mt-8 lg:text-[1.125rem] lg:leading-normal">
-          {t('orderByContactText')}
-        </p>
-        <Link href="/contact" className={cn(PILL, 'mt-6 bg-ivory-50 text-jade-700 lg:mt-9')}>
-          {tn('contact')}
-        </Link>
-      </div>
-      {photo ? null : <PackRow />}
-    </BannerFrame>
-  );
-}
-
 /* ── 6. Category shortcuts ───────────────────────────────────────────────────────────────── */
 
 /** The reference's tiles share one pastel; each name has its own colour. */

@@ -2059,9 +2059,7 @@
     "noMatches": "No stores match your search.",
     "noneNear": "No stores within {distance}. Widen the radius or clear the filters.",
     "reset": "Clear filters",
-    "yandex": "Open in Yandex Maps",
-    "helpTitle": "Any questions?",
-    "helpText": "Call us or write on Telegram about the store, buying in bulk or becoming a partner."
+    "yandex": "Open in Yandex Maps"
   },
   "Tea101": {
     "metaTitle": "Tea 101: a guide to the kinds of tea",

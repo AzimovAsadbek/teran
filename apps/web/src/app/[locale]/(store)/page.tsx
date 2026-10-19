@@ -11,7 +11,6 @@ import {
   CategoryMarquee,
   CategoryShortcuts,
   GalleryBanner,
-  OrderBanner,
   PairSection,
   PromoStrip,
   SloganBand,
@@ -108,14 +107,9 @@ export default async function HomePage() {
       <Suspense fallback={<RailFallback compact cta={false} />}>
         <CollectionsRail />
       </Suspense>
-      {/* The advisor's banner, or while the advisor is hidden, how to order (same place and size). */}
-      {showAdvisor ? (
-        <AdvisorBanner />
-      ) : (
-        <Suspense fallback={<BannerFallback />}>
-          <OrderBanner />
-        </Suspense>
-      )}
+      {/* The advisor's banner while the advisor is shown. How to order is said where an order is
+          made (each tea's page, the bag), not on the home page (ADR-045). */}
+      {showAdvisor ? <AdvisorBanner /> : null}
       <Suspense fallback={<RailFallback compact />}>
         <CategoriesRail />
       </Suspense>

@@ -379,6 +379,27 @@ px) and the four journal covers of `storage/reference-assets/` (1921 to 2560 px)
 their renditions reach their own width instead of stopping at 2560 px (banners) or 1600 px (covers,
 which the tall journal cards show only a slice of).
 
+## 10. `storage/gallery-films/` — the gallery's tea plantation film (go live)
+
+The owner asked for a tea plantation film in the home page's gallery band ("Lavhalar"). It is the
+first view's shot (Pexels #31025015, Somogro Bangladesh, Pexels License) whole: 0–19.33 s at
+1920 × 1080, 30 fps (18.6 MB), with its first frame as the poster, titled "Choy plantatsiyasi" /
+"Чайная плантация" / "Tea plantation" with a caption that names no place and claims no garden. The
+gallery's viewer plays it with its controls, streamed in ranges, so it is not cut into a loop. It
+went in with `scripts/add-gallery-film.ts` (a gallery film is not a page place, so the folder's
+`manifest.json` is a record, not an import manifest):
+
+```bash
+corepack pnpm --filter @teran/api exec tsx scripts/add-gallery-film.ts \
+  --film storage/gallery-films/plantation-1920.mp4 --poster storage/gallery-films/plantation-poster.jpg \
+  --title-uz "Choy plantatsiyasi" --title-ru "Чайная плантация" --title-en "Tea plantation"
+```
+
+Since 2026-10-19 the stored pictures and films live in Cloudflare R2 (ADR-043);
+`scripts/restore-media.ts --dirs storage,<Trash folder> --stand-ins` rebuilds the ones in use from
+these folders under the keys the database holds (gallery films excepted: they are added again with
+the script above).
+
 ## Not copied
 
 - The reference's logo, texts, prices, reviews and ratings: TERAN keeps its own.

@@ -58,7 +58,14 @@ every picture and film answered 403 "Your store is blocked", and its files could
 read back. The owner chose Cloudflare R2 (10 GB free, no charge for traffic). `scripts/restore-media.ts`
 rebuilt every picture and film that has a local source under the keys the database holds; pictures
 uploaded in the admin area that had none were taken off their places (ADR-043). The suspended store
-is kept: its files could be copied over if it is ever unblocked.
+is kept: its files could be copied over if it is ever unblocked (the cleared keys are listed in
+`apps/api/storage/blob-lost-2026-10-19.json`, outside the repository).
+
+Switching a project's media to another store: set the API's store variables and `UPLOADS_ORIGIN`
+on the storefront, redeploy the storefront first (its Content Security Policy must allow the new
+origin before the API's addresses move there), then the API, then invalidate the storefront's
+data cache (`vercel cache invalidate --tag settings,catalog,content`) and load the home page in
+each language until it is fresh.
 
 Vercel's CDN keeps what Blob answers through the `/uploads` rewrite (Blob sends a one-year
 `Cache-Control`) under the file's address alone, whatever byte range was asked for. A film played

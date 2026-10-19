@@ -625,3 +625,40 @@ first view plays the 3200 px copy (19.3 s) and the tiles their 1280 px films (9.
 (green tea, then black, white, oolong and pu-erh "coming soon"), Coffee, Confectionery, Teaware and
 Gift sets "coming soon"; the cards show "Rate it", the origin, the brewing chips and "Order"; the
 Coffee page shows its banner and "Products coming soon".
+
+## Pictures and films moved to Cloudflare R2 (2026-10-19, night)
+
+At 16:02 Vercel suspended the Blob store (the Hobby plan's allowance was used up), so every picture
+and film on the site answered 403. The owner chose Cloudflare R2, keeping only what the site uses,
+and asked for a tea plantation film in the home page's gallery band (ADR-043).
+
+- **Rebuilt.** `restore-media.ts --stand-ins` from `storage` and the Trash folder stored 423 files
+  (377.1 MB): the 59 page places with their phone crops and films, and the 15 pictures of the five
+  TERAN teas with their films, card copies and masks (each tea's second photograph is a stand-in,
+  the local file of the same place, as the owner had uploaded those again). The 16 archived
+  demonstration products' 32 code-drawn pictures were drawn again at their stored sizes (128
+  files).
+- **Lost.** Sixteen pictures uploaded in the admin area had no local copy: the covers of 7
+  categories (tea, green, black, white, oolong, pu-erh, gift sets) and 4 articles (how to store
+  tea, brewing basics, types of tea, tea at the Uzbek table), and the gallery's 5 "Teran Qadoq"
+  photographs. Their old values were saved (`apps/api/storage/blob-lost-2026-10-19.json`, not in
+  git), then one transaction removed the covers and made the photographs drafts without their
+  picture (32 statements, each touching one row, with audit rows). Category and article cards
+  show their tea medallion.
+- **Gallery.** "Tea plantation" (the first view's Pexels shot, whole, 1920 × 1080, 19 s) was added
+  in front of the gallery's films (`storage/gallery-films`).
+- **Vercel.** `UPLOADS_ORIGIN` on the storefront now names the bucket; the storefront, then the API
+  were deployed again and the data cache invalidated.
+
+Checks: all 558 files the database names are in R2, none missing and none unreferenced. 345
+picture and film addresses on 18 live pages (home and catalogue in three languages each, the five
+teas, journal, gallery, Tea 101, about, wholesale, contact, stores) come from R2 and answer 200
+(films 206 to a range). In the browser the home page's 10 films play from R2 (the first view and
+banners fetched whole across origins, the product cards' films with their masks), with no CSP or
+CORS errors; the gallery band shows "Videos" with "Tea plantation" (0:19), whose viewer streams
+the 1920 × 1080 file; a product page plays its five masked films; the journal shows the four
+articles without covers on their medallion.
+
+Open: the owner uploads the lost covers and photographs again (the drafts keep their titles);
+`r2.dev` is Cloudflare's rate-limited development address, so a custom domain on the bucket is the
+production step (`R2_PUBLIC_URL` and `UPLOADS_ORIGIN` change, nothing else).

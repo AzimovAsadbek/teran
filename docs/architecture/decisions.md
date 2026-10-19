@@ -905,9 +905,13 @@ Cloudflare.
   database holds: page pictures by place and recorded source, product photographs by the SHA-256 of
   their original (or, with `--stand-ins`, the same product's local photograph in the same order and
   size), covers by slug and size; renditions are made at the stored widths with storeImage's own
-  code (`renderRenditions`). Pictures uploaded in the admin area had no local source; with the
-  owner's agreement their places were cleared (category covers, article covers, gallery photographs)
-  so nothing shows broken, and can be uploaded again.
+  code (`renderRenditions`). The archived demonstration products' pictures are code-drawn, so they
+  were drawn again with the seed's own code at their stored sizes. Pictures uploaded in the admin
+  area had no local source; with the owner's agreement their places were cleared so nothing shows
+  broken: category and article covers removed (the cards show their tea medallion), gallery
+  photographs made drafts without their picture (titles kept, so each can be uploaded again and
+  published). Their old keys are saved outside the repository (`apps/api/storage/`), should the
+  Blob store ever hand its files back.
 - With R2 the admin area uploads films through the API (4.5 MB on Vercel); larger gallery films are
   added with `scripts/add-gallery-film.ts`. Direct browser uploads remain a Blob feature for now.
 

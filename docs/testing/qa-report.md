@@ -662,3 +662,29 @@ articles without covers on their medallion.
 Open: the owner uploads the lost covers and photographs again (the drafts keep their titles);
 `r2.dev` is Cloudflare's rate-limited development address, so a custom domain on the bucket is the
 production step (`R2_PUBLIC_URL` and `UPLOADS_ORIGIN` change, nothing else).
+
+## A tea plantation in the first view (2026-10-19, night)
+
+The owner asked for the home page's film to show a real tea plantation (the Bangladesh garden under
+shade trees did not read as one) and, from four 4K Pexels clips shown as mock-ups of the first view
+on a computer and a phone, chose the curving rows of the Moc Chau tea hill (Vietnam); the gallery's
+"Tea plantation" film was to become the same.
+
+- **The film.** Frames every second, then every 0.4 s at both ends, showed a visitor in the rows at
+  the start and a building with a large national flag from 8.4 s; the clean part, 0.4–7.8 s, is kept
+  whole and played at 24 fps (`loop-film.swift` gained `play=`: every filmed frame once, 0.8×, 222
+  frames, 9.25 s). Frame 100 of the result matched frame 112 of the source (mean difference 1 of
+  255; its neighbours 17), so nothing was dropped or repeated. The 2.4:1 copies keep the middle
+  band and the phone and gallery parts start 12 % below the top, so the small flag on the hilltop
+  is never in view (checked on frames at 0, 3, 6 and 9.2 s of each).
+- **In production.** `storage/hd-hero-5` imported through R2 (`home.hero.1`, the old files removed);
+  the gallery item kept its place, titles and caption and got the new file with
+  `add-gallery-film.ts --replace` (new in this change). `storage/hd-hero-4` and the Bangladesh
+  gallery files went to the Trash folder.
+
+Checks: R2 holds 558 files, all named by the database, none missing. After two cache invalidations
+(the Uzbek home page was regenerated between the first one and the import's save, as before) the
+home page in three languages names the new film; 247 picture and film addresses on 8 pages answer
+200 from R2. In the browser at 1120 px the first view plays the 2560 px copy (9.25 s) and on a 375
+px phone at 2× the 720 × 960 one, both fetched whole across origins; the gallery band shows the new
+poster.

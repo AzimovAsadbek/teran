@@ -347,6 +347,19 @@ Its copies keep only what the first view shows: wide screens the middle 2.4:1 ba
 (0.78:1 to 1.1:1 there) at 1080 × 1440 (10.2 MB, 0.09) and 720 × 960 (5 MB). Posters are the
 first frame cut the same way (3840 × 1600, 1080 × 1440).
 
+That evening the owner asked for a real tea plantation instead (the Bangladesh garden reads as
+trees with bushes under them) and chose, from four 4K Pexels clips shown as mock-ups of the first
+view, the curving rows of the Moc Chau tea hill in Vietnam (#17973477, Tin Nguyen; 3840 × 2160 at
+30 fps, 10.75 s). `storage/hd-hero-5/` replaces `storage/hd-hero-4/` (moved to the Trash folder):
+0.4–7.8 s, between a visitor leaving the frame and a building with a large national flag coming in.
+Every filmed frame is kept and played at 24 fps (`loop-film.swift mode=cut fps=30 play=24`: 0.8×,
+222 frames, 9.25 s), so the flight is calmer and longer with nothing repeated or blended; it plays
+forwards only and starts again with a plain cut. Wide screens get the middle 2.4:1 band (the small
+flag on the hilltop stays above it), 1280 to 3840 px at 0.11 to 0.14 bits per pixel at 24 fps
+(1920 px 5.6 MB, 2560 px 9.1 MB, 3200 px 14.2 MB, 3840 px 18.9 MB); phones a 3:4 part from 12 %
+below the top (so the flag stays out) at 1080 × 1440 (4.3 MB) and 720 × 960 (1.9 MB). Posters are
+the film's first frame cut the same way.
+
 `storage/hd-bento-films/` (2026-10-19) turns the bento's first two tiles into films, the owner's
 picks from six Pexels candidates each (mock-ups of the tiles with their names): tile 1, hot water
 poured from a gooseneck kettle into a glass pitcher of green tea (#26202140, 3840 × 2160 at 60 fps):
@@ -361,7 +374,7 @@ two photographs these replace left `storage/hd-pictures/` (Trash folder).
 
 ```bash
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-films-2 --force
-corepack pnpm --filter @teran/api visuals:import --dir storage/hd-hero-4 --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-hero-5 --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-bento-films --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-pictures --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-values --force
@@ -381,18 +394,24 @@ which the tall journal cards show only a slice of).
 
 ## 10. `storage/gallery-films/` — the gallery's tea plantation film (go live)
 
-The owner asked for a tea plantation film in the home page's gallery band ("Lavhalar"). It is the
-first view's shot (Pexels #31025015, Somogro Bangladesh, Pexels License) whole: 0–19.33 s at
-1920 × 1080, 30 fps (18.6 MB), with its first frame as the poster, titled "Choy plantatsiyasi" /
-"Чайная плантация" / "Tea plantation" with a caption that names no place and claims no garden. The
-gallery's viewer plays it with its controls, streamed in ranges, so it is not cut into a loop. It
-went in with `scripts/add-gallery-film.ts` (a gallery film is not a page place, so the folder's
-`manifest.json` is a record, not an import manifest):
+The owner asked for a tea plantation film in the home page's gallery band ("Lavhalar"), titled
+"Choy plantatsiyasi" / "Чайная плантация" / "Tea plantation" with a caption that names no place
+and claims no garden. It first held the Bangladesh shot of `storage/hd-hero-4`; with the new first
+view it holds the same Moc Chau part (section 9: 0.4–7.8 s, every frame at 24 fps, 9.25 s) as a
+16:9 picture from 12 % below the top (so the hilltop flag stays out), 1920 × 1080 (6.9 MB), its
+first frame as the poster. The gallery's viewer plays it with its controls, streamed in ranges. It
+went in with `scripts/add-gallery-film.ts`, then `--replace` gave the same item the new file and
+poster (its place, titles and caption kept; the old files removed). A gallery film is not a page
+place, so the folder's `manifest.json` is a record, not an import manifest; the Bangladesh files
+are in the Trash folder (`gallery-films-bangladesh`).
 
 ```bash
 corepack pnpm --filter @teran/api exec tsx scripts/add-gallery-film.ts \
-  --film storage/gallery-films/plantation-1920.mp4 --poster storage/gallery-films/plantation-poster.jpg \
+  --film storage/gallery-films/moc-chau-1920.mp4 --poster storage/gallery-films/moc-chau-poster.jpg \
   --title-uz "Choy plantatsiyasi" --title-ru "Чайная плантация" --title-en "Tea plantation"
+# a new file for an existing gallery film
+corepack pnpm --filter @teran/api exec tsx scripts/add-gallery-film.ts --replace <id> \
+  --film storage/gallery-films/moc-chau-1920.mp4 --poster storage/gallery-films/moc-chau-poster.jpg
 ```
 
 Since 2026-10-19 the stored pictures and films live in Cloudflare R2 (ADR-043);

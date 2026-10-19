@@ -15,8 +15,11 @@
 //             picture never doubles: for wind-blown leaves, not for anything poured or handled.
 //   cut:      the part plays as it is; the browser's loop starts it again (a plain cut, best at
 //             two frames that look alike): for moving shots that cannot play backwards.
+// `fps` is the rate the part is read at (frames are taken at that rate); `play` the rate the file
+// plays at: `fps=30 play=24` keeps every frame of a 30 fps film and slows it to 0.8×, with no
+// frame repeated or blended (a calmer, longer flight from a short shot).
 // Usage: swift loop-film.swift in=… out=… start=… end=… [fade=1.6] [mode=dissolve|bounce|cut]
-//        [ease=1.15] [flip=1] [bitrate=1400000] [fps=25] [zoom=0.024,0.475,0.44]
+//        [ease=1.15] [flip=1] [bitrate=1400000] [fps=25] [play=24] [zoom=0.024,0.475,0.44]
 import AVFoundation
 import CoreVideo
 import Foundation
@@ -28,7 +31,7 @@ for argument in CommandLine.arguments.dropFirst() {
 }
 guard let input = options["in"], let output = options["out"], let start = Double(options["start"] ?? ""),
       let end = Double(options["end"] ?? "") else {
-  print("usage: loop-film.swift in=… out=… start=… end=… [fade=] [mode=] [flip=] [bitrate=] [fps=] [zoom=]"); exit(2)
+  print("usage: loop-film.swift in=… out=… start=… end=… [fade=] [mode=] [flip=] [bitrate=] [fps=] [play=] [zoom=]"); exit(2)
 }
 let fade = Double(options["fade"] ?? "1.6")!
 let mode = options["mode"] ?? "dissolve"
@@ -44,6 +47,7 @@ guard let track = try await asset.loadTracks(withMediaType: .video).first else {
 let (size, rate, transform) = try await track.load(.naturalSize, .nominalFrameRate, .preferredTransform)
 guard transform == .identity else { print("rotated films are not handled"); exit(1) }
 let fps = Int32(options["fps"] ?? "") ?? Int32(rate.rounded())
+let play = Int32(options["play"] ?? "") ?? fps
 let timescale: CMTimeScale = 600 * fps
 func at(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: timescale) }
 let width = Int(size.width), height = Int(size.height)
@@ -135,8 +139,8 @@ let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: [
   AVVideoCompressionPropertiesKey: [
     AVVideoAverageBitRateKey: bitrate,
     AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-    AVVideoMaxKeyFrameIntervalKey: Int(fps) * 2,
-    AVVideoExpectedSourceFrameRateKey: Int(fps),
+    AVVideoMaxKeyFrameIntervalKey: Int(play) * 2,
+    AVVideoExpectedSourceFrameRateKey: Int(play),
   ],
 ])
 writerInput.expectsMediaDataInRealTime = false
@@ -149,7 +153,7 @@ writer.startSession(atSourceTime: .zero)
 var written = 0
 func write(_ buffer: CVPixelBuffer) {
   while !writerInput.isReadyForMoreMediaData { usleep(2000) }
-  if !adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(written), timescale: fps)) {
+  if !adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(written), timescale: play)) {
     print("append failed:", writer.error as Any); exit(1)
   }
   written += 1
@@ -184,4 +188,4 @@ writerInput.markAsFinished()
 await writer.finishWriting()
 if writer.status != .completed { print("writer:", writer.error as Any); exit(1) }
 let bytes = (try FileManager.default.attributesOfItem(atPath: target.path)[.size] as? Int) ?? 0
-print("\(target.lastPathComponent): \(width)×\(height) \(fps) fps, \(written) frames = \(String(format: "%.2f", Double(written) / Double(fps))) s, \(bytes / 1024) KB")
+print("\(target.lastPathComponent): \(width)×\(height) \(play) fps, \(written) frames = \(String(format: "%.2f", Double(written) / Double(play))) s, \(bytes / 1024) KB")

@@ -18,9 +18,10 @@
  *
  * Non-destructive: a place that already has a picture (or an article, category or collection that
  * already has a cover) is left alone, unless it is the same source again or --force is passed; a
- * product keeps its own photographs. Pictures go where the API keeps them (the uploads folder, or
- * Vercel Blob with BLOB_READ_WRITE_TOKEN). A manifest marked `localOnly` (presentation material)
- * is refused unless the database and the files stay on this machine.
+ * product keeps its own photographs. Pictures go where the API keeps them (Cloudflare R2 when R2_*
+ * is set, Vercel Blob with BLOB_READ_WRITE_TOKEN, else the uploads folder). A manifest marked
+ * `localOnly` (presentation material) is refused unless the database and the files stay on this
+ * machine.
  *
  * --remove takes out what the folder put in: its page pictures (recognised by their source), its
  * product photographs (by their content) and the covers recorded in <dir>/applied.json, unless an

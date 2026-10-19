@@ -798,6 +798,14 @@ a glass pitcher and into a glass teapot, `storage/hd-bento-films`): both are sti
 short dissolve joins two moments where the kettle stands in the same place and no hand is in view;
 16:9 parts put the vessel right of the tile's words, phones get square parts.
 
+**And once more, that evening.** The owner wanted a real tea plantation (the Bangladesh garden reads
+as trees) and picked the curving rows of Moc Chau, Vietnam, from four mock-ups: a 10.75 s shot
+whose clean part is 7.4 s (a visitor at the start, a building and a large national flag at the
+end). Rather than repeat or blend frames, every filmed frame is kept and played at 24 fps instead
+of 30 (`loop-film.swift play=24`: 0.8×, 9.25 s), forwards only with a plain cut
+(`storage/hd-hero-5`); the crops keep the hilltop flag out. A slower flight reads as calm, and 24
+fps is film's own rate, so nothing judders.
+
 **Consequences.** On a 1440 px window at 2× the first view now draws a 3200 px film (10.7 MB, after
 the page has loaded) instead of a 1192 px one; a 1× screen gets 1920 px (3.9 MB) and a phone 1080 ×
 1920 (4 MB). Storage holds seven files per film. Pictures and films whose sources are small (the

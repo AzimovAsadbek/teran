@@ -313,8 +313,6 @@
   "Product": {
     "addToCart": "Add to bag",
     "addToCartPrice": "Add to bag · {price}",
-    "orderByContactTitle": "To order, get in touch",
-    "orderByContactText": "We will tell you the price, availability and delivery. Choose whichever suits you.",
     "adding": "Adding…",
     "added": "Added to bag",
     "quickAdd": "Add {name} to bag",
@@ -417,8 +415,6 @@
   "Cart": {
     "title": "Bag",
     "drawerTitle": "Your bag",
-    "orderByContactTitle": "For now, orders are taken by phone and on social media",
-    "orderByContactText": "Write or call us with the tea you have chosen: we will tell you the price, availability and delivery.",
     "empty": "Your bag is empty",
     "emptyText": "Find something you like in our tea catalogue.",
     "startShopping": "Start shopping",

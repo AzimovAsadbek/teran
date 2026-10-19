@@ -966,21 +966,25 @@ town, and the exact house is clicked on the map (house 200 is in OpenStreetMap a
 ## ADR-045: Contact channels only where they serve
 
 **Context.** With prices hidden (ADR-027) orders go through TERAN's phones and messengers, and the
-"To order, get in touch" panel with every channel had spread: under each tea, as a large banner on
-the home page, and (for a few hours) as a band under the stores. On 2026-10-19 the owner asked for
-it to stay only where it is needed, as on ordinary shop sites: not everything everywhere.
+"To order, get in touch" panel with every channel had spread: under each tea, in the bag, as a large
+banner on the home page, and (for a few hours) as a band under the stores. On 2026-10-19 the owner
+asked for it to stay only where it is needed, as on ordinary shop sites: not everything everywhere;
+then for it to leave the product and bag pages too.
 
-**Decision.** Each place shows contact for its own purpose, once:
+**Decision.** The channels have their standard places and no ordering panel repeats them:
 
 - the footer (every page) lists every channel, and the contact page is where they are explained;
 - the floating button (every page) opens them in one tap, as Uzbek shops do;
-- "To order, get in touch" stands only where an order is made: each tea's page (where the cards'
-  "Order" button leads, `#order`) and the bag (`/cart`, which says orders are taken by phone and
-  messenger while there are no prices);
+- a product card's "Order" button (shown while prices are hidden) leads to the contact page; a
+  tea's page shows the tea, its packs and facts, with no ordering panel;
+- while there are no prices there is no bag: neither the header nor the chat panel offers one, and
+  `/cart` typed by hand shows the ordinary empty bag leading to the catalogue (checkout already
+  sent visitors there);
 - a page with a purpose of its own keeps its own line: wholesale (call or write first, as dealers
   do), the help centre (a phone when an answer is missing), a store's card (its phone);
 - the home page has no ordering banner: while the advisor is hidden its place stays empty (the
   `home.banner.3` picture and film stay saved for when it, or another banner, returns).
 
-**Consequences.** One fewer full-width banner on the home page (two product rows now meet there),
-and the contact panel appears on the pages a buyer is about to order from.
+**Consequences.** The `ContactToOrder` component and its texts are gone. One fewer full-width
+banner on the home page; a buyer finds how to order in the footer, through the floating button or
+on the contact page, where a card's "Order" button also leads.

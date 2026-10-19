@@ -29,7 +29,6 @@ import { getProductReviews } from '@/lib/data/reviews';
 import { namesFormat } from '@/lib/format';
 import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
 import { ShareButton } from '@/components/product/share-button';
-import { ContactToOrder } from '@/components/social/contact-to-order';
 import { packLabel } from '@/lib/format';
 import { absoluteUrl, showPrices } from '@/lib/site';
 
@@ -236,9 +235,8 @@ async function ProductView({
                   }
                 />
               ) : (
-                // No price and no bag for now: the pack, then how to order where the bag button
-                // would be (before the long description, so phones reach it without scrolling),
-                // then the product's facts.
+                // No price and no bag for now: the pack, then the product's facts. How to order is
+                // in the footer, the contact page and the floating button (ADR-045).
                 <>
                   <p className="text-[1.125rem] leading-[1.6] text-fg">
                     {product.variants
@@ -249,14 +247,6 @@ async function ProductView({
                       )
                       .join(' · ')}
                   </p>
-                  {/* The product cards' "Order" pill leads here (#order). */}
-                  <div id="order" className="scroll-mt-36">
-                    <ContactToOrder
-                      title={t('orderByContactTitle')}
-                      text={t('orderByContactText')}
-                      className="mt-5"
-                    />
-                  </div>
                   <ProductTabsSection product={product} />
                   <AttributeRows product={product} />
                 </>

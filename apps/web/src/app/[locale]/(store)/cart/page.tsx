@@ -4,10 +4,10 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
+import { EmptyCart } from '@/components/cart/cart-drawer';
 import { CartView } from '@/components/cart/cart-view';
 import { ProductRail } from '@/components/home/product-rail';
 import { RailFallback } from '@/components/home/rail-sections';
-import { ContactToOrder } from '@/components/social/contact-to-order';
 import { getProductList } from '@/lib/data/catalog';
 import { pageMetadata } from '@/lib/seo';
 import { showPrices } from '@/lib/site';
@@ -55,14 +55,6 @@ async function CartSuggestions() {
   );
 }
 
-async function OrderByContact() {
-  await connection();
-  const t = await getTranslations('Cart');
-  return (
-    <ContactToOrder title={t('orderByContactTitle')} text={t('orderByContactText')} layout="bag" />
-  );
-}
-
 /** The bag is personal, so the page is a static shell and the lines load in the browser. */
 export default async function CartPage() {
   const t = await getTranslations('Cart');
@@ -75,10 +67,11 @@ export default async function CartPage() {
         {showPrices ? (
           <CartView />
         ) : (
-          // No prices, no bag for now: orders go through TERAN's contact channels.
-          <Suspense fallback={null}>
-            <OrderByContact />
-          </Suspense>
+          // No prices, no bag for now (the header shows none): an address typed by hand gets the
+          // ordinary empty bag, which leads to the catalogue.
+          <div className="flex min-h-[20.25rem] items-center justify-center sm:min-h-[19.75rem]">
+            <EmptyCart />
+          </div>
         )}
       </div>
       <Suspense fallback={<RailFallback />}>

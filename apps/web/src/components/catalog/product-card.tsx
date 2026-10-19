@@ -240,10 +240,11 @@ export function ProductCard({
             {pack ? <span className="text-[0.875rem] text-fg-muted">· {pack}</span> : null}
           </p>
         ) : soldOut ? null : (
-          // Without prices there is no bag: the button leads to the product page's ordering block.
+          // Without prices there is no bag: the button leads to the contact page, where every
+          // channel to order by is (ADR-045).
           <div className="mt-auto pt-3.5">
             <Link
-              href={`${href}#order`}
+              href="/contact"
               aria-label={t('orderAction', { name: product.name })}
               // A phone's half-width card keeps the whole word: smaller type, no arrow.
               className="relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50"

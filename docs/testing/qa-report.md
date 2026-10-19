@@ -726,3 +726,8 @@ added under the stores. The home banner and the stores band are gone; the panel 
 page (where the cards' "Order" button leads) and the bag keeps its line; the footer, the contact
 page and the floating button carry every channel; wholesale, the help centre and the store cards
 keep their own.
+
+Later the same night the owner asked for the panel to leave the product and bag pages as well: a
+tea's page now shows no ordering panel, a card's "Order" button leads to the contact page, and the
+bag (offered nowhere while prices are hidden, the chat panel's bag link included) shows the ordinary
+empty bag when its address is typed. On the live site no page shows the panel.

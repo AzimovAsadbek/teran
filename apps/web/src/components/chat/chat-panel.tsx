@@ -164,9 +164,12 @@ export default function ChatPanel({
         {t('title')}
       </h2>
       <div className="flex items-center justify-end gap-2 px-4 pt-4">
-        <Link href="/cart" aria-label={t('cart')} className={ROUND} onClick={onClose}>
-          <ShoppingCart aria-hidden className="h-[1.125rem] w-[1.125rem]" strokeWidth={2} />
-        </Link>
+        {/* No bag while the prices are hidden, as in the header. */}
+        {showPrices ? (
+          <Link href="/cart" aria-label={t('cart')} className={ROUND} onClick={onClose}>
+            <ShoppingCart aria-hidden className="h-[1.125rem] w-[1.125rem]" strokeWidth={2} />
+          </Link>
+        ) : null}
         <Link href="/account/orders" className={CHIP} onClick={onClose}>
           {t('orders')}
         </Link>

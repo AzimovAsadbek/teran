@@ -313,8 +313,6 @@
   "Product": {
     "addToCart": "Savatga qoʻshish",
     "addToCartPrice": "Savatga qoʻshish · {price}",
-    "orderByContactTitle": "Buyurtma berish uchun biz bilan bogʻlaning",
-    "orderByContactText": "Narx, mavjudlik va yetkazib berish haqida aytib beramiz. Qulay usulni tanlang.",
     "adding": "Qoʻshilmoqda…",
     "added": "Savatga qoʻshildi",
     "quickAdd": "{name} — savatga qoʻshish",
@@ -417,8 +415,6 @@
   "Cart": {
     "title": "Savat",
     "drawerTitle": "Sizning savatingiz",
-    "orderByContactTitle": "Hozircha buyurtmalar telefon va ijtimoiy tarmoqlar orqali qabul qilinadi",
-    "orderByContactText": "Tanlagan choyingizni yozing yoki qoʻngʻiroq qiling: narx, mavjudlik va yetkazib berish haqida aytib beramiz.",
     "empty": "Savatingiz boʻsh",
     "emptyText": "Choylar katalogidan oʻzingizga yoqqanini tanlang.",
     "startShopping": "Xaridni boshlash",

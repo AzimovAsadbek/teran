@@ -100,8 +100,8 @@ or deletes it, but it shares the database role with the API.
 ## Rate limiting and abuse
 
 - `@nestjs/throttler`: 120 requests per minute per IP and route by default; stricter limits on
-  authentication, checkout (10/min), order lookup (30/min), cart (60/min) and the enquiry and
-  newsletter forms (5 per 10 minutes). Responses carry `Retry-After` / `X-RateLimit-*`.
+  authentication, checkout (10/min), order lookup (30/min), cart (60/min), saving or deleting a
+  product review (10/min) and the enquiry and newsletter forms (5 per 10 minutes). Responses carry `Retry-After` / `X-RateLimit-*`.
 - The client IP comes from `X-Forwarded-For` after `TRUST_PROXY_HOPS` trusted proxies (1 = Caddy).
   Caddy replaces any client-supplied `X-Forwarded-For`, so the header cannot be spoofed; this was
   verified on the production stack (forged headers shared one bucket, a second client had its own).

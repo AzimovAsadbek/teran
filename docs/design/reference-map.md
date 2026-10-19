@@ -49,7 +49,7 @@ Phone (390): same order; product rails become a 2×2 grid with a round quick-add
 
 ## Product card
 
-White card, soft shadow, radius ~6; square image area; outline pill badge top-left ("New"), filled badge top-right (discount); italic category line; bold name (16 px); rating row (reference only — TERAN has no reviews, so none is shown); price + "· pack size"; quick add = round cart button over the image's lower-right corner (always on touch screens).
+White card, soft shadow, radius ~6; square image area; outline pill badge top-left ("New"), filled badge top-right (discount); italic category line; bold name (16 px); rating row (TERAN's: customers' stars and count from real reviews, an invitation to rate before the first, ADR-042); price + "· pack size"; quick add = round cart button over the image's lower-right corner (always on touch screens).
 
 ## Category / collection page
 
@@ -116,7 +116,7 @@ Where each reference element lives in TERAN, and what deliberately differs.
 | Phone drawer                                   | `layout/mobile-menu.tsx`                                                                                                                           | Five picture tiles + "all products", then Shop / Tea school / About rows one level deeper; sign-in and language at the bottom.                           |
 | Home sections 1–17                             | `app/[locale]/(store)/page.tsx`, `home/editorial-sections.tsx`, `rail-sections.tsx`, `product-rail.tsx`, `category-collage.tsx`, `media-band*.tsx` | Promo strip = a real collection; certifications row = the pack's four values; social band = TERAN films or photographs (never mixed); no statistics.     |
 | Hero slider                                    | `home/hero.tsx`, `hero-slider.tsx`, `sparkles.tsx`                                                                                                 | First slide: the pack's tagline over the lake artwork (prerendered); then featured products that have a cut-out, on brand colours.                       |
-| Product card + quick add                       | `catalog/product-card.tsx`, `quick-add.tsx`                                                                                                        | No rating row (TERAN has no reviews). Discount pill only from real compare-at prices. Hover picture = the product's second image (`hoverImage`).         |
+| Product card + quick add                       | `catalog/product-card.tsx`, `quick-add.tsx`                                                                                                        | Stars from customers' own reviews (ADR-042). Discount pill only from real compare-at prices. Hover picture = the product's second image (`hoverImage`).  |
 | Category banner, filter dropdowns, count, sort | `catalog/listing-header.tsx`, `filter-bar.tsx`, `filter-dropdown.tsx`, `filter-styles.ts`, `sort-select.tsx`, `catalog-results.tsx`                | Dropdown choices are links (work without JavaScript, shareable URLs). Phones keep the existing filter drawer.                                            |
 | Product page                                   | `products/[slug]/page.tsx`, `product/product-gallery.tsx`, `product-tabs.tsx`, `product-info.tsx`, `purchase-panel.tsx`, `recently-viewed.tsx`     | Tabs and rows only for data the product has; brewing infographic only with brewing values; recently viewed stays on the device (local storage).          |
 | Search, cart, about, journal, article, gallery | `search/page.tsx`, `cart/page.tsx`, `content/page-header.tsx`, `article-card.tsx`, `article-content.tsx`, `media/media-archive.tsx`                | Heroes use TERAN's own packaging artwork (lake, terraces); no reference photography.                                                                     |
@@ -131,8 +131,8 @@ Where each reference element lives in TERAN, and what deliberately differs.
 | Tea 101                                        | `tea-101/page.tsx`                                                                                                                                 | The Chinese teas TERAN deals in; pills and product rows only where the catalogue has that kind.                                                          |
 | Accessibility page                             | `accessibility/page.tsx`, `content/pages/accessibility.ts`                                                                                         | TERAN's own website statement instead of the reference's employer policy.                                                                                |
 
-Not reproduced, because TERAN has no such content or capability (and none is invented): ratings
-and reviews, loyalty programme, promotions/discount banners, ambassador programme, gift cards,
+Not reproduced, because TERAN has no such content or capability (and none is invented): loyalty
+programme, promotions/discount banners, ambassador programme, gift cards,
 recipe tags, wholesale accounts, order tracking and file attachments in the contact form, nor the
 reference's company pages (impact report, careers, contests, investor relations). The reference's
 wholesale page has its own header; TERAN's keeps the store's, and its footer columns change on that

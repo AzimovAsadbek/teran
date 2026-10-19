@@ -164,7 +164,8 @@ states → admin closed to visitors.
   production.
 - The browser bundle contains only public settings (`NEXT_PUBLIC_*`: site URL, enabled locales,
   demo flag). Secrets stay on the servers.
-- No reviews, ratings or testimonials exist, demo or otherwise.
+- No reviews, ratings or testimonials are seeded or written for customers, demo or otherwise:
+  every rating on the site comes from a signed-in customer's own account ([ADR-042](../architecture/decisions.md)).
 - Simulated payments are never mixed with real ones: demo mode simulates every online method and
   refuses provider callbacks; a demo payment is stored with provider `DEMO` and labelled
   everywhere it appears.

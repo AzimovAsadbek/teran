@@ -786,8 +786,93 @@ The first view then got a sharper, brighter clip chosen by the owner (sunlit tea
 Mbit/s 4K source; `storage/hd-hero-3`), its copies at 0.14 bits per pixel: a drone moving over
 leaves changes every pixel, and less smudged them at 100 %.
 
+**Revised again 2026-10-19.** The owner found that film too short (4 s of footage over 10 s) and
+disliked it playing backwards. It now plays the whole 19.3 s shot forwards only and starts again
+with a plain cut (`mode=cut`; no two moments of the flight look alike, so the cut is a scene
+change, every 19 s instead of a reversal every 5 s; `storage/hd-hero-4`). To keep the bytes in
+check its copies hold only what the first view shows: wide screens get the middle 2.4:1 band of
+the frame (the view is 1.6:1 to 3.1:1 from 900 px), phones a 3:4 part (0.78:1 to 1.1:1), so
+3200 px is 37 MB, 1920 px 14.5 MB and the phone's 1080 px 10 MB (0.09 to 0.14 bits per pixel; 0.09
+visibly smudged the leaves at 100 %). The bento's first two tiles became films too (tea poured into
+a glass pitcher and into a glass teapot, `storage/hd-bento-films`): both are still shots, so a
+short dissolve joins two moments where the kettle stands in the same place and no hand is in view;
+16:9 parts put the vessel right of the tile's words, phones get square parts.
+
 **Consequences.** On a 1440 px window at 2× the first view now draws a 3200 px film (10.7 MB, after
 the page has loaded) instead of a 1192 px one; a 1× screen gets 1920 px (3.9 MB) and a phone 1080 ×
 1920 (4 MB). Storage holds seven files per film. Pictures and films whose sources are small (the
 owner's tea cup and leaves at 1024 to 1254 px, the gallery's 1280 px photographs) are as sharp as
 they can be until larger originals come.
+
+## ADR-041: The menus show the range TERAN plans, marked "coming soon" until stocked
+
+**Context.** ADR-036 kept every category without products out of the menus. On 2026-10-19 the
+owner found the menus too bare (one category, Tea, with one subcategory) and asked for more
+categories to show in them, coffee and confectionery among them, whether they have products or
+not.
+
+**Decision.**
+
+- The header's panels and the phone drawer use `menuCategoryTree`: every active category with its
+  subcategories, in the admin's order. One without products carries a "coming soon" mark (the
+  desktop row and subcategory links, the drawer's tiles and rows), its panel says products are on
+  their way instead of offering "newest" and "recommended", and its card keeps its own art (the
+  menu's photograph shows TERAN's teas). Its own page already answered "coming soon" with
+  `noindex` (ADR-036).
+- The drawer's picture tiles list stocked categories and collections first; categories still to
+  come fill the remaining tiles.
+- Everything that shows products keeps `categoryTree` (stocked only): the home page's ribbon,
+  tiles and collage, the catalogue's chips, the search and the sitemap. Collections are unchanged.
+- Three illustrations join the built-in art for non-tea categories: `coffee` (coffee beans),
+  `sweets` (a wrapped sweet) and `teaware` (a cup), TERAN's leaves staying in each medallion.
+- Production data (2026-10-19): the demonstration catalogue's black tea, white tea, oolong, pu-erh
+  and gift-set categories are active again (their products stay archived), green tea leads Tea, and
+  Coffee (whole bean, ground), Confectionery (chocolate, oriental sweets, biscuits and wafers) and
+  Teaware (teapots, tea bowls) were added in three languages, with audit rows. The admin area
+  renames, reorders or switches off any of them.
+
+**Consequences.** A visitor can open a category with nothing in it yet; the mark sets the
+expectation and the page leads back to the teas. A category the owner does not plan should be
+switched off rather than left empty. The end-to-end journey checks that a new category shows as
+"coming soon" until its first product.
+
+## ADR-042: Customers' own ratings and reviews, shown at once, moderated by staff
+
+**Context.** On 2026-10-19 the owner found the product card too plain and asked for it to be
+richer and more modern, ratings first. Until then the site said, on purpose, that TERAN had no
+reviews and invented none (product card, JSON-LD, demo rules). Stars that nobody gave would be
+fabricated; the honest way to show them is to let customers give them.
+
+**Decision.**
+
+- A signed-in customer gives a visible product 1 to 5 stars with an optional comment (up to 1000
+  characters), once: saving again replaces it, deleting removes it (`ProductReview`, unique per
+  product and customer). Staff accounts cannot rate (`RequireAuth({ roles: ['CUSTOMER'] })`): the
+  shop does not rate itself. A review is marked "verified buyer" when the customer had a delivered
+  order with one of the product's pack sizes when saving it. Nothing is ever written for a
+  customer, imported or seeded.
+- Reviews show at once (post-moderation). Staff hide a review (it leaves the page and the average;
+  its author still sees it, marked hidden, and saving again keeps it hidden), show it again or
+  delete it for good, each with an audit entry (`review.hide`, `review.show`, `review.delete`; a
+  deletion records what was removed). Admin → Reviews lists all, shown or hidden.
+- Each product keeps `ratingCount` and `ratingSum` of its published reviews, recomputed in the same
+  transaction as every change with the product row locked (two reviews saved together cannot miss
+  each other) and with raw SQL so the product's `updatedAt` stays its own edits. Product lists and
+  cards therefore carry `rating { average, count }` (null before the first) without a join, and the
+  storefront's catalogue cache is refreshed (`catalog` tag) after every change.
+- The product card shows the stars, the average to one decimal and the count, leading to the
+  product page's reviews; before the first review, empty stars and "Rate it". The card also shows,
+  from the product's own data, the origin and chips for the brewing temperature and time and the
+  pack size (`origin` and `brewing` joined the product summary), a lift and a slowly growing
+  picture while pointed at, and a permanent "Order" button while prices are hidden (the pill over
+  the picture went away).
+- The product page shows the stars under the name and a "Customer reviews" section after the
+  brand's difference: the average, the five-to-one star bars, the way to rate (a visitor is sent
+  to sign in or register and comes back), and the published reviews newest first, each in its own
+  language, six at a time. Its JSON-LD carries `aggregateRating` and those reviews once there are
+  some.
+
+**Consequences.** Cards and pages show empty stars until customers rate, which is the truth. A
+review appears before anyone reads it, so staff should check Admin → Reviews; spam is limited by
+sign-in, one review per customer and product, and 10 saves a minute. Demo customers cannot sign
+in, so the demo reset never leaves rating totals behind.

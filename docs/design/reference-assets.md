@@ -322,8 +322,8 @@ page has loaded and its place comes near. Posters are each film's first frame at
 
 `storage/hd-pictures/` replaces the page pictures that were smaller than large screens need with
 Pexels photographs of the same subjects, cropped to each place's proportions so the layout stays:
-the values band (Shah-i-Zinda, 900 px → 5120 px; replaced on 2026-10-19, below), the two bento tiles and the business card (up to
-1536 px → 3200 px), the wholesale first view (cups on the right, clear of the words; 5120 px) and
+the values band (Shah-i-Zinda, 900 px → 5120 px; replaced on 2026-10-19, below), the two bento tiles (films since
+2026-10-19, below) and the business card (up to 1536 px → 3200 px), the wholesale first view (cups on the right, clear of the words; 5120 px) and
 the dealer section's backdrop (5120 px), and an About timeline picture (705 → 2400 px). Not
 replaced: the story band (the only fitting photograph put its tea set where the words are), the
 wholesale flavour band (its words are dark and sit on the picture's light top) and the Tea 101
@@ -338,9 +338,31 @@ camera), copied at 0.14 bits per pixel (0.12 at 3840 px; a 100 % comparison show
 the leaves): 1920 px 10.9 MB, 3200 px 30.2 MB, 3840 px 37.3 MB, the phone's 1080 × 1920 8.5 MB.
 The first view's entries left `storage/hd-films-2/`.
 
+The same day the owner found that film too short and disliked it turning back. `storage/hd-hero-4/`
+replaces `storage/hd-hero-3/` (moved to the Trash folder): the whole 19.33 s shot, forwards only, at
+30 fps (`mode=cut`; the browser starts it again with a plain cut, a change of scene every 19 s).
+Its copies keep only what the first view shows: wide screens the middle 2.4:1 band of the frame
+(the view is 1.6:1 to 3.1:1 from 900 px), 1280 to 3840 px at 0.10 to 0.14 bits per pixel
+(1920 px 14.5 MB, 2560 px 23.8 MB, 3200 px 37.3 MB, 3840 px 44.7 MB); phones a 3:4 part
+(0.78:1 to 1.1:1 there) at 1080 × 1440 (10.2 MB, 0.09) and 720 × 960 (5 MB). Posters are the
+first frame cut the same way (3840 × 1600, 1080 × 1440).
+
+`storage/hd-bento-films/` (2026-10-19) turns the bento's first two tiles into films, the owner's
+picks from six Pexels candidates each (mock-ups of the tiles with their names): tile 1, hot water
+poured from a gooseneck kettle into a glass pitcher of green tea (#26202140, 3840 × 2160 at 60 fps):
+10.15–20.36 s at 30 fps, its last 0.8 s dissolving into its first, 9.4 s (the kettle and the
+stream stand in the same place at both ends, so nothing doubles); tile 2, water poured into a glass
+teapot of loose herbal tea with its bamboo lid beside it (#19537776, 4096 × 2160 at 25 fps):
+3.5–21.4 s, the brewed pot dissolving back into the dry leaves over 1 s while no hand is in view,
+16.9 s. The wide copies are 16:9 parts with the vessel right of the tile's words (tile 1 the left
+3200 px of the frame, tile 2 its left 3840 px; focus 65 %), 960, 1280 and 1920 px at 0.07 to 0.08
+bits per pixel (1.5 to 7.6 MB); phones get square parts at 1080 and 720 px (1.5 to 4.3 MB). The
+two photographs these replace left `storage/hd-pictures/` (Trash folder).
+
 ```bash
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-films-2 --force
-corepack pnpm --filter @teran/api visuals:import --dir storage/hd-hero-3 --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-hero-4 --force
+corepack pnpm --filter @teran/api visuals:import --dir storage/hd-bento-films --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-pictures --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-values --force
 corepack pnpm --filter @teran/api visuals:import --dir storage/hd-rerender --force

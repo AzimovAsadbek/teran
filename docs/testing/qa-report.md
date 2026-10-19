@@ -578,3 +578,37 @@ but the handshake never finished, while the site and Neon's HTTPS endpoint answe
 checks and the collection's restore went through Neon's SQL over HTTPS, the import through a local
 relay carrying the Postgres protocol over a secure WebSocket to Neon's proxy, as Neon's own
 serverless driver does. Neither needed a new package or a change to the project.
+
+## A longer first view, films in the tiles, fuller menus, ratings on the cards (2026-10-19, evening)
+
+The owner found the first view's film too short and disliked it turning back, asked for the bento's
+first two tiles to move, for the menus to show more categories (coffee, confectionery and the
+like, whether stocked or not), and for a richer, more modern product card with ratings.
+
+- **The first view.** The same Bangladesh tea-garden shot now plays whole (19.3 s) and only
+  forwards, starting again with a plain cut (`storage/hd-hero-4`). Its copies hold only what the
+  view shows (2.4:1 wide, 3:4 on phones); a 100 % comparison of one frame at 0.09, 0.11 and 0.13
+  bits per pixel set them at 0.10 to 0.14 (3200 px 37 MB, phone 10 MB).
+- **The tiles.** "Green tea" and "TERAN premium collection" play tea poured into a glass pitcher
+  and into a glass teapot (`storage/hd-bento-films`): short dissolves where nothing moves or the
+  kettle stands still at both ends (a 50 % blend was checked frame by frame), the vessel cut to sit
+  right of the tile's words; the tile code now passes `film`.
+- **Menus.** The header panel and the phone drawer list every active category, an empty one marked
+  "coming soon" with a note and its own medallion (new coffee, sweets and teaware art); the home
+  sections, chips and search still show stocked ones only (ADR-041). Production gets Coffee,
+  Confectionery and Teaware with subcategories, and the demo catalogue's tea and gift categories
+  active again with their products still archived (one transaction, audit rows).
+- **Ratings and the card.** Real reviews only (ADR-042): signed-in customers rate 1–5 stars with a
+  comment, once per tea; staff hide, show or delete them in Admin → Reviews; each product keeps its
+  totals. The card adds the stars and count (or "Rate it"), the origin, brewing temperature, time
+  and pack chips, a lift and slow zoom, and a permanent "Order" button; the product page adds stars
+  under the name, a "Customer reviews" section (average, star bars, form or sign-in, the reviews)
+  and `aggregateRating` in its JSON-LD.
+
+Checks: contracts 34, web 67 and API 103 unit tests; API integration 140 (3 new: a customer's
+review and the totals, verified purchase and refused input, staff refused and moderation with the
+audit trail); end to end 52 (new: a visitor registers from the reviews, rates a tea, sees it on the
+page and the card, staff hide it, the author sees it hidden, staff show and delete it; the new
+category journey now expects "coming soon"); ESLint, TypeScript and the message check (1843 keys ×
+3 languages). The cards were looked at with prices hidden, as production shows them, at 1440 px
+and on a 390 px phone (the "Order" button was shortened on phones so the word stays whole).

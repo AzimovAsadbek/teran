@@ -239,20 +239,23 @@ export function MediaBand({
           })}
         </ul>
       </div>
-      <div className="container-page mt-2 flex items-center justify-center gap-2">
-        <IconButton
-          label={labels.previous}
-          icon={<ArrowLeft />}
-          variant="ghost"
-          onClick={() => page(-1)}
-        />
-        <IconButton
-          label={labels.next}
-          icon={<ArrowRight />}
-          variant="ghost"
-          onClick={() => page(1)}
-        />
-      </div>
+      {/* Arrows only when there is something to page to. */}
+      {(current?.items.length ?? 0) > 1 ? (
+        <div className="container-page mt-2 flex items-center justify-center gap-2">
+          <IconButton
+            label={labels.previous}
+            icon={<ArrowLeft />}
+            variant="ghost"
+            onClick={() => page(-1)}
+          />
+          <IconButton
+            label={labels.next}
+            icon={<ArrowRight />}
+            variant="ghost"
+            onClick={() => page(1)}
+          />
+        </div>
+      ) : null}
       {open !== null ? (
         <MediaViewer
           items={current.items}

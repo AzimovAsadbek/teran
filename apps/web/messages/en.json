@@ -675,7 +675,9 @@
       "feedback": "Feedback",
       "other": "Other",
       "newOrder": "Place an order"
-    }
+    },
+    "sendOrder": "Send order request",
+    "orderSuccess": "Thank you! We have your order request for {order} and will get back to you soon to agree the delivery."
   },
   "Account": {
     "title": "Account",

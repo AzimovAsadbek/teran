@@ -16,18 +16,32 @@ import { ProductRail, type RailLabels, type RailTab } from './product-rail';
 const PAGE = 'pageSize=8';
 
 /**
- * Whether a later row would only repeat the first one: every product it holds is already among the
- * newest the first row shows (a small catalogue). It is then left out, and comes back by itself
+ * What the first row shows: TERAN's premium collection and the newest products.
+ */
+async function firstRowSlugs(locale: Parameters<typeof getProductList>[0]): Promise<Set<string>> {
+  const [premium, latest] = await Promise.all([
+    getProductList(locale, `${PAGE}&collection=${PREMIUM_COLLECTION_SLUG}&sort=featured`).catch(
+      () => null,
+    ),
+    getProductList(locale, `${PAGE}&sort=newest`).catch(() => null),
+  ]);
+  return new Set([...(premium?.items ?? []), ...(latest?.items ?? [])].map((item) => item.slug));
+}
+
+/**
+ * Whether a later row would mostly repeat the first one: at least three in four of each tab's
+ * products are already there (a small catalogue). It is then left out, and comes back by itself
  * once the catalogue outgrows one row.
  */
 async function repeatsFirstRow(
   locale: Parameters<typeof getProductList>[0],
   tabs: RailTab[],
 ): Promise<boolean> {
-  const latest = await getProductList(locale, `${PAGE}&sort=newest`).catch(() => null);
-  if (!latest) return false;
-  const shown = new Set(latest.items.map((item) => item.slug));
-  return tabs.every((tab) => tab.products.every((product) => shown.has(product.slug)));
+  const shown = await firstRowSlugs(locale);
+  return tabs.every((tab) => {
+    const seen = tab.products.filter((product) => shown.has(product.slug)).length;
+    return tab.products.length === 0 || seen / tab.products.length >= 0.75;
+  });
 }
 
 async function railLabels(): Promise<RailLabels> {
@@ -35,16 +49,36 @@ async function railLabels(): Promise<RailLabels> {
   return { tabList: t('showcaseTabs'), previous: t('showcasePrevious'), next: t('showcaseNext') };
 }
 
-/** Section 4: "new arrivals" and "our picks" (the admin's featured flag). */
+/**
+ * Section 4: TERAN's own premium collection first (its five teas), then "new arrivals" and "our
+ * picks" (the admin's featured flag). A tab that would show the same products as the one before
+ * it is left out, so with only TERAN's teas in the shop the row is simply the collection.
+ */
 export async function NewArrivalsRail() {
   await connection();
   const locale = await getLocale();
   const t = await getTranslations('Home');
-  const [latest, featured] = await Promise.all([
+  const [collections, premium, latest, featured] = await Promise.all([
+    getCollections(locale).catch(() => []),
+    getProductList(locale, `${PAGE}&collection=${PREMIUM_COLLECTION_SLUG}&sort=featured`).catch(
+      () => null,
+    ),
     getProductList(locale, `${PAGE}&sort=newest`).catch(() => null),
     getProductList(locale, `${PAGE}&featured=true&sort=featured`).catch(() => null),
   ]);
+  const collection = collections.find((entry) => entry.slug === PREMIUM_COLLECTION_SLUG);
   const tabs: RailTab[] = [
+    ...(collection
+      ? [
+          {
+            id: 'teran',
+            label: collection.name,
+            products: premium?.items ?? [],
+            href: `/collections/${collection.slug}`,
+            cta: t('featuredCta'),
+          },
+        ]
+      : []),
     {
       id: 'new',
       label: t('railNew'),
@@ -60,8 +94,8 @@ export async function NewArrivalsRail() {
       cta: t('railFeaturedCta'),
     },
   ];
-  // A tab that would show the same teas as the other (a small catalogue) is left out: a switch
-  // that changes nothing reads as broken. It comes back once the picks differ from the newest.
+  // A switch that changes nothing reads as broken: a tab showing the same products as an earlier
+  // one is left out, and comes back once the lists differ.
   const shown = (tab: RailTab) =>
     tab.products
       .slice(0, 5)
@@ -69,24 +103,25 @@ export async function NewArrivalsRail() {
       .sort()
       .join(' ');
   const distinct = tabs.filter(
-    (tab, index) => index === 0 || tab.products.length === 0 || shown(tab) !== shown(tabs[0]!),
+    (tab, index) =>
+      tab.products.length === 0 ||
+      tabs.slice(0, index).every((earlier) => shown(earlier) !== shown(tab)),
   );
   return <ProductRail tabs={distinct} labels={await railLabels()} />;
 }
 
 /**
- * Section 8: the premium collection (or the first collection with products), as the reference's
- * row: no visible heading, no pill.
+ * Section 8: the other collections with products (the premium one leads the first row), as the
+ * reference's row: no visible heading, no pill.
  */
 export async function CollectionsRail() {
   await connection();
   const locale = await getLocale();
   const t = await getTranslations('Home');
+  // The premium collection leads the first row (NewArrivalsRail), so it is not repeated here.
   const collections = (await getCollections(locale).catch(() => []))
-    .filter((collection) => collection.productCount > 0)
-    .sort(
-      (a, b) =>
-        Number(b.slug === PREMIUM_COLLECTION_SLUG) - Number(a.slug === PREMIUM_COLLECTION_SLUG),
+    .filter(
+      (collection) => collection.productCount > 0 && collection.slug !== PREMIUM_COLLECTION_SLUG,
     )
     .slice(0, 3);
   if (collections.length === 0) return null;

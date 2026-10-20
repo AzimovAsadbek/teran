@@ -360,7 +360,7 @@ export async function StoryBanner({
         <p className="mt-5 max-w-[28rem] text-[1.0625rem] leading-relaxed text-pretty text-wine lg:mt-6 lg:text-[1.125rem]">
           {copy.story.paragraphs[0]}
         </p>
-        <Link href="/about" className={cn(PILL, 'mt-7 bg-ivory-200 text-wine lg:mt-8')}>
+        <Link href="/about" className={cn(PILL, 'mt-7 bg-wine text-ivory-50 lg:mt-8')}>
           {t('storyCta')}
         </Link>
       </div>
@@ -508,7 +508,7 @@ const SHORTCUT_COLOURS = [
 export async function CategoryShortcuts() {
   await connection();
   const locale = await getLocale();
-  const t = await getTranslations('Home');
+  const tc = await getTranslations('Catalog');
   const tree = categoryTree(await getCategories(locale).catch(() => []));
   const stocked = browsableCategories(tree);
   const tops = tree.filter((category) => category.productCount > 0);
@@ -520,7 +520,9 @@ export async function CategoryShortcuts() {
   }
   if (items.length < 3) return null;
   return (
-    <nav aria-label={t('categoriesTitle')} className="container-page py-3 sm:py-6">
+    // Each region of the page has its own name for screen readers (the ribbon, these tiles, the
+    // bento and the collage all lead to categories).
+    <nav aria-label={tc('subcategories')} className="container-page py-3 sm:py-6">
       {/* Phones scroll the tiles sideways; from 640 px they share the row, at most 210 px each. */}
       <ul className="-mx-gutter flex snap-x snap-mandatory scroll-px-gutter gap-3 overflow-x-auto px-gutter py-1 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:overflow-visible sm:px-0 lg:gap-4">
         {items.map((category, index) => (
@@ -625,7 +627,7 @@ export async function BentoSection() {
   );
   const tiles = candidates.slice(0, candidates.length >= 4 ? 4 : 2);
   return (
-    <section aria-label={t('categoriesTitle')} className="container-page py-6 sm:py-8">
+    <section aria-label={t('categoriesEyebrow')} className="container-page py-6 sm:py-8">
       <ul className="grid grid-cols-1 gap-8 sm:gap-6 lg:grid-cols-2">
         {tiles.map((tile, index) => {
           const tone = BENTO_TONES[index % BENTO_TONES.length]!;

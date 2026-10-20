@@ -1,13 +1,14 @@
 'use client';
 
 import { Pause, Play } from 'lucide-react';
+import { useEffect } from 'react';
 import { cn } from '@/lib/cn';
 import { setMotionPaused, useFilmsAllowed, useMotionPaused } from '@/lib/motion';
 
 /**
  * Pauses every film on the storefront, or lets them move again (lib/motion): a link-like switch
- * in the footer, the one way to stop the films (they have no buttons of their own, the owner's
- * choice; WCAG 2.2.2). Shown only where films may play at all.
+ * in the footer, the one way to stop the films and the moving ribbons (they have no buttons of
+ * their own, the owner's choice; WCAG 2.2.2). Shown only where films may play at all.
  */
 export function MotionToggle({
   labels,
@@ -18,6 +19,11 @@ export function MotionToggle({
 }) {
   const allowed = useFilmsAllowed();
   const paused = useMotionPaused();
+  // The page's own moving parts (the ribbons on the home and wholesale pages) follow the switch
+  // through this attribute (globals.css).
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-motion-paused', paused);
+  }, [paused]);
   if (!allowed) return null;
   const Icon = paused ? Play : Pause;
   return (

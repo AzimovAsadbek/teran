@@ -7,13 +7,26 @@ import { Link, usePathname } from '@/i18n/navigation';
 
 const DELAY_MS = 20_000;
 const REMEMBER_DAYS = 10;
+/**
+ * Pages where the visitor is doing something (choosing a tea, ordering, paying, writing to TERAN):
+ * the card would cover the form or pull them away, so it waits for a browsing page.
+ */
+const TASK_PATHS = [
+  '/contact',
+  '/wholesale',
+  '/products/',
+  '/cart',
+  '/checkout',
+  '/account',
+  '/orders',
+];
 
 /**
  * The reference's small offer card in the lower left corner: it comes up 20 seconds into a visit
  * (fading in as it rises 6 px), with a heading, a line and an underlined link; closing it, with
  * its button or Escape, or following its link keeps it away for ten days in this browser. Never on
- * the home page, whose promo strip already says the same; on phones it stands above the floating
- * contact button instead of under it.
+ * the home page, whose promo strip already says the same, nor where a visitor is busy with a task
+ * (TASK_PATHS); on phones it stands above the floating contact button instead of under it.
  */
 export function PromoPopup({
   storageKey,
@@ -31,7 +44,7 @@ export function PromoPopup({
   const t = useTranslations('Common');
   const headingId = useId();
   const pathname = usePathname();
-  const home = pathname === '/';
+  const quiet = pathname === '/' || TASK_PATHS.some((path) => pathname.startsWith(path));
   const [open, setOpen] = useState(false);
 
   const dismiss = useCallback(() => {
@@ -44,7 +57,7 @@ export function PromoPopup({
   }, [storageKey]);
 
   useEffect(() => {
-    if (home) return;
+    if (quiet) return;
     try {
       const stamp = Number(window.localStorage.getItem(storageKey));
       if (stamp && Date.now() - stamp < REMEMBER_DAYS * 86_400_000) return;
@@ -53,7 +66,7 @@ export function PromoPopup({
     }
     const timer = window.setTimeout(() => setOpen(true), DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [storageKey, home]);
+  }, [storageKey, quiet]);
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +77,7 @@ export function PromoPopup({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, dismiss]);
 
-  if (!open || home) return null;
+  if (!open || quiet) return null;
   return (
     <div
       role="dialog"

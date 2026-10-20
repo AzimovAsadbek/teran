@@ -28,10 +28,12 @@ const SUBJECTS = [
 
 /**
  * The reference's fields on the teal panel: 55 px boxes in a pale mint with a dark teal edge and
- * text, 4 px corners; focus turns the edge blue (drawn 2 px wide, so keyboard users see it).
+ * text, 4 px corners; focus turns the edge blue (drawn 2 px wide, so keyboard users see it). The
+ * examples inside empty fields are a quieter grey-green than typed text, so they never read as
+ * filled in.
  */
 const FIELD =
-  'block w-full rounded-[0.25rem] border border-[#0c504e] bg-[#f3fafb] px-3 text-[1rem] leading-5 tracking-[-0.00875rem] text-[#126b69] outline-none transition-[border-color,box-shadow] duration-200 ease-in-out placeholder:text-[#126b69] placeholder:opacity-100 focus:border-[#115cb5] focus:shadow-[0_0_0_1px_#115cb5] aria-invalid:border-[#a32e2e] aria-invalid:shadow-[0_0_0_1px_#a32e2e]';
+  'block w-full rounded-[0.25rem] border border-[#0c504e] bg-[#f3fafb] px-3 text-[1rem] leading-5 tracking-[-0.00875rem] text-[#126b69] outline-none transition-[border-color,box-shadow] duration-200 ease-in-out placeholder:text-[#5f6b68] placeholder:opacity-100 focus:border-[#115cb5] focus:shadow-[0_0_0_1px_#115cb5] aria-invalid:border-[#a32e2e] aria-invalid:shadow-[0_0_0_1px_#a32e2e]';
 /** The small line over a field (the reference's hint), in black so it reads on the teal. */
 const LINE = 'mb-1 block text-[0.75rem] leading-5 text-[#121212]';
 
@@ -94,6 +96,7 @@ export function ContactForm() {
   if (form.status === 'sent') {
     return (
       <FormSuccess
+        text={orderLine ? t('orderSuccess', { order: orderLine }) : undefined}
         onReset={() => {
           setValues({ ...EMPTY, ...ordering(orderLine) });
           form.reset();
@@ -128,7 +131,6 @@ export function ContactForm() {
       <div>
         <label htmlFor={`${id}-phone`} className={LINE}>
           {t('phone')}
-          {optional}
         </label>
         <input
           {...control('phone', `${id}-reach`)}
@@ -143,7 +145,6 @@ export function ContactForm() {
       <div>
         <label htmlFor={`${id}-email`} className={LINE}>
           {t('email')}
-          {optional}
         </label>
         <input
           {...control('email', `${id}-reach`)}
@@ -189,7 +190,7 @@ export function ContactForm() {
         <FieldError id={`${id}-subject-error`}>{error('subject')}</FieldError>
       </div>
       <div>
-        <label htmlFor={`${id}-message`} className="sr-only">
+        <label htmlFor={`${id}-message`} className={LINE}>
           {t('message')}
         </label>
         <textarea
@@ -213,7 +214,7 @@ export function ContactForm() {
         disabled={form.status === 'sending'}
         className="mt-4 inline-flex h-[3.375rem] w-full items-center justify-center gap-3 rounded-[0.25rem] border border-[#f3fafb] bg-[#f3fafb] px-5 text-[1.25rem] leading-6 font-medium text-[#0c504e] transition-[border-color] duration-200 hover:border-[#0c504e] disabled:cursor-wait disabled:opacity-80 @min-[48.0625rem]:w-auto @min-[48.0625rem]:max-w-max"
       >
-        {form.status === 'sending' ? t('sending') : t('sendMessage')}
+        {form.status === 'sending' ? t('sending') : orderLine ? t('sendOrder') : t('sendMessage')}
         <Send aria-hidden className="h-5 w-5" strokeWidth={1.75} />
       </button>
     </form>

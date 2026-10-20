@@ -152,21 +152,22 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
             </div>
           ))}
         </div>
-        {/* The reference's arrows: teal, bare (no disc), 22 px with a heavy stroke. */}
+        {/* The reference's teal arrows, 22 px with a heavy stroke, on a soft light disc so they
+            read on dark photographs too (the steaming cups). */}
         <IconButton
           label={t('previousImage')}
           icon={<ArrowLeft strokeWidth={2.5} className="h-[1.375rem]! w-[1.375rem]!" />}
           variant="plain"
           onClick={() => show(index - 1)}
           // IconButton nudges itself down when pressed, so centre with top rather than translate.
-          className="absolute top-[calc(50%-1.375rem)] left-1 text-[#107e84]!"
+          className="absolute top-[calc(50%-1.375rem)] left-2 bg-surface/85 text-[#107e84]! shadow-[0_2px_8px_rgb(0_0_0_/_0.18)] backdrop-blur-sm"
         />
         <IconButton
           label={t('nextImage')}
           icon={<ArrowRight strokeWidth={2.5} className="h-[1.375rem]! w-[1.375rem]!" />}
           variant="plain"
           onClick={() => show(index + 1)}
-          className="absolute top-[calc(50%-1.375rem)] right-1 text-[#107e84]!"
+          className="absolute top-[calc(50%-1.375rem)] right-2 bg-surface/85 text-[#107e84]! shadow-[0_2px_8px_rgb(0_0_0_/_0.18)] backdrop-blur-sm"
         />
         <p
           aria-hidden

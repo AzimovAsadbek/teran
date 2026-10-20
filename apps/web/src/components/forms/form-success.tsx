@@ -5,8 +5,11 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 
-/** Replaces a submitted form; takes focus so screen-reader and keyboard users land on the result. */
-export function FormSuccess({ onReset }: { onReset: () => void }) {
+/**
+ * Replaces a submitted form; takes focus so screen-reader and keyboard users land on the result.
+ * `text` replaces the general thank-you line (an order request names its tea).
+ */
+export function FormSuccess({ onReset, text }: { onReset: () => void; text?: string }) {
   const t = useTranslations('Forms');
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -23,7 +26,7 @@ export function FormSuccess({ onReset }: { onReset: () => void }) {
       <h3 ref={headingRef} tabIndex={-1} className="mt-4 text-display-sm text-fg outline-none">
         {t('successTitle')}
       </h3>
-      <p className="mt-2 text-body text-fg-muted">{t('successText')}</p>
+      <p className="mt-2 text-body text-fg-muted">{text ?? t('successText')}</p>
       <Button variant="secondary" className="mt-6" onClick={onReset}>
         {t('sendAnother')}
       </Button>

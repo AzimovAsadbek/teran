@@ -675,7 +675,9 @@
       "feedback": "Taklif va fikrlar",
       "other": "Boshqa",
       "newOrder": "Buyurtma berish"
-    }
+    },
+    "sendOrder": "Buyurtmani yuborish",
+    "orderSuccess": "Rahmat! {order} boʻyicha buyurtma soʻrovingizni oldik va yetkazib berishni kelishish uchun tez orada siz bilan bogʻlanamiz."
   },
   "Account": {
     "title": "Shaxsiy kabinet",

@@ -583,6 +583,7 @@
   .marquee-track {
     animation: marquee var(--marquee-duration, 48s) linear infinite;
   }
+  html[data-motion-paused] .marquee-track,
   .marquee:focus-within .marquee-track,
   .marquee:active .marquee-track,
   .marquee[data-offscreen] .marquee-track,

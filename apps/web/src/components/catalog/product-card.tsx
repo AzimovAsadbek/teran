@@ -155,7 +155,7 @@ export function ProductCard({
           // takes the picture's foot then).
           <span
             aria-hidden
-            className="pointer-events-none absolute bottom-2 left-2 z-[2] block h-12 w-12 overflow-hidden rounded-full border-[3px] bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 min-[46.875rem]:h-16 min-[46.875rem]:w-16 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0"
+            className="pointer-events-none absolute bottom-2 left-2 z-[2] block h-12 w-12 overflow-hidden rounded-full border-4 bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 min-[46.875rem]:h-16 min-[46.875rem]:w-16 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0"
             style={{ borderColor: packColour ?? 'var(--color-surface)' }}
           >
             <ProductImage image={hoverImage} name={product.name} sizes="64px" decorative />
@@ -201,7 +201,12 @@ export function ProductCard({
           <span className="truncate">{product.category.name}</span>
         </p>
         <Heading className="mt-1 line-clamp-2 text-[1rem] leading-5 font-bold text-fg min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6">
-          <Link href={href} className="relative z-[1] hover:underline">
+          {/* TERAN's teas are named in their pack's colour, as on the pouch. */}
+          <Link
+            href={href}
+            className="relative z-[1] hover:underline"
+            style={packColour ? { color: packColour } : undefined}
+          >
             {product.name}
           </Link>
         </Heading>

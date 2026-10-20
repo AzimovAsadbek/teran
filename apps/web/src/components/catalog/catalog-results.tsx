@@ -1,3 +1,4 @@
+import type { Locale } from '@teran/contracts';
 import { Leaf, SearchX } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
@@ -16,6 +17,8 @@ import { FilterBar } from './filter-bar';
 import { Pagination } from './pagination';
 import { cn } from '@/lib/cn';
 import { COLLECTION_CODES, PREMIUM_COLLECTION_SLUG, teaCodeOf } from '@/content/brand';
+import { gridFor } from './catalog-grid';
+import { FamilyShelves } from './family-shelves';
 import { ProductCard } from './product-card';
 
 const PAGE_SIZE = 24;
@@ -25,10 +28,13 @@ export async function CatalogResults({
   basePath,
   scope,
   searchParams,
+  shelves = false,
 }: {
   basePath: string;
   scope: { category?: string; collection?: string; q?: string };
   searchParams: Promise<RawSearchParams>;
+  /** The whole catalogue: unfiltered, on its first page, its families as shelves. */
+  shelves?: boolean;
 }) {
   await connection();
   const [locale, params, t] = await Promise.all([
@@ -69,6 +75,17 @@ export async function CatalogResults({
     !hasRefinements(filters) &&
     !scope.q &&
     Boolean(scope.category ?? scope.collection);
+
+  // The whole catalogue unrefined: a shelf a family (family-shelves.tsx) under the same filters,
+  // every product on one page; any filter, sort or page gives the grid below.
+  if (shelves && !hasRefinements(filters) && filters.page === 1 && list.total > 0) {
+    return (
+      <>
+        <FilterBar basePath={basePath} filters={filters} facets={list.facets} total={list.total} />
+        <FamilyShelves locale={locale as Locale} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -134,52 +151,6 @@ export async function CatalogResults({
 function packOrder(slug: string): number {
   const code = teaCodeOf(slug);
   return code ? COLLECTION_CODES.indexOf(code) : COLLECTION_CODES.length;
-}
-
-type CardLayout = 'card' | 'feature' | 'feature-phone' | 'lead';
-
-/**
- * The grid fitted to the number of products when the listing fits on one page, so its last row is
- * never one card alone and a small listing is not a half-empty wall: one or two products as wide
- * feature cards; three or six in rows of three; four as two by two on a tablet; five across from
- * 1024 px; a longer list that would leave one card alone opens on a lead card two columns by two
- * rows; on a phone an odd last card spans both columns, lying down. Longer, paged lists keep
- * four across.
- */
-function gridFor(count: number, onePage: boolean) {
-  const card = (): CardLayout => 'card';
-  const none = () => undefined;
-  if (!onePage) {
-    return { list: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4', layout: card, item: none };
-  }
-  const lastAlone = (index: number) => count % 2 === 1 && count > 2 && index === count - 1;
-  const phoneLast = (index: number): CardLayout => (lastAlone(index) ? 'feature-phone' : 'card');
-  const spanPhone = (index: number) => (lastAlone(index) ? 'max-md:col-span-2' : undefined);
-  if (count <= 2) {
-    return {
-      list: count === 1 ? 'grid-cols-1 max-w-[60rem]' : 'grid-cols-1 gap-3 lg:grid-cols-2',
-      layout: (): CardLayout => 'feature',
-      item: none,
-    };
-  }
-  if (count === 3 || count === 6) {
-    return { list: 'grid-cols-2 md:grid-cols-3', layout: phoneLast, item: spanPhone };
-  }
-  if (count === 4) return { list: 'grid-cols-2 lg:grid-cols-4', layout: card, item: none };
-  if (count === 5) {
-    return {
-      list: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-      layout: phoneLast,
-      item: spanPhone,
-    };
-  }
-  const lead = count % 4 === 1;
-  return {
-    list: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
-    layout: (index: number): CardLayout => (lead && index === 0 ? 'lead' : phoneLast(index)),
-    item: (index: number) =>
-      cn(lead && index === 0 && 'lg:col-span-2 lg:row-span-2', spanPhone(index)),
-  };
 }
 
 /** Toolbar and grid placeholders with the same footprint as the results. */

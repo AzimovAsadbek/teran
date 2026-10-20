@@ -65,6 +65,19 @@ async function CatalogHeader({ withBanner = false }: { withBanner?: boolean }) {
   );
 }
 
+/** The premium band, except under the shelves, whose tea shelf opens on the same five teas. */
+async function PremiumBandUnlessShelves({
+  locale,
+  searchParams,
+}: {
+  locale: Locale;
+  searchParams: PageProps<'/[locale]/catalog'>['searchParams'];
+}) {
+  const filters = parseCatalogFilters(await searchParams);
+  if (!hasRefinements(filters) && filters.page === 1) return null;
+  return <PremiumCollectionBand locale={locale} />;
+}
+
 export default async function CatalogPage({ searchParams }: PageProps<'/[locale]/catalog'>) {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Catalog');
@@ -75,11 +88,12 @@ export default async function CatalogPage({ searchParams }: PageProps<'/[locale]
         <CatalogHeader withBanner />
       </Suspense>
       <Suspense fallback={<CatalogResultsSkeleton />}>
-        <CatalogResults basePath="/catalog" scope={{}} searchParams={searchParams} />
+        <CatalogResults basePath="/catalog" scope={{}} searchParams={searchParams} shelves />
       </Suspense>
-      {/* Below the products: streams in without moving anything on the first screen. */}
+      {/* Below a filtered or later page (the shelves open on TERAN's five): streams in without
+          moving anything on the first screen. */}
       <Suspense fallback={null}>
-        <PremiumCollectionBand locale={locale} />
+        <PremiumBandUnlessShelves locale={locale} searchParams={searchParams} />
       </Suspense>
     </div>
   );

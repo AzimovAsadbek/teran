@@ -4,7 +4,7 @@ import type { ImageDto } from '@teran/contracts';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
+import { useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react';
 import { ProductFilm } from '@/components/catalog/product-film';
 import { ProductImage } from '@/components/catalog/product-image';
 import { IconButton } from '@/components/ui/button';
@@ -31,6 +31,19 @@ function subscribeToLoad(onChange: () => void) {
 const pageLoaded = () => document.readyState === 'complete';
 const loadedOnServer = () => false;
 
+/** One pass of light across the picture, played once (styles/globals.css, `.light-pass`). */
+function LightPass({ gold }: { gold: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'light-pass pointer-events-none absolute inset-0 z-[1]',
+        gold && 'light-pass-gold',
+      )}
+    />
+  );
+}
+
 /**
  * Product images as a row of slides that scroll sideways with snap points: a swipe on touch
  * screens, the arrow buttons, the thumbnails or ←/→ elsewhere. The browser does the movement
@@ -40,7 +53,25 @@ const loadedOnServer = () => false;
  * the gallery (pointer over it, a touch, keyboard focus), so a visit that never browses the
  * images costs only their thumbnails.
  */
-export function ProductGallery({ images, name }: { images: ImageDto[]; name: string }) {
+export function ProductGallery({
+  images,
+  name,
+  stage,
+  arrival = null,
+}: {
+  images: ImageDto[];
+  name: string;
+  /**
+   * A composed first slide before the photographs (TERAN's teas: their stage, components/brand/
+   * tea-stage.tsx) and its thumbnail; it opens the zoom at the first photograph.
+   */
+  stage?: { slide: ReactNode; thumb: ReactNode } | null;
+  /**
+   * The first picture's arrival (ADR-051): one pass of light across glass (`clear`) or a gift box
+   * (`gold`) once the page has loaded; none for the rest.
+   */
+  arrival?: 'clear' | 'gold' | null;
+}) {
   const t = useTranslations('Product');
   const [index, setIndex] = useState(0);
   const [primed, setPrimed] = useState(false);
@@ -49,7 +80,9 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
   const trackRef = useRef<HTMLDivElement>(null);
   // On a slow connection the thumbnails would share the first picture's bandwidth.
   const loaded = useSyncExternalStore(subscribeToLoad, pageLoaded, loadedOnServer);
-  const count = images.length;
+  // The slides: the stage, when there is one, then every photograph.
+  const offset = stage ? 1 : 0;
+  const count = images.length + offset;
 
   const zoom =
     zoomAt === null ? null : (
@@ -66,12 +99,13 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
     />
   );
 
-  if (count < 2) {
+  if (count < 2 && !stage) {
     return (
       <section aria-label={t('gallery')} className="lg:sticky lg:top-40">
-        <div className="relative aspect-square overflow-hidden bg-surface">
+        <div className="relative aspect-square overflow-hidden bg-surface min-[46.875rem]:rounded-[1.5rem]">
           <ProductImage image={images[0] ?? null} name={name} sizes={MAIN_SIZES} priority />
           {images[0]?.film ? <ProductFilm film={images[0].film} size="full" /> : null}
+          {arrival && loaded ? <LightPass gold={arrival === 'gold'} /> : null}
           {images[0] ? zoomButton(0, true) : null}
         </div>
         {zoom}
@@ -120,8 +154,9 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
       onTouchStart={prime}
       onFocus={prime}
     >
-      {/* The reference: the picture on white, plain arrows at its sides, thumbnails centred below. */}
-      <div className="relative aspect-square overflow-hidden bg-surface">
+      {/* The picture on white in a rounded frame (edge to edge on phones), plain arrows at its
+          sides, thumbnails centred below. */}
+      <div className="relative aspect-square overflow-hidden bg-surface min-[46.875rem]:rounded-[1.5rem]">
         <div
           ref={trackRef}
           onScroll={onScroll}
@@ -131,26 +166,39 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
           aria-label={`${index + 1} / ${count}`}
           className="flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] focus-visible:outline-offset-[-3px] [&::-webkit-scrollbar]:hidden"
         >
-          {images.map((image, imageIndex) => (
+          {stage ? (
             <div
-              key={image.src}
-              aria-hidden={imageIndex === index ? undefined : true}
+              aria-hidden={index === 0 ? undefined : true}
               className="relative h-full w-full shrink-0 snap-center snap-always"
             >
-              {imageIndex === 0 || primed ? (
-                <ProductImage
-                  image={image}
-                  name={name}
-                  sizes={MAIN_SIZES}
-                  priority={imageIndex === 0}
-                />
-              ) : null}
-              {image.film && (imageIndex === 0 || primed) ? (
-                <ProductFilm film={image.film} size="full" active={imageIndex === index} />
-              ) : null}
-              {zoomButton(imageIndex, imageIndex === index)}
+              {stage.slide}
+              {images.length > 0 ? zoomButton(0, index === 0) : null}
             </div>
-          ))}
+          ) : null}
+          {images.map((image, imageIndex) => {
+            const slide = imageIndex + offset;
+            return (
+              <div
+                key={image.src}
+                aria-hidden={slide === index ? undefined : true}
+                className="relative h-full w-full shrink-0 snap-center snap-always"
+              >
+                {slide === 0 || primed ? (
+                  <ProductImage
+                    image={image}
+                    name={name}
+                    sizes={MAIN_SIZES}
+                    priority={slide === 0}
+                  />
+                ) : null}
+                {image.film && (slide === 0 || primed) ? (
+                  <ProductFilm film={image.film} size="full" active={slide === index} />
+                ) : null}
+                {slide === 0 && arrival && loaded ? <LightPass gold={arrival === 'gold'} /> : null}
+                {zoomButton(imageIndex, slide === index)}
+              </div>
+            );
+          })}
         </div>
         {/* The reference's teal arrows, 22 px with a heavy stroke, on a soft light disc so they
             read on dark photographs too (the steaming cups). */}
@@ -176,31 +224,53 @@ export function ProductGallery({ images, name }: { images: ImageDto[]; name: str
           {index + 1} / {count}
         </p>
       </div>
-      {/* Centred under the picture; they wrap rather than spill out of a narrow column. */}
-      <ul className="mt-3 flex flex-wrap justify-center gap-2 sm:mt-4">
-        {images.map((image, imageIndex) => (
-          <li key={image.src}>
+      {/* Under the picture: one row that scrolls on phones (from the gutter), centred and wrapping
+          in a wider column. */}
+      <ul className="mt-3 flex gap-2 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] sm:mt-4 min-[46.875rem]:flex-wrap min-[46.875rem]:justify-center min-[46.875rem]:overflow-visible min-[46.875rem]:px-0 [&::-webkit-scrollbar]:hidden">
+        {stage ? (
+          <li>
             <button
               type="button"
-              onClick={() => show(imageIndex)}
-              aria-label={t('showImage', { index: imageIndex + 1 })}
-              aria-current={imageIndex === index ? 'true' : undefined}
+              onClick={() => show(0)}
+              aria-label={t('showImage', { index: 1 })}
+              aria-current={index === 0 ? 'true' : undefined}
               className={cn(
-                'block h-16 w-16 overflow-hidden rounded-[0.5rem] border bg-surface transition-[border-color,box-shadow] duration-150 sm:h-[5.25rem] sm:w-[5.25rem]',
-                imageIndex === index
+                'relative block h-14 w-14 shrink-0 overflow-hidden rounded-[0.5rem] border bg-surface transition-[border-color,box-shadow] duration-150 sm:h-[5.25rem] sm:w-[5.25rem]',
+                index === 0
                   ? 'border-forest-900 ring-1 ring-forest-900'
                   : 'border-line hover:border-line-strong',
               )}
             >
-              {imageIndex === 0 ? (
-                // The first picture's own file (the same `sizes` choose the same one): no download.
-                <ProductImage image={image} name={name} sizes={MAIN_SIZES} />
-              ) : loaded || primed ? (
-                <ProductImage image={image} name={name} sizes="80px" />
-              ) : null}
+              {stage.thumb}
             </button>
           </li>
-        ))}
+        ) : null}
+        {images.map((image, imageIndex) => {
+          const slide = imageIndex + offset;
+          return (
+            <li key={image.src}>
+              <button
+                type="button"
+                onClick={() => show(slide)}
+                aria-label={t('showImage', { index: slide + 1 })}
+                aria-current={slide === index ? 'true' : undefined}
+                className={cn(
+                  'block h-14 w-14 shrink-0 overflow-hidden rounded-[0.5rem] border bg-surface transition-[border-color,box-shadow] duration-150 sm:h-[5.25rem] sm:w-[5.25rem]',
+                  slide === index
+                    ? 'border-forest-900 ring-1 ring-forest-900'
+                    : 'border-line hover:border-line-strong',
+                )}
+              >
+                {slide === 0 ? (
+                  // The first picture's own file (the same `sizes` choose the same one): no download.
+                  <ProductImage image={image} name={name} sizes={MAIN_SIZES} />
+                ) : loaded || primed ? (
+                  <ProductImage image={image} name={name} sizes="80px" />
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
       </ul>
       {zoom}
     </section>

@@ -823,6 +823,41 @@
     }
   }
 
+  /* LIGHT on arrival (the product page's first picture of glass or a gift box): one pass across
+     it once the page has loaded, then out of sight; nothing with reduced motion. */
+  .light-pass {
+    background: linear-gradient(
+      105deg,
+      transparent 32%,
+      rgb(255 255 255 / 0.5) 47%,
+      rgb(255 255 255 / 0.12) 55%,
+      transparent 68%
+    );
+    translate: 110% 0;
+  }
+  .light-pass-gold {
+    background: linear-gradient(
+      105deg,
+      transparent 32%,
+      rgb(255 223 156 / 0.5) 47%,
+      rgb(255 223 156 / 0.14) 55%,
+      transparent 68%
+    );
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .light-pass {
+      animation: light-pass 1700ms var(--ease-out-expo) 250ms both;
+    }
+  }
+
+  /* UNFURL on arrival: a dry leaf settling open (the product page's tea stage), movement only. */
+  @media (prefers-reduced-motion: no-preference) {
+    .unfurl-in {
+      animation: unfurl-in 1400ms var(--ease-out-expo) both;
+      animation-delay: 120ms;
+    }
+  }
+
   /* A name coming into focus, as steam clears from a glass. */
   .clear-in {
     animation: clear-in 750ms var(--ease-out-expo) both;
@@ -950,6 +985,19 @@
   }
   to {
     --level: 116%;
+  }
+}
+
+@keyframes light-pass {
+  from {
+    translate: -110% 0;
+  }
+}
+
+@keyframes unfurl-in {
+  from {
+    rotate: -24deg;
+    scale: 0.8;
   }
 }
 

@@ -4,20 +4,23 @@ import type {
   ProductAttributeDto,
   ProductDetailDto,
 } from '@teran/contracts';
-import { CreditCard, Leaf, Truck } from 'lucide-react';
+import {
+  Coffee,
+  CreditCard,
+  Flower2,
+  Gift,
+  GlassWater,
+  Leaf,
+  Ruler,
+  Sparkle,
+  Truck,
+  type LucideIcon,
+} from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
-import { BrewingGauge } from '@/components/brand/brewing-gauge';
-import { productFamily } from '@/components/catalog/product-family';
-import {
-  BRAND_VALUES,
-  brandCopy,
-  brandValueLabels,
-  PACK_COLOURS,
-  teaCodeOf,
-} from '@/content/brand';
+import { teaTint } from '@/components/brand/tea-stage';
+import { BRAND_VALUES, brandValueLabels, PACK_COLOURS, teaCodeOf } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
-import { brewingMeasures } from '@/lib/brewing';
 import { cn } from '@/lib/cn';
 import { showPrices } from '@/lib/site';
 import { formatMoney, namesFormat } from '@/lib/format';
@@ -124,25 +127,42 @@ export async function ProductTabsSection({ product }: { product: ProductDetailDt
 
 const CAFFEINE_DOTS = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3 } as const;
 
+/** Each characteristic's own mark (a leaf only for the leaf). */
+const ATTRIBUTE_ICONS: Record<string, LucideIcon> = {
+  'leaf-style': Leaf,
+  flavoured: Leaf,
+  flavour: Flower2,
+  volume: GlassWater,
+  capacity: GlassWater,
+  sparkling: Sparkle,
+  material: Coffee,
+  'teas-in-set': Gift,
+};
+
 /**
  * The reference's icon rows under the tabs, from TERAN's data: the product type's characteristics
  * (e.g. a honey's flower) and the caffeine level as filled dots. Only what the product has is
  * shown, so a gift set or a future non-tea product has no empty rows; the brewing has its own
- * gauge under the product (PreparationSection).
+ * gauge in the product's column (components/brand/brewing-gauge.tsx).
  */
 export async function AttributeRows({ product }: { product: ProductDetailDto }) {
   const t = await getTranslations('Product');
+  const name = product.name.toLowerCase();
   const characteristics = product.attributes
+    // What the row would only deny ("Sparkling: no") or what the name already says ("…, 500 ml")
+    // is left out.
+    .filter((attribute) => !(attribute.kind === 'BOOLEAN' && attribute.boolean === false))
     .map((attribute) => ({ attribute, value: attributeValue(attribute, (key) => t(key)) }))
     .filter((entry): entry is { attribute: ProductAttributeDto; value: string } =>
-      Boolean(entry.value),
+      Boolean(entry.value && !name.includes(entry.value.toLowerCase())),
     );
-  const caffeine = product.caffeineLevel;
+  // Water says nothing by a caffeine level.
+  const caffeine = product.illustrationKey === 'water' ? null : product.caffeineLevel;
   if (characteristics.length === 0 && !caffeine) return null;
 
   // Each row is a dt/dd pair on one line (valid <dl>), the icon in the dt at the row's left.
   const row = (key: string, icon: ReactNode, label: string, value: ReactNode) => (
-    <div key={key} className="relative flex min-h-7 items-center gap-1.5 pl-[5.5rem] text-[1rem]">
+    <div key={key} className="relative flex min-h-7 items-center gap-1.5 pl-10 text-[1rem]">
       {/* The colon is drawn by CSS, so the term itself stays just its name. */}
       <dt className="text-fg-muted after:content-[':']">
         <span aria-hidden className="absolute top-1/2 left-0 flex -translate-y-1/2 text-jade-700">
@@ -158,18 +178,19 @@ export async function AttributeRows({ product }: { product: ProductDetailDto }) 
   return (
     <section aria-label={t('characteristics')} className="mt-10 border-b border-line pb-8">
       <dl className="space-y-6">
-        {characteristics.map(({ attribute, value }) =>
-          row(attribute.key, <Leaf className="h-6 w-6" />, attribute.label, value),
-        )}
+        {characteristics.map(({ attribute, value }) => {
+          const Icon = ATTRIBUTE_ICONS[attribute.key] ?? Ruler;
+          return row(attribute.key, <Icon className="h-6 w-6" />, attribute.label, value);
+        })}
         {caffeine
           ? row(
               'caffeine',
-              <span className="flex gap-2">
+              <span className="flex gap-1">
                 {[1, 2, 3].map((dot) => (
                   <span
                     key={dot}
                     className={cn(
-                      'h-4 w-4 rounded-full',
+                      'h-2 w-2 rounded-full',
                       dot <= CAFFEINE_DOTS[caffeine] ? 'bg-jade-700' : 'bg-jade-200',
                     )}
                   />
@@ -180,34 +201,6 @@ export async function AttributeRows({ product }: { product: ProductDetailDto }) 
             )
           : null}
       </dl>
-    </section>
-  );
-}
-
-/**
- * How to brew the product, read as the brewing gauge (components/brand/brewing-gauge.tsx, ADR-051):
- * the amount of leaf as leaves, the water's temperature and the time as ranges on rulers, in the
- * tea's pack colour (TERAN's five) or its family's ink. The same instrument as the home page's
- * five-tea stage, so two products can be compared the same way everywhere.
- */
-export async function PreparationSection({ product }: { product: ProductDetailDto }) {
-  const tb = await getTranslations('Brewing');
-  const measures = brewingMeasures(product.brewing, tb);
-  if (measures.length === 0) return null;
-  const code = teaCodeOf(product.slug);
-  const colour = code ? PACK_COLOURS[code] : productFamily(product.illustrationKey).ink;
-  return (
-    <section
-      aria-labelledby="preparation"
-      className="mt-12 grid grid-cols-1 gap-x-12 gap-y-7 border-b border-line pb-12 lg:grid-cols-12 lg:items-end"
-    >
-      <h2
-        id="preparation"
-        className="font-heading text-[1.5rem] leading-[1.2] text-fg sm:text-[2rem] lg:col-span-4"
-      >
-        {tb('method')}
-      </h2>
-      <BrewingGauge measures={measures} colour={colour} size="lg" className="lg:col-span-8" />
     </section>
   );
 }
@@ -269,15 +262,16 @@ function DifferenceNote({
 }
 
 /**
- * The reference's "difference" section under the related products: a condensed heading, the
- * brand's line and the product in a large circle with short notes around it, two words each and
- * an arrow towards it. Here the pack's four values (natural product, refined taste…).
+ * The reference's "difference" section under the related products, for TERAN's own teas only
+ * (their pack prints these values): a condensed heading and the pouch in a large circle on its
+ * own colour, with the pack's four values around it (natural product, refined taste…), two words
+ * each and an arrow towards it. The brand's sentence stays in the footer, not repeated here.
  */
 export async function DifferenceSection({ product }: { product: ProductDetailDto }) {
   const locale = (await getLocale()) as Locale;
   const t = await getTranslations('Product');
-  const copy = brandCopy[locale];
   const labels = brandValueLabels[locale];
+  const code = teaCodeOf(product.slug);
   const image =
     product.images.find((candidate) => candidate.transparent) ?? product.images[0] ?? null;
   const sources = image ? imageSources(image, 960) : null;
@@ -293,9 +287,6 @@ export async function DifferenceSection({ product }: { product: ProductDetailDto
       >
         {t('differenceTitle')}
       </h2>
-      <p className="mx-auto mt-5 max-w-[27rem] text-[1rem] leading-[1.6] text-fg">
-        {copy.description}
-      </p>
       <div className="mt-10 grid grid-cols-2 items-center gap-x-6 gap-y-10 lg:grid-cols-[1fr_minmax(0,34rem)_1fr] lg:gap-10">
         <div className="order-2 space-y-16 lg:order-1">
           <DifferenceNote note={notes[0]!} side="left" low={false} />
@@ -303,7 +294,10 @@ export async function DifferenceSection({ product }: { product: ProductDetailDto
         </div>
         <div className="order-1 col-span-2 mx-auto w-full max-w-[34rem] lg:order-2 lg:col-span-1">
           <div className="relative aspect-square rounded-full bg-ivory-200 p-[7%]">
-            <div className="relative h-full w-full overflow-hidden rounded-full bg-jade-700">
+            <div
+              className="relative h-full w-full overflow-hidden rounded-full bg-jade-700"
+              style={code ? { backgroundColor: teaTint(PACK_COLOURS[code]) } : undefined}
+            >
               {image && sources ? (
                 // eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009)
                 <img

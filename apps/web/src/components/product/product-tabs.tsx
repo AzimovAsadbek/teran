@@ -45,8 +45,8 @@ export function ProductTabs({ tabs, label }: { tabs: ProductTab[]; label: string
         role="tablist"
         aria-label={label}
         onKeyDown={onKeyDown}
-        // One row that scrolls sideways on narrow screens instead of wrapping.
-        className="-mx-frame flex gap-x-6 overflow-x-auto px-frame [scrollbar-width:none] sm:mx-0 sm:gap-x-7 sm:px-0 [&::-webkit-scrollbar]:hidden"
+        // Every tab in sight: a second line rather than tabs scrolled out of view.
+        className="flex flex-wrap gap-x-6 gap-y-1 sm:gap-x-7"
       >
         {tabs.map((tab, index) => (
           <button

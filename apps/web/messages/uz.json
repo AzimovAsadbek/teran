@@ -400,7 +400,7 @@
       "basedOn": "{count, plural, other {# ta baho asosida}}",
       "averageLabel": "Oʻrtacha baho: {average} / 5",
       "barLabel": "{stars} yulduz: {count, plural, other {# ta baho}}",
-      "empty": "Hali sharh yoʻq. Bu choyni birinchi boʻlib baholang!",
+      "empty": "Hali sharh yoʻq. Birinchi boʻlib baholang!",
       "verified": "Xarid qilgan",
       "starsOutOf": "{count} / 5 yulduz",
       "more": "Yana koʻrsatish",

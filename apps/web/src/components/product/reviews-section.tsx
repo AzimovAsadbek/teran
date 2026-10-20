@@ -131,6 +131,31 @@ export async function ReviewsSection({
 }) {
   const t = await getTranslations('Product');
   const summary = reviews?.summary ?? EMPTY;
+  if (summary.count === 0 && !(reviews && reviews.items.length > 0)) {
+    // Before the first rating: one line and the way to rate, not a breakdown of zeros.
+    return (
+      <section
+        id="reviews"
+        aria-labelledby="reviews-title"
+        className="mt-12 scroll-mt-36 border-t border-line pt-8 sm:mt-16 sm:pt-10"
+      >
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center lg:gap-16">
+          <div>
+            <h2
+              id="reviews-title"
+              className="font-heading text-[1.75rem] leading-tight text-fg sm:text-[2rem]"
+            >
+              {t('reviews.title')}
+            </h2>
+            <p className="mt-2 text-body text-fg-muted">{t('reviews.empty')}</p>
+          </div>
+          <Suspense fallback={<div className="h-28 rounded-tile bg-surface-muted" aria-hidden />}>
+            <ReviewFormSlot slug={slug} />
+          </Suspense>
+        </div>
+      </section>
+    );
+  }
   return (
     <section
       id="reviews"

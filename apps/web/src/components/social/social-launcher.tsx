@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import type { SocialLink } from '@/lib/contact';
 import { cn } from '@/lib/cn';
+import { useFloatingPlace } from '@/lib/floating';
 import { NETWORK_NAMES, SocialIcon } from './social-icon';
 
 /**
@@ -21,6 +22,8 @@ export function SocialLauncher({ links }: { links: SocialLink[] }) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  // It steps aside for an action or a form in its corner, and rises above a sticky bar.
+  const place = useFloatingPlace();
 
   useEffect(() => {
     if (!open) return;
@@ -45,7 +48,11 @@ export function SocialLauncher({ links }: { links: SocialLink[] }) {
     // The floating button's corner: 20 px in on phones, 30 px from 640 px.
     <div
       ref={rootRef}
-      className="fixed right-5 bottom-5 z-[60] sm:right-[1.875rem] sm:bottom-[1.875rem] print:hidden"
+      className={cn(
+        'fixed right-5 bottom-5 z-[60] transition-[opacity,translate] duration-300 ease-[var(--ease-standard)] sm:right-[1.875rem] sm:bottom-[1.875rem] print:hidden',
+        place === 'yield' && !open && 'pointer-events-none translate-y-2 opacity-0',
+        place === 'raised' && '-translate-y-[4.75rem]',
+      )}
     >
       {open ? (
         <ul

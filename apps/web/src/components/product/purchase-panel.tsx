@@ -11,6 +11,7 @@ import { radioDotClasses } from '@/components/ui/field';
 import { Price } from '@/components/ui/price';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { cn } from '@/lib/cn';
+import { useFloatingBar, usePrimaryAction } from '@/lib/floating';
 import { formatMoney, multiplyMoney, packLabel } from '@/lib/format';
 import { imageSources } from '@/lib/navigation';
 import { useApiErrorMessage } from '@/lib/use-api-error-message';
@@ -46,6 +47,8 @@ export function PurchasePanel({
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  // The floating contact disc steps aside for the button and rises above the bar (lib/floating).
+  usePrimaryAction(buttonRef);
   const [scrolledPast, setScrolledPast] = useState(false);
 
   const variant = variants.find((candidate) => candidate.id === variantId) ?? variants[0];
@@ -75,6 +78,8 @@ export function PurchasePanel({
     observer.observe(button);
     return () => observer.disconnect();
   }, []);
+
+  useFloatingBar(scrolledPast && variant !== undefined && variant.stockLevel !== 'out_of_stock');
 
   if (!variant) return null;
   const soldOut = variant.stockLevel === 'out_of_stock';

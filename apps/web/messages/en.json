@@ -400,7 +400,7 @@
       "basedOn": "{count, plural, one {Based on # rating} other {Based on # ratings}}",
       "averageLabel": "Average rating: {average} out of 5",
       "barLabel": "{stars, plural, one {# star} other {# stars}}: {count, plural, one {# rating} other {# ratings}}",
-      "empty": "No reviews yet. Be the first to rate this tea!",
+      "empty": "No reviews yet. Be the first to rate it!",
       "verified": "Verified buyer",
       "starsOutOf": "{count} out of 5 stars",
       "more": "Show more",
@@ -420,7 +420,7 @@
       "hidden": "A moderator has hidden this review from the site.",
       "deleted": "Your rating was deleted.",
       "deleteConfirm": "Delete your rating?",
-      "signInPrompt": "Sign in to rate this tea.",
+      "signInPrompt": "Sign in to leave a rating.",
       "signIn": "Sign in",
       "register": "Create an account",
       "staffNote": "Staff accounts cannot rate products: only customers do."

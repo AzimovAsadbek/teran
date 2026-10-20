@@ -823,6 +823,34 @@
     }
   }
 
+  /* UNFURL for a disclosure (questions on the for-business page, the help centre): its leaf opens
+     from curled as it opens, and where the browser can animate a details element's height, the
+     answer unrolls with it; elsewhere it opens at once. */
+  .unfurl-details {
+    interpolate-size: allow-keywords;
+  }
+  .unfurl-details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 450ms var(--ease-out-expo),
+      content-visibility 450ms allow-discrete;
+  }
+  .unfurl-details[open]::details-content {
+    block-size: auto;
+  }
+  .unfurl-mark {
+    rotate: -35deg;
+    scale: 0.8;
+    transition:
+      rotate 500ms var(--ease-out-expo),
+      scale 500ms var(--ease-out-expo);
+  }
+  .unfurl-details[open] .unfurl-mark {
+    rotate: 0deg;
+    scale: 1;
+  }
+
   /* LIGHT on arrival (the product page's first picture of glass or a gift box): one pass across
      it once the page has loaded, then out of sight; nothing with reduced motion. */
   .light-pass {

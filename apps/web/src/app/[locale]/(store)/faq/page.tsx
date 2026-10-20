@@ -52,7 +52,7 @@ export default async function HelpCentrePage() {
         <div className="mx-auto flex h-full max-w-[75rem] flex-col items-center px-4 pt-[4.5rem] min-[48rem]:pt-[5.125rem]">
           <h1
             id="help-title"
-            className="font-heading text-center text-[1.5rem] leading-8 tracking-[-0.025rem] text-balance text-[#003142] lowercase [--display-weight:700] min-[48rem]:text-[2.5rem] min-[48rem]:leading-[2.75rem]"
+            className="font-heading text-center text-[1.5rem] leading-8 tracking-[-0.025rem] text-balance text-[#003142] [--display-weight:700] min-[48rem]:text-[2.5rem] min-[48rem]:leading-[2.75rem]"
           >
             {t('bannerTitle')}
           </h1>

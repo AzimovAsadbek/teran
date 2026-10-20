@@ -4,15 +4,15 @@ import { Notice } from '@/components/ui/notice';
 import { cn } from '@/lib/cn';
 
 /**
- * Header of the information pages on the reference's templates.
- * - `light` (help and policy pages): the reference's page banner: a warm pale band (320 px on
- *   phones, 260 px from 750 px) with the title in the soft serif, 40 px, in lower case; an intro,
- *   when a page has one, sits centred under it. `size="large"` is a taller band (400 px from
- *   750 px) with an 18 px tagline, 600 px wide.
- * - `teal`: the same band in the brand's teal with white words (Tea 101); its tagline runs 1000 px
- *   wide.
- * - `brand` (journal, business): a brand-coloured band, or with `image` a full-bleed picture under a
- *   green veil, with a large soft-serif title and a short line, as its blog header.
+ * The opening of an information page, in the home page's type (ADR-051): the title in the soft
+ * serif in sentence case (never forced to lower case: in Russian and Uzbek that reads as a
+ * typo), left-aligned at the page's margin, as the largest words on the page, with a short
+ * standfirst at a reading measure under it.
+ * - `light` (help and policy pages, the store locator): on the pale grey of quiet surfaces.
+ *   `size="large"` gives the title more room.
+ * - `teal`: the same on the brand's deep teal with white words.
+ * - `brand` (journal): a brand-coloured band, or with `image` a full-bleed picture under a green
+ *   veil, with a large title and a short line.
  */
 export function PageHeader({
   eyebrow,
@@ -30,24 +30,22 @@ export function PageHeader({
   /** A full-bleed picture (TERAN's own artwork) behind the words (brand tone). */
   image?: StaticImageData;
   tone?: 'light' | 'teal' | 'brand';
-  /** The light band's height and intro (see above). */
+  /** A larger title (see above). */
   size?: 'default' | 'large';
   children?: ReactNode;
 }) {
   if (tone === 'light' || tone === 'teal') {
     const teal = tone === 'teal';
     return (
-      <header className={teal ? 'on-dark bg-[#107e84] text-white' : 'bg-[#f2f1e9]'}>
-        <div
-          className={cn(
-            'flex min-h-[20rem] flex-col items-center justify-center px-4 py-10 text-center min-[46.875rem]:px-10',
-            size === 'large' ? 'min-[46.875rem]:min-h-[25rem]' : 'min-[46.875rem]:min-h-[16.25rem]',
-          )}
-        >
+      <header className={teal ? 'on-dark bg-teal-ink text-ivory-50' : 'bg-ivory-100'}>
+        <div className="container-page pt-10 pb-10 sm:pt-14 sm:pb-12 lg:pt-16 lg:pb-14">
           <h1
             className={cn(
-              'font-heading text-[2.5rem] leading-10 text-balance lowercase hyphens-auto [overflow-wrap:anywhere]',
-              teal ? 'text-white' : 'text-[#333]',
+              'max-w-[24ch] font-heading leading-[1.05] text-balance hyphens-auto [overflow-wrap:anywhere]',
+              size === 'large'
+                ? 'text-[clamp(2.5rem,1.6rem+3.4vw,4.5rem)]'
+                : 'text-[clamp(2.25rem,1.6rem+2.6vw,3.75rem)]',
+              teal ? 'text-ivory-50' : 'text-fg',
             )}
           >
             {title}
@@ -55,12 +53,8 @@ export function PageHeader({
           {intro ? (
             <div
               className={cn(
-                'text-balance',
-                teal ? 'text-white' : 'text-[#333]',
-                size === 'large'
-                  ? 'mt-[0.7rem] text-[1.125rem] leading-[1.8rem] font-semibold'
-                  : 'mt-4 max-w-[46rem] text-[1rem] leading-[1.6rem] font-medium',
-                size === 'large' && (teal ? 'max-w-[62.5rem]' : 'max-w-[37.5rem]'),
+                'mt-4 max-w-[40rem] text-[1.125rem] leading-[1.6] text-pretty sm:text-[1.25rem]',
+                teal ? 'text-ivory-50/90' : 'text-fg-muted',
               )}
             >
               {intro}

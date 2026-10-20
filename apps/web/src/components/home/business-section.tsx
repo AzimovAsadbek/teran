@@ -22,25 +22,25 @@ import { BusinessIndex, type BusinessCase } from './business-index';
 /**
  * The kinds of business, in the order a visitor scans them, each with the picture of the
  * for-business page that already shows it (Admin → Settings): the tray for hotels, the tasting
- * table for cafés and restaurants, the open baskets for distributors. Shops and gifts show
- * TERAN's own five pouches: the for-business page's shop picture is a Japanese tea shop, its
- * labels priced in yen.
+ * table for cafés and restaurants. Shops, distributors and gifts show TERAN's own five pouches —
+ * on a shop's shelves, as stock, fanned out as a gift: the for-business page's shop and basket
+ * pictures carry other shops' labels and prices (a Japanese shop's yen, a Chinese shop's yuan).
  */
 const CASES: {
   type: Exclude<BusinessType, 'OTHER'>;
   slot: string | null;
-  /** TERAN's pouches when the place has no picture: on a shelf for shops, fanned out as a gift. */
-  packs: 'shelf' | 'fan';
+  /** TERAN's pouches when the place has no picture: on a shelf, as stock, fanned out as a gift. */
+  packs: 'shelf' | 'stock' | 'fan';
 }[] = [
   { type: 'HOTEL', slot: 'wholesale.card.2', packs: 'fan' },
   { type: 'CAFE_RESTAURANT', slot: 'wholesale.community', packs: 'fan' },
   { type: 'RETAIL', slot: null, packs: 'shelf' },
-  { type: 'DISTRIBUTOR', slot: 'wholesale.card.1', packs: 'fan' },
+  { type: 'DISTRIBUTOR', slot: null, packs: 'stock' },
   { type: 'CORPORATE', slot: null, packs: 'fan' },
 ];
 
 /** The five pouches in the collection's order. */
-const PACKS: { code: string; image: StaticImageData }[] = [
+export const PACKS: { code: string; image: StaticImageData }[] = [
   { code: 'XC2025', image: packXc2025 },
   { code: 'G8810', image: packG8810 },
   { code: '8800', image: pack8800 },
@@ -80,8 +80,47 @@ function PackShelf({ compact = false }: { compact?: boolean }) {
   );
 }
 
+/**
+ * The five pouches as stock for the regions: two rows of them standing close on kraft paper, the
+ * back row a step higher and smaller (the small picture: one row of three).
+ */
+function PackStock({ compact = false }: { compact?: boolean }) {
+  const rows = compact ? [PACKS.slice(0, 3)] : [PACKS, [...PACKS.slice(2), ...PACKS.slice(0, 2)]];
+  return (
+    <span
+      className={cn(
+        'absolute inset-0 flex flex-col items-center justify-end bg-[#e8dfcf]',
+        compact ? 'pb-[18%]' : 'pb-[14%]',
+      )}
+    >
+      {rows.map((packs, row) => (
+        <span
+          key={row}
+          className={cn(
+            'relative flex items-end justify-center',
+            !compact && row === 0 && 'z-0 mb-[-18%] w-[78%] opacity-90',
+            !compact && row === 1 && 'z-[1] w-[94%]',
+            compact && 'w-[92%]',
+          )}
+        >
+          {packs.map((pack) => (
+            <span key={pack.code} className="relative -mx-[1.5%] block w-full">
+              <Image
+                src={pack.image}
+                alt=""
+                sizes={compact ? '2rem' : '7rem'}
+                className="h-auto w-full drop-shadow-[0_12px_14px_rgb(60_40_10_/_0.25)]"
+              />
+            </span>
+          ))}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** The five pouches fanned out on a warm ground: TERAN's packs as a gift. */
-function PackFan({ compact = false }: { compact?: boolean }) {
+export function PackFan({ compact = false }: { compact?: boolean }) {
   const packs = compact ? PACKS.slice(0, 3) : PACKS;
   return (
     <span className="absolute inset-0 flex items-end justify-center bg-cream pb-[12%]">
@@ -137,15 +176,19 @@ async function BusinessWithSettings() {
   return <BusinessView settings={await getPublicSettings(locale).catch(() => null)} />;
 }
 
-async function BusinessView({ settings }: { settings: PublicSettingsDto | null }) {
-  const locale = (await rootParams.locale()) as Locale;
+/**
+ * The kinds of business with their pictures and their way to the request form (their kind chosen):
+ * the home page's index and the for-business page's show the same.
+ */
+export async function businessCases(
+  settings: PublicSettingsDto | null,
+  locale: Locale,
+): Promise<BusinessCase[]> {
   const tw = await getTranslations({ locale, namespace: 'Wholesale' });
   const page = wholesalePage[locale];
-  const phone = phoneLinks(settings?.contact)[0] ?? null;
-
-  const cases: BusinessCase[] = CASES.map(({ type, slot, packs }) => {
+  return CASES.map(({ type, slot, packs }) => {
     const visual = slot ? visualFor(settings, slot) : null;
-    const Packs = packs === 'shelf' ? PackShelf : PackFan;
+    const Packs = packs === 'shelf' ? PackShelf : packs === 'stock' ? PackStock : PackFan;
     return {
       type,
       label: tw(`segments.${type}`),
@@ -159,6 +202,13 @@ async function BusinessView({ settings }: { settings: PublicSettingsDto | null }
       thumb: visual ? <VisualPicture visual={visual} sizes="6rem" /> : <Packs compact />,
     };
   });
+}
+
+async function BusinessView({ settings }: { settings: PublicSettingsDto | null }) {
+  const locale = (await rootParams.locale()) as Locale;
+  const page = wholesalePage[locale];
+  const phone = phoneLinks(settings?.contact)[0] ?? null;
+  const cases = await businessCases(settings, locale);
 
   return (
     <section aria-labelledby="business-title" className="bg-teal-ink text-ivory-50">

@@ -157,7 +157,7 @@ export default async function TeaBasicsPage() {
             />
             <h2
               id={`tea-${type.key}`}
-              className="font-heading text-[2rem] leading-[2.4rem] text-[#191919] lowercase"
+              className="font-heading text-[2rem] leading-[2.4rem] text-[#191919]"
             >
               {t(`types.${type.key}.title`)}
             </h2>

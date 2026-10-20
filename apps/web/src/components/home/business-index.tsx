@@ -23,7 +23,17 @@ export interface BusinessCase {
  * `.wipe-layer`; changed without the wipe with reduced motion); on phones each row carries its
  * own small picture.
  */
-export function BusinessIndex({ title, cases }: { title: string; cases: BusinessCase[] }) {
+export function BusinessIndex({
+  title,
+  cases,
+  headingLevel = 'h3',
+}: {
+  title: string;
+  cases: BusinessCase[];
+  /** The index's own heading: under the home section's title (h3) or a page's (h2). */
+  headingLevel?: 'h2' | 'h3';
+}) {
+  const Heading = headingLevel;
   const [active, setActive] = useState(0);
   // The framed window shows from 1024 px, the small pictures below it: each renders (and loads)
   // only on the screens that show it, once the screen is known.
@@ -48,7 +58,9 @@ export function BusinessIndex({ title, cases }: { title: string; cases: Business
       </div>
 
       <div className="min-w-0 lg:col-span-7">
-        <h3 className="font-headline text-[1rem] tracking-[0.12em] text-sun uppercase">{title}</h3>
+        <Heading className="font-headline text-[1rem] tracking-[0.12em] text-sun uppercase">
+          {title}
+        </Heading>
         <ul className="mt-4 border-b border-ivory-50/20">
           {cases.map((item, index) => (
             <li key={item.type} className="border-t border-ivory-50/20">

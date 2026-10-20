@@ -68,8 +68,20 @@ export async function getProductList(locale: Locale, query: string): Promise<Pro
   cacheTag('catalog');
   const separator = query ? '&' : '';
   return listPrices(
-    await apiGet<ProductListDto>(`/catalog/products?locale=${locale}${separator}${query}`),
+    withFacetDefaults(
+      await apiGet<ProductListDto>(`/catalog/products?locale=${locale}${separator}${query}`),
+    ),
   );
+}
+
+/**
+ * Facets an API from before their filter existed does not send (caffeine, ADR-050) are empty, so
+ * a storefront deployed ahead of its API offers that filter no options instead of failing every
+ * listing page.
+ */
+function withFacetDefaults(list: ProductListDto): ProductListDto {
+  const facets: Partial<ProductListDto['facets']> = list.facets;
+  return { ...list, facets: { ...list.facets, caffeine: facets.caffeine ?? [] } };
 }
 
 /** Null when no public product has this slug (unknown, draft, archived or unpublished). */

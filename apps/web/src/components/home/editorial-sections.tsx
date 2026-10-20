@@ -868,11 +868,12 @@ export async function ValuesBanner({
 /* ── 16. Pair ────────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Two columns, picture over words: the journal's two newest articles (featured first, those with
- * a cover before those without), as the reference's pair. Each card shows its article's own
- * cover, so the page it opens starts with the same picture; an article without a cover shows its
- * illustration, as its page does. Each picture leads where its pill does. (The business card that
- * stood here is now the home page's own business section, components/home/business-section.tsx.)
+ * Two columns, picture over words: the journal's two newest articles with their own photographs
+ * (featured first), as the reference's pair; with only one such article (or none, then the newest
+ * with its illustration), that article alone, its picture beside its words on wide screens. Each
+ * card shows its article's own cover, so the page it opens starts with the same picture. Each
+ * picture leads where its pill does. (The business card that stood here is now the home page's
+ * own business section, components/home/business-section.tsx.)
  */
 export async function PairSection() {
   await connection();
@@ -883,11 +884,12 @@ export async function PairSection() {
     getArticles(locale, 1, 6, true).catch(() => null),
   ]);
   const items = articles?.items ?? [];
-  const chosen = [
-    ...items.filter((item) => item.cover),
-    ...items.filter((item) => !item.cover),
-  ].slice(0, 2);
+  // Two articles with their own photographs side by side; with fewer, one article on its own,
+  // picture beside the words (an article without a cover is never set next to one that has one).
+  const covered = items.filter((item) => item.cover);
+  const chosen = covered.length > 0 ? covered.slice(0, 2) : items.slice(0, 1);
   if (chosen.length === 0) return null;
+  const single = chosen.length === 1;
   const pairSizes = '(min-width: 1024px) 45vw, 100vw';
 
   return (
@@ -911,14 +913,20 @@ export async function PairSection() {
       <ul
         className={cn(
           'mt-6 grid gap-x-4 gap-y-10 sm:gap-y-[3.125rem]',
-          chosen.length > 1 && 'lg:grid-cols-2',
+          !single && 'lg:grid-cols-2',
         )}
       >
         {chosen.map((article) => {
           const cover = article.cover ? imageSources(article.cover, 960) : null;
           const href = `/journal/${article.slug}`;
           return (
-            <li key={article.slug} className="flex flex-col">
+            <li
+              key={article.slug}
+              className={cn(
+                'flex flex-col',
+                single && 'lg:grid lg:grid-cols-2 lg:items-center lg:gap-x-12',
+              )}
+            >
               <Link
                 href={href}
                 tabIndex={-1}
@@ -946,18 +954,23 @@ export async function PairSection() {
                   )}
                 </span>
               </Link>
-              <h3 className="mt-4 font-heading text-[1.5rem] leading-[1.2] text-fg">
-                {article.title}
-              </h3>
-              <p className="mt-2 line-clamp-3 text-[1rem] leading-normal text-fg">
-                {article.excerpt ?? t('journalTitle')}
-              </p>
-              <Link
-                href={href}
-                className={cn(PILL, 'mt-4 h-12 self-start bg-forest-900 text-[1rem] text-ivory-50')}
-              >
-                {t('pairJournalCta')}
-              </Link>
+              <div className="flex flex-col">
+                <h3 className="mt-4 font-heading text-[1.5rem] leading-[1.2] text-fg lg:mt-0">
+                  {article.title}
+                </h3>
+                <p className="mt-2 line-clamp-3 text-[1rem] leading-normal text-pretty text-fg">
+                  {article.excerpt ?? t('journalTitle')}
+                </p>
+                <Link
+                  href={href}
+                  className={cn(
+                    PILL,
+                    'mt-4 h-12 self-start bg-forest-900 text-[1rem] text-ivory-50',
+                  )}
+                >
+                  {t('pairJournalCta')}
+                </Link>
+              </div>
             </li>
           );
         })}

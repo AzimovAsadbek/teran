@@ -59,12 +59,22 @@ export function ProductCard({
   priority = false,
   headingLevel = 'h3',
   sizes = PRODUCT_CARD_SIZES,
+  layout = 'card',
 }: {
   product: ProductSummaryDto;
   priority?: boolean;
   headingLevel?: 'h2' | 'h3';
   sizes?: string;
+  /**
+   * How it sits in a listing (catalog-results.tsx): a `card`; a horizontal `feature` (a listing
+   * of one or two); `feature-phone`, horizontal across a phone's two columns only (an odd last
+   * card); `lead`, two columns by two rows from 1024 px, so a last row is never one card alone.
+   */
+  layout?: 'card' | 'feature' | 'feature-phone' | 'lead';
 }) {
+  const feature = layout === 'feature';
+  const featurePhone = layout === 'feature-phone';
+  const lead = layout === 'lead';
   const t = useTranslations('Product');
   const tb = useTranslations('Brewing');
   const tc = useTranslations('Common');
@@ -86,7 +96,7 @@ export function ProductCard({
   const teaCode = teaCodeOf(product.slug);
   const packColour = teaCode ? PACK_COLOURS[teaCode] : null;
   // The family's presentation (product-family.ts): its mark, ink, field, ring and light.
-  const family = productFamily(product.illustrationKey);
+  const family = productFamily(product.illustrationKey, product.category.path);
   const FamilyIcon = family.icon;
   const packPrice = product.defaultVariant
     ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
@@ -132,9 +142,20 @@ export function ProductCard({
   ].filter((chip) => chip !== null);
 
   return (
-    <article className="group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-shadow duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)]">
+    <article
+      className={cn(
+        'group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-shadow duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)]',
+        feature && 'flex-row',
+        featurePhone && 'max-md:flex-row',
+      )}
+    >
       <div
-        className="group/gallery relative aspect-square overflow-hidden bg-surface"
+        className={cn(
+          'group/gallery relative aspect-square overflow-hidden bg-surface',
+          feature && 'w-[42%] shrink-0 self-start sm:w-[46%]',
+          featurePhone && 'max-md:w-[42%] max-md:shrink-0 max-md:self-start',
+          lead && 'lg:aspect-auto lg:min-h-0 lg:flex-1',
+        )}
         // A cut-out stands on its family's field; a photograph covers it.
         style={product.image?.transparent ? { backgroundColor: family.field } : undefined}
       >
@@ -226,7 +247,14 @@ export function ProductCard({
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col px-3 pt-3 pb-3 min-[46.875rem]:px-4 min-[46.875rem]:pt-3.5 min-[46.875rem]:pb-4">
+      <div
+        className={cn(
+          'flex flex-col px-3 pt-3 pb-3 min-[46.875rem]:px-4 min-[46.875rem]:pt-3.5 min-[46.875rem]:pb-4',
+          lead ? 'lg:flex-none' : 'flex-1',
+          feature && 'min-w-0 justify-center sm:px-7 sm:py-6',
+          featurePhone && 'max-md:min-w-0 max-md:justify-center',
+        )}
+      >
         <p
           className="flex h-5 min-w-0 items-center gap-1.5 text-[0.8125rem] leading-5 font-medium"
           style={{ color: family.ink }}
@@ -237,7 +265,17 @@ export function ProductCard({
           />
           <span className="truncate">{product.category.name}</span>
         </p>
-        <Heading className="mt-1 line-clamp-2 text-[1rem] leading-5 font-bold text-fg min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6">
+        <Heading
+          className={cn(
+            'mt-1 line-clamp-2 text-fg',
+            // Larger, in the soft serif, where the card has the room.
+            feature
+              ? 'text-[1rem] leading-5 font-bold min-[46.875rem]:font-heading min-[46.875rem]:text-[1.75rem] min-[46.875rem]:leading-tight min-[46.875rem]:font-normal'
+              : lead
+                ? 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6 lg:font-heading lg:text-[1.75rem] lg:leading-tight lg:font-normal'
+                : 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6',
+          )}
+        >
           {/* TERAN's teas are named in their pack's colour, as on the pouch. */}
           <Link
             href={href}
@@ -266,6 +304,17 @@ export function ProductCard({
             <span className="text-fg-subtle">{t('rateFirst')}</span>
           )}
         </Link>
+        {(feature || featurePhone || lead) && product.shortDescription ? (
+          <p
+            className={cn(
+              'mt-2 line-clamp-3 text-[0.875rem] leading-snug text-pretty text-fg-muted sm:text-[0.9375rem]',
+              featurePhone && 'md:hidden',
+              lead && 'max-lg:hidden',
+            )}
+          >
+            {product.shortDescription}
+          </p>
+        ) : null}
         {origin ? (
           <p className="mt-1 flex min-w-0 items-center gap-1 text-[0.8125rem] leading-5 text-fg-subtle">
             <MapPin aria-hidden className="h-3.5 w-3.5 shrink-0" />
@@ -302,12 +351,15 @@ export function ProductCard({
         ) : soldOut ? null : (
           // Without prices there is no bag: the button leads to the contact page, where every
           // channel to order by is (ADR-045), with this tea named in the message.
-          <div className="mt-auto pt-3.5">
+          <div className={cn('mt-auto pt-3.5', feature && 'sm:mt-5')}>
             <Link
               href={`/contact?tea=${encodeURIComponent(product.slug)}`}
               aria-label={t('orderAction', { name: product.name })}
               // A phone's half-width card keeps the whole word: smaller type, no arrow.
-              className="relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50"
+              className={cn(
+                'relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50',
+                feature && 'sm:w-auto sm:px-7',
+              )}
             >
               <span className="truncate">{t('orderNow')}</span>
               <ArrowRight aria-hidden className="hidden h-4 w-4 shrink-0 min-[46.875rem]:block" />

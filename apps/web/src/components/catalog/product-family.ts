@@ -102,7 +102,14 @@ const BY_KEY: Partial<Record<IllustrationKey, ProductFamily['key']>> = {
   gift: 'gift',
 };
 
-/** The family of a product (or category) by its illustration key; tea when it has none. */
-export function productFamily(key: IllustrationKey | null | undefined): ProductFamily {
+/**
+ * The family of a product (or category) by its illustration key; tea when it has none, and for
+ * anything listed under tea (a green tea with mint is a tea, not an infusion).
+ */
+export function productFamily(
+  key: IllustrationKey | null | undefined,
+  categoryPath?: string | null,
+): ProductFamily {
+  if (categoryPath === 'tea' || categoryPath?.startsWith('tea/')) return FAMILIES.tea;
   return FAMILIES[(key && BY_KEY[key]) || 'tea'];
 }

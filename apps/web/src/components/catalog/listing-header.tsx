@@ -7,14 +7,16 @@ import type {
 } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
+import Image, { type StaticImageData } from 'next/image';
 import type { CSSProperties, ReactNode } from 'react';
+import { PACK_IMAGES } from '@/components/brand/pack-images';
 import { CoverImage } from '@/components/content/cover-image';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { DemoNotice } from '@/components/ui/demo-notice';
+import { COLLECTION_CODES, PACK_COLOURS } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories, getProductList } from '@/lib/data/catalog';
-import { CategoryArt } from './category-art';
 import { ProductImage } from './product-image';
 import { productFamily, type ProductFamily } from './product-family';
 
@@ -38,39 +40,54 @@ const THEMES: Record<
   gift: { field: '--color-forest-950', ink: 'text-sun', text: 'text-ivory-50', dark: true },
 };
 
+/** The premium collection's warm paper (the tea stage's), its words in ink. */
+const PAPER = { field: '#f7f4ee', ink: 'text-fg', text: 'text-fg-muted', dark: false };
+
+/**
+ * How each family's colour arrives (ADR-051): tea, matcha and infusions STEEP in; the cold drinks'
+ * sky rises like a level (POUR); teaware and gift sets stand still under one pass of LIGHT.
+ */
+const MOTIONS: Record<ProductFamily['key'], 'steep' | 'pour' | 'light'> = {
+  tea: 'steep',
+  matcha: 'steep',
+  infusion: 'steep',
+  iced: 'pour',
+  water: 'pour',
+  juice: 'pour',
+  teaware: 'light',
+  gift: 'light',
+};
+
 /**
  * The shade the family's colour steeps over: a little deeper for the dark fields, a little paler
  * for the light ones, so the words read on both while the colour spreads.
  */
-function baseOf(theme: (typeof THEMES)[ProductFamily['key']], key: ProductFamily['key']): string {
-  if (key === 'gift') return `color-mix(in oklab, var(${theme.field}) 86%, var(--color-sun))`;
+function baseOf(theme: { field: string; dark: boolean }, key: ProductFamily['key']): string {
+  const field = theme.field.startsWith('#') ? theme.field : `var(${theme.field})`;
+  if (key === 'gift') return `color-mix(in oklab, ${field} 86%, var(--color-sun))`;
   return theme.dark
-    ? `color-mix(in oklab, var(${theme.field}) 80%, black)`
-    : `color-mix(in oklab, var(${theme.field}) 62%, white)`;
+    ? `color-mix(in oklab, ${field} 80%, black)`
+    : `color-mix(in oklab, ${field} 62%, white)`;
 }
 
-/** How the pictures stand in the header: turned, raised and in which order (the middle in front). */
-const FAN = [
-  { turn: -7, rise: 6, z: 1 },
-  { turn: 2, rise: 0, z: 3 },
-  { turn: 8, rise: 9, z: 2 },
-];
-
 /**
- * Up to three of a listing's own products as the header's pictures: a TERAN tea by its pack
- * standing cut out, any other product by its photograph. Nothing when the listing is empty or the
- * API is unavailable (the header then keeps its art).
+ * Up to three of a listing's own products as the header's pictures — only from beyond its first
+ * two rows, so the header never shows what the grid opens with (the owner's rule against repeated
+ * blocks): a listing of eight or fewer has none, and its header stands on its colour alone.
  */
 export async function listingPictures(
   locale: Locale,
   scope: { category?: string; collection?: string },
 ): Promise<ImageDto[]> {
-  const params = new URLSearchParams({ page: '1', pageSize: '3', sort: 'featured' });
+  const params = new URLSearchParams({ page: '1', pageSize: '11', sort: 'featured' });
   if (scope.category) params.set('category', scope.category);
   if (scope.collection) params.set('collection', scope.collection);
   params.sort();
   const list = await getProductList(locale, params.toString()).catch(() => null);
-  return (list?.items ?? [])
+  const items = list?.items ?? [];
+  if (items.length <= 8) return [];
+  return items
+    .slice(8)
     .map((product) => product.stageImage ?? product.image)
     .filter((image): image is ImageDto => image !== null)
     .slice(0, 3);
@@ -95,6 +112,8 @@ export function ListingHeader({
   image,
   banner,
   pictures = [],
+  leaf = null,
+  packs = false,
   still = false,
   children,
 }: {
@@ -108,6 +127,10 @@ export function ListingHeader({
   banner?: PublicVisualDto | null;
   /** The listing's own products' pictures (listingPictures), shown without a cover or banner. */
   pictures?: ImageDto[];
+  /** A kind of tea's own dry leaf (components/brand/leaf-images.ts), in a circle. */
+  leaf?: StaticImageData | null;
+  /** TERAN's five pouches standing in the pack order, on warm paper (the premium collection). */
+  packs?: boolean;
   /**
    * No entrance: for a header rendered twice (a static shell, then with its banner), where a
    * second entrance would replay the first; and for the catalogue as a whole, which has no family.
@@ -117,31 +140,46 @@ export function ListingHeader({
   children?: ReactNode;
 }) {
   const family = productFamily(illustrationKey);
-  const theme = THEMES[family.key];
-  const fan = !banner && !image && pictures.length > 0 ? pictures : null;
+  const theme = packs ? PAPER : THEMES[family.key];
+  const motion = packs ? 'set' : MOTIONS[family.key];
+  const fan = !banner && !image && !leaf && !packs && pictures.length > 0 ? pictures : null;
+  const field = banner ? null : (
+    // The family's colour: steeping in from the right, rising like a level (cold drinks), or
+    // still under one pass of light (teaware, gift sets) — and, once there, a pool of light
+    // where it came from.
+    <span
+      aria-hidden
+      className={cn(
+        'absolute inset-0 -z-20',
+        !still && motion === 'steep' && 'steep-in',
+        !still && motion === 'pour' && 'pour-in',
+      )}
+      style={
+        {
+          backgroundColor: theme.field.startsWith('#') ? theme.field : `var(${theme.field})`,
+          backgroundImage: `radial-gradient(ellipse 55% 85% at 84% 50%, rgb(255 255 255 / ${theme.dark ? 0.1 : 0.32}), transparent 70%)`,
+          '--steep-at': '88% 50%',
+        } as CSSProperties
+      }
+    />
+  );
   return (
     <header className="mt-3 sm:mt-5">
       <div
         className={cn(
-          'relative isolate flex min-h-[11rem] items-center overflow-hidden rounded-[1.5rem] sm:min-h-[13.5rem]',
+          'relative isolate overflow-hidden rounded-[1.5rem]',
+          packs
+            ? 'grid grid-cols-1 items-center sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]'
+            : 'flex min-h-[11rem] items-center sm:min-h-[13.5rem]',
           theme.dark && 'on-dark',
           banner ? 'bg-forest-900 text-ivory-50' : theme.ink,
         )}
         style={banner ? undefined : { backgroundColor: baseOf(theme, family.key) }}
       >
-        {banner ? null : (
-          // The family's colour, steeping in from the pictures' side.
-          <span
-            aria-hidden
-            className={cn('absolute inset-0 -z-20', !still && 'steep-in')}
-            style={
-              {
-                backgroundColor: `var(${theme.field})`,
-                '--steep-at': '88% 50%',
-              } as CSSProperties
-            }
-          />
-        )}
+        {field}
+        {!still && motion === 'light' ? (
+          <span aria-hidden className="light-pass pointer-events-none absolute inset-0 -z-10" />
+        ) : null}
         {banner ? (
           <div aria-hidden className="absolute inset-0 -z-10">
             <VisualPicture
@@ -152,73 +190,75 @@ export function ListingHeader({
             {/* Keeps the white title readable over a light picture. */}
             <span className="absolute inset-0 bg-linear-to-r from-forest-950/60 via-forest-950/20 to-transparent" />
           </div>
+        ) : leaf ? (
+          <div
+            aria-hidden
+            className="absolute inset-y-0 right-[4%] -z-10 flex items-center sm:right-[7%]"
+          >
+            <span
+              className={cn(
+                'relative block size-[7.5rem] overflow-hidden rounded-full shadow-[0_18px_36px_-14px_rgb(0_0_0_/_0.45)] ring-4 ring-ivory-50/85 sm:size-[11rem]',
+                !still && 'unfurl-in',
+              )}
+            >
+              <Image
+                src={leaf}
+                alt=""
+                fill
+                sizes="(min-width: 640px) 11rem, 7.5rem"
+                className="object-cover"
+              />
+            </span>
+          </div>
         ) : fan ? (
           <div
             aria-hidden
             className="absolute inset-y-0 right-0 -z-10 flex w-[46%] items-center justify-center pr-[3%] sm:w-[44%] lg:w-[40%]"
           >
-            {fan.map((picture, index) => {
-              const place = FAN[fan.length === 1 ? 1 : index]!;
-              return (
-                <span
-                  key={picture.src}
-                  className={cn(
-                    'relative -mx-[6%] block w-[46%] shrink-0 sm:w-[34%]',
-                    !still && 'set-down',
-                    index > 1 && 'max-sm:hidden',
-                    picture.transparent
-                      ? 'aspect-[3/4] drop-shadow-[0_18px_18px_rgb(0_0_0_/_0.28)]'
-                      : 'aspect-square overflow-hidden rounded-[1.25rem] shadow-[0_18px_36px_-14px_rgb(0_0_0_/_0.45)] ring-4 ring-white/85',
-                  )}
-                  style={
-                    {
-                      zIndex: place.z,
-                      rotate: `${place.turn}deg`,
-                      translate: `0 ${place.rise}%`,
-                      '--i': index,
-                    } as CSSProperties
-                  }
-                >
-                  <ProductImage
-                    image={picture}
-                    name=""
-                    sizes="(min-width: 640px) 12rem, 7rem"
-                    decorative
-                  />
-                </span>
-              );
-            })}
+            {fan.map((picture, index) => (
+              <span
+                key={picture.src}
+                className={cn(
+                  'relative -mx-[3%] block aspect-square w-[46%] shrink-0 overflow-hidden rounded-[1.25rem] shadow-[0_18px_36px_-14px_rgb(0_0_0_/_0.45)] sm:w-[32%]',
+                  !still && 'set-down',
+                  index > 1 && 'max-sm:hidden',
+                )}
+                style={{ zIndex: index === 1 ? 2 : 1, '--i': index } as CSSProperties}
+              >
+                <ProductImage
+                  image={picture}
+                  name=""
+                  sizes="(min-width: 640px) 12rem, 7rem"
+                  decorative
+                />
+              </span>
+            ))}
           </div>
-        ) : (
+        ) : image ? (
           <div
             aria-hidden
             className="cat-card absolute inset-y-0 right-0 -z-10 w-[62%] opacity-60 sm:w-[52%] sm:opacity-100"
           >
-            {image ? (
-              <CoverImage
-                image={image}
-                sizes="(min-width: 1024px) 40vw, 60vw"
-                priority
-                cutoutInset="p-4"
-              />
-            ) : (
-              <CategoryArt
-                category={{ image: null, illustrationKey: illustrationKey ?? null }}
-                sizes="20rem"
-              />
-            )}
-            {/* Keeps the title readable where the art reaches under it (the teal it sits on). */}
+            <CoverImage
+              image={image}
+              sizes="(min-width: 1024px) 40vw, 60vw"
+              priority
+              cutoutInset="p-4"
+            />
+            {/* Keeps the title readable where the cover reaches under it (the teal it sits on). */}
             {theme.dark && family.key === 'tea' ? (
               <span className="absolute inset-0 bg-linear-to-r from-forest-900 via-forest-900/40 to-transparent sm:via-forest-900/10" />
             ) : null}
           </div>
-        )}
+        ) : null}
         <div
           className={cn(
             'px-6 py-8 sm:px-10',
-            fan
-              ? 'max-w-[56%] sm:max-w-[54%] lg:max-w-[50%]'
-              : 'max-w-[min(36rem,80%)] lg:max-w-[48%]',
+            packs
+              ? 'sm:py-10'
+              : fan || leaf
+                ? 'max-w-[60%] sm:max-w-[58%] lg:max-w-[52%]'
+                : 'max-w-[min(40rem,88%)] lg:max-w-[56%]',
           )}
         >
           {eyebrow ? (
@@ -228,7 +268,7 @@ export function ListingHeader({
           ) : null}
           <h1
             className={cn(
-              'font-headline text-[2.25rem] leading-[1.15] break-words [--heading-case:none] [--headline-weight:600] [hyphens:auto] sm:text-[3.125rem] lg:text-[3.75rem]',
+              'font-headline text-[2.25rem] leading-[1.15] text-balance break-words [--heading-case:none] [--headline-weight:600] sm:text-[3.125rem] lg:text-[3.75rem]',
               banner ? 'text-ivory-50' : theme.ink,
             )}
           >
@@ -237,7 +277,7 @@ export function ListingHeader({
           {description ? (
             <p
               className={cn(
-                'mt-3 line-clamp-3 max-w-[34rem] text-[1rem] leading-normal text-pretty',
+                'mt-3 max-w-[34rem] text-[1rem] leading-normal text-pretty sm:line-clamp-3',
                 banner ? 'text-ivory-50' : theme.text,
               )}
             >
@@ -245,6 +285,36 @@ export function ListingHeader({
             </p>
           ) : null}
         </div>
+        {packs ? (
+          // TERAN's five standing in the pack order, each code in its pack's colour beneath it.
+          <ul
+            aria-hidden
+            className="flex items-end justify-center gap-1 px-4 pb-7 sm:gap-2 sm:px-8 sm:py-8"
+          >
+            {COLLECTION_CODES.map((code, index) => (
+              <li key={code} className="flex w-1/5 max-w-[7.5rem] flex-col items-center gap-2">
+                <span
+                  className={cn('block w-full', !still && 'set-down')}
+                  style={{ '--i': index } as CSSProperties}
+                >
+                  <Image
+                    src={PACK_IMAGES[code]}
+                    alt=""
+                    priority={index === 0}
+                    sizes="(min-width: 640px) 7.5rem, 18vw"
+                    className="h-auto w-full drop-shadow-[0_16px_16px_rgb(32_24_8_/_0.3)]"
+                  />
+                </span>
+                <span
+                  className="font-headline text-[0.875rem] tracking-[0.02em] sm:text-[1.125rem]"
+                  style={{ color: PACK_COLOURS[code] }}
+                >
+                  {code}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       {children}
       <DemoNotice variant="inline" className="mt-4" />
@@ -252,10 +322,11 @@ export function ListingHeader({
   );
 }
 
+/** The header's footprint while it loads: the same size and corners, in a neutral grey. */
 export function ListingHeaderSkeleton({ chips = true }: { chips?: boolean }) {
   return (
     <div aria-hidden className="mt-3 sm:mt-5">
-      <div className="h-[11rem] animate-pulse rounded-tile bg-forest-900/85 motion-reduce:animate-none sm:h-[12.25rem]" />
+      <div className="h-[11rem] animate-pulse rounded-[1.5rem] bg-surface-sunken motion-reduce:animate-none sm:h-[13.5rem]" />
       {chips ? <CategoryChipsFallback /> : null}
     </div>
   );

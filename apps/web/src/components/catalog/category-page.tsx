@@ -13,6 +13,7 @@ import {
 import { getCategoryPage } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
 import { visualFor } from '@/lib/visuals';
+import { LEAF_BY_CATEGORY } from '@/components/brand/leaf-images';
 import { coverShareImage, pageMetadata } from '@/lib/seo';
 import { Breadcrumbs } from './breadcrumbs';
 import { CatalogResults, CatalogResultsSkeleton } from './catalog-results';
@@ -86,9 +87,13 @@ async function CategoryListing({
 
   const { category, parent, subcategories, breadcrumbs } = page;
   const banner = visualFor(settings, listingBannerSlot('category', category.id));
-  // The category's own products, as the header's pictures when it has no banner or cover.
+  // A kind of tea shows its own dry leaf; otherwise the category's products from beyond the
+  // grid's first rows, when it has no banner or cover.
+  const leaf = banner || category.image ? null : (LEAF_BY_CATEGORY[category.slug] ?? null);
   const pictures =
-    banner || category.image ? [] : await listingPictures(locale, { category: category.slug });
+    banner || category.image || leaf
+      ? []
+      : await listingPictures(locale, { category: category.slug });
   const top = parent ?? category;
   const chips = [
     { href: `/${top.path}`, name: t('allIn', { name: top.name }), current: parent === null },
@@ -123,6 +128,7 @@ async function CategoryListing({
         image={category.image}
         banner={banner}
         pictures={pictures}
+        leaf={leaf}
       >
         {chips.length > 1 ? <CategoryChipRow label={t('subcategories')} items={chips} /> : null}
       </ListingHeader>

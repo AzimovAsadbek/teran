@@ -15,6 +15,7 @@ import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
 import { getCollections, getSlugRedirect } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
 import { visualFor } from '@/lib/visuals';
+import { PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { getPathname } from '@/i18n/navigation';
 import { coverShareImage, pageMetadata } from '@/lib/seo';
 
@@ -71,9 +72,12 @@ async function CollectionListing({
   }
 
   const banner = visualFor(settings, listingBannerSlot('collection', collection.id));
-  // The collection's own products, as the header's pictures when it has no banner or cover.
+  // TERAN's own five stand in the header in the pack order (its stored cover is a blend in a
+  // spoon, none of them); another collection shows its products from beyond the grid's first
+  // rows, when it has no banner or cover.
+  const packs = collection.slug === PREMIUM_COLLECTION_SLUG && !banner;
   const pictures =
-    banner || collection.image
+    banner || packs || collection.image
       ? []
       : await listingPictures(locale, { collection: collection.slug });
 
@@ -88,9 +92,10 @@ async function CollectionListing({
         title={collection.name}
         description={collection.description}
         illustrationKey={collection.illustrationKey}
-        image={collection.image}
+        image={packs ? null : collection.image}
         banner={banner}
         pictures={pictures}
+        packs={packs}
       />
       <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults

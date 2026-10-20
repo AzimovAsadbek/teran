@@ -108,7 +108,7 @@ async function ProductView({
   // TERAN's own five: their stage, their name set like the pack, their colour (ADR-050/051).
   const code = teaCodeOf(product.slug);
   const packColour = code ? PACK_COLOURS[code] : null;
-  const family = productFamily(product.illustrationKey);
+  const family = productFamily(product.illustrationKey, product.category.path);
   const FamilyIcon = family.icon;
   const measures = brewingMeasures(product.brewing, tb);
   const formatLabel = namesFormat(product.format) ? tc(`formats.${product.format}`) : null;

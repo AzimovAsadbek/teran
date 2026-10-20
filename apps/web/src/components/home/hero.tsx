@@ -15,8 +15,8 @@ function sentences(text: string): string[] {
 }
 
 /**
- * The front page's first view: TERAN's words — the pack's tagline, what TERAN is, a pill to the
- * teas and the way in for businesses — over the film of the first view's place (`home.hero.1`,
+ * The front page's first view: TERAN's words — the pack's tagline, what TERAN is and a pill to the
+ * five teas (the way in for businesses is the black strip above) — over the film of the first view's place (`home.hero.1`,
  * set by the import script), or its picture (Admin → Settings), or the lake painted on the packs,
  * with the five TERAN pouches standing on its lower edge. One view, no rotation (the owner's
  * decision of 2026-10-18, ADR-037). The words are prerendered with the page, and so is the picture
@@ -26,10 +26,7 @@ function sentences(text: string): string[] {
  */
 export async function Hero({ settings = null }: { settings?: PublicSettingsDto | null }) {
   const locale = (await rootParams.locale()) as Locale;
-  const [t, tn] = await Promise.all([
-    getTranslations('Home'),
-    getTranslations({ locale, namespace: 'Nav' }),
-  ]);
+  const t = await getTranslations({ locale, namespace: 'Home' });
   const copy = brandCopy[locale];
   const words: HeroWords = {
     eyebrow: `${BRAND.name}® · ${BRAND.descriptor}`,
@@ -37,7 +34,6 @@ export async function Hero({ settings = null }: { settings?: PublicSettingsDto |
     text: copy.description,
     // The five teas the view shows, not the whole catalogue (where other products may lead).
     cta: { href: `/collections/${PREMIUM_COLLECTION_SLUG}`, label: t('heroCta') },
-    business: { href: '/wholesale', label: tn('wholesale') },
   };
   const labels: HeroLabels = {
     // Read by screen readers and search engines only: the brand, what it sells, its tagline.

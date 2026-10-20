@@ -1,7 +1,6 @@
 'use client';
 
 import type { PublicVisualDto } from '@teran/contracts';
-import { ArrowRight } from 'lucide-react';
 import Image, { type StaticImageData } from 'next/image';
 import { useRef, type CSSProperties } from 'react';
 import { LoopingFilm } from '@/components/content/looping-film';
@@ -22,8 +21,6 @@ export interface HeroWords {
   lines: string[];
   text: string | null;
   cta: { href: string; label: string };
-  /** The way in for hotels, cafés, shops and distributors (the for-business page). */
-  business: { href: string; label: string };
 }
 
 export interface HeroLabels {
@@ -212,21 +209,12 @@ export function HeroStage({
             className="arrive-rise mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 lg:mt-8 lg:justify-start"
             style={{ '--i': 1 } as CSSProperties}
           >
+            {/* The view's one button; the way in for businesses is the strip above it. */}
             <Link
               href={words.cta.href}
               className="pill-hover inline-flex h-[3.125rem] items-center rounded-full bg-cream px-8 text-[1rem] font-medium text-fg [text-shadow:none]"
             >
               {words.cta.label}
-            </Link>
-            <Link
-              href={words.business.href}
-              className="group inline-flex min-h-11 items-center gap-2 text-[1rem] font-semibold text-ivory-50 underline decoration-ivory-50/40 underline-offset-[6px] transition-[text-decoration-color] duration-200 hover:decoration-ivory-50"
-            >
-              {words.business.label}
-              <ArrowRight
-                aria-hidden
-                className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-1"
-              />
             </Link>
           </div>
         </div>

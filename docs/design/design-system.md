@@ -281,6 +281,9 @@ and business its centre ([ADR-050](../architecture/decisions.md)), with the iden
 - **Type:** Fraunces for section headings (up to 4.25rem), Oswald capitals for labels, steps and
   the business index (2.5rem), Nunito for text (`text-pretty` on paragraphs, so no word is left
   alone on a line); the first view keeps the largest headline.
+- **First view:** one filled button, "Shop teas" (to the five teas); the black strip above is the
+  business door ("TERAN for business", the kinds of business, "Request an offer"); the header's
+  account links are plain words.
 - **Business:** "TERAN for business" in Fraunces; rows of kinds of business (number, name, the
   for-business page's line, arrow disc) beside a framed picture that wipes to the row pointed at;
   phones show a small picture in each row; every row opens the request form with its kind chosen.
@@ -361,8 +364,9 @@ view's lower edge, XC2025 in the middle, the outer ones lower and turned outward
 (`components/home/hero.tsx`, `hero-stage.tsx`).
 
 - **Words:** the descriptor, the pack's tagline as the headline (one sentence per line, each line
-  rising out of its own mask), the description, then "Shop teas" (the one pill) and "For
-  business →" (a text link). The headline is fitted to its longest line (`--hero-fit`).
+  rising out of its own mask), the description, then "Shop teas" (the view's one button, to the
+  five teas). The headline is fitted to its longest line (`--hero-fit`); the way in for businesses
+  is the black strip above the view.
 - **Depth:** while the view scrolls away the film moves slower than the page, the words faster,
   and the pouches rise and part (GSAP ScrollTrigger, scrubbed; nothing pinned). The view is
   clipped at its sides only, so the pouches never widen the page.

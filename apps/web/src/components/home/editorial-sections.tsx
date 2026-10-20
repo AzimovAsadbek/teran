@@ -10,6 +10,7 @@ import { RIBBON_STICKERS, StickerDefs } from '@/components/brand/stickers';
 import { LoopingFilm } from '@/components/content/looping-film';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { BRAND, brandCopy, PACKAGING, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
+import { wholesalePage } from '@/content/pages/wholesale';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories, getCollections, getProductList } from '@/lib/data/catalog';
@@ -144,42 +145,39 @@ function FilmVeil() {
 /* ── 1. Promo strip ──────────────────────────────────────────────────────────────────────── */
 
 /**
- * The reference's dark promotional strip under the header (80 px), carrying TERAN's own collection
- * instead of an offer: the descriptor in teal, the collection's name and its line, the pack's
- * slogan as a tilted sticker (from 1600 px, so the line beside the name does not wrap at 1440 px)
- * and the shop pill. As on the reference the whole strip leads to the collection. Phones keep the
- * name and the pill. Without a collection with products it keeps TERAN's own words and leads to
- * the catalogue.
+ * The black strip above the first view, as the reference's promo strip: TERAN's descriptor, then
+ * the way in for businesses — "TERAN for business" and the kinds of business it serves (the
+ * for-business page's own words) — and the request as its one button (the owner's decision of
+ * 2026-10-20, ADR-050: the first view's own button belongs to the teas). A pointer anywhere on the
+ * strip follows it too.
  */
 export async function PromoStrip() {
-  await connection();
-  const locale = (await getLocale()) as Locale;
-  const [t, collectionList] = await Promise.all([
-    getTranslations('Home'),
-    getCollections(locale).catch(() => []),
-  ]);
-  const collections = collectionList.filter((collection) => collection.productCount > 0);
-  const collection =
-    collections.find((candidate) => candidate.slug === PREMIUM_COLLECTION_SLUG) ?? collections[0];
-  const copy = brandCopy[locale];
-  // Without a collection with products (one deleted in the admin area, say) the strip stays, in
-  // TERAN's own words, and leads to the catalogue.
-  const name = collection?.name ?? copy.collection.text.replace(/\.$/, '');
-  const href = collection ? `/collections/${collection.slug}` : '/catalog';
+  const locale = (await rootParams.locale()) as Locale;
+  const tw = await getTranslations({ locale, namespace: 'Wholesale' });
+  const page = wholesalePage[locale];
+  const href = '/wholesale#request';
+  const kinds = (['HOTEL', 'CAFE_RESTAURANT', 'RETAIL', 'DISTRIBUTOR', 'CORPORATE'] as const)
+    .map((type) => tw(`segments.${type}`))
+    .join(' · ');
   return (
-    <section aria-label={name} className="on-dark bg-forest-950 text-ivory-50">
+    // Named apart from the home page's business section ("TERAN for business") further down.
+    <section
+      aria-label={`${BRAND.descriptor} · ${page.title}`}
+      className="on-dark bg-forest-950 text-ivory-50"
+    >
       <div className="relative isolate mx-auto flex min-h-[5.75rem] max-w-[120rem] items-center justify-between gap-3 px-[1.375rem] py-3 min-[46.875rem]:min-h-20 min-[46.875rem]:gap-5 min-[46.875rem]:px-12 min-[46.875rem]:py-4 min-[90rem]:gap-6 min-[90rem]:px-[7.5rem] min-[160rem]:px-16">
         <StripLink href={href} />
         <p className="hidden font-headline text-[1.75rem] leading-[1.05] whitespace-nowrap text-gold-300 min-[46.875rem]:block min-[90rem]:text-[2rem]">
           {BRAND.descriptor}
         </p>
         <p className="min-w-0">
-          {/* Phones: two lines at most (the strip stays under 100 px above the first view). */}
-          <span className="block font-headline text-[1.375rem] leading-[1.1] [--headline-weight:600] [overflow-wrap:anywhere] min-[46.875rem]:inline min-[46.875rem]:text-[1.75rem] min-[46.875rem]:leading-[1.05] min-[90rem]:text-[2rem]">
-            {name}
+          <span className="block font-headline text-[1.375rem] leading-[1.1] [--headline-weight:600] [overflow-wrap:anywhere] min-[46.875rem]:text-[1.75rem] min-[46.875rem]:leading-[1.05] min-[100rem]:inline min-[100rem]:text-[2rem]">
+            {page.title}
           </span>
-          <span className="block font-condensed text-[0.875rem] leading-[1.34] min-[46.875rem]:ml-2 min-[46.875rem]:inline min-[46.875rem]:text-[1rem] min-[46.875rem]:leading-[2.1]">
-            {copy.collection.heading}
+          {/* The kinds of business from 1024 px, under the name until there is room beside it
+              (phones keep the strip to its name and button). */}
+          <span className="hidden font-condensed text-[1rem] leading-[1.34] lg:block min-[100rem]:ml-2 min-[100rem]:inline min-[100rem]:leading-[2.1]">
+            {kinds}
           </span>
         </p>
         <p
@@ -195,7 +193,7 @@ export async function PromoStrip() {
             'relative z-[1] h-10 shrink-0 bg-gold-300 px-5 text-fg sm:h-12 sm:px-8',
           )}
         >
-          {t('promoCta')}
+          {page.formTitle}
         </Link>
       </div>
     </section>

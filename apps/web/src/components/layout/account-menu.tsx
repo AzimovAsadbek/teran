@@ -4,7 +4,6 @@ import { ChevronDown, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Suspense, use, useEffect, useRef } from 'react';
 import { useLogout } from '@/components/account/logout';
-import { buttonClasses } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import type { HeaderAccount } from '@/lib/session';
@@ -84,21 +83,23 @@ function ResolvedAccountMenu({ account }: { account: Promise<HeaderAccount> }) {
   return user ? <CustomerMenu user={user} /> : <GuestLinks />;
 }
 
-/** Two links of their own, no person icon: that stands for a signed-in account. */
+/** The visitors' two account links: plain words, so the first view keeps one filled button. */
+const GUEST_LINK =
+  'inline-flex h-11 items-center text-[0.9375rem] leading-6 font-medium whitespace-nowrap text-fg hover:underline hover:underline-offset-4';
+
+/**
+ * Two links of their own, no person icon: that stands for a signed-in account. Both are plain
+ * text (the owner's decision of 2026-10-20, ADR-050): no account is needed to order, and the first
+ * view's filled buttons belong to the teas and the business request.
+ */
 function GuestLinks() {
   const t = useTranslations('Nav');
   return (
     <div className={cn(SLOT, 'gap-5')}>
-      <Link
-        href="/account/login"
-        className="inline-flex h-11 items-center text-[0.9375rem] leading-6 font-medium whitespace-nowrap text-fg hover:underline hover:underline-offset-4"
-      >
+      <Link href="/account/login" className={GUEST_LINK}>
         {t('signIn')}
       </Link>
-      <Link
-        href="/account/register"
-        className={buttonClasses('primary', 'sm', 'px-4 text-[0.9375rem] font-medium')}
-      >
+      <Link href="/account/register" className={GUEST_LINK}>
         {t('register')}
       </Link>
     </div>

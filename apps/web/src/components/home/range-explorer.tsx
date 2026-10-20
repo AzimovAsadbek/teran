@@ -189,21 +189,21 @@ export async function RangeExplorer() {
                     ) : null}
                   </span>
                   {/* The label plate: the family's name and count, its ranges when pointed at. */}
-                  <span className="absolute bottom-0 left-0 flex max-w-[calc(100%-1.5rem)] flex-col rounded-tr-[1.25rem] bg-ivory-50 px-4 pt-3 pb-3.5 min-[46.875rem]:px-5 min-[46.875rem]:pt-4">
+                  <span className="absolute bottom-0 left-0 flex max-w-[calc(100%-1.5rem)] flex-col rounded-tr-[1.25rem] bg-ivory-50 px-3 pt-2.5 pb-3 min-[46.875rem]:px-5 min-[46.875rem]:pt-4 min-[46.875rem]:pb-3.5">
                     <span className="flex items-center gap-3">
                       <span
                         className={cn(
                           'font-headline leading-none text-fg uppercase',
                           index === 0
                             ? 'text-[1.75rem] min-[46.875rem]:text-[2.25rem]'
-                            : 'text-[1.375rem] min-[46.875rem]:text-[1.625rem]',
+                            : 'text-[1.125rem] min-[46.875rem]:text-[1.625rem]',
                         )}
                       >
                         {family.name}
                       </span>
                       <span
                         aria-hidden
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forest-900 text-ivory-50"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-forest-900 text-ivory-50 min-[46.875rem]:size-8"
                       >
                         <ArrowRight className="h-4 w-4 transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover/tile:translate-x-0.5" />
                       </span>

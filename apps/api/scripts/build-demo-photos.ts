@@ -126,14 +126,6 @@ const CROPS: Crop[] = [
     shows: 'rolled leaves in a basket',
   },
   {
-    name: 'canisters',
-    source: 'tea-photos-2/wholesale-card-3.jpg',
-    left: 0,
-    top: 0,
-    size: 1000,
-    shows: 'metal tea canisters with wooden labels',
-  },
-  {
     name: 'white-teapot',
     source: 'tea-photos-2/home-banner-1.jpg',
     left: 1760,

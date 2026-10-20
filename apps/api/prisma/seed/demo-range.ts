@@ -618,9 +618,9 @@ export const DEMO_RANGE_PRODUCTS: DemoProduct[] = [
       en: 'Still drinking water in a glass bottle.',
     },
     description: described({
-      uz: 'Dasturxon va choy damlash uchun. Shisha idish, qayta yopiladigan qopqoq.',
-      ru: 'К столу и для заваривания чая. Стеклянная бутылка с крышкой.',
-      en: 'For the table and for brewing tea. A glass bottle with a screw cap.',
+      uz: 'Dasturxon va choy damlash uchun.',
+      ru: 'К столу и для заваривания чая.',
+      en: 'For the table and for brewing tea.',
     }),
     variants: [
       { sku: 'TRN-WTR-STL-500', weightGrams: null, unitCount: 1, price: '9000', stock: 80 },
@@ -819,9 +819,9 @@ export const DEMO_RANGE_PRODUCTS: DemoProduct[] = [
     photo: 'piyola-set',
     name: { uz: 'Piyolalar toʻplami', ru: 'Набор пиал', en: 'Set of piyolas' },
     shortDescription: {
-      uz: 'Oltin hoshiyali oltita chinni piyola, 180 ml dan.',
-      ru: 'Шесть фарфоровых пиал с золотой каймой, по 180 мл.',
-      en: 'Six porcelain piyolas with a gold rim, 180 ml each.',
+      uz: 'Oltita oq chinni piyola, 180 ml dan.',
+      ru: 'Шесть белых фарфоровых пиал, по 180 мл.',
+      en: 'Six white porcelain piyolas, 180 ml each.',
     },
     description: described({
       uz: 'Oʻzbek dasturxonining piyolalari: mehmonga choyni yarim piyoladan quyib uzatish uchun.',
@@ -1017,14 +1017,14 @@ export const DEMO_RANGE_PRODUCTS: DemoProduct[] = [
     photo: 'discovery-box',
     name: { uz: 'Tanishuv qutisi', ru: 'Коробка-знакомство', en: 'Discovery box' },
     shortDescription: {
-      uz: 'Besh xil choydan 20 grammdan — oʻz choyingizni toping.',
-      ru: 'Пять чаёв по 20 г — найдите свой.',
-      en: 'Five teas, 20 g each, to find your own.',
+      uz: 'Choy uchun gul, meva va ziravorlar, 20 grammdan — yogʻoch qutida.',
+      ru: 'Цветы, фрукты и пряности к чаю, по 20 г, в деревянной коробке.',
+      en: 'Flowers, fruit and spices for tea, 20 g of each, in a wooden box.',
     },
     description: described({
-      uz: 'Yashil, qora, oq, ulun va pu-erh choylari kichik qutichalarda; har biriga damlash koʻrsatmasi ilova qilingan.',
-      ru: 'Маленькие баночки зелёного, чёрного, белого чая, улуна и пуэра; к каждой приложена инструкция по завариванию.',
-      en: 'Small tins of green, black and white tea, oolong and pu-erh, each with its own brewing card.',
+      uz: 'Atirgul va yasmin gʻunchalari, quritilgan apelsin, dolchin va badyon — har biri alohida boʻlimda. Bir chimdimini qora yoki yashil choy damlangan choynakka qoʻshing.',
+      ru: 'Бутоны розы и жасмина, сушёный апельсин, корица и бадьян — каждый в своём отделении. Добавьте щепотку в чайник с чёрным или зелёным чаем.',
+      en: 'Rosebuds, jasmine buds, dried orange, cinnamon and star anise, each in its own compartment. Add a pinch to a pot of black or green tea.',
     }),
     variants: [
       {
@@ -1062,7 +1062,6 @@ export const DEMO_RANGE_ATTRIBUTE_VALUES: Record<
   'glass-teapot': { material: 'glass', capacity: 600 },
   'porcelain-gaiwan': { material: 'porcelain', capacity: 150 },
   'piyola-set': { material: 'porcelain', capacity: 180 },
-  'discovery-box': { 'teas-in-set': 5 },
   'cold-brew-green-tea': { flavour: ['fresh'], sparkling: false, volume: 1000 },
   'apricot-nectar': { flavour: ['fruity', 'sweet'], sparkling: false, volume: 1000 },
   'matcha-whisk': { material: 'bamboo' },

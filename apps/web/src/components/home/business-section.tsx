@@ -22,8 +22,9 @@ import { BusinessIndex, type BusinessCase } from './business-index';
 /**
  * The kinds of business, in the order a visitor scans them, each with the picture of the
  * for-business page that already shows it (Admin → Settings): the tray for hotels, the tasting
- * table for cafés and restaurants, the tins for shops, the open baskets for distributors. Gifts
- * show TERAN's own five pouches.
+ * table for cafés and restaurants, the open baskets for distributors. Shops and gifts show
+ * TERAN's own five pouches: the for-business page's shop picture is a Japanese tea shop, its
+ * labels priced in yen.
  */
 const CASES: {
   type: Exclude<BusinessType, 'OTHER'>;
@@ -33,7 +34,7 @@ const CASES: {
 }[] = [
   { type: 'HOTEL', slot: 'wholesale.card.2', packs: 'fan' },
   { type: 'CAFE_RESTAURANT', slot: 'wholesale.community', packs: 'fan' },
-  { type: 'RETAIL', slot: 'wholesale.card.3', packs: 'shelf' },
+  { type: 'RETAIL', slot: null, packs: 'shelf' },
   { type: 'DISTRIBUTOR', slot: 'wholesale.card.1', packs: 'fan' },
   { type: 'CORPORATE', slot: null, packs: 'fan' },
 ];
@@ -47,20 +48,32 @@ const PACKS: { code: string; image: StaticImageData }[] = [
   { code: '8009', image: pack8009 },
 ];
 
-/** The five pouches standing side by side on a shelf: TERAN's packs as a shop shows them. */
+/**
+ * The five pouches standing on a shop's two shelves, three above and two below: TERAN's packs as a
+ * shop shows them (the small picture: three on one shelf).
+ */
 function PackShelf({ compact = false }: { compact?: boolean }) {
-  const packs = compact ? PACKS.slice(0, 3) : PACKS;
+  const shelves = compact ? [PACKS.slice(0, 3)] : [PACKS.slice(0, 3), PACKS.slice(3)];
   return (
-    <span className="absolute inset-0 flex items-end justify-center gap-[2%] bg-ivory-200 px-[6%] pb-[16%]">
-      <span aria-hidden className="absolute inset-x-0 bottom-[12%] h-[4%] bg-[#c9b79a]" />
-      {packs.map((pack) => (
-        <span key={pack.code} className="relative block w-full">
-          <Image
-            src={pack.image}
-            alt=""
-            sizes={compact ? '2rem' : '8rem'}
-            className="h-auto w-full drop-shadow-[0_10px_12px_rgb(60_40_10_/_0.22)]"
-          />
+    <span
+      className={cn(
+        'absolute inset-0 flex flex-col justify-end bg-ivory-200',
+        compact ? 'pb-[20%]' : 'gap-[11%] pb-[15%]',
+      )}
+    >
+      {shelves.map((packs, shelf) => (
+        <span key={shelf} className="relative flex items-end justify-center gap-[3%] px-[6%]">
+          <span aria-hidden className="absolute inset-x-0 top-full h-[9%] bg-[#c9b79a]" />
+          {packs.map((pack) => (
+            <span key={pack.code} className={cn('relative block', compact ? 'w-full' : 'w-[24%]')}>
+              <Image
+                src={pack.image}
+                alt=""
+                sizes={compact ? '2rem' : '10rem'}
+                className="h-auto w-full drop-shadow-[0_10px_12px_rgb(60_40_10_/_0.22)]"
+              />
+            </span>
+          ))}
         </span>
       ))}
     </span>

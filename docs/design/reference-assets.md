@@ -431,33 +431,37 @@ attribution required; the credits are kept anyway. They reach a database only as
 `scripts/build-demo-photos.ts` (`DEMO_PHOTOS_DIR`, presentation databases); production does not
 load the demonstration range.
 
-| Crop                | Product                | Shows                                                  | Source, photographer                                                                                                                              | Size                         |
-| ------------------- | ---------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `apple-juice`       | apple-quince-juice     | an amber apple drink in a cut-glass cup with apples    | Pexels [29632177](https://www.pexels.com/photo/refreshing-apple-tea-with-sliced-apples-on-table-29632177/), Rahime Gül                            | 2400 × 4264 → 2400 px square |
-| `apricot-juice`     | apricot-nectar         | a pale apricot drink with apricots on a white block    | Pexels [10508297](https://www.pexels.com/photo/glass-and-decorations-on-white-table-10508297/), Ron Lach                                          | 2400 × 1600 → 1600 px square |
-| `chamomile`         | chamomile-apple        | a glass teapot of chamomile, dried flowers before it   | Unsplash [k94FbpisWto](https://unsplash.com/photos/clear-glass-tea-pot-on-white-ceramic-saucer-k94FbpisWto), Irene Ivantsova                      | 2400 × 1535 → 1535 px square |
-| `discovery-box`     | discovery-box          | a wooden box of tea flowers and spices in compartments | Pexels [29133249](https://www.pexels.com/photo/aromatic-herbs-and-spices-box-from-dalat-29133249/), Kien Khong Ngu                                | 2400 × 1600 → 1600 px square |
-| `gift-box-white`    | teran-premium-gift-box | a white gift box with a black ribbon                   | Pexels [5872188](https://www.pexels.com/photo/close-up-shot-of-a-gift-box-wrapped-with-black-ribbon-5872188/), Max Fischer                        | 2400 × 1600 → 1600 px square |
-| `gift-boxes-black`  | gift-set (three teas)  | two black gift boxes with white ribbons                | Pexels [5872362](https://www.pexels.com/photo/close-up-shot-of-black-gift-boxes-5872362/), Max Fischer                                            | 2400 × 1600 → 1600 px square |
-| `hibiscus`          | hibiscus-pomegranate   | hibiscus tea in a glass cup, dried petals around it    | Pexels [8431379](https://www.pexels.com/photo/opened-book-and-cup-of-fresh-tea-8431379/), Beyza Efe                                               | 2400 × 3600 → 1700 px square |
-| `iced-green-tea`    | cold-brew-green-tea    | swing-top bottles of a pale green drink in a crate     | Pexels [8540993](https://www.pexels.com/photo/clear-glass-bottles-in-a-wooden-crate-8540993/), RDNE Stock project                                 | 2400 × 1600 → 1600 px square |
-| `iced-jasmine`      | jasmine-cold-brew      | a chilled glass of iced green tea                      | Pexels [33526974](https://www.pexels.com/photo/refreshing-iced-green-tea-on-wooden-table-33526974/), Sóc Năng Động                                | 2400 × 3600 → 2400 px square |
-| `iced-peach`        | iced-peach-oolong      | iced peach tea beside half a peach                     | Pexels [9230288](https://www.pexels.com/photo/photo-of-a-drink-beside-a-sliced-peach-9230288/), Tanner Barrott                                    | 2400 × 3000 → 2400 px square |
-| `matcha-bowl`       | ceremonial-matcha      | whisked matcha in a terracotta bowl, from above        | Pexels [29574692](https://www.pexels.com/photo/aesthetic-matcha-tea-preparation-with-bamboo-whisk-29574692/), Anna Androshuk                      | 2105 × 3743 → 2105 px square |
-| `matcha-powder`     | everyday-matcha        | matcha powder, a wooden scoop and a bamboo whisk       | Pexels [8474058](https://www.pexels.com/photo/bamboo-whisk-on-the-table-8474058/), Cup of Couple                                                  | 2400 × 3600 → 2400 px square |
-| `matcha-whisk`      | matcha-whisk           | a bamboo matcha whisk                                  | Pexels [8474062](https://www.pexels.com/photo/bamboo-whisk-on-white-background-8474062/), Cup of Couple                                           | 2400 × 3600 → 2400 px square |
-| `mint-tea`          | mint-lemongrass        | mint tea in glass cups before a glass teapot           | Pexels [36228288](https://www.pexels.com/photo/fresh-mint-tea-in-glass-teapot-and-cups-36228288/), Masuma Rahaman                                 | 2400 × 3200 → 2400 px square |
-| `piyola-set`        | piyola-set             | two piyolas of tea, a paxta teapot, spices and non     | Pexels [4589178](https://www.pexels.com/photo/food-ingredients-on-the-table-4589178/), ArtHouse Studio                                            | 2400 × 3598 → 1650 px square |
-| `pomegranate-juice` | pomegranate-juice      | a tall glass of pomegranate juice                      | Pexels [18142601](https://www.pexels.com/photo/glass-of-pomegranate-juice-with-lemon-slice-18142601/), Denys Gromov                               | 2400 × 1600 → 1600 px square |
-| `rosehip`           | rosehip-quince         | a glass of rosehip tea beside a bowl of fresh rosehips | Pexels [39963126](https://www.pexels.com/photo/rose-hip-tea-with-fresh-rose-hips-39963126/), Raymond Petrik                                       | 2400 × 3600 → 2400 px square |
-| `sparkling-water`   | sparkling-water        | sparkling water over ice in a tall glass               | Pexels [12987478](https://www.pexels.com/photo/soda-sparkling-with-ice-cubes-12987478/), Srattha Nualsate                                         | 2400 × 1602 → 1602 px square |
-| `spiced-tea`        | spiced-black-tea       | black tea in a glass cup with cinnamon and star anise  | Pexels [38958417](https://www.pexels.com/photo/elegant-glass-teapot-and-cup-with-spices-38958417/), Masuma Rahaman                                | 2400 × 3200 → 2400 px square |
-| `still-water`       | still-water            | a clear glass bottle of water with a blank label       | Pexels [6612380](https://www.pexels.com/photo/close-up-shot-of-a-bottle-6612380/), Tima Miroshnichenko                                            | 2400 × 3600 → 2400 px square |
-| `tea-caddy`         | tea-caddy              | two bamboo tea caddies, one open                       | Unsplash [cMGCAY4hZxM](https://unsplash.com/photos/a-couple-of-wooden-containers-sitting-next-to-each-other-cMGCAY4hZxM), Raghavendra V. Konkathi | 2400 × 1600 → 1600 px square |
+| Crop                | Product               | Shows                                                  | Source, photographer                                                                                                                              | Size                         |
+| ------------------- | --------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `apple-juice`       | apple-quince-juice    | an amber apple drink in a cut-glass cup with apples    | Pexels [29632177](https://www.pexels.com/photo/refreshing-apple-tea-with-sliced-apples-on-table-29632177/), Rahime Gül                            | 2400 × 4264 → 2400 px square |
+| `apricot-juice`     | apricot-nectar        | a pale apricot drink with apricots on a white block    | Pexels [10508297](https://www.pexels.com/photo/glass-and-decorations-on-white-table-10508297/), Ron Lach                                          | 2400 × 1600 → 1600 px square |
+| `chamomile`         | chamomile-apple       | a glass teapot of chamomile, dried flowers before it   | Unsplash [k94FbpisWto](https://unsplash.com/photos/clear-glass-tea-pot-on-white-ceramic-saucer-k94FbpisWto), Irene Ivantsova                      | 2400 × 1535 → 1535 px square |
+| `discovery-box`     | discovery-box         | a wooden box of tea flowers and spices in compartments | Pexels [29133249](https://www.pexels.com/photo/aromatic-herbs-and-spices-box-from-dalat-29133249/), Kien Khong Ngu                                | 2400 × 1600 → 1600 px square |
+| `gift-box-white`    | gift-set (two teas)   | a white gift box with a black ribbon                   | Pexels [5872188](https://www.pexels.com/photo/close-up-shot-of-a-gift-box-wrapped-with-black-ribbon-5872188/), Max Fischer                        | 2400 × 1600 → 1600 px square |
+| `gift-boxes-black`  | gift-set (three teas) | two black gift boxes with white ribbons                | Pexels [5872362](https://www.pexels.com/photo/close-up-shot-of-black-gift-boxes-5872362/), Max Fischer                                            | 2400 × 1600 → 1600 px square |
+| `hibiscus`          | hibiscus-pomegranate  | hibiscus tea in a glass cup, dried petals around it    | Pexels [8431379](https://www.pexels.com/photo/opened-book-and-cup-of-fresh-tea-8431379/), Beyza Efe                                               | 2400 × 3600 → 1700 px square |
+| `iced-green-tea`    | cold-brew-green-tea   | swing-top bottles of a pale green drink in a crate     | Pexels [8540993](https://www.pexels.com/photo/clear-glass-bottles-in-a-wooden-crate-8540993/), RDNE Stock project                                 | 2400 × 1600 → 1600 px square |
+| `iced-jasmine`      | jasmine-cold-brew     | a chilled glass of iced green tea                      | Pexels [33526974](https://www.pexels.com/photo/refreshing-iced-green-tea-on-wooden-table-33526974/), Sóc Năng Động                                | 2400 × 3600 → 2400 px square |
+| `iced-peach`        | iced-peach-oolong     | iced peach tea beside half a peach                     | Pexels [9230288](https://www.pexels.com/photo/photo-of-a-drink-beside-a-sliced-peach-9230288/), Tanner Barrott                                    | 2400 × 3000 → 2400 px square |
+| `matcha-bowl`       | ceremonial-matcha     | whisked matcha in a terracotta bowl, from above        | Pexels [29574692](https://www.pexels.com/photo/aesthetic-matcha-tea-preparation-with-bamboo-whisk-29574692/), Anna Androshuk                      | 2105 × 3743 → 2105 px square |
+| `matcha-powder`     | everyday-matcha       | matcha powder, a wooden scoop and a bamboo whisk       | Pexels [8474058](https://www.pexels.com/photo/bamboo-whisk-on-the-table-8474058/), Cup of Couple                                                  | 2400 × 3600 → 2400 px square |
+| `matcha-whisk`      | matcha-whisk          | a bamboo matcha whisk                                  | Pexels [8474062](https://www.pexels.com/photo/bamboo-whisk-on-white-background-8474062/), Cup of Couple                                           | 2400 × 3600 → 2400 px square |
+| `mint-tea`          | mint-lemongrass       | mint tea in glass cups before a glass teapot           | Pexels [36228288](https://www.pexels.com/photo/fresh-mint-tea-in-glass-teapot-and-cups-36228288/), Masuma Rahaman                                 | 2400 × 3200 → 2400 px square |
+| `piyola-set`        | piyola-set            | two piyolas of tea, a paxta teapot, spices and non     | Pexels [4589178](https://www.pexels.com/photo/food-ingredients-on-the-table-4589178/), ArtHouse Studio                                            | 2400 × 3598 → 1650 px square |
+| `pomegranate-juice` | pomegranate-juice     | a tall glass of pomegranate juice                      | Pexels [18142601](https://www.pexels.com/photo/glass-of-pomegranate-juice-with-lemon-slice-18142601/), Denys Gromov                               | 2400 × 1600 → 1600 px square |
+| `rosehip`           | rosehip-quince        | a glass of rosehip tea beside a bowl of fresh rosehips | Pexels [39963126](https://www.pexels.com/photo/rose-hip-tea-with-fresh-rose-hips-39963126/), Raymond Petrik                                       | 2400 × 3600 → 2400 px square |
+| `sparkling-water`   | sparkling-water       | sparkling water over ice in a tall glass               | Pexels [12987478](https://www.pexels.com/photo/soda-sparkling-with-ice-cubes-12987478/), Srattha Nualsate                                         | 2400 × 1602 → 1602 px square |
+| `spiced-tea`        | spiced-black-tea      | black tea in a glass cup with cinnamon and star anise  | Pexels [38958417](https://www.pexels.com/photo/elegant-glass-teapot-and-cup-with-spices-38958417/), Masuma Rahaman                                | 2400 × 3200 → 2400 px square |
+| `still-water`       | still-water           | a clear glass bottle of water with a blank label       | Pexels [6612380](https://www.pexels.com/photo/close-up-shot-of-a-bottle-6612380/), Tima Miroshnichenko                                            | 2400 × 3600 → 2400 px square |
+| `tea-caddy`         | tea-caddy             | two bamboo tea caddies, one open                       | Unsplash [cMGCAY4hZxM](https://unsplash.com/photos/a-couple-of-wooden-containers-sitting-next-to-each-other-cMGCAY4hZxM), Raghavendra V. Konkathi | 2400 × 1600 → 1600 px square |
 
 Crops avoid what does not belong to the product: the hibiscus cup is cut clear of an open book, the
-piyola set clear of a national flag beside the teapot. The tea caddy's text and material follow
-its photograph (bamboo). Not downloaded: the sparkling black tea's photograph (Pexels #40594: its
+piyola set clear of a national flag beside the teapot. The text follows the photograph where they
+differed: the tea caddy (bamboo), the discovery box (flowers, fruit and spices in compartments,
+not tins of tea), the piyolas (white, no gold rim), the still water (no screw cap). The
+"TERAN premium" gift box has no photograph, so a stock box never reads as TERAN's own packaging,
+and the two-tea gift set no longer uses the tea canisters of section 4 (their labels are a
+Japanese shop's, priced in yen). Not downloaded: the sparkling black tea's photograph (Pexels #40594: its
 file could not be reached without a bot check, which is not passed by hand); that product is not
 created in presentation databases until it has one.
 
@@ -465,19 +469,20 @@ created in presentation databases until it has one.
 
 The home page's narrative (ADR-050) uses the pictures already imported; nothing new was copied:
 
-| Place           | Now shown as                                                                                                  | Picture (section)                               |
-| --------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `home.hero.1`   | The first view's film, the five pouches over it                                                               | Moc Chau tea hill film (9)                      |
-| `home.bento.1`  | The range's first tile (tea)                                                                                  | Water poured over leaves in a glass pitcher (9) |
-| `home.values`   | Story step 1, "Grown in the mountains" (phone crop)                                                           | Longjing tea terraces, Hangzhou, China (9)      |
-| `home.feature`  | Story step 3, "Brewed as it should be" (phone crop)                                                           | Gongfu tea with a gaiwan, film (9)              |
-| `home.banner.3` | Story step 4, "Poured for every guest" (phone crop)                                                           | Tea poured from a celadon teapot, film (9)      |
-| `wholesale.*`   | The business index: hotels (card 2), cafés and restaurants (community), shops (card 3), distributors (card 1) | (4), (9)                                        |
+| Place           | Now shown as                                                                                  | Picture (section)                               |
+| --------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `home.hero.1`   | The first view's film, the five pouches over it                                               | Moc Chau tea hill film (9)                      |
+| `home.bento.1`  | The range's first tile (tea)                                                                  | Water poured over leaves in a glass pitcher (9) |
+| `home.values`   | Story step 1, "Grown in the mountains" (phone crop)                                           | Longjing tea terraces, Hangzhou, China (9)      |
+| `home.feature`  | Story step 3, "Brewed as it should be" (phone crop)                                           | Gongfu tea with a gaiwan, film (9)              |
+| `home.banner.3` | Story step 4, "Poured for every guest" (phone crop)                                           | Tea poured from a celadon teapot, film (9)      |
+| `wholesale.*`   | The business index: hotels (card 2), cafés and restaurants (community), distributors (card 1) | (4), (9)                                        |
 
 `home.banner.1`, `home.banner.2`, `home.bento.2` … `home.bento.4` and `home.pair.2` keep their
 stored pictures but are no longer shown or offered in Admin → Settings; the values band left the
-home page (what TERAN stands for is in the footer). Corporate gifts show the five pouches
-(`public/brand/packs`), not a photograph. The first view's film shows a tea hill in Vietnam under
+home page (what TERAN stands for is in the footer). Shops and corporate gifts show the five
+pouches (`public/brand/packs`), standing on a shelf and fanned out, not a photograph: card 3's tea
+canisters carry a Japanese shop's labels priced in yen. The first view's film shows a tea hill in Vietnam under
 "Premium Chinese Tea": the owner's choice of 2026-10-19, to review with ADR-050.
 
 ## Not copied

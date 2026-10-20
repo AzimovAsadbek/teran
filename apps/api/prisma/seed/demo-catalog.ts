@@ -1094,7 +1094,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 18,
     brewing: null,
     art: { style: 'gift', shape: 'gift' },
-    photo: 'canisters',
+    photo: 'gift-box-white',
     name: {
       uz: 'Sovgʻa toʻplami: yashil va oq choy',
       ru: 'Подарочный набор: зелёный и белый чай',
@@ -1123,7 +1123,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 2,
     brewing: null,
     art: { style: 'gift', shape: 'gift' },
-    photo: 'gift-box-white',
+    // No photograph: a stock gift box under TERAN's name would read as TERAN's own packaging.
     name: {
       uz: 'TERAN premium: sovgʻa qutisi',
       ru: 'TERAN premium: подарочная коробка',

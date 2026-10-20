@@ -37,6 +37,7 @@ import {
   type DemoVariant,
   type Localized,
 } from './demo-catalog.js';
+import { DEMO_RANGE_PRODUCT_TYPES } from './demo-range.js';
 import {
   ARTICLE_TEXT_FIXES,
   DEMO_ANNOUNCEMENT,
@@ -204,9 +205,11 @@ async function seedTaxonomies(prisma: PrismaClient, options: CatalogueOptions): 
   return changes;
 }
 
-async function seedProductTypes(prisma: PrismaClient): Promise<number> {
+async function seedProductTypes(prisma: PrismaClient, options: CatalogueOptions): Promise<number> {
   let created = 0;
   for (const [position, type] of DEMO_PRODUCT_TYPES.entries()) {
+    // The infusion, drink and teaware types serve the test range alone.
+    if (!options.testCatalogue && DEMO_RANGE_PRODUCT_TYPES.includes(type)) continue;
     const existing = await prisma.productType.findUnique({ where: { key: type.key } });
     if (existing) continue;
     created += 1;
@@ -816,7 +819,7 @@ export async function seedCatalogue(
 ): Promise<CatalogueReport> {
   const now = options.now ?? new Date();
   // Types first: a new demo category starts with its default product type.
-  let structure = await seedProductTypes(prisma);
+  let structure = await seedProductTypes(prisma, options);
   structure += await seedTaxonomies(prisma, options);
   const articles = await seedContent(prisma, now);
 

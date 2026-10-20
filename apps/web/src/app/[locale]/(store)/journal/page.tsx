@@ -112,13 +112,26 @@ export default async function JournalPage({ searchParams }: PageProps<'/[locale]
       <div className="container-page pb-16 lg:pb-24">
         <Suspense
           fallback={
-            // The lead's footprint, so nothing moves when the articles arrive.
-            <div aria-hidden className="grid grid-cols-1 gap-y-4 md:grid-cols-12 md:gap-x-10">
-              <Skeleton className="aspect-[16/10] rounded-[1.25rem] md:col-span-7" />
-              <div className="space-y-3 md:col-span-5 md:self-center">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-10 w-4/5" />
-                <Skeleton className="h-5 w-full" />
+            // The lead's footprint and the first row of cards under it, so the page is as tall
+            // as it will be and nothing below moves when the articles arrive.
+            <div aria-hidden>
+              <div className="grid grid-cols-1 gap-y-4 md:grid-cols-12 md:gap-x-10">
+                <Skeleton className="aspect-[16/10] rounded-[1.25rem] md:col-span-7" />
+                <div className="space-y-3 md:col-span-5 md:self-center">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-20 w-4/5" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              </div>
+              <div className="mt-14 grid grid-cols-1 gap-x-8 gap-y-12 border-t border-line pt-12 md:grid-cols-2 lg:mt-20 lg:pt-16">
+                {[0, 1].map((card) => (
+                  <div key={card} className="space-y-4">
+                    <Skeleton className="aspect-[4/3] rounded-[1.25rem]" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-8 w-3/4" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ))}
               </div>
             </div>
           }

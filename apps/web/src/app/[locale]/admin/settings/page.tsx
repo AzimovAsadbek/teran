@@ -75,9 +75,9 @@ export default async function AdminSettingsPage() {
     place('help.banner', t('settings.visualSlots.helpBanner'), banner),
     // The kinds of business (components/home/business-section.tsx, on the home page and the
     // for-business page): hotels and cafés show a picture when one is set; shops, distributors
-    // and gifts show TERAN's own pouches. About TERAN (ADR-051) shows the pouches and the rest of
-    // the earlier for-business pictures are no longer shown, so, as the home page's earlier
-    // places below, they keep their stored pictures but are not offered here.
+    // and gifts show TERAN's own pouches. About TERAN and Tea 101 (ADR-051) show the pouches and
+    // the rest of the earlier for-business pictures are no longer shown, so, as the home page's
+    // earlier places below, they keep their stored pictures but are not offered here.
     place(
       'wholesale.card.2',
       t('settings.visualSlots.businessRow', { name: tw('segments.HOTEL') }),
@@ -88,7 +88,6 @@ export default async function AdminSettingsPage() {
       t('settings.visualSlots.businessRow', { name: tw('segments.CAFE_RESTAURANT') }),
       t('settings.visualSizeTile'),
     ),
-    place('tea101.amount', t('settings.visualSlots.tea101Amount'), t('settings.visualSizeSlide')),
     ...helpCentre('uz', false).map((category) =>
       place(
         `help.${category.id}`,

@@ -1461,8 +1461,7 @@
         "helpBanner": "Yordam markazi: banner",
         "helpCategory": "Yordam markazi: «{name}» rasmi",
         "businessRow": "Biznes turlari (bosh sahifa va «Biznes uchun»): {name}",
-        "storePicture": "Doʻkon rasmi: {name}",
-        "tea101Amount": "Choy alifbosi: «Qancha choy kerak?» yonidagi rasm"
+        "storePicture": "Doʻkon rasmi: {name}"
       },
       "visualSizeSlide": "Keng: kamida 2560 × 750 px; telefon uchun 1200 × 1660 px.",
       "visualSizeTile": "Kamida 1300 × 730 px.",
@@ -2017,6 +2016,8 @@
     "tagline": "Bargli choyni endi kashf etyapsizmi? Shu yerdan boshlang: qoʻllanmamiz choy qayerdan kelishi, asosiy turlari nimasi bilan farq qilishi va har birini qanday damlashni tushuntiradi.",
     "whatTitle": "Choy nima?",
     "whatText": "Barcha haqiqiy choylar — oq, yashil, ulun, qora va puer — bitta oʻsimlik, Camellia sinensis barglaridan tayyorlanadi. Ularni farqlaydigan narsa — barglar terilgandan keyin nima boʻlishi: qancha soʻlitilishi, darhol qizdirilishi yoki oksidlanishga qoʻyilishi, qanday buralishi, quritilishi va saqlanishi. Giyohli va mevali damlamalar boshqa oʻsimliklardan tayyorlanadi va bu maʼnoda choy hisoblanmaydi.",
+    "kinds": "Choy turlari",
+    "fiveTitle": "TERANning beshta yashil choyi",
     "types": {
       "white": {
         "title": "Oq choy",

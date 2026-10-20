@@ -4,11 +4,11 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
-import { ArrowRight } from 'lucide-react';
 import { Suspense, type CSSProperties } from 'react';
 import { Emblem } from '@/components/brand/logo';
 import { ValueIcon } from '@/components/brand/ornaments';
 import { PACK_IMAGES } from '@/components/brand/pack-images';
+import { FurtherLinks } from '@/components/content/further-links';
 import { Blocks } from '@/components/content/long-form';
 import { BusinessCloser } from '@/components/home/business-section';
 import {
@@ -250,37 +250,14 @@ export default async function AboutPage() {
       </Suspense>
 
       {/* 7. Further: the journal and Tea 101 (the profiles are in the footer just below). */}
-      <nav aria-label={tn('brandWorld')} className="container-page py-14 lg:py-20">
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-5">
-          {[
-            { href: '/journal', label: tn('journal'), text: tn('journalText') },
-            { href: '/tea-101', label: tn('tea101'), text: tt('tagline') },
-            ...(showGallery
-              ? [{ href: '/media', label: tn('media'), text: tn('photosText') }]
-              : []),
-          ].map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className="group flex h-full items-start justify-between gap-6 rounded-[1.5rem] border border-line px-6 py-6 transition-colors duration-200 hover:border-forest-900 sm:px-8 sm:py-7"
-              >
-                <span>
-                  <span className="block font-heading text-[1.625rem] leading-tight text-fg sm:text-[2rem]">
-                    {link.label}
-                  </span>
-                  <span className="mt-2 block max-w-[30rem] text-[1rem] leading-relaxed text-pretty text-fg-muted">
-                    {link.text}
-                  </span>
-                </span>
-                <ArrowRight
-                  aria-hidden
-                  className="mt-2 h-6 w-6 shrink-0 text-forest-900 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-1"
-                />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <FurtherLinks
+        label={tn('brandWorld')}
+        links={[
+          { href: '/journal', label: tn('journal'), text: tn('journalText') },
+          { href: '/tea-101', label: tn('tea101'), text: tt('tagline') },
+          ...(showGallery ? [{ href: '/media', label: tn('media'), text: tn('photosText') }] : []),
+        ]}
+      />
     </>
   );
 }

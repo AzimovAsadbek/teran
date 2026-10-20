@@ -1461,8 +1461,7 @@
         "helpBanner": "Help centre: banner",
         "helpCategory": "Help centre: “{name}” picture",
         "businessRow": "Kinds of business (home page and for-business page): {name}",
-        "storePicture": "Store picture: {name}",
-        "tea101Amount": "Tea 101: the picture beside “How much do I need?”"
+        "storePicture": "Store picture: {name}"
       },
       "visualSizeSlide": "Wide: at least 2560 × 750 px; for phones 1200 × 1660 px.",
       "visualSizeTile": "At least 1300 × 730 px.",
@@ -2017,6 +2016,8 @@
     "tagline": "New to loose leaf tea? Start here: our beginner's guide explains where tea comes from, how the main kinds differ and how to brew each of them.",
     "whatTitle": "What is tea?",
     "whatText": "All true tea — white, green, oolong, black and pu'erh — comes from the leaves of one plant, Camellia sinensis. What sets them apart is what happens after picking: how long the leaves wither, whether they are heated straight away or left to oxidise, and how they are rolled, dried and aged. Herbal and fruit infusions are made from other plants and are not tea in this sense.",
+    "kinds": "Kinds of tea",
+    "fiveTitle": "TERAN's five green teas",
     "types": {
       "white": {
         "title": "White tea",

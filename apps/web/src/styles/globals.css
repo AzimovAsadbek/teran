@@ -839,6 +839,41 @@
     }
   }
 
+  /* Tea 101's kinds (tea-101/page.tsx): each band in its leaf's colour, deepening from the band
+     before as it comes into view, white tea to pu-erh, as a cup deepens with oxidation; the leaf
+     opens as it arrives (UNFURL), and a pack's cups fill like a level (POUR). Without
+     scroll-driven animations or with reduced motion each band simply has its colour, the leaf
+     lies open and every cup is shown. */
+  .kind-deepen {
+    background-color: var(--tint);
+    /* The quietest grey falls under 4.5:1 on the deeper tints: the next one holds 9:1. */
+    --color-fg-subtle: var(--color-ink-700);
+  }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .kind-deepen {
+        animation: kind-deepen linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 100%;
+      }
+      .scroll-unfurl {
+        animation: unfurl-in linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 40%;
+      }
+      .cups-pour {
+        mask-image: linear-gradient(
+          to top,
+          #000 calc(var(--level) - 14%),
+          transparent var(--level)
+        );
+        animation: pour linear both;
+        animation-timeline: view();
+        animation-range: entry 30% cover 55%;
+      }
+    }
+  }
+
   /* POUR: a picture rising into its frame like a level, its surface soft. */
   .pour-in {
     mask-image: linear-gradient(to top, #000 calc(var(--level) - 14%), transparent var(--level));
@@ -1027,6 +1062,15 @@
   syntax: '<percentage>';
   inherits: false;
   initial-value: 116%;
+}
+
+@keyframes kind-deepen {
+  from {
+    background-color: var(--tint-from);
+  }
+  to {
+    background-color: var(--tint);
+  }
 }
 
 @keyframes steep {

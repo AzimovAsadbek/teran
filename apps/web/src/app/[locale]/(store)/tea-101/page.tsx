@@ -1,19 +1,22 @@
-import type { Locale } from '@teran/contracts';
+import type { BrewingDto, Locale, ProductSummaryDto } from '@teran/contracts';
+import { ArrowRight } from 'lucide-react';
 import type { Metadata } from 'next';
-import Image from 'next/image';
+import Image, { type StaticImageData } from 'next/image';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
-import { Suspense } from 'react';
-import { PageHeader } from '@/components/content/page-header';
-import { VisualPicture } from '@/components/content/visual-picture';
-import { ProductRail } from '@/components/home/product-rail';
+import { Suspense, type CSSProperties } from 'react';
+import { BrewingGauge } from '@/components/brand/brewing-gauge';
+import { PACK_IMAGES } from '@/components/brand/pack-images';
+import { TeaRulers, type RulerTea } from '@/components/brand/tea-rulers';
+import { ProductCard } from '@/components/catalog/product-card';
+import { FurtherLinks } from '@/components/content/further-links';
+import { COLLECTION_CODES, PREMIUM_COLLECTION_SLUG, teaCodeOf, teaHref } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
+import { brewingMeasures } from '@/lib/brewing';
+import { cn } from '@/lib/cn';
 import { getCategories, getProductList } from '@/lib/data/catalog';
-import { getPublicSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import { visualFor } from '@/lib/visuals';
-import terraces from '../../../../../public/brand/art/terraces.webp';
 import blackLeaves from '../../../../../public/brand/leaves/black.webp';
 import greenLeaves from '../../../../../public/brand/leaves/green.webp';
 import oolongLeaves from '../../../../../public/brand/leaves/oolong.webp';
@@ -31,187 +34,384 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
+/** A kind's brewing as its text states it, for the gauge (no amount: the kinds' texts give none). */
+function stated(temperature: [number, number], time: [number, number] | null): BrewingDto {
+  return {
+    temperatureCelsius: temperature[0],
+    temperatureMaxCelsius: temperature[1] !== temperature[0] ? temperature[1] : null,
+    timeMinSeconds: time ? time[0] : null,
+    timeMaxSeconds: time ? time[1] : null,
+    amountGrams: null,
+    amountMaxGrams: null,
+  };
+}
+
+type KindKey = 'white' | 'green' | 'oolong' | 'black' | 'puerh';
+
 /**
- * The kinds of tea in the reference's order with its pastel bands, the category each would be
- * sold from and its dry leaves (photographs the owner supplied). The reference's matcha, herbal,
- * mate and rooibos bands are left out: they are not the Chinese teas TERAN deals in.
+ * The kinds TERAN deals in, from the least processed to the most, each with the category it is
+ * sold from, its dry leaves (the owner's photographs), the colour of its cup (art direction, not a
+ * claim: pale straw to deep ruby, deepening as the leaf is more oxidised), which tints its band,
+ * and the brewing its text states (messages: Tea101.types.*.text; pu-erh's gives no figures).
  */
-const STEPS = ['measure', 'water', 'steep'] as const;
+const KINDS: {
+  key: KindKey;
+  slug: string;
+  leaves: StaticImageData;
+  cup: string;
+  brewing: BrewingDto | null;
+}[] = [
+  {
+    key: 'white',
+    slug: 'white-tea',
+    leaves: whiteLeaves,
+    cup: '#d6bf7c',
+    brewing: stated([80, 85], null),
+  },
+  {
+    key: 'green',
+    slug: 'green-tea',
+    leaves: greenLeaves,
+    cup: '#b4aa3c',
+    brewing: stated([75, 90], [120, 180]),
+  },
+  {
+    key: 'oolong',
+    slug: 'oolong-tea',
+    leaves: oolongLeaves,
+    cup: '#c9862c',
+    brewing: stated([90, 95], null),
+  },
+  {
+    key: 'black',
+    slug: 'black-tea',
+    leaves: blackLeaves,
+    cup: '#a8441f',
+    brewing: stated([90, 100], [180, 300]),
+  },
+  { key: 'puerh', slug: 'puerh-tea', leaves: puerhLeaves, cup: '#6b2a1c', brewing: null },
+];
 
-/** The reference's condensed capitals for this page's section headings. */
-const HEADLINE = 'font-headline text-[2rem] text-[#121212] [--headline-weight:800]';
+/** A kind's band: its cup's colour, faint, on warm paper. */
+const tintOf = (cup: string) => `color-mix(in oklab, ${cup} 16%, var(--color-paper))`;
+/** Its cup's colour deepened, for the gauge's drawings on that band (3:1 and more against it). */
+const inkOf = (cup: string) => `color-mix(in oklab, ${cup} 62%, black)`;
 
-const TYPES = [
-  { key: 'white', slug: 'white-tea', band: 'bg-[#f0f9f7]', leaves: whiteLeaves },
-  { key: 'green', slug: 'green-tea', band: 'bg-[#f1f8e4]', leaves: greenLeaves },
-  { key: 'oolong', slug: 'oolong-tea', band: 'bg-[#d4e9f3]', leaves: oolongLeaves },
-  { key: 'black', slug: 'black-tea', band: 'bg-[#ccd7e0]', leaves: blackLeaves },
-  { key: 'puerh', slug: 'puerh-tea', band: 'bg-[#e2d2da]', leaves: puerhLeaves },
+/** The three steps and the measure each is about, as TERAN's teas give them (Tea101.steps). */
+const STEPS = [
+  { key: 'measure', measure: 'amount' },
+  { key: 'water', measure: 'temperature' },
+  { key: 'steep', measure: 'time' },
 ] as const;
+const STEP_BREWING: BrewingDto = {
+  amountGrams: '3',
+  amountMaxGrams: '5',
+  temperatureCelsius: 80,
+  temperatureMaxCelsius: 90,
+  timeMinSeconds: 120,
+  timeMaxSeconds: 180,
+};
+
+/** "One pack makes about 80–130 cups" (Tea101.amountText), as cups. */
+const CUPS = { least: 80, most: 130 };
 
 /**
- * A kind's pill to its category and its row of products, as the reference's: only where TERAN's
- * catalogue has that kind of tea; otherwise the band keeps just its words.
+ * Tea 101 as the brewing page (ADR-051): the kinds' dry leaves as the way in, from white tea to
+ * pu-erh; a band a kind whose colour deepens from the one before as it comes into view, the
+ * brewing its text states drawn on the gauge, and its teas where TERAN stocks it (for green tea,
+ * TERAN's five on one ruler); how much a pack makes, as cups; the three steps, each with its
+ * measure. Only the copy's own facts and the products' own brewing.
  */
-async function KindProducts({ slug, label, shop }: { slug: string; label: string; shop: string }) {
+export default async function TeaBasicsPage() {
+  const [t, tb, tn] = await Promise.all([
+    getTranslations('Tea101'),
+    getTranslations('Brewing'),
+    getTranslations('Nav'),
+  ]);
+  const stepMeasures = brewingMeasures(STEP_BREWING, tb);
+
+  return (
+    <>
+      <header className="container-page pt-10 pb-12 sm:pt-14 lg:pt-16 lg:pb-16">
+        <div className="grid grid-cols-1 gap-x-14 gap-y-8 lg:grid-cols-12 lg:items-end">
+          <div className="lg:col-span-7">
+            <h1 className="font-heading text-[clamp(3.25rem,2rem+4.5vw,5.5rem)] leading-[0.98] text-fg">
+              {t('title')}
+            </h1>
+            <p className="mt-5 max-w-[36rem] text-[1.125rem] leading-relaxed text-pretty text-fg-muted sm:text-[1.25rem]">
+              {t('tagline')}
+            </p>
+          </div>
+          <div className="lg:col-span-5">
+            <h2
+              id="what-is-tea"
+              className="font-heading text-[1.5rem] leading-tight text-fg sm:text-[1.75rem]"
+            >
+              {t('whatTitle')}
+            </h2>
+            <p className="mt-3 max-w-[34rem] text-[1.0625rem] leading-relaxed text-pretty text-fg-muted">
+              {t('whatText')}
+            </p>
+          </div>
+        </div>
+        {/* The five kinds as their dry leaves, the least processed first: a way to each. */}
+        <nav aria-label={t('kinds')} className="mt-10 lg:mt-14">
+          <ol className="grid grid-cols-5 gap-2 sm:gap-6">
+            {KINDS.map((kind) => (
+              <li key={kind.key}>
+                <a
+                  href={`#tea-${kind.key}`}
+                  className="group flex flex-col items-center gap-3 rounded-2xl text-center"
+                >
+                  <span
+                    className="block aspect-square w-full max-w-[9rem] overflow-hidden rounded-full ring-1 ring-line transition-[box-shadow] duration-300 group-hover:ring-4"
+                    style={{ '--tw-ring-color': inkOf(kind.cup) } as CSSProperties}
+                  >
+                    <Image
+                      src={kind.leaves}
+                      alt=""
+                      priority
+                      sizes="(min-width: 1024px) 9rem, 18vw"
+                      className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:rotate-12"
+                    />
+                  </span>
+                  <span className="text-[0.8125rem] leading-tight font-semibold text-balance text-fg sm:text-[1rem]">
+                    {t(`types.${kind.key}.title`)}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </header>
+
+      {KINDS.map((kind, index) => {
+        const measures = brewingMeasures(kind.brewing, tb);
+        const before = KINDS[index - 1];
+        return (
+          <section
+            key={kind.key}
+            id={`tea-${kind.key}`}
+            aria-labelledby={`tea-${kind.key}-title`}
+            className="kind-deepen py-14 lg:py-20"
+            style={
+              {
+                '--tint': tintOf(kind.cup),
+                '--tint-from': before ? tintOf(before.cup) : 'var(--color-canvas)',
+              } as CSSProperties
+            }
+          >
+            <div className="container-page grid grid-cols-1 gap-x-14 gap-y-6 lg:grid-cols-12">
+              <div className="flex items-center gap-5 lg:col-span-4 lg:flex-col lg:items-start lg:gap-6">
+                <Image
+                  src={kind.leaves}
+                  alt=""
+                  sizes="(min-width: 1024px) 11rem, 6rem"
+                  className="scroll-unfurl size-24 shrink-0 rounded-full object-cover ring-4 ring-ivory-50 lg:size-44"
+                />
+                <h2
+                  id={`tea-${kind.key}-title`}
+                  className="font-heading text-[2.25rem] leading-[1.05] text-balance text-fg sm:text-[2.75rem]"
+                >
+                  {t(`types.${kind.key}.title`)}
+                </h2>
+              </div>
+              <div className="lg:col-span-8 lg:pt-2">
+                <p className="max-w-[65ch] text-[1.0625rem] leading-relaxed text-pretty text-fg">
+                  {t(`types.${kind.key}.text`)}
+                </p>
+                <BrewingGauge
+                  measures={measures}
+                  colour={inkOf(kind.cup)}
+                  className="mt-6 max-w-[36rem] border-t border-ink-900/15 pt-5"
+                />
+              </div>
+              <div className="lg:col-span-12">
+                <Suspense fallback={null}>
+                  <KindProducts
+                    kind={kind.key}
+                    slug={kind.slug}
+                    shop={t(`types.${kind.key}.shop`)}
+                  />
+                </Suspense>
+              </div>
+            </div>
+          </section>
+        );
+      })}
+
+      {/* How much a pack makes: the pouch, and its 80–130 cups (full, then the range's empty ones). */}
+      <section aria-labelledby="tea-amount" className="bg-paper">
+        <div className="container-page grid grid-cols-1 gap-x-14 gap-y-10 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+          <div className="lg:col-span-6">
+            <h2
+              id="tea-amount"
+              className="font-heading text-[2.25rem] leading-[1.05] text-balance text-fg sm:text-[2.75rem]"
+            >
+              {t('amountTitle')}
+            </h2>
+            <div className="mt-5 max-w-[34rem] space-y-4 text-[1.0625rem] leading-relaxed text-pretty">
+              <p className="text-fg">{t('amountText')}</p>
+              <p className="text-fg-muted">{t('amountKeep')}</p>
+            </div>
+          </div>
+          <div aria-hidden className="flex items-end gap-6 sm:gap-10 lg:col-span-6">
+            <Image
+              src={PACK_IMAGES.XC2025}
+              alt=""
+              sizes="(min-width: 1024px) 10rem, 28vw"
+              className="h-auto w-[28%] max-w-[10rem] shrink-0 drop-shadow-[0_18px_18px_rgb(32_24_8_/_0.25)]"
+            />
+            <span className="cups-pour flex flex-1 flex-wrap-reverse content-start gap-1.5 sm:gap-2">
+              {Array.from({ length: CUPS.most }, (_, cup) => (
+                <span
+                  key={cup}
+                  className={cn(
+                    'aspect-square w-[calc((100%-9*0.375rem)/10)] rounded-full sm:w-[calc((100%-12*0.5rem)/13)]',
+                    cup < CUPS.least
+                      ? 'bg-[radial-gradient(circle,#908943_56%,transparent_60%)] ring-1 ring-ink-900/25'
+                      : 'ring-1 ring-ink-900/25',
+                  )}
+                />
+              ))}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Brewing: the three steps, each with its measure as TERAN's teas give it. */}
+      <section aria-labelledby="tea-brew" className="container-page py-16 lg:py-24">
+        <div className="max-w-[40rem]">
+          <h2
+            id="tea-brew"
+            className="font-heading text-[2.25rem] leading-[1.05] text-balance text-fg sm:text-[2.75rem]"
+          >
+            {t('brewTitle')}
+          </h2>
+          <p className="mt-4 text-[1.0625rem] leading-relaxed text-pretty text-fg-muted">
+            {t('brewText')}
+          </p>
+        </div>
+        <ol className="mt-10 grid grid-cols-1 gap-x-10 gap-y-10 md:grid-cols-3">
+          {STEPS.map((step) => {
+            const measure = stepMeasures.find((candidate) => candidate.key === step.measure);
+            return (
+              <li key={step.key} className="border-t border-line pt-6">
+                <h3 className="font-heading text-[1.375rem] leading-tight text-fg sm:text-[1.5rem]">
+                  {t(`steps.${step.key}.title`)}
+                </h3>
+                <p className="mt-2 text-[1rem] leading-relaxed text-pretty text-fg-muted">
+                  {t(`steps.${step.key}.text`)}
+                </p>
+                {measure ? (
+                  <BrewingGauge
+                    measures={[measure]}
+                    colour="var(--color-forest-900)"
+                    className="mt-5"
+                  />
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      <FurtherLinks
+        label={tn('brandWorld')}
+        links={[
+          { href: '/journal', label: tn('journal'), text: tn('journalText') },
+          { href: '/about', label: tn('about'), text: tn('aboutText') },
+        ]}
+      />
+    </>
+  );
+}
+
+/** The cards' columns by how many there are (at most four), never one alone in a row. */
+function cardGrid(count: number) {
+  if (count === 1) return 'grid-cols-1 max-w-[60rem]';
+  if (count === 2) return 'grid-cols-2';
+  if (count === 3) return 'grid-cols-2 md:grid-cols-3';
+  return 'grid-cols-2 lg:grid-cols-4';
+}
+
+/**
+ * A kind's teas, only where TERAN stocks it: for green tea, TERAN's five on one ruler; for the
+ * others up to four cards (one alone is a wide card). Then the way to the whole category.
+ */
+async function KindProducts({ kind, slug, shop }: { kind: KindKey; slug: string; shop: string }) {
   await connection();
   const locale = (await getLocale()) as Locale;
   const category = (await getCategories(locale).catch(() => [])).find(
     (candidate) => candidate.slug === slug && candidate.productCount > 0,
   );
   if (!category) return null;
-  const [list, t] = await Promise.all([
-    getProductList(locale, `category=${slug}&pageSize=8&sort=featured`).catch(() => null),
-    getTranslations('Home'),
-  ]);
   const href = `/${category.path}`;
-  return (
-    <>
-      <Link
-        href={href}
-        className="pill-hover mx-auto mt-4 flex min-h-11 w-fit items-center rounded-full bg-forest-900 px-8 pt-[0.5625rem] pb-[0.4375rem] text-[1rem] leading-4 font-semibold text-white"
-      >
-        {shop}
-      </Link>
-      {list && list.items.length > 0 ? (
-        <div className="mt-7 text-left">
-          <ProductRail
-            frame="content"
-            tabs={[{ id: slug, label, products: list.items, href, cta: shop }]}
-            labels={{
-              tabList: label,
-              previous: t('showcasePrevious'),
-              next: t('showcaseNext'),
-            }}
-            heading="none"
-            cta={false}
-          />
-        </div>
-      ) : null}
-    </>
+  const more = (
+    <Link
+      href={href}
+      className="pill-hover mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-forest-900 px-7 text-[1rem] font-semibold text-ivory-50"
+    >
+      {shop}
+      <ArrowRight aria-hidden className="h-4 w-4" />
+    </Link>
   );
-}
 
-/**
- * The picture beside "how much do I need?" (Admin → Settings, page pictures), or TERAN's tea
- * terraces; the reference's wide frame with 24 px corners.
- */
-async function AmountPicture() {
-  await connection();
-  const locale = await getLocale();
-  const visual = visualFor(await getPublicSettings(locale).catch(() => null), 'tea101.amount');
-  const sizes = '(min-width: 61.875rem) min(46vw, 41.5rem), 100vw';
-  return (
-    <div className="relative aspect-[664/249] overflow-hidden rounded-[1.5rem]">
-      {visual ? (
-        <div className="absolute inset-0">
-          <VisualPicture visual={visual} sizes={sizes} />
+  if (kind === 'green') {
+    const [list, tb, t] = await Promise.all([
+      getProductList(
+        locale,
+        `collection=${PREMIUM_COLLECTION_SLUG}&pageSize=8&sort=featured`,
+      ).catch(() => null),
+      getTranslations('Brewing'),
+      getTranslations('Tea101'),
+    ]);
+    const teas = (list?.items ?? [])
+      .flatMap((product): RulerTea[] => {
+        const code = teaCodeOf(product.slug);
+        return code
+          ? [{ code, href: teaHref(code), measures: brewingMeasures(product.brewing, tb) }]
+          : [];
+      })
+      .sort((a, b) => COLLECTION_CODES.indexOf(a.code) - COLLECTION_CODES.indexOf(b.code));
+    if (teas.length >= 2) {
+      return (
+        <div className="mt-8 rounded-[1.5rem] bg-ivory-50/70 p-5 sm:p-8">
+          <TeaRulers teas={teas} title={t('fiveTitle')} id="tea-five" />
+          {more}
         </div>
-      ) : (
-        <Image src={terraces} alt="" fill sizes={sizes} quality={60} className="object-cover" />
-      )}
-    </div>
-  );
-}
+      );
+    }
+  }
 
-/**
- * Tea 101 on the reference's page: a teal banner, "What is tea?" on white, then a pastel band per
- * kind of tea with its dry leaves, its name, what makes it and how to brew it, and — where TERAN
- * sells that kind — a pill to its category and a row of its teas; then how much tea a pack makes
- * and the three brewing steps. The kinds' text is general tea knowledge; the amounts, temperatures and times
- * are those of TERAN's own teas (their product pages give each one's).
- */
-export default async function TeaBasicsPage() {
-  const t = await getTranslations('Tea101');
+  const list = await getProductList(locale, `category=${slug}&pageSize=4&sort=featured`).catch(
+    () => null,
+  );
+  const items: ProductSummaryDto[] = list?.items ?? [];
   return (
-    <>
-      <PageHeader tone="teal" size="large" title={t('title')} intro={t('tagline')} />
-      <section
-        aria-labelledby="what-is-tea"
-        className="px-4 pt-[3.75rem] pb-10 text-center min-[46.875rem]:px-10"
-      >
-        <h2
-          id="what-is-tea"
-          className="mx-auto max-w-[65rem] font-headline text-[2rem] leading-[2.8rem] text-[#121212] [--headline-weight:800]"
-        >
-          {t('whatTitle')}
-        </h2>
-        <p className="mx-auto mt-4 max-w-[32.5rem] text-[1rem] leading-[1.6rem] font-medium text-[#121212]">
-          {t('whatText')}
-        </p>
-      </section>
-      {TYPES.map((type) => (
-        <section
-          key={type.key}
-          aria-labelledby={`tea-${type.key}`}
-          className={`${type.band} py-12 text-center`}
-        >
-          <div className="container-frame">
-            {/* The kind's dry leaves, in a round white frame above its name. */}
-            <Image
-              src={type.leaves}
-              alt=""
-              sizes="(min-width: 46.875rem) 176px, 136px"
-              quality={75}
-              className="mx-auto mb-6 size-34 rounded-full object-cover shadow-[0_8px_24px_rgb(0_0_0_/_0.08)] ring-4 ring-white min-[46.875rem]:size-44"
-            />
-            <h2
-              id={`tea-${type.key}`}
-              className="font-heading text-[2rem] leading-[2.4rem] text-[#191919]"
+    <div className="mt-8">
+      {items.length > 0 ? (
+        <ul className={cn('grid gap-3 sm:gap-5', cardGrid(items.length))}>
+          {items.map((product, index) => (
+            <li
+              key={product.id}
+              className={cn(items.length === 3 && index === 2 && 'max-md:col-span-2')}
             >
-              {t(`types.${type.key}.title`)}
-            </h2>
-            <p className="mx-auto mt-4 max-w-[62.5rem] text-[1rem] leading-[1.6rem] font-medium text-[#121212]">
-              {t(`types.${type.key}.text`)}
-            </p>
-          </div>
-          <Suspense fallback={null}>
-            <KindProducts
-              slug={type.slug}
-              label={t(`types.${type.key}.title`)}
-              shop={t(`types.${type.key}.shop`)}
-            />
-          </Suspense>
-        </section>
-      ))}
-      {/* How much tea a pack makes, with a picture beside it (stacked on phones). */}
-      <section aria-labelledby="tea-amount" className="container-frame py-[3.75rem]">
-        <div className="grid items-center gap-8 min-[61.875rem]:grid-cols-2">
-          <div className="flex flex-col gap-4">
-            <h2 id="tea-amount" className={`${HEADLINE} leading-[2.4rem]`}>
-              {t('amountTitle')}
-            </h2>
-            <div className="flex flex-col gap-[1.125rem] text-[1.125rem] leading-[1.8rem] font-medium text-[#121212]">
-              <p>{t('amountText')}</p>
-              <p>{t('amountKeep')}</p>
-            </div>
-          </div>
-          <Suspense fallback={<div className="aspect-[664/249] rounded-[1.5rem] bg-ivory-100" />}>
-            <AmountPicture />
-          </Suspense>
-        </div>
-      </section>
-      {/* Brewing: a short introduction, then the three steps in columns. */}
-      <section aria-labelledby="tea-brew" className="container-frame pt-[3.75rem] pb-20">
-        <h2 id="tea-brew" className={`${HEADLINE} max-w-[65rem] leading-[2.8rem]`}>
-          {t('brewTitle')}
-        </h2>
-        <p className="mt-4 max-w-[32.5rem] text-[1rem] leading-[1.6rem] font-medium text-[#121212]">
-          {t('brewText')}
-        </p>
-        <ol className="mt-4 grid gap-8 min-[46.875rem]:grid-cols-3">
-          {STEPS.map((step) => (
-            <li key={step} className="flex flex-col gap-[0.7rem]">
-              <h3 className="font-headline text-[1.5rem] leading-[2.4rem] text-[#121212] [--heading-case:none] [--headline-weight:700]">
-                {t(`steps.${step}.title`)}
-              </h3>
-              <p className="text-[1rem] leading-[1.6rem] font-medium text-[#121212]">
-                {t(`steps.${step}.text`)}
-              </p>
+              <ProductCard
+                product={product}
+                layout={
+                  items.length === 1
+                    ? 'feature'
+                    : items.length === 3 && index === 2
+                      ? 'feature-phone'
+                      : 'card'
+                }
+              />
             </li>
           ))}
-        </ol>
-      </section>
-    </>
+        </ul>
+      ) : null}
+      {more}
+    </div>
   );
 }

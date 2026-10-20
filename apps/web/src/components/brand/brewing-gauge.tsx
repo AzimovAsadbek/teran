@@ -15,7 +15,7 @@ function along(measure: BrewingMeasure, value: number): number {
  * properties, so moving to another tea's range slides and stretches it smoothly
  * (styles/globals.css, `.brew-ruler`).
  */
-function Ruler({ measure }: { measure: BrewingMeasure }) {
+function Ruler({ measure, ends = true }: { measure: BrewingMeasure; ends?: boolean }) {
   const low = along(measure, measure.min);
   const high = along(measure, measure.max);
   const width = Math.max(high - low, 0.05);
@@ -37,7 +37,7 @@ function Ruler({ measure }: { measure: BrewingMeasure }) {
         ))}
         <span className="brew-ruler-range absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[var(--gauge)]" />
       </span>
-      {measure.ends ? (
+      {ends && measure.ends ? (
         <span className="mt-1.5 flex justify-between text-[0.6875rem] leading-none text-fg-muted">
           <span>{measure.ends[0]}</span>
           <span>{measure.ends[1]}</span>
@@ -82,6 +82,27 @@ function Leaves({ measure, large }: { measure: BrewingMeasure; large: boolean })
 }
 
 /**
+ * One measure's drawing alone (its leaves or its ruler), coloured by the nearest `--gauge`: for
+ * a table of teas read against the same rulers (components/brand/tea-rulers.tsx), whose head
+ * carries the scale's ends once.
+ */
+export function MeasureDrawing({
+  measure,
+  ends = true,
+  large = false,
+}: {
+  measure: BrewingMeasure;
+  ends?: boolean;
+  large?: boolean;
+}) {
+  return measure.key === 'amount' ? (
+    <Leaves measure={measure} large={large} />
+  ) : (
+    <Ruler measure={measure} ends={ends} />
+  );
+}
+
+/**
  * The pack's brewing read as instruments rather than numbers alone (ADR-051): the amount of leaf
  * as leaves, the water's temperature and the time as ranges on fixed rulers, so the five teas can
  * be compared at a glance and the measures move when another tea is chosen. The words stay the
@@ -104,9 +125,14 @@ export function BrewingGauge({
   if (measures.length === 0) return null;
   return (
     <dl
-      // A row a measure on phones (its value, then its drawing), three columns from 480 px.
+      // A row a measure on phones (its value, then its drawing), a column each from 480 px.
       className={cn(
-        'grid grid-cols-1 gap-x-6 gap-y-4 min-[30rem]:grid-cols-3 min-[30rem]:gap-y-5',
+        'grid grid-cols-1 gap-x-6 gap-y-4 min-[30rem]:gap-y-5',
+        measures.length >= 3
+          ? 'min-[30rem]:grid-cols-3'
+          : measures.length === 2
+            ? 'min-[30rem]:grid-cols-2'
+            : 'min-[30rem]:max-w-[18rem]',
         className,
       )}
       style={{ '--gauge': colour } as CSSProperties}
@@ -128,11 +154,7 @@ export function BrewingGauge({
             >
               {measure.value}
             </span>
-            {measure.key === 'amount' ? (
-              <Leaves measure={measure} large={large} />
-            ) : (
-              <Ruler measure={measure} />
-            )}
+            <MeasureDrawing measure={measure} large={large} />
           </dd>
         </div>
       ))}

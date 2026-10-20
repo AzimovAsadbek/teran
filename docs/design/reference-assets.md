@@ -19,20 +19,20 @@ TERAN product. They are the pictures that go to the live site with the design (t
 mockup's pictures were reviewed and moved here (the globe band, three menu pictures, the black
 tea cover, the contact, help, flavour and Tea 101 pictures):
 
-| Place                                          | Files                | Shown on                                                        |
-| ---------------------------------------------- | -------------------- | --------------------------------------------------------------- |
-| `about.hero`, `about.showcase`                 | 1 each               | About page: top band, showcase band                             |
-| `about.idea.1` … `about.idea.3`                | 1 each               | About page: the three idea pictures                             |
-| `banner:catalog`                               | desktop + phone crop | All products: the header banner                                 |
-| `banner:category:green-tea`                    | desktop + phone crop | Green tea: the header banner                                    |
-| `article:<slug>` (4 journal articles)          | 1 each               | Journal cards, the home pair and article pages (covers)         |
-| `home.values`                                  | desktop + phone crop | Home: the values band (the globe)                               |
-| `menu.collections`, `menu.learn`, `menu.about` | 1 each               | Desktop menus' cards (where the item has no picture of its own) |
-| `cover:category:black-tea`                     | 1                    | Black tea: menus and category tiles                             |
-| `contact.picture`, `help.returns` (one file)   | 1                    | Contact page; the help centre's returns card                    |
-| `help.banner`, `help.tea`, `help.payment`      | 1 each               | Help centre: its banner and two category cards                  |
-| `wholesale.flavour`                            | desktop + phone crop | For business: the wide flavour band                             |
-| `tea101.amount`                                | 1                    | Tea 101: beside "how much do I need?"                           |
+| Place                                          | Files                | Shown on                                                         |
+| ---------------------------------------------- | -------------------- | ---------------------------------------------------------------- |
+| `about.hero`, `about.showcase`                 | 1 each               | Not shown since round 4 (About tells its story with the pouches) |
+| `about.idea.1` … `about.idea.3`                | 1 each               | Not shown since round 4                                          |
+| `banner:catalog`                               | desktop + phone crop | All products: the header banner                                  |
+| `banner:category:green-tea`                    | desktop + phone crop | Green tea: the header banner                                     |
+| `article:<slug>` (4 journal articles)          | 1 each               | Journal cards, the home pair and article pages (covers)          |
+| `home.values`                                  | desktop + phone crop | Home: the values band (the globe)                                |
+| `menu.collections`, `menu.learn`, `menu.about` | 1 each               | Desktop menus' cards (where the item has no picture of its own)  |
+| `cover:category:black-tea`                     | 1                    | Black tea: menus and category tiles                              |
+| `contact.picture`, `help.returns` (one file)   | 1                    | Contact page; the help centre's returns card                     |
+| `help.banner`, `help.tea`, `help.payment`      | 1 each               | Help centre: its banner and two category cards                   |
+| `wholesale.flavour`                            | desktop + phone crop | Not shown since round 4 (the for-business page was rebuilt)      |
+| `tea101.amount`                                | 1                    | Not shown since round 4 (the pouch and its cups stand there)     |
 
 ```bash
 corepack pnpm --filter @teran/api visuals:import --dir storage/reference-assets

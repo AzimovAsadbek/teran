@@ -8,10 +8,9 @@ import { connection } from 'next/server';
 import { Suspense, type CSSProperties } from 'react';
 import { BrewingGauge } from '@/components/brand/brewing-gauge';
 import { PACK_IMAGES } from '@/components/brand/pack-images';
-import { TeaRulers, type RulerTea } from '@/components/brand/tea-rulers';
+import { FiveTeas } from '@/components/brand/five-teas';
 import { ProductCard } from '@/components/catalog/product-card';
 import { FurtherLinks } from '@/components/content/further-links';
-import { COLLECTION_CODES, PREMIUM_COLLECTION_SLUG, teaCodeOf, teaHref } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { brewingMeasures } from '@/lib/brewing';
 import { cn } from '@/lib/cn';
@@ -358,30 +357,8 @@ async function KindProducts({ kind, slug, shop }: { kind: KindKey; slug: string;
   );
 
   if (kind === 'green') {
-    const [list, tb, t] = await Promise.all([
-      getProductList(
-        locale,
-        `collection=${PREMIUM_COLLECTION_SLUG}&pageSize=8&sort=featured`,
-      ).catch(() => null),
-      getTranslations('Brewing'),
-      getTranslations('Tea101'),
-    ]);
-    const teas = (list?.items ?? [])
-      .flatMap((product): RulerTea[] => {
-        const code = teaCodeOf(product.slug);
-        return code
-          ? [{ code, href: teaHref(code), measures: brewingMeasures(product.brewing, tb) }]
-          : [];
-      })
-      .sort((a, b) => COLLECTION_CODES.indexOf(a.code) - COLLECTION_CODES.indexOf(b.code));
-    if (teas.length >= 2) {
-      return (
-        <div className="mt-8 rounded-[1.5rem] bg-ivory-50/70 p-5 sm:p-8">
-          <TeaRulers teas={teas} title={t('fiveTitle')} id="tea-five" />
-          {more}
-        </div>
-      );
-    }
+    const five = await FiveTeas({ locale, id: 'tea-five', footer: more });
+    if (five) return <div className="mt-8">{five}</div>;
   }
 
   const list = await getProductList(locale, `category=${slug}&pageSize=4&sort=featured`).catch(

@@ -2,9 +2,11 @@ import Image from 'next/image';
 import type { CSSProperties } from 'react';
 import { MeasureDrawing } from '@/components/brand/brewing-gauge';
 import { PACK_IMAGES } from '@/components/brand/pack-images';
+import { teaTint } from '@/components/brand/tea-stage';
 import { PACK_COLOURS, type TeaCode } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import type { BrewingMeasure } from '@/lib/brewing';
+import { cn } from '@/lib/cn';
 
 export interface RulerTea {
   code: TeaCode;
@@ -22,7 +24,18 @@ const ORDER: BrewingMeasure['key'][] = ['amount', 'temperature', 'time'];
  * content (a `dl` a tea, its labels on phones); the column heads with the rulers' ends, shown
  * once from 768 px, repeat the labels for the eye only.
  */
-export function TeaRulers({ teas, title, id }: { teas: RulerTea[]; title: string; id: string }) {
+export function TeaRulers({
+  teas,
+  title,
+  id,
+  current,
+}: {
+  teas: RulerTea[];
+  title: string;
+  id: string;
+  /** The tea whose page this is: its row is lit in its pack's tint. */
+  current?: TeaCode;
+}) {
   // Each column on the widest scale any tea needs, so every row is read against the same ruler.
   const columns = ORDER.flatMap((key) => {
     const found = teas.flatMap((tea) => tea.measures.filter((measure) => measure.key === key));
@@ -70,11 +83,20 @@ export function TeaRulers({ teas, title, id }: { teas: RulerTea[]; title: string
         {teas.map((tea) => (
           <li
             key={tea.code}
-            className="grid grid-cols-1 gap-y-3 border-b border-line py-4 md:grid-cols-[9.5rem_minmax(0,1fr)] md:items-center md:gap-x-8"
-            style={{ '--gauge': PACK_COLOURS[tea.code] } as CSSProperties}
+            className={cn(
+              'grid grid-cols-1 gap-y-3 border-b border-line py-4 md:grid-cols-[9.5rem_minmax(0,1fr)] md:items-center md:gap-x-8',
+              tea.code === current && '-mx-3 rounded-xl border-transparent px-3 md:-mx-4 md:px-4',
+            )}
+            style={
+              {
+                '--gauge': PACK_COLOURS[tea.code],
+                backgroundColor: tea.code === current ? teaTint(PACK_COLOURS[tea.code]) : undefined,
+              } as CSSProperties
+            }
           >
             <Link
               href={tea.href}
+              aria-current={tea.code === current ? 'page' : undefined}
               className="group/tea flex items-center gap-3 self-start rounded-lg md:self-center"
             >
               <Image
@@ -96,7 +118,7 @@ export function TeaRulers({ teas, title, id }: { teas: RulerTea[]; title: string
                 const measure = tea.measures.find((candidate) => candidate.key === column.key);
                 return (
                   <div key={column.key} className="min-w-0">
-                    <dt className="text-[0.6875rem] font-semibold tracking-[0.08em] text-fg-subtle uppercase md:sr-only">
+                    <dt className="text-[0.6875rem] font-semibold tracking-[0.08em] text-fg-muted uppercase md:sr-only">
                       {column.label}
                     </dt>
                     <dd className="mt-1 md:mt-0">

@@ -7,6 +7,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { BrewingGauge } from '@/components/brand/brewing-gauge';
+import { FiveTeas } from '@/components/brand/five-teas';
 import { PACK_IMAGES } from '@/components/brand/pack-images';
 import { TeaStage, teaTint } from '@/components/brand/tea-stage';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
@@ -387,6 +388,14 @@ async function ProductView({
           </div>
         </div>
       </div>
+      {code ? (
+        // TERAN's five read on one ruler, this one lit: how it differs from the other four.
+        <div className="container-frame mt-12 sm:mt-16">
+          <Suspense fallback={null}>
+            <FiveTeas locale={locale} current={code} id="five-teas" />
+          </Suspense>
+        </div>
+      ) : null}
       <Suspense fallback={<RailFallback />}>
         <RelatedProducts product={product} />
       </Suspense>

@@ -1,6 +1,7 @@
 import type { ProductSummaryDto } from '@teran/contracts';
 import { ArrowRight, MapPin, Package, Thermometer, Timer } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import type { CSSProperties } from 'react';
 import { Price } from '@/components/ui/price';
 import { PACK_COLOURS, teaCodeOf } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
@@ -37,15 +38,15 @@ function minutes(seconds: number): string {
 }
 
 /**
- * Product card: a white card with 16 px corners on a soft shadow, lifting a little while pointed
- * at as its picture slowly grows; "new" and "few left" pills top-left, the discount top-right; the
- * second picture fades in while the pointer is on the picture and a first picture with a film comes
- * alive (product-film.tsx). The second picture also stands as a small round swatch in the lower
- * left on every device, ringed in the pack's colour for TERAN's teas, so cards that open on the same
- * cup still differ at a glance; other products ring it in their family's colour, and the family
- * (product-family.ts) also sets the mark and ink of the category line, the field behind a cut-out
- * and, for cold drinks, water and gift sets, a band of light crossing the picture when the card is
- * pointed at. Under the picture, from the product's own data and nothing
+ * Product card: a white card with 16 px corners on a soft shadow; "new" and "few left" pills
+ * top-left, the discount top-right; a first picture with a film comes alive (product-film.tsx).
+ * The second picture (for TERAN's teas, their own dry leaf) stands as a small round swatch in the
+ * lower left on every device, ringed in the pack's colour, so cards that open on the same cup
+ * still differ at a glance. Pointed at, a card answers in its family's own way (ADR-051), never
+ * by lifting or zooming: the swatch grows into a ringed lens of the dry leaf beside the steaming
+ * cup (`.leaf-lens`); cold drinks, water and gift sets catch a band of light (`.card-sheen`); the
+ * family's mark turns a little. The family (product-family.ts) also sets the mark and ink of the
+ * category line and the field behind a cut-out. Under the picture, from the product's own data and nothing
  * invented: the tea type, the name, the customers' stars and their number (before the first
  * review, an invitation to rate it; ADR-042), the origin, and chips for the brewing temperature,
  * time and pack size. Without prices an "Order" button closes the card, outlined and filled while
@@ -131,14 +132,13 @@ export function ProductCard({
   ].filter((chip) => chip !== null);
 
   return (
-    <article className="group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-[translate,box-shadow] duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)] motion-safe:pointer-fine:hover:-translate-y-1">
+    <article className="group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-shadow duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)]">
       <div
         className="group/gallery relative aspect-square overflow-hidden bg-surface"
         // A cut-out stands on its family's field; a photograph covers it.
         style={product.image?.transparent ? { backgroundColor: family.field } : undefined}
       >
-        {/* The picture, its film and its second view grow together, so they stay aligned. */}
-        <div className="absolute inset-0 transition-transform duration-700 ease-out motion-safe:pointer-fine:group-hover/card:scale-[1.04]">
+        <div className="absolute inset-0">
           <ProductImage
             image={product.image}
             name={product.name}
@@ -150,17 +150,24 @@ export function ProductCard({
           {product.image?.film?.cardSrc && !soldOut ? (
             <ProductFilm film={product.image.film} size="card" />
           ) : null}
-          {hoverImage ? (
-            // Not displayed on touch screens, so it is never downloaded there.
-            <ProductImage
-              image={hoverImage}
-              name={product.name}
-              sizes={sizes}
-              decorative
-              className="absolute inset-0 hidden opacity-0 transition-opacity duration-200 ease-[ease] pointer-fine:block pointer-fine:group-hover/gallery:opacity-100"
-            />
-          ) : null}
         </div>
+        {hoverImage ? (
+          // The leaf lens: pointed at, the swatch grows into a ringed circle of the dry leaf beside
+          // the steaming cup, and shrinks back when left (styles/globals.css, `.leaf-lens`). Not
+          // displayed on touch screens, so it is never downloaded there.
+          <span
+            aria-hidden
+            className="leaf-lens pointer-events-none absolute inset-0 z-[2] hidden pointer-fine:block"
+            style={{ '--ring': packColour ?? family.ring } as CSSProperties}
+          >
+            <span className="leaf-lens-ring absolute inset-0" />
+            <span className="leaf-lens-image absolute inset-0">
+              <span className="absolute top-[30%] left-[8%] h-[62%] w-[62%]">
+                <ProductImage image={hoverImage} name={product.name} sizes={sizes} decorative />
+              </span>
+            </span>
+          </span>
+        ) : null}
         {family.sheen && !soldOut ? (
           // Glass and gift boxes catch the light: a band of it crosses the picture once while the
           // card is pointed at (styles/globals.css, `.card-sheen`; none with reduced motion).
@@ -224,7 +231,10 @@ export function ProductCard({
           className="flex h-5 min-w-0 items-center gap-1.5 text-[0.8125rem] leading-5 font-medium"
           style={{ color: family.ink }}
         >
-          <FamilyIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
+          <FamilyIcon
+            aria-hidden
+            className="h-3.5 w-3.5 shrink-0 transition-[rotate,scale] duration-500 ease-[var(--ease-out-expo)] pointer-fine:group-hover/card:scale-110 pointer-fine:group-hover/card:-rotate-12"
+          />
           <span className="truncate">{product.category.name}</span>
         </p>
         <Heading className="mt-1 line-clamp-2 text-[1rem] leading-5 font-bold text-fg min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6">

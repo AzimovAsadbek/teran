@@ -1,15 +1,17 @@
 'use client';
 
 import type { ImageDto } from '@teran/contracts';
-import { ArrowRight, Check, Loader2, MapPin, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Check, Leaf, Loader2, MapPin, ShoppingBag } from 'lucide-react';
 import Image, { type StaticImageData } from 'next/image';
 import { useLocale } from 'next-intl';
 import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ProductFilm } from '@/components/catalog/product-film';
+import { BrewingGauge } from '@/components/brand/brewing-gauge';
 import { ProductImage } from '@/components/catalog/product-image';
 import type { TeaCode } from '@/content/brand';
 import { cartActions, useCart } from '@/features/cart/cart-store';
 import { Link } from '@/i18n/navigation';
+import type { BrewingMeasure } from '@/lib/brewing';
 import { cn } from '@/lib/cn';
 import { useScrollScene } from '@/lib/scroll-scene';
 import pack8009 from '../../../public/brand/packs/8009.webp';
@@ -35,7 +37,8 @@ export interface SignatureTea {
   origin: string | null;
   description: string | null;
   notes: string | null;
-  facts: { key: string; label: string; value: string }[];
+  /** The pack's brewing as measures (lib/brewing). */
+  measures: BrewingMeasure[];
   pack: string | null;
   orderLabel: string;
   addLabel: string;
@@ -47,11 +50,14 @@ export interface SignatureTea {
 }
 
 /**
- * The signature range as one stage: the chosen tea's pack standing on its own colour, its dry
- * leaf poured in front of it and its brewed cup beside it — the tea, the leaf and the cup in one
- * picture — and, beside the stage, what TERAN says about it. The five codes form a tab list
- * (arrow keys, Home, End); choosing one sends the last pack out to the left and brings the next
- * one in while the field takes the new colour (CSS transitions; still with reduced motion).
+ * The signature range as one stage, a tasting: the chosen tea's pack standing on its own colour,
+ * its dry leaf poured in front of it and its brewed cup beside it — the tea, the leaf and the cup
+ * in one picture — and, beside the stage, what TERAN says about it and how it is brewed, as
+ * measures that move from one tea to the next. The five codes form a tab list (arrow keys, Home,
+ * End). Choosing a tea is the brewing language's focal moment (ADR-051): its colour STEEPS into
+ * the field from the cup outward, the last pack leaves as the next is set down, the dry leaf
+ * UNFURLS, the cup fills from below (POUR), the name comes into focus, and the leaf, temperature
+ * and time gauges glide to the new tea's values. With reduced motion everything changes at once.
  * Scrolled into view, the stage opens from an inset frame to its full size (lib/scroll-scene).
  */
 export function SignatureStage({
@@ -77,6 +83,11 @@ export function SignatureStage({
   const baseId = useId();
   const locale = useLocale();
   const [active, setActive] = useState(0);
+  // The field's colours, newest last: each new tea's colour steeps in over the one before it.
+  const [fields, setFields] = useState<{ id: number; colour: string }[]>(() => [
+    { id: 0, colour: teas[0]!.colour },
+  ]);
+  const fieldId = useRef(1);
   // A tea's leaf, cup and cup film load once it is shown or its tab is pointed at or focused, not
   // all five with the page (the packs, light and always there, carry the change between teas).
   const [seen, setSeen] = useState<ReadonlySet<number>>(() => new Set([0]));
@@ -113,6 +124,11 @@ export function SignatureStage({
 
   function choose(index: number, focus = false) {
     reveal(index);
+    if (index !== active) {
+      const colour = teas[index]!.colour;
+      // Keep the two below it, so a quick second choice still steeps over a full field.
+      setFields((current) => [...current.slice(-2), { id: fieldId.current++, colour }]);
+    }
     setActive(index);
     if (focus) tabRefs.current[index]?.focus();
   }
@@ -153,11 +169,22 @@ export function SignatureStage({
         <div className="min-w-0 lg:col-span-7">
           <div
             data-signature-frame
-            className="relative isolate aspect-square overflow-hidden rounded-[2rem] transition-[background-color] duration-700 ease-[var(--ease-scene)] min-[30rem]:aspect-[6/5]"
-            style={{
-              backgroundColor: `color-mix(in oklab, ${tea.colour} 16%, #f7f4ee)`,
-            }}
+            className="relative isolate aspect-square overflow-hidden rounded-[2rem] min-[30rem]:aspect-[6/5]"
           >
+            {/* The field: the chosen tea's colour, steeping in from the cup (lower right). */}
+            {fields.map((field, index) => (
+              <span
+                key={field.id}
+                aria-hidden
+                className={cn('absolute inset-0 -z-20', index > 0 && 'steep-in')}
+                style={
+                  {
+                    backgroundColor: `color-mix(in oklab, ${field.colour} 16%, #f7f4ee)`,
+                    '--steep-at': '80% 80%',
+                  } as CSSProperties
+                }
+              />
+            ))}
             {/* Light falling on the field from the upper left. */}
             <span
               aria-hidden
@@ -172,9 +199,10 @@ export function SignatureStage({
                   data-state={state}
                   className="group/tea absolute inset-0"
                 >
-                  {/* The dry leaf, poured in front (its white ground drops into the field). */}
+                  {/* The dry leaf, poured in front (its white ground drops into the field); a
+                      new tea's leaf UNFURLS into place, the last one curls away. */}
                   {entry.leaves && seen.has(index) ? (
-                    <div className="absolute bottom-[-7%] left-[-6%] w-[72%] mix-blend-multiply transition-[opacity,translate,scale] [mask-image:radial-gradient(closest-side,#000_72%,transparent)] min-[30rem]:w-[66%] duration-700 ease-[var(--ease-out-expo)] group-data-[state=after]/tea:translate-x-[8%] group-data-[state=after]/tea:scale-95 group-data-[state=after]/tea:opacity-0 group-data-[state=before]/tea:-translate-x-[8%] group-data-[state=before]/tea:scale-95 group-data-[state=before]/tea:opacity-0">
+                    <div className="absolute bottom-[-7%] left-[-6%] w-[72%] mix-blend-multiply transition-[opacity,rotate,scale] duration-[900ms] ease-[var(--ease-out-expo)] [mask-image:radial-gradient(closest-side,#000_72%,transparent)] min-[30rem]:w-[66%] group-data-[state=after]/tea:scale-[0.82] group-data-[state=after]/tea:rotate-[22deg] group-data-[state=after]/tea:opacity-0 group-data-[state=before]/tea:scale-[0.82] group-data-[state=before]/tea:-rotate-[22deg] group-data-[state=before]/tea:opacity-0">
                       {/* The photograph's near-white ground lifted to white, so the multiply
                           leaves no edge. */}
                       <div className="aspect-square brightness-[1.05] contrast-[1.04]">
@@ -217,15 +245,19 @@ export function SignatureStage({
                   key={entry.code}
                   aria-hidden={index !== active}
                   className={cn(
-                    'absolute right-[4%] bottom-[5%] w-[36%] transition-[opacity,scale] min-[30rem]:right-[5%] min-[30rem]:bottom-[6%] min-[30rem]:w-[34%] duration-700 ease-[var(--ease-out-expo)]',
-                    index === active ? 'opacity-100' : 'scale-90 opacity-0',
+                    'absolute right-[4%] bottom-[5%] w-[36%] transition-opacity duration-700 ease-[var(--ease-standard)] min-[30rem]:right-[5%] min-[30rem]:bottom-[6%] min-[30rem]:w-[34%]',
+                    // The chosen cup above the last, which fades out beneath it.
+                    index === active ? 'z-[2] opacity-100' : 'z-[1] opacity-0',
                   )}
                 >
+                  {/* The chosen tea's cup fills from below (POUR) inside the saucer's ring. */}
                   <div className="relative aspect-square overflow-hidden rounded-full shadow-[0_20px_40px_-18px_rgb(32_24_8_/_0.55)] ring-[6px] ring-white">
-                    <ProductImage image={entry.cup} name={entry.name} sizes="20rem" decorative />
-                    {entry.cup.film?.cardSrc ? (
-                      <ProductFilm film={entry.cup.film} size="card" active={index === active} />
-                    ) : null}
+                    <div className={cn('absolute inset-0', index === active && 'pour-in')}>
+                      <ProductImage image={entry.cup} name={entry.name} sizes="20rem" decorative />
+                      {entry.cup.film?.cardSrc ? (
+                        <ProductFilm film={entry.cup.film} size="card" active={index === active} />
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               ) : null,
@@ -291,13 +323,15 @@ export function SignatureStage({
             aria-labelledby={`${baseId}-tab-${tea.code}`}
             className="mt-7"
           >
-            <div key={tea.code} className="arrive-rise" style={{ '--i': -4 } as CSSProperties}>
-              <p
-                className="font-headline text-[2.5rem] leading-none tracking-[0.01em] uppercase min-[46.875rem]:text-[3.25rem]"
-                style={{ color: tea.colour }}
-              >
-                {tea.name}
-              </p>
+            {/* The name comes into focus; the words about it follow at once. */}
+            <p
+              key={`name-${tea.code}`}
+              className="clear-in font-headline text-[2.5rem] leading-none tracking-[0.01em] uppercase min-[46.875rem]:text-[3.25rem]"
+              style={{ color: tea.colour }}
+            >
+              {tea.name}
+            </p>
+            <div key={tea.code} className="animate-fade-in">
               {tea.origin || tea.pack ? (
                 <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9375rem] text-fg-muted">
                   {tea.origin ? (
@@ -315,36 +349,23 @@ export function SignatureStage({
                 <p className="mt-4 text-[1.0625rem] leading-relaxed text-fg">{tea.description}</p>
               ) : null}
               {tea.notes ? (
-                <figure
-                  className="mt-5 border-l-2 pl-4"
-                  style={{ borderColor: `color-mix(in oklab, ${tea.colour} 60%, transparent)` }}
-                >
-                  <figcaption className="text-[0.8125rem] font-semibold tracking-[0.08em] text-fg-subtle uppercase">
+                <figure className="mt-5">
+                  <figcaption className="flex items-center gap-2 text-[0.8125rem] font-semibold tracking-[0.08em] text-fg-subtle uppercase">
+                    <Leaf aria-hidden className="h-4 w-4" style={{ color: tea.colour }} />
                     {labels.notes}
                   </figcaption>
-                  <blockquote className="mt-1 font-heading text-[1.125rem] leading-snug whitespace-pre-line text-fg min-[46.875rem]:text-[1.25rem]">
+                  <blockquote className="mt-1.5 font-heading text-[1.125rem] leading-snug whitespace-pre-line text-fg min-[46.875rem]:text-[1.25rem]">
                     {tea.notes}
                   </blockquote>
                 </figure>
               ) : null}
-              {tea.facts.length > 0 ? (
-                <dl className="mt-6 grid grid-cols-3 gap-2 min-[30rem]:gap-3">
-                  {tea.facts.map((fact) => (
-                    <div
-                      key={fact.key}
-                      className="min-w-0 rounded-[1rem] bg-ivory-100 px-2.5 py-3 min-[30rem]:px-3"
-                    >
-                      <dt className="truncate text-[0.6875rem] font-semibold tracking-[0.04em] text-fg-subtle uppercase min-[30rem]:text-[0.75rem] min-[30rem]:tracking-[0.06em]">
-                        {fact.label}
-                      </dt>
-                      <dd className="mt-1 font-headline text-[1.0625rem] leading-tight text-fg min-[30rem]:text-[1.25rem]">
-                        {fact.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : null}
             </div>
+            {/* How it is brewed, as measures that glide to each tea's own values. */}
+            <BrewingGauge
+              measures={tea.measures}
+              colour={tea.colour}
+              className="mt-6 border-t border-line pt-5"
+            />
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 href={`/products/${tea.slug}`}

@@ -56,6 +56,7 @@ async function CatalogHeader({ withBanner = false }: { withBanner?: boolean }) {
       // Price filters show only with prices, so the line does not promise them otherwise.
       description={showPrices ? t('shopAllDescription') : t('shopAllDescriptionNoPrices')}
       banner={banner}
+      still
     >
       <Suspense fallback={<CategoryChipsFallback />}>
         <CategoryChipsLoader />

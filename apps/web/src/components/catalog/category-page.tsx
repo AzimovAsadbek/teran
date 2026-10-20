@@ -16,7 +16,12 @@ import { visualFor } from '@/lib/visuals';
 import { coverShareImage, pageMetadata } from '@/lib/seo';
 import { Breadcrumbs } from './breadcrumbs';
 import { CatalogResults, CatalogResultsSkeleton } from './catalog-results';
-import { CategoryChipRow, ListingHeader, ListingHeaderSkeleton } from './listing-header';
+import {
+  CategoryChipRow,
+  ListingHeader,
+  ListingHeaderSkeleton,
+  listingPictures,
+} from './listing-header';
 
 /**
  * Metadata of a category page. Every category page is built from the same template and the data
@@ -80,6 +85,10 @@ async function CategoryListing({
   }
 
   const { category, parent, subcategories, breadcrumbs } = page;
+  const banner = visualFor(settings, listingBannerSlot('category', category.id));
+  // The category's own products, as the header's pictures when it has no banner or cover.
+  const pictures =
+    banner || category.image ? [] : await listingPictures(locale, { category: category.slug });
   const top = parent ?? category;
   const chips = [
     { href: `/${top.path}`, name: t('allIn', { name: top.name }), current: parent === null },
@@ -112,7 +121,8 @@ async function CategoryListing({
         description={category.description}
         illustrationKey={category.illustrationKey}
         image={category.image}
-        banner={visualFor(settings, listingBannerSlot('category', category.id))}
+        banner={banner}
+        pictures={pictures}
       >
         {chips.length > 1 ? <CategoryChipRow label={t('subcategories')} items={chips} /> : null}
       </ListingHeader>

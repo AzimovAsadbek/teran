@@ -8,15 +8,11 @@ import {
   PREMIUM_COLLECTION_SLUG,
   teaCodeOf,
 } from '@/content/brand';
+import { brewingMeasures } from '@/lib/brewing';
 import { getProduct, getProductList } from '@/lib/data/catalog';
 import { formatMoney, packLabel } from '@/lib/format';
 import { showPrices } from '@/lib/site';
 import { SignatureStage, type SignatureTea } from './signature-stage';
-
-/** "2" or "2.5" minutes from seconds. */
-function minutes(seconds: number): string {
-  return Number.isInteger(seconds / 60) ? String(seconds / 60) : (seconds / 60).toFixed(1);
-}
 
 /**
  * TERAN's signature range on the home page: the five teas of the premium collection, each with
@@ -51,48 +47,7 @@ export async function SignatureTeas() {
   const teas = items.map((product, index): SignatureTea => {
     const detail: ProductDetailDto | null = details[index] ?? null;
     const code = teaCodeOf(product.slug)!;
-    const brewing = product.brewing;
     const variant = product.defaultVariant;
-    const facts: SignatureTea['facts'] = [];
-    if (brewing?.temperatureCelsius != null) {
-      facts.push({
-        key: 'temperature',
-        label: tb('temperature'),
-        value:
-          brewing.temperatureMaxCelsius != null
-            ? tb('celsiusRange', {
-                min: brewing.temperatureCelsius,
-                max: brewing.temperatureMaxCelsius,
-              })
-            : tb('celsius', { value: brewing.temperatureCelsius }),
-      });
-    }
-    if (brewing?.timeMinSeconds != null) {
-      facts.push({
-        key: 'time',
-        label: tb('time'),
-        value:
-          brewing.timeMaxSeconds != null && brewing.timeMaxSeconds !== brewing.timeMinSeconds
-            ? tb('minutes', {
-                min: minutes(brewing.timeMinSeconds),
-                max: minutes(brewing.timeMaxSeconds),
-              })
-            : tb('minutesSingle', { min: minutes(brewing.timeMinSeconds) }),
-      });
-    }
-    if (brewing?.amountGrams != null) {
-      facts.push({
-        key: 'amount',
-        label: tb('amount'),
-        value:
-          brewing.amountMaxGrams != null
-            ? tb('gramsRangePerCup', {
-                min: Number(brewing.amountGrams),
-                max: Number(brewing.amountMaxGrams),
-              })
-            : tb('gramsPerCup', { grams: Number(brewing.amountGrams) }),
-      });
-    }
     return {
       code,
       slug: product.slug,
@@ -101,7 +56,7 @@ export async function SignatureTeas() {
       origin: product.origin ?? null,
       description: product.shortDescription ?? null,
       notes: detail?.tastingNotes ?? null,
-      facts,
+      measures: brewingMeasures(product.brewing, tb),
       pack: variant
         ? packLabel(variant, product.format, locale, (key, values) => tp(`units.${key}`, values))
         : null,

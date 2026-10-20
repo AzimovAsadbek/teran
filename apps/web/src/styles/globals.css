@@ -222,6 +222,8 @@
      arriving (words, packs, pictures), a slow in-out for scenes and colour fields changing. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-scene: cubic-bezier(0.65, 0, 0.35, 1);
+  /* STEEP (ADR-051): quick to start, then a long, slowing spread, as colour diffuses in water. */
+  --ease-steep: cubic-bezier(0.45, 0.05, 0.25, 1);
   --duration-reveal: 950ms;
   --duration-scene: 700ms;
 
@@ -717,6 +719,152 @@
     }
   }
 
+  /* ── The brewing language (ADR-051) ────────────────────────────────────────────────────────
+     Four motions taken from the way tea is made, each with one material, each kept to the places
+     whose meaning it carries: STEEP (colour spreading from its source: a soft radial mask that
+     grows), UNFURL (a curled thing opening: rotation and scale settling), POUR (a level rising
+     with a soft surface: a mask moving up) and LIGHT (a pass of light over glass, `.card-sheen`).
+     Everything starts from a readable resting state and plays once; with reduced motion the
+     final state shows at once (the rule at the end of this file). */
+
+  /* A tea's measures (components/brand/brewing-gauge.tsx): the range bar slides and stretches to
+     the next tea's range; the leaves open or curl one after another. */
+  .brew-ruler {
+    transition:
+      --from 900ms var(--ease-out-expo),
+      --to 900ms var(--ease-out-expo);
+  }
+  .brew-ruler-range {
+    clip-path: inset(0 calc((1 - var(--to)) * 100%) 0 calc(var(--from) * 100%) round 999px);
+  }
+  .brew-leaf {
+    fill: currentcolor;
+    fill-opacity: 0.92;
+    transition:
+      fill-opacity 450ms var(--ease-standard),
+      opacity 450ms var(--ease-standard),
+      rotate 800ms var(--ease-out-expo),
+      scale 800ms var(--ease-out-expo);
+    transition-delay: calc(var(--i, 0) * 55ms);
+  }
+  /* The stem is an open line: drawn, never filled. */
+  .brew-leaf path:last-child {
+    fill: none;
+  }
+  .brew-leaf[data-state='part'] {
+    fill-opacity: 0.2;
+  }
+  .brew-leaf[data-state='empty'] {
+    fill-opacity: 0;
+    opacity: 0.3;
+    rotate: -30deg;
+    scale: 0.78;
+  }
+
+  /* The leaf lens (components/catalog/product-card.tsx): pointed at, a TERAN tea's swatch grows
+     into a ringed circle of its dry leaf beside the steaming cup — the card's leaf and cup in one
+     picture, as on the five-tea stage — and shrinks back to the swatch when left (faster). The
+     ring is the circle behind, 4 px wider; both circles move as one. */
+  .leaf-lens {
+    --lens-x: 2rem;
+    --lens-y: calc(100% - 2rem);
+    --lens-r: 1.5rem;
+  }
+  @media (width >= 46.875rem) {
+    .leaf-lens {
+      --lens-x: 2.75rem;
+      --lens-y: calc(100% - 2.75rem);
+      --lens-r: 2rem;
+    }
+  }
+  .leaf-lens-ring,
+  .leaf-lens-image {
+    transition: clip-path 380ms var(--ease-standard);
+  }
+  .leaf-lens-ring {
+    background-color: var(--ring);
+    clip-path: circle(var(--lens-r) at var(--lens-x) var(--lens-y));
+  }
+  .leaf-lens-image {
+    clip-path: circle(calc(var(--lens-r) - 4px) at var(--lens-x) var(--lens-y));
+  }
+  .group\/card:hover .leaf-lens {
+    --lens-x: 39%;
+    --lens-y: 61%;
+    --lens-r: 31%;
+  }
+  .group\/card:hover :is(.leaf-lens-ring, .leaf-lens-image) {
+    transition: clip-path 850ms var(--ease-out-expo);
+  }
+
+  /* STEEP: a colour field spreading from a point (`--steep-at`), its edge soft as tea diffusing in
+     water; mounted for each new colour, over the last one. */
+  .steep-in {
+    mask-image: radial-gradient(
+      circle at var(--steep-at, 50% 50%),
+      #000 calc(var(--steep) - 32%),
+      transparent var(--steep)
+    );
+    animation: steep 1800ms var(--ease-steep) both;
+  }
+
+  /* POUR: a picture rising into its frame like a level, its surface soft. */
+  .pour-in {
+    mask-image: linear-gradient(to top, #000 calc(var(--level) - 14%), transparent var(--level));
+    animation: pour 1100ms var(--ease-scene) both;
+  }
+
+  /* Pictures set down in a listing's header (components/catalog/listing-header.tsx), one after
+     another, onto their place: movement only, so each is visible from the first frame. */
+  @media (prefers-reduced-motion: no-preference) {
+    .set-down {
+      animation: set-down 1100ms var(--ease-out-expo) both;
+      animation-delay: calc(120ms + var(--i, 0) * 110ms);
+    }
+  }
+
+  /* A name coming into focus, as steam clears from a glass. */
+  .clear-in {
+    animation: clear-in 750ms var(--ease-out-expo) both;
+  }
+
+  /* The story's window (components/home/story-sequence-view.tsx): the next picture waits empty
+     and POURS in over the shown one when its step reaches the middle of the screen — its level
+     rising with a soft surface, the picture settling from a slight zoom — and drains down again
+     when the reader scrolls back. */
+  .pour-layer {
+    --level: 118%;
+    mask-image: linear-gradient(to top, #000 calc(var(--level) - 18%), transparent var(--level));
+    transition: --level 1300ms var(--ease-scene);
+  }
+  .pour-layer[data-state='next'] {
+    --level: 0%;
+    transition-duration: 900ms;
+  }
+  .pour-layer-media {
+    transition: scale 1700ms var(--ease-out-expo);
+  }
+  .pour-layer[data-state='next'] .pour-layer-media {
+    scale: 1.1;
+  }
+  /* The stream beside the steps fills as the list scrolls through the view (where scroll-driven
+     animations exist; elsewhere it stands full). */
+  .story-stream {
+    transform-origin: top;
+  }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .story-stream {
+        animation: story-stream linear both;
+        animation-timeline: --story-steps;
+        animation-range: cover 25% cover 75%;
+      }
+      .story-steps {
+        view-timeline: --story-steps block;
+      }
+    }
+  }
+
   /* After a tab is chosen its cards come in one after another and the pill fades in after them,
      as the reference's featured tabs. */
   .rail-grid[data-entering] > li {
@@ -760,6 +908,77 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* The brewing language's animated values (ADR-051): registered so that they interpolate. */
+@property --from {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --to {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+/* A circle's 100% reaches the frame's farthest corner; past it, the soft edge (32%) clears too. */
+@property --steep {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 140%;
+}
+/* 100% is the frame's top; past it, the soft surface (14%) clears too. */
+@property --level {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 116%;
+}
+
+@keyframes steep {
+  from {
+    --steep: 0%;
+  }
+  to {
+    --steep: 140%;
+  }
+}
+
+@keyframes pour {
+  from {
+    --level: 0%;
+  }
+  to {
+    --level: 116%;
+  }
+}
+
+@keyframes set-down {
+  from {
+    translate: 0 26%;
+    scale: 0.94;
+  }
+}
+
+@keyframes story-stream {
+  from {
+    scale: 1 0;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+@keyframes clear-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    translate: 0 0.12em;
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    translate: none;
   }
 }
 

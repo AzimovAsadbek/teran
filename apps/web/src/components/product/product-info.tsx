@@ -4,11 +4,20 @@ import type {
   ProductAttributeDto,
   ProductDetailDto,
 } from '@teran/contracts';
-import { CreditCard, Leaf, Scale, Thermometer, Timer, Truck } from 'lucide-react';
+import { CreditCard, Leaf, Truck } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
-import { BRAND_VALUES, brandCopy, brandValueLabels } from '@/content/brand';
+import { BrewingGauge } from '@/components/brand/brewing-gauge';
+import { productFamily } from '@/components/catalog/product-family';
+import {
+  BRAND_VALUES,
+  brandCopy,
+  brandValueLabels,
+  PACK_COLOURS,
+  teaCodeOf,
+} from '@/content/brand';
 import { Link } from '@/i18n/navigation';
+import { brewingMeasures } from '@/lib/brewing';
 import { cn } from '@/lib/cn';
 import { showPrices } from '@/lib/site';
 import { formatMoney, namesFormat } from '@/lib/format';
@@ -24,10 +33,6 @@ function Paragraphs({ text }: { text: string }) {
       ))}
     </div>
   );
-}
-
-function minutes(seconds: number): string {
-  return Number.isInteger(seconds / 60) ? String(seconds / 60) : (seconds / 60).toFixed(1);
 }
 
 /** An attribute value as text: options, yes/no, a number with its unit, or plain text. */
@@ -119,62 +124,11 @@ export async function ProductTabsSection({ product }: { product: ProductDetailDt
 
 const CAFFEINE_DOTS = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3 } as const;
 
-/** The brewing values of a product, formatted (null when it has none). */
-async function brewingFacts(brewing: ProductDetailDto['brewing']) {
-  if (!brewing) return [];
-  const tb = await getTranslations('Brewing');
-  return [
-    brewing.amountGrams !== null
-      ? {
-          key: 'amount',
-          icon: Scale,
-          label: tb('amount'),
-          // A range when the pack gives one ("3–5 g").
-          value:
-            brewing.amountMaxGrams !== null
-              ? tb('gramsRangePerCup', {
-                  min: Number(brewing.amountGrams),
-                  max: Number(brewing.amountMaxGrams),
-                })
-              : tb('gramsPerCup', { grams: Number(brewing.amountGrams) }),
-        }
-      : null,
-    brewing.temperatureCelsius !== null
-      ? {
-          key: 'temperature',
-          icon: Thermometer,
-          label: tb('temperature'),
-          value:
-            brewing.temperatureMaxCelsius !== null
-              ? tb('celsiusRange', {
-                  min: brewing.temperatureCelsius,
-                  max: brewing.temperatureMaxCelsius,
-                })
-              : tb('celsius', { value: brewing.temperatureCelsius }),
-        }
-      : null,
-    brewing.timeMinSeconds !== null
-      ? {
-          key: 'time',
-          icon: Timer,
-          label: tb('time'),
-          value:
-            brewing.timeMaxSeconds !== null && brewing.timeMaxSeconds !== brewing.timeMinSeconds
-              ? tb('minutes', {
-                  min: minutes(brewing.timeMinSeconds),
-                  max: minutes(brewing.timeMaxSeconds),
-                })
-              : tb('minutesSingle', { min: minutes(brewing.timeMinSeconds) }),
-        }
-      : null,
-  ].filter((fact) => fact !== null);
-}
-
 /**
  * The reference's icon rows under the tabs, from TERAN's data: the product type's characteristics
  * (e.g. a honey's flower) and the caffeine level as filled dots. Only what the product has is
- * shown, so a gift set or a future non-tea product has no empty rows; brewing values have their
- * own cards under the product (PreparationSection).
+ * shown, so a gift set or a future non-tea product has no empty rows; the brewing has its own
+ * gauge under the product (PreparationSection).
  */
 export async function AttributeRows({ product }: { product: ProductDetailDto }) {
   const t = await getTranslations('Product');
@@ -231,43 +185,29 @@ export async function AttributeRows({ product }: { product: ProductDetailDto }) 
 }
 
 /**
- * The reference's "preparation" row under the product: three grey cards, each a line icon and the
- * value in condensed capitals with its name — here the pack's amount, temperature and time.
+ * How to brew the product, read as the brewing gauge (components/brand/brewing-gauge.tsx, ADR-051):
+ * the amount of leaf as leaves, the water's temperature and the time as ranges on rulers, in the
+ * tea's pack colour (TERAN's five) or its family's ink. The same instrument as the home page's
+ * five-tea stage, so two products can be compared the same way everywhere.
  */
 export async function PreparationSection({ product }: { product: ProductDetailDto }) {
   const tb = await getTranslations('Brewing');
-  const facts = await brewingFacts(product.brewing);
-  if (facts.length === 0) return null;
+  const measures = brewingMeasures(product.brewing, tb);
+  if (measures.length === 0) return null;
+  const code = teaCodeOf(product.slug);
+  const colour = code ? PACK_COLOURS[code] : productFamily(product.illustrationKey).ink;
   return (
-    <section aria-labelledby="preparation" className="mt-12 border-b border-line pb-12">
+    <section
+      aria-labelledby="preparation"
+      className="mt-12 grid grid-cols-1 gap-x-12 gap-y-7 border-b border-line pb-12 lg:grid-cols-12 lg:items-end"
+    >
       <h2
         id="preparation"
-        className="font-heading text-[1.5rem] leading-[1.2] text-fg sm:text-[2rem]"
+        className="font-heading text-[1.5rem] leading-[1.2] text-fg sm:text-[2rem] lg:col-span-4"
       >
         {tb('method')}
       </h2>
-      <ul className="mt-8 grid gap-4 sm:grid-cols-3 sm:gap-8">
-        {facts.map(({ key, icon: Icon, label, value }) => (
-          <li
-            key={key}
-            className="flex min-h-[7.5rem] items-center justify-center gap-6 rounded-[1rem] bg-ivory-100 px-6 py-5 sm:min-h-[9.875rem]"
-          >
-            <Icon
-              aria-hidden
-              strokeWidth={1.25}
-              className="h-12 w-12 shrink-0 text-fg sm:h-14 sm:w-14"
-            />
-            <p className="flex flex-col">
-              <span className="font-headline text-[2.25rem] leading-none text-fg [--headline-weight:500] sm:text-[2.75rem]">
-                {value}
-              </span>
-              <span className="mt-1.5 font-headline text-[1.125rem] leading-none text-fg [--headline-weight:600]">
-                {label}
-              </span>
-            </p>
-          </li>
-        ))}
-      </ul>
+      <BrewingGauge measures={measures} colour={colour} size="lg" className="lg:col-span-8" />
     </section>
   );
 }

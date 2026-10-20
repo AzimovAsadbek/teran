@@ -6,7 +6,11 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
 import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/catalog-results';
-import { ListingHeader, ListingHeaderSkeleton } from '@/components/catalog/listing-header';
+import {
+  ListingHeader,
+  ListingHeaderSkeleton,
+  listingPictures,
+} from '@/components/catalog/listing-header';
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
 import { getCollections, getSlugRedirect } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
@@ -66,6 +70,13 @@ async function CollectionListing({
     notFound();
   }
 
+  const banner = visualFor(settings, listingBannerSlot('collection', collection.id));
+  // The collection's own products, as the header's pictures when it has no banner or cover.
+  const pictures =
+    banner || collection.image
+      ? []
+      : await listingPictures(locale, { collection: collection.slug });
+
   return (
     <>
       <Breadcrumbs
@@ -78,7 +89,8 @@ async function CollectionListing({
         description={collection.description}
         illustrationKey={collection.illustrationKey}
         image={collection.image}
-        banner={visualFor(settings, listingBannerSlot('collection', collection.id))}
+        banner={banner}
+        pictures={pictures}
       />
       <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults

@@ -105,11 +105,13 @@ function coverSizes(aspect: number, frame: 'window' | 'step'): string {
 }
 
 /**
- * The story as a sequence: on wide screens the pictures stay in one framed window while the words
- * scroll past beside it, and each step, as it reaches the middle of the screen, wipes its picture
- * up over the last one (an image mask, not a fade; reversed when scrolling back). Only the shown
- * step's film plays. On phones each step simply carries its own picture. Nothing is pinned or
- * hijacked: the page scrolls as usual; with reduced motion the pictures change without the wipe.
+ * The story as a sequence, from the garden to the cup: on wide screens the pictures stay in one
+ * framed window while the words scroll past beside it, and each step, as it reaches the middle of
+ * the screen, POURS its picture into the window over the last one — a level rising with a soft
+ * surface (ADR-051), drained again when scrolling back — while a thin stream runs down beside the
+ * steps as far as the reader has come. Only the shown step's film plays. On phones each step
+ * simply carries its own picture. Nothing is pinned or hijacked: the page scrolls as usual; with
+ * reduced motion the pictures change at once and the stream stands still.
  */
 export function StorySequenceView({
   heading,
@@ -170,10 +172,10 @@ export function StorySequenceView({
                 <div
                   key={step.key}
                   data-state={state}
-                  className="wipe-layer absolute inset-0 isolate overflow-hidden"
+                  className="pour-layer absolute inset-0 isolate overflow-hidden"
                   style={{ zIndex: index + 1 } as CSSProperties}
                 >
-                  <div className="wipe-layer-media absolute inset-0">
+                  <div className="pour-layer-media absolute inset-0">
                     {wide ? (
                       <Media media={step.media!} playing={state === 'shown'} frame="window" />
                     ) : null}
@@ -195,7 +197,12 @@ export function StorySequenceView({
             {intro}
           </p>
 
-          <ol className="mt-10 lg:mt-4">
+          <ol className="story-steps relative mt-10 lg:mt-4">
+            {/* The stream: down the steps, as far as the reader has come (wide screens). */}
+            <span
+              aria-hidden
+              className="story-stream pointer-events-none absolute top-0 bottom-0 -left-8 hidden w-px bg-cherry/70 lg:block"
+            />
             {steps.map((step, index) => (
               <li
                 key={step.key}

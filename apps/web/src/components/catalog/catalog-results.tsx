@@ -5,6 +5,7 @@ import { connection } from 'next/server';
 import { ButtonLink } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
 import { ProductGridSkeleton } from '@/components/ui/skeleton';
+import { StateMessage } from '@/components/ui/state-message';
 import { getProductList } from '@/lib/data/catalog';
 import {
   hasRefinements,
@@ -14,6 +15,7 @@ import {
   type RawSearchParams,
 } from '@/features/catalog/query';
 import { FilterBar } from './filter-bar';
+import { CategoryChipsLoader } from './listing-header';
 import { Pagination } from './pagination';
 import { cn } from '@/lib/cn';
 import { COLLECTION_CODES, PREMIUM_COLLECTION_SLUG, teaCodeOf } from '@/content/brand';
@@ -84,6 +86,25 @@ export async function CatalogResults({
         <FilterBar basePath={basePath} filters={filters} facets={list.facets} total={list.total} />
         <FamilyShelves locale={locale as Locale} />
       </>
+    );
+  }
+
+  // A search that found nothing, with nothing applied: no filters to change, so no filter bar —
+  // the words echoed, the way to check them and the categories to start from.
+  if (list.total === 0 && !hasRefinements(filters) && scope.q) {
+    return (
+      <StateMessage
+        framed={false}
+        headingLevel="h2"
+        className="pt-8 sm:pt-10 lg:pt-12"
+        title={t('emptyTitle')}
+        text={t('searchEmptyText', { query: scope.q })}
+        primary={{ href: '/catalog', label: t('shopAllTitle') }}
+      >
+        <div className="mt-6">
+          <CategoryChipsLoader withAll={false} />
+        </div>
+      </StateMessage>
     );
   }
 

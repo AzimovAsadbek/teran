@@ -376,14 +376,19 @@ export function CategoryChipRow({ label, items }: { label: string; items: ChipLi
 export async function CategoryChips({
   active,
   categories,
+  withAll = true,
 }: {
   /** Slug of the current category; omit on the all-products page. */
   active?: string;
   categories: CategoryDto[];
+  /** "All products" first (not where the page offers it as its own action). */
+  withAll?: boolean;
 }) {
   const t = await getTranslations('Catalog');
   const items: ChipLink[] = [
-    { href: '/catalog', name: t('shopAllTitle'), current: active === undefined },
+    ...(withAll
+      ? [{ href: '/catalog', name: t('shopAllTitle'), current: active === undefined }]
+      : []),
     ...categories
       .filter((category) => category.parentSlug === null && category.productCount > 0)
       .map((category) => ({
@@ -396,12 +401,18 @@ export async function CategoryChips({
 }
 
 /** Loads the categories at request time (for pages that have not fetched them already). */
-export async function CategoryChipsLoader({ active }: { active?: string }) {
+export async function CategoryChipsLoader({
+  active,
+  withAll,
+}: {
+  active?: string;
+  withAll?: boolean;
+}) {
   await connection();
   const locale = await getLocale();
   const categories = await getCategories(locale).catch(() => null);
   if (!categories || categories.length === 0) return null;
-  return <CategoryChips active={active} categories={categories} />;
+  return <CategoryChips active={active} categories={categories} withAll={withAll} />;
 }
 
 export function CategoryChipsFallback() {

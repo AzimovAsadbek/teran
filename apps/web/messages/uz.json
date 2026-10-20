@@ -307,6 +307,7 @@
     },
     "emptyTitle": "Hech narsa topilmadi",
     "emptyText": "Filtrlarni oʻzgartirib koʻring yoki barcha choylarni koʻring.",
+    "searchEmptyText": "«{query}» boʻyicha mahsulot topilmadi. Yozilishini tekshiring yoki kategoriyadan boshlang:",
     "loadError": "Katalogni yuklab boʻlmadi. Birozdan soʻng qayta urinib koʻring.",
     "collectionTitle": "{name} kolleksiyasi",
     "shopAllTitle": "Barcha mahsulotlar",

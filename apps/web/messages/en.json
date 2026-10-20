@@ -307,6 +307,7 @@
     },
     "emptyTitle": "Nothing found",
     "emptyText": "Try changing the filters or browse all teas.",
+    "searchEmptyText": "No product matches “{query}”. Check the spelling, or start from a category:",
     "loadError": "The catalogue could not be loaded. Please try again shortly.",
     "collectionTitle": "{name} collection",
     "shopAllTitle": "All products",

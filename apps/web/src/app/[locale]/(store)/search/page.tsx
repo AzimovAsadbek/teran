@@ -71,22 +71,25 @@ async function SearchHeading({ searchParams }: { searchParams: Promise<RawSearch
   );
 }
 
-function SidebarGroup({ title, children }: { title: string; children: ReactNode }) {
+const MATCH_CHIP =
+  'inline-flex h-9 items-center rounded-full border border-line-strong/45 bg-surface px-4 text-[0.875rem] font-medium text-fg transition-colors duration-150 hover:border-forest-900';
+
+/** A row of matches of one kind: its name, then each match as a chip. */
+function MatchGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <nav aria-label={title} className="mb-8">
-      <h2 className="border-b border-fg pb-1.5 text-[0.9375rem] font-bold tracking-[0.06em] text-fg uppercase">
-        {title}
-      </h2>
-      <ul className="mt-3 space-y-2.5">{children}</ul>
+    <nav aria-label={title} className="flex flex-wrap items-center gap-2">
+      <h2 className="mr-1 text-[0.875rem] font-semibold text-fg-muted">{title}</h2>
+      <ul className="flex flex-wrap items-center gap-2">{children}</ul>
     </nav>
   );
 }
 
 /**
- * The reference's left column: categories and journal articles whose names match the query
- * (from the catalogue and the journal; nothing is suggested that does not exist).
+ * Above the products: the categories and journal articles whose names match the query, as rows
+ * of chips (from the catalogue and the journal; nothing is suggested that does not exist), so the
+ * products keep the page's full width.
  */
-async function SearchSidebar({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
+async function SearchMatches({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   await connection();
   const q = queryFrom(await searchParams).toLocaleLowerCase();
   if (q.length < 2) return null;
@@ -113,34 +116,28 @@ async function SearchSidebar({ searchParams }: { searchParams: Promise<RawSearch
     .slice(0, 6);
   if (matchingCategories.length === 0 && matchingArticles.length === 0) return null;
   return (
-    <div className="mb-8 lg:mb-0">
+    <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-10">
       {matchingCategories.length > 0 ? (
-        <SidebarGroup title={t('categories')}>
+        <MatchGroup title={t('categories')}>
           {matchingCategories.map((category) => (
             <li key={category.slug}>
-              <Link
-                href={`/${category.path}`}
-                className="text-[1rem] text-fg underline-offset-4 hover:underline"
-              >
+              <Link href={`/${category.path}`} className={MATCH_CHIP}>
                 {category.name}
               </Link>
             </li>
           ))}
-        </SidebarGroup>
+        </MatchGroup>
       ) : null}
       {matchingArticles.length > 0 ? (
-        <SidebarGroup title={tn('articles')}>
+        <MatchGroup title={tn('articles')}>
           {matchingArticles.map((article) => (
             <li key={article.slug}>
-              <Link
-                href={`/journal/${article.slug}`}
-                className="text-[1rem] text-fg underline-offset-4 hover:underline"
-              >
+              <Link href={`/journal/${article.slug}`} className={MATCH_CHIP}>
                 {article.title}
               </Link>
             </li>
           ))}
-        </SidebarGroup>
+        </MatchGroup>
       ) : null}
     </div>
   );
@@ -153,8 +150,8 @@ async function SearchResults({ searchParams }: { searchParams: Promise<RawSearch
 }
 
 /**
- * Search on the reference's template: a brand-green band with the title and a wide pill field,
- * then matching categories and articles on the left and the filterable product grid on the right.
+ * Search: a brand-green band with the title and a wide pill field, then the matching categories
+ * and articles as chips and the filterable product grid at the page's full width.
  */
 export default async function SearchPage({ searchParams }: PageProps<'/[locale]/search'>) {
   const t = await getTranslations('Search');
@@ -173,27 +170,12 @@ export default async function SearchPage({ searchParams }: PageProps<'/[locale]/
           </Suspense>
         </div>
       </section>
-      <div className="container-page pt-8 pb-section sm:pt-10 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-12">
-        {/*
-          One boundary for both columns: on phones the matching categories and articles sit above
-          the products, and arriving after them would push the whole grid down.
-        */}
-        <Suspense
-          fallback={
-            <>
-              <aside className="lg:pt-6" />
-              <div className="min-w-0">
-                <CatalogResultsSkeleton />
-              </div>
-            </>
-          }
-        >
-          <aside className="lg:pt-6">
-            <SearchSidebar searchParams={searchParams} />
-          </aside>
-          <div className="min-w-0">
-            <SearchResults searchParams={searchParams} />
-          </div>
+      <div className="container-page pt-8 pb-section sm:pt-10">
+        {/* One boundary for the matches and the products: arriving after the products, the
+            matches above them would push the whole grid down. */}
+        <Suspense fallback={<CatalogResultsSkeleton />}>
+          <SearchMatches searchParams={searchParams} />
+          <SearchResults searchParams={searchParams} />
         </Suspense>
       </div>
     </>

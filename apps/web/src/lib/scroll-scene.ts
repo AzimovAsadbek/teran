@@ -12,13 +12,37 @@ export interface SceneTools<T extends HTMLElement> {
   root: T;
 }
 
+/** What starts the scenes: the visitor's first scroll, wheel, touch or key. */
+const FIRST_MOVES = ['scroll', 'wheel', 'touchstart', 'keydown'] as const;
+
+/**
+ * Calls `start` once the visitor first moves the page (at once when it is already scrolled, as
+ * after going back), so the first view never waits for the animation library: the scenes only
+ * follow scrolling, and until then everything stands at its resting state. Returns a cancel.
+ */
+function onFirstMove(start: () => void): () => void {
+  let started = false;
+  const stop = () => {
+    for (const type of FIRST_MOVES) window.removeEventListener(type, go);
+  };
+  function go() {
+    if (started) return;
+    started = true;
+    stop();
+    start();
+  }
+  for (const type of FIRST_MOVES) window.addEventListener(type, go, { passive: true });
+  if (window.scrollY > 0) go();
+  return stop;
+}
+
 /**
  * A scroll-linked scene (docs/design/design-system.md, Motion): GSAP and ScrollTrigger are loaded
- * with the first scene of a page, after it has rendered, so no other page carries them. Scenes
- * only follow the visitor's own scrolling (scrubbed timelines, no pinning, no smooth-scroll
- * hijacking). With reduced motion nothing is set up; when that preference changes or the
- * component unmounts, every tween, trigger and inline style the scene made is reverted, so the
- * markup's resting state is always the static design.
+ * when the visitor first scrolls a page that has a scene, so no other page carries them and no
+ * first view waits for them. Scenes only follow the visitor's own scrolling (scrubbed timelines,
+ * no pinning, no smooth-scroll hijacking). With reduced motion nothing is set up; when that
+ * preference changes or the component unmounts, every tween, trigger and inline style the scene
+ * made is reverted, so the markup's resting state is always the static design.
  */
 export function useScrollScene<T extends HTMLElement>(
   ref: RefObject<T | null>,
@@ -30,19 +54,22 @@ export function useScrollScene<T extends HTMLElement>(
     if (!root) return;
     let cancelled = false;
     let revert: (() => void) | undefined;
-    void Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
-      ([{ gsap }, { ScrollTrigger }]) => {
-        if (cancelled) return;
-        gsap.registerPlugin(ScrollTrigger);
-        const media = gsap.matchMedia();
-        media.add('(prefers-reduced-motion: no-preference)', () =>
-          build({ gsap, ScrollTrigger, root }),
-        );
-        revert = () => media.revert();
-      },
-    );
+    const stopWaiting = onFirstMove(() => {
+      void Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
+        ([{ gsap }, { ScrollTrigger }]) => {
+          if (cancelled) return;
+          gsap.registerPlugin(ScrollTrigger);
+          const media = gsap.matchMedia();
+          media.add('(prefers-reduced-motion: no-preference)', () =>
+            build({ gsap, ScrollTrigger, root }),
+          );
+          revert = () => media.revert();
+        },
+      );
+    });
     return () => {
       cancelled = true;
+      stopWaiting();
       revert?.();
     };
     // The scene is rebuilt only when its own inputs change (`deps`), not on every render.

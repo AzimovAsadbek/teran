@@ -1193,8 +1193,9 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
 - **Motion:** CSS for arrivals (masked headline lines, rising words, the pouches settling) and for
   scroll-linked rises (`animation-timeline: view()`, transform only); clip-path wipes for the
   framed pictures of the story and the business index; GSAP 3.15 with ScrollTrigger only for the
-  first view's and the signature stage's scrubbed depth (`lib/scroll-scene.ts`: loaded on demand,
-  inside `gsap.matchMedia('(prefers-reduced-motion: no-preference)')`, reverted on unmount).
+  first view's and the signature stage's scrubbed depth (`lib/scroll-scene.ts`: loaded on the
+  visitor's first scroll, touch or key, inside `gsap.matchMedia('(prefers-reduced-motion:
+no-preference)')`, reverted on unmount).
   Nothing is pinned and scrolling is never taken over; with reduced motion nothing moves.
 - **Demonstration range:** 22 more demonstration products (matcha, infusions, cold drinks — iced
   tea, water, juice — teaware, a black tea and a gift set) with a flavour attribute and a caffeine
@@ -1206,6 +1207,9 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
 
 **Consequences.** The story shows the pictures already set for `home.pair.2`, `home.bento.2` and
 `home.banner.3` (their admin labels now say so); the owner should review them before release.
-GSAP loads only where a scrubbed scene is on the page, after the page itself. On production, where
+GSAP loads only on a page with a scrubbed scene, once the visitor first scrolls it, so no first view
+waits for it (measured on a local production build, 2026-10-20: phone Lighthouse 74–76 against the
+original design's 73–76, total blocking time 140–200 ms against 220–260 ms; desktop 97 against 98;
+accessibility, best practices and SEO 100 on both). On production, where
 the demonstration range is not loaded, the family features stay hidden and the range shows the
 families TERAN stocks.

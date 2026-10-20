@@ -11,6 +11,7 @@ import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { useLinkedBusinessType } from './business-type-link';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
+import { usePrimaryAction } from '@/lib/floating';
 
 const EMPTY = {
   companyName: '',
@@ -31,6 +32,7 @@ export function WholesaleForm() {
   const locale = useLocale() as Locale;
   const message = useValidationMessage();
   const formRef = useRef<HTMLFormElement>(null);
+  usePrimaryAction(formRef);
   const form = useFormSubmission(formRef);
   const [values, setValues] = useState(EMPTY);
   // A kind of business named in the address (`?type=`, from the home page's business index) is
@@ -44,7 +46,9 @@ export function WholesaleForm() {
 
   const set = (key: keyof typeof EMPTY) => (event: { target: { value: string } }) =>
     setValues((current) => ({ ...current, [key]: event.target.value }));
-  const error = (key: keyof typeof EMPTY) => message(form.errors[key], values[key]);
+  // An error leaves as soon as its field changes (form.errorsFor).
+  const live = form.errorsFor(values);
+  const error = (key: keyof typeof EMPTY) => message(live[key], values[key]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

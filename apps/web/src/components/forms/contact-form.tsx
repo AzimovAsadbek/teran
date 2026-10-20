@@ -71,7 +71,11 @@ export function ContactForm() {
     (key: keyof typeof EMPTY) =>
     (event: { target: { value: string } }): void =>
       setValues((current) => ({ ...current, [key]: event.target.value }));
-  const error = (key: keyof typeof EMPTY) => message(form.errors[key], values[key]) ?? undefined;
+  // An error leaves as soon as its field changes (form.errorsFor); "a phone or an e-mail", reported
+  // on the phone, leaves once either is filled.
+  const live = form.errorsFor(values);
+  if (live.phone?.message === 'contact_required' && values.email.trim()) delete live.phone;
+  const error = (key: keyof typeof EMPTY) => message(live[key], values[key]) ?? undefined;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

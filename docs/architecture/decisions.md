@@ -1233,3 +1233,67 @@ original design's 73–76, total blocking time 140–200 ms against 220–260 ms
 accessibility, best practices and SEO 100 on both). On production, where
 the demonstration range is not loaded, the family features stay hidden and the range shows the
 families TERAN stocks.
+
+## ADR-051: The brewing language — motion that means something, and pages that each do one thing well
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-21); to be reviewed by the owner before release. Amends ADR-050 on motion (its
+scroll-linked rises are removed) and on where pack colours may appear (the five-tea rulers).
+
+**Context.** The client found the site still too simple and too boring. A route-by-route audit
+(home, catalogue and every family, product pages per family, for business, About, Tea 101, the
+journal and its articles, the help centre, the policy pages, stores, bag, search, empty and error
+states, uz/ru/en) found the same generic patterns everywhere — the same rise on every row, stock
+pictures that contradicted TERAN's story, a template's leftovers (tilted cards, stamps, sparkles,
+grid/list switches, a "helpful?" row that recorded nothing), long unreadable lines — while the
+pages that should carry the brand (About, Tea 101, the journal) were the plainest. The identity
+(teal frame, Oswald headlines, Fraunces headings, Nunito text, pills, rounded photographs, films,
+the five pack colours) had to stay, and nothing may be invented.
+
+**Decision.**
+
+- **One motion vocabulary from making tea**, each verb used only where it is literally true, in
+  CSS with registered properties (`@property --steep`, `--level`, `--from`, `--to`):
+  - STEEP — a colour diffusing from its source (`.steep-in`; `.scroll-steep` follows scrolling):
+    the signature stage's field from the cup, a listing header's field, About's teal band from the
+    emblem.
+  - POUR — a level rising (`.pour-in`, `.pour-layer`; `.cups-pour` follows scrolling): the stage's
+    cup, the story's scenes, a pack's cups on Tea 101.
+  - UNFURL — curled to open (`.unfurl-in`, `.scroll-unfurl`, `.unfurl-details`): the stage's leaf,
+    the Tea 101 leaves, every disclosure's leaf (help centre, for business).
+  - LIGHT — one pass over glass or gift (`.card-sheen`, `.light-pass`); CLEAR — a name coming into
+    focus (`.clear-in`).
+  - Tea 101's kinds deepen from the band before as they come into view (`.kind-deepen`): one
+    continuous change from white tea to pu-erh, not five reveals.
+  - Stillness elsewhere: forms, account, reading, the catalogue. The generic scroll rises of the
+    product rows and range tiles are removed; nothing is pinned, scrolling is never taken over.
+  - Rules: content is never hidden by motion (a mask animates a background or decoration only; a
+    picture that arrives moves, it does not appear); everything still works without
+    scroll-driven animations and with reduced motion; a band that clips uses `overflow: clip`,
+    since `hidden` makes it the scroller of its own view timeline.
+- **The brewing gauge** (`brand/brewing-gauge.tsx`, `lib/brewing.ts`): amount as leaves, water and
+  time as ranges on fixed rulers — on the stage, each product page, Tea 101's kinds (the numbers
+  their text states) and its steps. **Five teas, one ruler** (`brand/tea-rulers.tsx`,
+  `brand/five-teas.tsx`): TERAN's five read against the same rulers from their own product data,
+  in their pack colours (amends ADR-050), on Tea 101 and on each tea's page with that tea lit.
+- **Pages, each doing one thing:**
+  - About: an editorial story in TERAN's own words beside its five pouches; no stock pictures.
+  - Tea 101: the brewing page; kinds tinted by the colour of their cup (art direction, not a
+    claim).
+  - Journal: a lead story and landscape cards; articles at a reading measure with "Read next";
+    an article without a cover shows its tea's dry leaf.
+  - Help centre: answers in place as disclosures, one support row.
+  - Policy pages: one reading template with "On this page".
+  - The catalogue: shelves by family, unfiltered (`catalog/family-shelves.tsx`); an honest filter
+    bar (`usefulFacets`).
+  - Search: matches as chips above full-width results, and an answer when nothing is found.
+  - One state pattern (`ui/state-message.tsx`) for the missing page, the bag while ordering goes
+    by request, an order not found and errors.
+  - One support row (`content/support-row.tsx`) at the end of the help and policy pages.
+- **Admin → Settings** offers only the picture places still shown: About's, Tea 101's, the help
+  centre's and the earlier for-business places are no longer offered; their stored pictures stay.
+
+**Consequences.** No database contract, API or business rule changed; the copy is the supplied
+copy, apart from interface strings added in all three languages (labels such as "On this page",
+"Read next", "Orders are taken by request"). The owner should review the About and help centre
+pages without their earlier pictures, and the cup colours of Tea 101.

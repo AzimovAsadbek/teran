@@ -304,6 +304,35 @@ and business its centre ([ADR-050](../architecture/decisions.md)), with the iden
   scroll, never with reduced motion) only in the first view and the signature stage. Nothing pins; reduced motion stills
   everything.
 
+## The brewing language (round 4, 2026-10-21)
+
+The site's motion and page patterns since [ADR-051](../architecture/decisions.md); where this
+section and the ones above disagree, this one holds.
+
+- **Verbs, each where it is literally true:** STEEP (a colour spreading from its source: the
+  stage, listing headers, About's band), POUR (a level rising: the stage's cup, the story's
+  scenes, Tea 101's cups), UNFURL (a leaf opening: the stage, Tea 101, every disclosure), LIGHT (a
+  pass over glass or gift), CLEAR (a name coming into focus). Registered properties drive them:
+  `--steep` (0→140 %), `--level` (0→116 %), `--from`/`--to` (the gauge's range).
+- **Scroll-linked, never scroll-taking:** `.scroll-steep`, `.kind-deepen`, `.scroll-unfurl` and
+  `.cups-pour` follow a view timeline; without support or with reduced motion the result simply
+  stands. A band that clips uses `overflow: clip` (`hidden` would become its own timeline's
+  scroller). Product rows and range tiles no longer rise as they scroll in.
+- **Still:** forms, the account, reading (articles, help, policies) and the catalogue's grids.
+- **Easing:** `--ease-steep` `cubic-bezier(0.45, 0.05, 0.25, 1)` for STEEP (1800 ms), `--ease-scene`
+  for POUR (1100 ms), `--ease-out-expo` for UNFURL and arrivals.
+- **Patterns:** `ui/state-message.tsx` (nothing to show), `content/support-row.tsx` (write, call,
+  Telegram), `content/further-links.tsx` (where to read on), `content/disclosure.tsx` (a question
+  and its answer), `content/article-card.tsx` and `article-cover.tsx` (the journal),
+  `catalog/family-shelves.tsx` and `catalog-grid.ts` (shelves; never one card alone in a row),
+  `brand/tea-rulers.tsx` (five teas, one ruler), `brand/brewing-gauge.tsx`.
+- **Reading:** text at about 70 characters a line (38–40 rem at 17–18 px), Fraunces headings in
+  sentence case, teal list marks; eyebrows in Oswald capitals in `forest-900` on white or
+  `forest-800` on `ivory-100` (4.5:1).
+- **Colour:** `--color-paper` `#f7f4ee` is the warm paper the pouches stand on. Tea 101's bands are
+  each kind's cup colour at 16 % on paper; their drawings use the same colour deepened (62 % with
+  black), and their quietest grey steps up to `ink-700`.
+
 ## Components
 
 See the [component audit](./component-audit.md) for every primitive, its variants, states and

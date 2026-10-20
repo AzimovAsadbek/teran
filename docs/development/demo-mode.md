@@ -47,6 +47,20 @@ oolong and pu-erh teas and gift sets in other pack sizes and formats, a sale pri
 and no stock (Jasmine green tea, Mini pu-erh) and a draft (Spring green tea): the states the
 journeys exercise.
 
+Its products are drawn in code unless the seed is given real photographs. To show the range with
+tea photography (a presentation database, not CI), build the photographs from the licensed
+pictures in `apps/api/storage/` (docs/design/reference-assets.md, sections 4 and 9) into a folder
+outside the repository, then seed with it:
+
+```bash
+corepack pnpm --filter @teran/api exec tsx scripts/build-demo-photos.ts --out ~/teran-demo-photos
+DEMO_PHOTOS_DIR=~/teran-demo-photos SEED_TEST_CATALOGUE=true corepack pnpm db:seed
+```
+
+Each photograph is a square crop of one Unsplash or Pexels picture; the folder's `credits.json`
+names the source, photographer and licence of every file. Only products created by that seed run
+get them (the seed never replaces existing pictures).
+
 A database seeded by an earlier version is brought up to date by the next `pnpm db:seed`, once
 and only for records nobody has edited since: the TERAN products get the owner's copy, a single
 400 g pack (earlier pack sizes stay but are switched off; HET8800 and STD8009 move to 8800 and 8009

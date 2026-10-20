@@ -70,6 +70,12 @@ export interface DemoProduct {
   } | null;
   art: { style: ArtStyle; shape: PackShape; accent?: ArtAccent };
   /**
+   * A real photograph for a product of the demonstration range, used instead of the drawn art when
+   * the seed runs with DEMO_PHOTOS_DIR (scripts/build-demo-photos.ts makes the folder from the
+   * site's licensed pictures; file name without .jpg).
+   */
+  photo?: string;
+  /**
    * Images of the real pack (assets/packaging, made by apps/web/scripts/packaging), used instead
    * of the code-drawn art: the pouch photograph, the back of the pack where a print file exists,
    * and the pouch cut out on a transparent background (the home page stage).
@@ -653,6 +659,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 90,
     brewing: BREW.black,
     art: { style: 'black', shape: 'tin' },
+    photo: 'black-leaves',
     name: { uz: 'Klassik qora choy', ru: 'Классический чёрный чай', en: 'Classic black tea' },
     shortDescription: {
       uz: 'Kundalik choy ichish uchun klassik qora choy.',
@@ -681,6 +688,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 80,
     brewing: { ...BREW.black, grams: null },
     art: { style: 'black', shape: 'box' },
+    photo: 'red-pour',
     name: { uz: 'Qora choy, paketchalarda', ru: 'Чёрный чай в пакетиках', en: 'Black tea bags' },
     shortDescription: {
       uz: 'Ishda va yoʻlda tez damlash uchun qulay paketchalar.',
@@ -709,6 +717,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 12,
     brewing: BREW.black,
     art: { style: 'black', shape: 'tin' },
+    photo: 'lemon-cups',
     name: { uz: 'Earl Grey', ru: 'Эрл Грей', en: 'Earl Grey' },
     shortDescription: {
       uz: 'Earl Grey uslubidagi xushboʻy qora choy.',
@@ -739,6 +748,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 85,
     brewing: BREW.green,
     art: { style: 'green', shape: 'tin' },
+    photo: 'green-cup-leaves',
     name: { uz: 'Klassik yashil choy', ru: 'Классический зелёный чай', en: 'Classic green tea' },
     shortDescription: {
       uz: 'Yengil, tetiklantiruvchi klassik yashil choy.',
@@ -767,6 +777,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 8,
     brewing: BREW.green,
     art: { style: 'green', shape: 'tin', accent: 'jasmine' },
+    photo: 'green-glass',
     name: { uz: 'Yasminli yashil choy', ru: 'Зелёный чай с жасмином', en: 'Jasmine green tea' },
     shortDescription: {
       uz: 'Yasmin xushboʻyligidagi yashil choy.',
@@ -794,6 +805,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 40,
     brewing: { ...BREW.green, grams: null },
     art: { style: 'green', shape: 'box' },
+    photo: 'green-tray',
     name: {
       uz: 'Yashil choy, piramidkalarda',
       ru: 'Зелёный чай в пирамидках',
@@ -825,6 +837,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 60,
     brewing: BREW.green,
     art: { style: 'green', shape: 'tin', accent: 'mint' },
+    photo: 'glass-teapot',
     name: { uz: 'Yalpizli yashil choy', ru: 'Зелёный чай с мятой', en: 'Green tea with mint' },
     shortDescription: {
       uz: 'Yalpiz bilan tetiklantiruvchi yashil choy.',
@@ -878,6 +891,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 30,
     brewing: BREW.white,
     art: { style: 'white', shape: 'tin' },
+    photo: 'tea-shoots',
     name: { uz: 'Oq choy', ru: 'Белый чай', en: 'White tea' },
     shortDescription: {
       uz: 'Nozik va yumshoq taʼmli oq choy.',
@@ -908,6 +922,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 5,
     brewing: BREW.oolong,
     art: { style: 'oolong', shape: 'tin' },
+    photo: 'gaiwan-green',
     name: { uz: 'Ulun choyi', ru: 'Чай улун', en: 'Oolong tea' },
     shortDescription: {
       uz: 'Bir necha marta damlash mumkin boʻlgan ulun choyi.',
@@ -933,6 +948,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 45,
     brewing: BREW.oolong,
     art: { style: 'oolong', shape: 'tin' },
+    photo: 'oolong-leaves',
     name: { uz: 'Qovurilgan ulun', ru: 'Улун сильной обжарки', en: 'Roasted oolong' },
     shortDescription: {
       uz: 'Qovurilgan ulun uslubidagi choy.',
@@ -963,6 +979,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 50,
     brewing: BREW.puerh,
     art: { style: 'puerh', shape: 'tin' },
+    photo: 'basket-leaves',
     name: { uz: 'Pu-erh choyi', ru: 'Пуэр', en: 'Pu-erh tea' },
     shortDescription: {
       uz: 'Pu-erh uslubidagi bargli choy.',
@@ -991,6 +1008,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 15,
     brewing: { ...BREW.puerh, grams: null },
     art: { style: 'puerh', shape: 'box' },
+    photo: 'dark-plates-2',
     name: { uz: 'Mini pu-erh', ru: 'Мини-пуэр', en: 'Mini pu-erh' },
     shortDescription: {
       uz: 'Bir damlamalik presslangan pu-erh boʻlakchalari.',
@@ -1020,6 +1038,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 20,
     brewing: null,
     art: { style: 'gift', shape: 'gift' },
+    photo: 'dark-plates',
     name: {
       uz: 'Sovgʻa toʻplami: uch xil choy',
       ru: 'Подарочный набор: три чая',
@@ -1057,6 +1076,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 18,
     brewing: null,
     art: { style: 'gift', shape: 'gift' },
+    photo: 'canisters',
     name: {
       uz: 'Sovgʻa toʻplami: yashil va oq choy',
       ru: 'Подарочный набор: зелёный и белый чай',
@@ -1085,6 +1105,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 2,
     brewing: null,
     art: { style: 'gift', shape: 'gift' },
+    photo: 'tasting-set',
     name: {
       uz: 'TERAN premium: sovgʻa qutisi',
       ru: 'TERAN premium: подарочная коробка',

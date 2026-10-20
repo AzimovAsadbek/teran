@@ -478,10 +478,23 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
 }
 
 /**
- * The pouch cut out, its photograph and the back of the pack when the product has packaging,
- * otherwise code-drawn art.
+ * A product of the demonstration range's real photograph, when the seed runs with DEMO_PHOTOS_DIR
+ * (scripts/build-demo-photos.ts) and the folder holds it; otherwise null (CI and the end-to-end
+ * tests draw the product).
+ */
+async function demoPhoto(demo: DemoProduct): Promise<Buffer | null> {
+  const folder = process.env.DEMO_PHOTOS_DIR;
+  if (!folder || !demo.photo) return null;
+  return readFile(resolve(folder, `${demo.photo}.jpg`)).catch(() => null);
+}
+
+/**
+ * The pouch cut out, its photograph and the back of the pack when the product has packaging; a
+ * demonstration product's photograph when there is one (demoPhoto); otherwise code-drawn art.
  */
 async function demoImages(demo: DemoProduct, emblem: Buffer): Promise<Buffer[]> {
+  const photo = await demoPhoto(demo);
+  if (photo) return [photo];
   if (demo.packaging) {
     // The cut-out first: cards and the product page show the whole pouch on white (a portrait
     // photograph would be cropped by their square frames); the photograph comes up on hover.

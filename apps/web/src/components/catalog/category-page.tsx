@@ -16,7 +16,10 @@ import { visualFor } from '@/lib/visuals';
 import { LEAF_BY_CATEGORY } from '@/components/brand/leaf-images';
 import { coverShareImage, pageMetadata } from '@/lib/seo';
 import { Breadcrumbs } from './breadcrumbs';
+import { wholesalePage } from '@/content/pages/wholesale';
+import { BusinessLine } from './business-line';
 import { CatalogResults, CatalogResultsSkeleton } from './catalog-results';
+import { productFamily } from './product-family';
 import {
   CategoryChipRow,
   ListingHeader,
@@ -139,6 +142,15 @@ async function CategoryListing({
           searchParams={searchParams}
         />
       </Suspense>
+      {/* Gift sets are where a company buying gifts lands: the way to the request, on its kind. */}
+      {productFamily(category.illustrationKey, category.path).key === 'gift' ? (
+        <BusinessLine
+          text={wholesalePage[locale].segments.CORPORATE}
+          cta={wholesalePage[locale].formTitle}
+          href="/wholesale?type=CORPORATE#request"
+          className="mt-10 max-w-3xl"
+        />
+      ) : null}
       {paragraphs.length > 0 ? (
         <section className="mt-16 max-w-3xl space-y-4 border-t border-line pt-10 text-body text-fg-muted">
           {paragraphs.map((paragraph, index) => (

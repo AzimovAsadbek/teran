@@ -1,5 +1,5 @@
 import type { Locale, ProductDetailDto, ProductSummaryDto } from '@teran/contracts';
-import { Briefcase, Truck } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -8,6 +8,7 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { BrewingGauge } from '@/components/brand/brewing-gauge';
 import { FiveTeas } from '@/components/brand/five-teas';
+import { BusinessLine } from '@/components/catalog/business-line';
 import { PACK_IMAGES } from '@/components/brand/pack-images';
 import { TeaStage, teaTint } from '@/components/brand/tea-stage';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
@@ -325,7 +326,11 @@ async function ProductView({
                     }
                   />
                   {/* After the purchase itself, never above it. */}
-                  <BusinessLine text={t('businessLine')} cta={wholesalePage[locale].formTitle} />
+                  <BusinessLine
+                    text={t('businessLine')}
+                    cta={wholesalePage[locale].formTitle}
+                    className="mt-5"
+                  />
                   <DeliveryInfo options={options} />
                 </>
               ) : (
@@ -358,7 +363,11 @@ async function ProductView({
                       </Link>
                     </span>
                   </p>
-                  <BusinessLine text={t('businessLine')} cta={wholesalePage[locale].formTitle} />
+                  <BusinessLine
+                    text={t('businessLine')}
+                    cta={wholesalePage[locale].formTitle}
+                    className="mt-5"
+                  />
                 </>
               )}
             </div>
@@ -413,27 +422,6 @@ async function ProductView({
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
     </>
-  );
-}
-
-/**
- * The way in for businesses under the order button: one line and the request form's link (TERAN
- * sells mostly to hotels, cafés, shops and distributors; no terms are stated, none are published).
- */
-function BusinessLine({ text, cta }: { text: string; cta: string }) {
-  return (
-    <p className="mt-5 flex items-start gap-2.5 rounded-[1rem] bg-jade-100 px-4 py-3 text-[0.9375rem] leading-6 text-teal-ink">
-      <Briefcase aria-hidden className="mt-1 h-4 w-4 shrink-0" />
-      <span>
-        {text}{' '}
-        <Link
-          href="/wholesale#request"
-          className="font-semibold underline decoration-teal-ink/40 underline-offset-4 hover:decoration-teal-ink"
-        >
-          {cta}
-        </Link>
-      </span>
-    </p>
   );
 }
 

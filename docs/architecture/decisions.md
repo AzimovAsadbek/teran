@@ -1115,3 +1115,36 @@ migrate without a backup.
 stays on the server for a rollback (`.deploy.env` names it). Backups and old images accumulate on
 the server until the operator moves or removes them. The script needs Docker access (the `docker`
 group), not root.
+
+## ADR-049: The five teas told apart, and the tea carried into the order
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`, 2026-10-20);
+to be reviewed by the owner before release.
+
+**Context.** A design critique of the live storefront found that its five teas look alike on every
+card (the same steaming cup opens each one, by the owner's choice), and that "Order" took a
+visitor to a blank contact form: the tea had to be remembered and typed again, and the product
+page itself offered no action while prices are hidden. The design system kept the pack colours on
+the packs ("the interface uses only the brand greens and golds").
+
+**Decision.**
+
+- A product card shows its second picture as a small round swatch in the picture's lower left on
+  every device (for TERAN's teas their own dry leaf); the full second picture still replaces the
+  first while a pointer is on the card. For the five teas the swatch is ringed in the pack's
+  colour. The pack colours (`PACK_COLOURS` in `content/brand.ts`) are sampled from the pack
+  photographs the site shows: XC2025 `#790810`, G8810 `#191816`, 8800 `#6a7c13`, 8830 `#0b2f73`,
+  8009 `#245719`. They mark a tea, and appear only on the swatch ring and on the codes in the
+  catalogue's premium band; never as a surface, a button or body text.
+- "Order" carries the tea: a card's button and the product page's lead to
+  `/contact?tea=<slug>`, where the tea (its leaf, name and pack) stands above the form with the
+  delivery promise the product page makes, the subject is "Place an order" and the message starts
+  with the tea and its pack. An unknown or missing tea leaves the plain form.
+- While prices are hidden the product page shows the card's single "Order" pill under the pack.
+  The channels themselves stay where ADR-045 puts them (footer, contact page, floating button):
+  no ordering panel returns.
+
+**Consequences.** Three new messages (`Forms.subjects.newOrder`, `Pages.orderSummaryTitle`,
+`Pages.orderOtherChannels`). The swatch costs one small image rendition per card on touch screens
+(the full second picture is still never loaded there). A sixth tea gets a swatch without a
+coloured ring until its pack colour is added.

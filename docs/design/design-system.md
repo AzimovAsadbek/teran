@@ -245,6 +245,30 @@ lines). The bag, checkout, accounts, sign-in, contact and legal pages and the ad
 none of it. To remove it, delete the `@import './botanical.css'` line in `globals.css`, the
 `<BotanicalLayer>` calls and `public/brand/botanical/`.
 
+## Refinement of 2026-10-20
+
+A design critique of the live storefront (Impeccable, 22/40) led to targeted changes that keep its
+look: the teal frame, gold Oswald headlines, films, pills and rounded banners are unchanged.
+
+- **The five teas told apart** ([ADR-049](../architecture/decisions.md)): each card's second
+  picture (a tea's dry leaf) stands as a round swatch on every device, ringed in the pack's
+  colour. Pack colours mark a tea only (swatch ring, the premium band's codes), never a surface.
+- **Order carries the tea** to the contact page, which names it above a prefilled form; the
+  product page gets the card's single Order pill while prices are hidden.
+- **Type scale:** the first view's headline is the page's largest, fitted to its longest line
+  (`--hero-fit`, up to 6rem in a column of min(56rem, 62vw)); campaign banners stop at 5rem,
+  bands at 4.5rem.
+- **Modules show only with enough content:** category shortcuts from three stocked categories,
+  the collage from three tiles (a family with a single range is shown by that range's tile), and
+  a row of exactly five products shows all five; a featured tab that would repeat the newest one
+  is left out. They return by themselves as the range grows.
+- **Motion:** one scroll-linked moment, home product rows rising into place as they scroll in
+  (CSS scroll-driven animation; visible without it, off with reduced motion). The ribbons hold
+  still under the pointer, a pressing finger and the footer's switch. The offer card stays off
+  the home page and, on phones, above the floating contact button.
+- **Copy kept, repetition removed:** the story banner answers its heading with the brand's own
+  first sentence; the values band reads "What TERAN stands for" instead of repeating the tagline.
+
 ## Components
 
 See the [component audit](./component-audit.md) for every primitive, its variants, states and

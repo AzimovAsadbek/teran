@@ -2,7 +2,6 @@ import type { ImageDto, Locale, ProductSummaryDto, PublicVisualDto } from '@tera
 import { ArrowRight } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
-import type { CSSProperties } from 'react';
 import { ProductImage } from '@/components/catalog/product-image';
 import { LoopingFilm } from '@/components/content/looping-film';
 import { VisualPicture } from '@/components/content/visual-picture';
@@ -80,8 +79,8 @@ function pictureOf(list: ProductSummaryDto[]): ImageDto | null {
  * its picture (its own cover, else one of its products), its name, how many products it holds and
  * its ranges, leading to the family's page. Replaces three rows of shortcuts to the same pages:
  * a new family appears here by itself once it has products. Pointed at, a tile's picture leans
- * in and its label opens on the family's ranges; scrolled into view, the tiles rise one after
- * another (styles/globals.css, `.range-tile`; still with reduced motion).
+ * in and its label opens on the family's ranges. The tiles stand still as they scroll in (ADR-051:
+ * no generic reveals; the brewing language moves where it means something).
  */
 export async function RangeExplorer() {
   await connection();
@@ -147,13 +146,12 @@ export async function RangeExplorer() {
               <li
                 key={family.slug}
                 className={cn(
-                  'range-tile relative',
+                  'relative',
                   index === 0 || (lastAcross && index === families.length - 1)
                     ? 'col-span-2 aspect-[4/3] min-[46.875rem]:aspect-[16/9] lg:aspect-auto'
                     : 'aspect-[4/5] lg:aspect-auto',
                   places[index],
                 )}
-                style={{ '--i': index } as CSSProperties}
               >
                 <Link
                   href={`/${family.path}`}

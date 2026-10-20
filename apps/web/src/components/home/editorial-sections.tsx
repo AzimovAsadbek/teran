@@ -4,13 +4,13 @@ import Image, { type StaticImageData } from 'next/image';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import type { CSSProperties, ReactNode } from 'react';
-import { TeaTypeArt } from '@/components/brand/illustrations';
 import { BrandValues } from '@/components/brand/ornaments';
 import { RIBBON_STICKERS, StickerDefs } from '@/components/brand/stickers';
 import { LoopingFilm } from '@/components/content/looping-film';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { BRAND, brandCopy, PACKAGING, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { wholesalePage } from '@/content/pages/wholesale';
+import { ArticleCard } from '@/components/content/article-card';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getCategories, getCollections, getProductList } from '@/lib/data/catalog';
@@ -868,12 +868,12 @@ export async function ValuesBanner({
 /* ── 16. Pair ────────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Two columns, picture over words: the journal's two newest articles with their own photographs
- * (featured first), as the reference's pair; with only one such article (or none, then the newest
- * with its illustration), that article alone, its picture beside its words on wide screens. Each
- * card shows its article's own cover, so the page it opens starts with the same picture. Each
- * picture leads where its pill does. (The business card that stood here is now the home page's
- * own business section, components/home/business-section.tsx.)
+ * The journal's two newest articles with their own photographs (featured first), on the journal's
+ * own cards (components/content/article-card.tsx); with only one such article (or none, then the
+ * newest, its tea's dry leaf in place of a cover), that article alone, laid on its side. Each card
+ * shows its article's own cover, so the page it opens starts with the same picture. (The business
+ * card that stood here is now the home page's own business section,
+ * components/home/business-section.tsx.)
  */
 export async function PairSection() {
   await connection();
@@ -890,7 +890,6 @@ export async function PairSection() {
   const chosen = covered.length > 0 ? covered.slice(0, 2) : items.slice(0, 1);
   if (chosen.length === 0) return null;
   const single = chosen.length === 1;
-  const pairSizes = '(min-width: 1024px) 45vw, 100vw';
 
   return (
     <section aria-labelledby="pair-title" className="container-page pt-8 pb-8 sm:pt-12 sm:pb-16">
@@ -908,72 +907,12 @@ export async function PairSection() {
           {tn('allArticles')}
         </Link>
       </div>
-      {/* The pills are the links for assistive technology; each picture leads to the same place
-          for a pointer (hidden from screen readers and the tab order, so nothing is said twice). */}
-      <ul
-        className={cn(
-          'mt-6 grid gap-x-4 gap-y-10 sm:gap-y-[3.125rem]',
-          !single && 'lg:grid-cols-2',
-        )}
-      >
-        {chosen.map((article) => {
-          const cover = article.cover ? imageSources(article.cover, 960) : null;
-          const href = `/journal/${article.slug}`;
-          return (
-            <li
-              key={article.slug}
-              className={cn(
-                'flex flex-col',
-                single && 'lg:grid lg:grid-cols-2 lg:items-center lg:gap-x-12',
-              )}
-            >
-              <Link
-                href={href}
-                tabIndex={-1}
-                aria-hidden
-                className="relative block aspect-[648/364] overflow-hidden rounded-[0.75rem] bg-surface-muted"
-              >
-                <span className="picture-hover absolute inset-0 block">
-                  {cover ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009)
-                    <img
-                      src={cover.src}
-                      srcSet={cover.srcSet}
-                      sizes={pairSizes}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center bg-ivory-200">
-                      <span className="h-32 w-32 sm:h-40 sm:w-40">
-                        <TeaTypeArt kind={article.illustrationKey} />
-                      </span>
-                    </span>
-                  )}
-                </span>
-              </Link>
-              <div className="flex flex-col">
-                <h3 className="mt-4 font-heading text-[1.5rem] leading-[1.2] text-fg lg:mt-0">
-                  {article.title}
-                </h3>
-                <p className="mt-2 line-clamp-3 text-[1rem] leading-normal text-pretty text-fg">
-                  {article.excerpt ?? t('journalTitle')}
-                </p>
-                <Link
-                  href={href}
-                  className={cn(
-                    PILL,
-                    'mt-4 h-12 self-start bg-forest-900 text-[1rem] text-ivory-50',
-                  )}
-                >
-                  {t('pairJournalCta')}
-                </Link>
-              </div>
-            </li>
-          );
-        })}
+      <ul className={cn('mt-6 grid gap-x-8 gap-y-12', !single && 'md:grid-cols-2')}>
+        {chosen.map((article) => (
+          <li key={article.slug}>
+            <ArticleCard article={article} layout={single ? 'wide' : 'card'} />
+          </li>
+        ))}
       </ul>
     </section>
   );

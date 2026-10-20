@@ -645,37 +645,6 @@
     }
   }
 
-  /* Home product rows (components/home/product-rail.tsx) rise into place as they scroll into
-     view, each card a step after the one before: the page's one scroll-linked moment. Movement
-     only (no fade), so every card is fully legible at every point; without support or with
-     reduced motion they simply stand in place, and it only ever follows the visitor's scrolling. */
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .rail-grid > li {
-        animation: rail-card-rise cubic-bezier(0.22, 1, 0.36, 1) both;
-        animation-timeline: view();
-        animation-range: entry calc(var(--i, 0) * 5%) cover calc(18% + var(--i, 0) * 5%);
-      }
-    }
-  }
-
-  /* The range explorer's tiles (components/home/range-explorer.tsx) rise into the grid as it
-     scrolls into view, one after another, their pictures settling from a slight zoom. */
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .range-tile {
-        animation: rail-card-rise linear both;
-        animation-timeline: view();
-        animation-range: entry calc(var(--i, 0) * 4%) cover calc(22% + var(--i, 0) * 4%);
-      }
-      .range-tile > a > span:first-child > * {
-        animation: arrive-settle linear both;
-        animation-timeline: view();
-        animation-range: entry 0% cover 45%;
-      }
-    }
-  }
-
   /* The light crossing a cold drink's or gift set's picture (components/catalog/product-card.tsx):
      once, left to right, while the card is pointed at; back out of sight at once when it is left. */
   .card-sheen {
@@ -1167,15 +1136,6 @@
 @keyframes arrive-settle {
   from {
     scale: 1.08;
-  }
-}
-
-@keyframes rail-card-rise {
-  from {
-    translate: 0 2.5rem;
-  }
-  to {
-    translate: none;
   }
 }
 

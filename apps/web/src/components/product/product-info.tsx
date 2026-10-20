@@ -149,12 +149,16 @@ export async function AttributeRows({ product }: { product: ProductDetailDto }) 
   const t = await getTranslations('Product');
   const name = product.name.toLowerCase();
   const characteristics = product.attributes
-    // What the row would only deny ("Sparkling: no") or what the name already says ("…, 500 ml")
-    // is left out.
+    // What the row would only deny ("Sparkling: no") or a measure the name already gives ("…,
+    // 500 ml") is left out; a choice stays even when the name echoes it ("Acacia honey" still
+    // names its flower).
     .filter((attribute) => !(attribute.kind === 'BOOLEAN' && attribute.boolean === false))
     .map((attribute) => ({ attribute, value: attributeValue(attribute, (key) => t(key)) }))
     .filter((entry): entry is { attribute: ProductAttributeDto; value: string } =>
-      Boolean(entry.value && !name.includes(entry.value.toLowerCase())),
+      Boolean(
+        entry.value &&
+        !(entry.attribute.kind === 'NUMBER' && name.includes(entry.value.toLowerCase())),
+      ),
     );
   // Water says nothing by a caffeine level.
   const caffeine = product.illustrationKey === 'water' ? null : product.caffeineLevel;

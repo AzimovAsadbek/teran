@@ -1,81 +1,104 @@
 import type { ArticleSummaryDto } from '@teran/contracts';
-import { ArrowRight } from 'lucide-react';
 import { useLocale } from 'next-intl';
-import { TeaTypeArt } from '@/components/brand/illustrations';
-import { CoverImage } from '@/components/content/cover-image';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format';
 import { coverSizes } from '@/lib/navigation';
+import { ArticleCover } from './article-cover';
 
-/** The card's width at each layout (its frame is 345 × 472; covers are photographs). */
-const CARD_SIZES = [
-  { media: '(min-width: 95rem)', width: '21.5625rem', ratio: 345 / 472 },
-  { media: '(min-width: 1280px)', width: '23vw', ratio: 345 / 472 },
-  { media: '(min-width: 640px)', width: '45vw', ratio: 345 / 472 },
-  { width: '92vw', ratio: 345 / 472 },
-];
+/** Each layout's frame: its width at each window and its shape (a 1440 px frame at most). */
+const FRAMES = {
+  card: [
+    { media: '(min-width: 1440px)', width: '40rem', ratio: 4 / 3 },
+    { media: '(min-width: 1024px)', width: '31vw', ratio: 4 / 3 },
+    { media: '(min-width: 768px)', width: '46vw', ratio: 4 / 3 },
+    { width: '92vw', ratio: 4 / 3 },
+  ],
+  wide: [
+    { media: '(min-width: 1440px)', width: '40rem', ratio: 4 / 3 },
+    { media: '(min-width: 768px)', width: '46vw', ratio: 4 / 3 },
+    { width: '92vw', ratio: 4 / 3 },
+  ],
+  lead: [
+    { media: '(min-width: 1440px)', width: '47rem', ratio: 16 / 10 },
+    { media: '(min-width: 768px)', width: '56vw', ratio: 16 / 10 },
+    { width: '92vw', ratio: 16 / 10 },
+  ],
+};
+
+/** `sizes` for the cover (a wide cover is drawn wider than a 4:3 frame), or the leaf's frame. */
+function sizesFor(article: ArticleSummaryDto, layout: keyof typeof FRAMES): string {
+  const frames = FRAMES[layout];
+  return article.cover
+    ? coverSizes(article.cover, frames)
+    : frames.map(({ media, width }) => (media ? `${media} ${width}` : width)).join(', ');
+}
 
 /**
- * The reference's blog card: the picture fills a tall rounded card, a pill sits at its top right
- * (here the date; TERAN's articles have no topics) and the title stands over the foot of the
- * picture in condensed white type, above a dark fade. An article without a cover shows its tea
- * illustration on the brand colour. The excerpt is kept for assistive technology and search.
+ * A journal article as a reader meets it (ADR-051): the picture in a landscape frame, then the
+ * date as a quiet label, the title in TERAN's serif and the excerpt, on white — the words never
+ * over the picture. `lead` is the newest article beside its picture across the page; `wide` lays
+ * a card on its side across two columns, so a grid never ends on one card alone. The whole card
+ * is the link; pointing at it underlines the title.
  */
 export function ArticleCard({
   article,
   headingLevel = 'h3',
+  layout = 'card',
+  priority = false,
 }: {
   article: ArticleSummaryDto;
   headingLevel?: 'h2' | 'h3';
+  layout?: 'card' | 'lead' | 'wide';
+  priority?: boolean;
 }) {
   const locale = useLocale();
   const Heading = headingLevel;
+  const lead = layout === 'lead';
+  const side = layout !== 'card';
   return (
-    <article className="group relative isolate flex aspect-[345/472] flex-col justify-end overflow-hidden rounded-[1rem] bg-jade-700">
-      {article.cover ? (
-        <CoverImage
-          image={article.cover}
-          // The tall card crops a wide cover at its sides: ask for the width it is drawn at.
-          sizes={coverSizes(article.cover, CARD_SIZES)}
-          className="absolute inset-0 -z-20 transition-transform duration-[350ms] ease-[ease] group-hover:scale-[1.04]"
-        />
-      ) : (
-        <span className="absolute inset-x-0 top-[14%] -z-20 mx-auto h-28 w-28 transition-transform duration-[350ms] ease-out group-hover:scale-105 sm:h-32 sm:w-32">
-          <TeaTypeArt kind={article.illustrationKey} />
-        </span>
+    <article
+      className={cn(
+        'group relative grid grid-cols-1 gap-y-4',
+        side && 'md:grid-cols-12 md:items-center md:gap-x-10',
       )}
-      <span
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-linear-to-t from-forest-950/85 via-forest-950/40 to-transparent"
-      />
-      <time
-        dateTime={article.publishedAt}
-        className="absolute top-3.5 right-3.5 rounded-full bg-forest-900 px-3 py-1 text-[0.8125rem] leading-[1.2] font-semibold text-ivory-50"
+    >
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-[1.25rem] bg-surface-muted',
+          lead ? 'aspect-[16/10] md:col-span-7 lg:rounded-[1.5rem]' : 'aspect-[4/3]',
+          layout === 'wide' && 'md:col-span-6',
+        )}
       >
-        {formatDate(article.publishedAt, locale)}
-      </time>
-      <span
-        aria-hidden
-        className="absolute right-3.5 bottom-3.5 flex h-7 w-7 items-center justify-center rounded-full bg-ivory-50 text-fg transition-transform duration-200 group-hover:translate-x-0.5"
-      >
-        <ArrowRight className="h-4 w-4" />
-      </span>
-      <div className="px-4 pr-14 pb-4">
-        <Heading className="font-headline text-[1.5rem] leading-[1.05] text-ivory-50 [--heading-case:none] [--headline-weight:700]">
+        <ArticleCover article={article} priority={priority} sizes={sizesFor(article, layout)} />
+      </div>
+      <div className={cn(lead && 'md:col-span-5', layout === 'wide' && 'md:col-span-6')}>
+        <time
+          dateTime={article.publishedAt}
+          className="font-headline text-[0.875rem] tracking-[0.12em] text-forest-900 uppercase"
+        >
+          {formatDate(article.publishedAt, locale)}
+        </time>
+        <Heading
+          className={cn(
+            'mt-2 font-heading leading-[1.1] text-balance text-fg',
+            lead ? 'text-[2rem] sm:text-[2.5rem]' : 'text-[1.5rem] sm:text-[1.625rem]',
+          )}
+        >
           <Link
             href={`/journal/${article.slug}`}
-            className={cn(
-              // As the reference's cards: the picture grows when pointed at; the title stays.
-              'after:absolute after:inset-0 after:rounded-[1rem] focus-visible:outline-none',
-              'focus-visible:after:outline-2 focus-visible:after:-outline-offset-4 focus-visible:after:outline-ivory-50 focus-visible:after:outline-solid',
-            )}
+            className="decoration-forest-900/40 decoration-2 underline-offset-[0.2em] group-hover:underline after:absolute after:inset-0 after:rounded-[1.25rem] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-4 focus-visible:after:outline-focus focus-visible:after:outline-solid"
           >
             {article.title}
           </Link>
         </Heading>
         {article.excerpt ? (
-          <p className="mt-1.5 line-clamp-2 text-[0.875rem] leading-snug text-ivory-50/90">
+          <p
+            className={cn(
+              'mt-2.5 leading-relaxed text-pretty text-fg-muted',
+              lead ? 'max-w-[32rem] text-[1.125rem]' : 'line-clamp-3 text-[1rem]',
+            )}
+          >
             {article.excerpt}
           </p>
         ) : null}

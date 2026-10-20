@@ -71,7 +71,7 @@ export default async function ArticlePreviewPage({
         </Notice>
       ) : null}
 
-      {/* Gutter padding as on the storefront, so the article's full-bleed hero fits the frame. */}
+      {/* Gutter padding as on the storefront's article page. */}
       <div className="overflow-hidden rounded-panel border border-line bg-canvas px-gutter pb-10">
         <article>
           <ArticleContent article={article} locale={locale} />

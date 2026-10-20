@@ -7,11 +7,10 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { Pagination } from '@/components/catalog/pagination';
 import { ArticleCard } from '@/components/content/article-card';
-import { PageHeader } from '@/components/content/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/cn';
 import { getArticles } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import terraces from '../../../../../public/brand/art/terraces.webp';
 
 const PAGE_SIZE = 9;
 
@@ -56,15 +55,39 @@ async function ArticleList({ searchParams }: Pick<PageProps<'/[locale]/journal'>
     );
   }
 
+  // The first page opens on the newest article as a lead; the rest stand in a grid that never
+  // ends on one card alone (three columns only when they divide by three, else two, and an odd
+  // last one on its side across both).
+  const lead = page === 1 ? articles.items[0] : undefined;
+  const rest = lead ? articles.items.slice(1) : articles.items;
+  const threes = rest.length % 3 === 0 && rest.length >= 3;
+  const lastWide = !threes && rest.length % 2 === 1;
   return (
     <>
-      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {articles.items.map((article) => (
-          <li key={article.slug}>
-            <ArticleCard article={article} headingLevel="h2" />
-          </li>
-        ))}
-      </ul>
+      {lead ? <ArticleCard article={lead} headingLevel="h2" layout="lead" priority /> : null}
+      {rest.length > 0 ? (
+        <ul
+          className={cn(
+            'grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2',
+            threes && 'lg:grid-cols-3',
+            lead && 'mt-14 border-t border-line pt-12 lg:mt-20 lg:pt-16',
+          )}
+        >
+          {rest.map((article, index) => {
+            const wide = lastWide && index === rest.length - 1;
+            return (
+              <li key={article.slug} className={cn(wide && 'md:col-span-2')}>
+                <ArticleCard
+                  article={article}
+                  headingLevel="h2"
+                  layout={wide ? 'wide' : 'card'}
+                  priority={!lead && index < 2}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       <Pagination
         page={articles.page}
         totalPages={articles.totalPages}
@@ -78,20 +101,25 @@ export default async function JournalPage({ searchParams }: PageProps<'/[locale]
   const t = await getTranslations('Pages');
   return (
     <>
-      <PageHeader
-        tone="brand"
-        title={t('journalTitle')}
-        intro={t('journalDescription')}
-        image={terraces}
-      />
-      {/* The reference's 1440 px frame; its topic pills are left out (TERAN's articles have none). */}
-      <div className="container-frame pt-7 pb-12">
+      <header className="container-page pt-10 pb-10 sm:pt-14 lg:pt-16 lg:pb-14">
+        <h1 className="font-heading text-[clamp(3rem,2rem+4vw,5rem)] leading-[0.98] text-fg">
+          {t('journalTitle')}
+        </h1>
+        <p className="mt-4 max-w-[36rem] text-[1.125rem] leading-relaxed text-pretty text-fg-muted sm:text-[1.25rem]">
+          {t('journalDescription')}
+        </p>
+      </header>
+      <div className="container-page pb-16 lg:pb-24">
         <Suspense
           fallback={
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" aria-hidden>
-              {[0, 1, 2, 3].map((index) => (
-                <Skeleton key={index} className="aspect-[345/472] rounded-[1rem]" />
-              ))}
+            // The lead's footprint, so nothing moves when the articles arrive.
+            <div aria-hidden className="grid grid-cols-1 gap-y-4 md:grid-cols-12 md:gap-x-10">
+              <Skeleton className="aspect-[16/10] rounded-[1.25rem] md:col-span-7" />
+              <div className="space-y-3 md:col-span-5 md:self-center">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-10 w-4/5" />
+                <Skeleton className="h-5 w-full" />
+              </div>
             </div>
           }
         >

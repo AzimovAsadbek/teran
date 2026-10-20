@@ -1,12 +1,12 @@
 import type { ArticleDetailDto, Locale, MediaItemDto } from '@teran/contracts';
 import { getTranslations } from 'next-intl/server';
-import { TeaTypeArt } from '@/components/brand/illustrations';
 import { MediaGroupHeading } from '@/components/media/media-archive';
 import { MediaGallery } from '@/components/media/media-gallery';
 import { mediaLabels } from '@/components/media/media-labels';
 import { formatDate } from '@/lib/format';
+import { coverSizes } from '@/lib/navigation';
 import { ArticleBody } from './article-body';
-import { CoverImage } from './cover-image';
+import { ArticleCover } from './article-cover';
 
 /**
  * The gallery items chosen for an article, on a dark band like the gallery itself: photographs
@@ -41,10 +41,19 @@ async function ArticleMedia({ items }: { items: MediaItemDto[] }) {
   );
 }
 
+/** The cover's frame: as wide as 72 rem, 16:9 from 640 px, 4:3 on phones. */
+const COVER_FRAMES = [
+  { media: '(min-width: 1220px)', width: '72rem', ratio: 16 / 9 },
+  { media: '(min-width: 640px)', width: '94vw', ratio: 16 / 9 },
+  { width: '94vw', ratio: 4 / 3 },
+];
+
 /**
- * An article as its page shows it: date, title, excerpt, the cover (or the article's illustration
- * when it has none), the body and the gallery items chosen for it. Shared by the journal page and
- * the admin preview, so the preview is exactly what readers will see.
+ * An article as its page shows it (ADR-051), a page for reading: the date as a quiet label, the
+ * title in TERAN's serif and the excerpt as a standfirst, centred; the cover settling into its
+ * wide frame once (or the dry leaf of the tea it is about on deep teal), then the body at a
+ * reading measure and the gallery items chosen for it. Nothing moves while the reader reads.
+ * Shared by the journal page and the admin preview, so the preview is exactly what readers see.
  */
 export async function ArticleContent({
   article,
@@ -56,40 +65,35 @@ export async function ArticleContent({
   const t = await getTranslations('Pages');
   return (
     <>
-      {/* The reference's split hero: the picture across the left 704 of 1440 px (400 px high),
-          the date, title and excerpt centred on white at the right. */}
-      <header className="-mx-gutter grid grid-cols-1 bg-white lg:min-h-[25rem] lg:grid-cols-[minmax(0,704fr)_minmax(0,736fr)]">
-        <div className="relative aspect-[16/10] bg-ivory-200 lg:aspect-auto">
-          {article.cover ? (
-            <div className="absolute inset-0">
-              <CoverImage image={article.cover} sizes="(min-width: 1024px) 50vw, 100vw" priority />
-            </div>
-          ) : (
-            <div aria-hidden className="absolute inset-0 flex items-center justify-center">
-              <span className="h-32 w-32 sm:h-40 sm:w-40">
-                <TeaTypeArt kind={article.illustrationKey} />
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:px-12 lg:px-16">
-          <time
-            dateTime={article.publishedAt}
-            className="rounded-full bg-forest-900 px-3 py-1 text-[0.8125rem] leading-5 font-medium text-ivory-50"
-          >
-            {t('published', { date: formatDate(article.publishedAt, locale) })}
-          </time>
-          <h1 className="mt-4 font-headline text-[2.75rem] leading-none break-words text-[#121212] [--headline-weight:800] sm:text-[3.75rem]">
-            {article.title}
-          </h1>
-          {article.excerpt ? (
-            <p className="mt-4 max-w-[32rem] text-[1rem] leading-[1.6rem] font-semibold text-[#121212]/80">
-              {article.excerpt}
-            </p>
-          ) : null}
-        </div>
+      <header className="mx-auto max-w-[52rem] pt-10 text-center sm:pt-14 lg:pt-16">
+        <time
+          dateTime={article.publishedAt}
+          className="font-headline text-[0.9375rem] tracking-[0.12em] text-forest-900 uppercase"
+        >
+          {t('published', { date: formatDate(article.publishedAt, locale) })}
+        </time>
+        <h1 className="mt-4 font-heading text-[clamp(2.5rem,2rem+2vw,3.75rem)] leading-[1.04] text-balance break-words text-fg">
+          {article.title}
+        </h1>
+        {article.excerpt ? (
+          <p className="mx-auto mt-5 max-w-[40rem] text-[1.1875rem] leading-relaxed text-pretty text-fg-muted sm:text-[1.25rem]">
+            {article.excerpt}
+          </p>
+        ) : null}
       </header>
-      <div className="mx-auto mt-12 max-w-[46rem]">
+      <div className="relative mx-auto mt-10 aspect-[4/3] max-w-[72rem] overflow-hidden rounded-[1.25rem] sm:aspect-[16/9] lg:mt-12 lg:rounded-[1.5rem]">
+        <ArticleCover
+          article={article}
+          sizes={
+            article.cover
+              ? coverSizes(article.cover, COVER_FRAMES)
+              : '(min-width: 1220px) 72rem, 94vw'
+          }
+          priority
+          settle
+        />
+      </div>
+      <div className="mx-auto mt-12 max-w-[38rem] lg:mt-16">
         <ArticleBody body={article.body} />
         {article.media.length > 0 ? <ArticleMedia items={article.media} /> : null}
       </div>

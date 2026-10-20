@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 
 /**
- * Renders journal article text in the reference's article type. The format is deliberately tiny and never parsed as HTML:
- * blank lines separate blocks, "## " starts a heading and lines starting with "- " form a list.
+ * Renders journal article text for reading (ADR-051): TERAN's serif for its headings, list marks in
+ * the brand's teal. The format is deliberately tiny and never parsed as HTML: blank lines separate
+ * blocks, "## " starts a heading and lines starting with "- " form a list.
  */
 export function ArticleBody({ body }: { body: string }) {
   const blocks = body.replace(/\r\n/g, '\n').split(/\n{2,}/);
@@ -23,7 +24,7 @@ export function ArticleBody({ body }: { body: string }) {
       }
       if (list.length) {
         nodes.push(
-          <ul key={`${key}-ul`} className="mb-[1.125rem] list-disc pl-6">
+          <ul key={`${key}-ul`} className="mb-[1.125rem] list-disc pl-6 marker:text-forest-900">
             {list.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
@@ -40,7 +41,7 @@ export function ArticleBody({ body }: { body: string }) {
         nodes.push(
           <h2
             key={`${key}-h`}
-            className="mt-10 mb-1.5 font-headline text-[1.5rem] leading-6 text-[#121212] [--heading-case:none] [--headline-weight:600]"
+            className="mt-11 mb-3 font-heading text-[1.75rem] leading-tight text-balance text-fg"
           >
             {line.slice(3).trim()}
           </h2>,
@@ -56,10 +57,9 @@ export function ArticleBody({ body }: { body: string }) {
     flush(`${blockIndex}-end`);
   });
 
-  // The reference's article text: 18 px on 28.8 px, 18 px between paragraphs, condensed 24 px
-  // headings 40 px below the text before them.
+  // 18 px on 30 px, 18 px between paragraphs, 28 px headings well clear of the text before them.
   return (
-    <div className="text-[1.125rem] leading-[1.8rem] font-medium text-[#121212] [&>h2:first-child]:mt-0">
+    <div className="text-[1.125rem] leading-[1.875rem] text-pretty text-fg [&>h2:first-child]:mt-0">
       {nodes}
     </div>
   );

@@ -1,19 +1,23 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { cn } from '@/lib/cn';
 
 /**
- * Where to read on at the end of a brand page (About, Tea 101): a line each, as two or three
+ * Where to read on at the end of a page (About, Tea 101, an article): a line each, as two or three
  * quiet tiles, never the products again.
  */
 export function FurtherLinks({
   label,
   links,
+  frame = 'container-page',
 }: {
   label: string;
   links: { href: string; label: string; text: string }[];
+  /** The width it keeps: the page's container, or the frame of the page it ends (an article's). */
+  frame?: string;
 }) {
   return (
-    <nav aria-label={label} className="container-page py-14 lg:py-20">
+    <nav aria-label={label} className={cn(frame, 'py-14 lg:py-20')}>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-5">
         {links.map((link) => (
           <li key={link.href}>

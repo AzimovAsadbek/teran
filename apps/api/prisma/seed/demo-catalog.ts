@@ -8,9 +8,22 @@
  * - Everything marked `testOnly` is a generic, invented range of tea styles (other tea types, pack
  *   sizes, a sale price, low and no stock, a draft) that the end-to-end tests need. It is loaded only
  *   with SEED_TEST_CATALOGUE=true; elsewhere the seed archives it (docs/development/demo-mode.md).
- * - Deliberately absent: ingredients, caffeine levels, certifications, health claims and reviews.
+ * - The wider demonstration range (matcha, infusions, iced tea, water, juices, teaware, a discovery
+ *   box; demo-range.ts) is `testOnly` too. Only demonstration products get ingredients and a
+ *   caffeine level (typical of their style); the TERAN teas get neither.
+ * - Deliberately absent: certifications, health claims and reviews.
  */
 import type { ArtAccent, ArtStyle, PackShape } from './demo-art.js';
+import {
+  DEMO_RANGE_ATTRIBUTE_VALUES,
+  DEMO_RANGE_CAFFEINE,
+  DEMO_RANGE_CATEGORIES,
+  DEMO_RANGE_COLLECTIONS,
+  DEMO_RANGE_PRODUCT_TYPES,
+  DEMO_RANGE_PRODUCTS,
+  DEMO_RANGE_TYPES_BY_CATEGORY,
+  FLAVOUR_ATTRIBUTE,
+} from './demo-range.js';
 
 export interface Localized<T> {
   uz: T;
@@ -55,7 +68,9 @@ export interface DemoProduct {
   status?: 'ACTIVE' | 'DRAFT';
   category: string;
   collections: string[];
-  format: 'LOOSE_LEAF' | 'TEA_BAGS' | 'PYRAMIDS' | 'GIFT_SET';
+  format: 'LOOSE_LEAF' | 'TEA_BAGS' | 'PYRAMIDS' | 'GIFT_SET' | 'ACCESSORY' | 'OTHER';
+  /** Demonstration products only: the caffeine typical of the style (never on TERAN teas). */
+  caffeine?: 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH';
   featured: boolean;
   illustrationKey: string;
   publishedDaysAgo: number;
@@ -85,6 +100,8 @@ export interface DemoProduct {
   shortDescription: Localized<string>;
   description: Localized<string>;
   tastingNotes?: Localized<string>;
+  /** Demonstration products only: what an infusion, a juice or an iced tea is made of. */
+  ingredients?: Localized<string>;
   /** Only where TERAN has stated it (on the pack). */
   origin?: Localized<string>;
   variants: DemoVariant[];
@@ -456,8 +473,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
     slug: 'pu-erh',
     testOnly: true,
     parent: 'tea',
-    // No dedicated pu-erh illustration exists yet; the black-tea artwork is the closest match.
-    illustrationKey: 'black',
+    illustrationKey: 'dark',
     name: { uz: 'Pu-erh', ru: 'Пуэр', en: 'Pu-erh' },
     description: {
       uz: 'Fermentlangan pu-erh choylari — bargli va presslangan.',
@@ -465,6 +481,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
       en: 'Fermented pu-erh teas, loose and pressed.',
     },
   },
+  ...DEMO_RANGE_CATEGORIES,
   {
     slug: 'gift-sets',
     testOnly: true,
@@ -527,6 +544,7 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
       en: 'Tea gifts for celebrations and visits.',
     },
   },
+  ...DEMO_RANGE_COLLECTIONS,
 ];
 
 export const DEMO_PRODUCTS: DemoProduct[] = [
@@ -1133,14 +1151,17 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       },
     ],
   },
+  ...DEMO_RANGE_PRODUCTS,
 ];
 
 // ─── Product types and attributes ──────────────────────────────────────────
 
 export interface DemoAttribute {
   key: string;
-  kind: 'SELECT' | 'BOOLEAN' | 'NUMBER';
+  kind: 'SELECT' | 'MULTI_SELECT' | 'BOOLEAN' | 'NUMBER';
   isFilterable: boolean;
+  /** Unit of a NUMBER attribute ("ml"). */
+  unit?: string;
   label: Localized<string>;
   options?: { key: string; label: Localized<string> }[];
 }
@@ -1154,9 +1175,9 @@ export interface DemoProductType {
 }
 
 /**
- * Product types used by the demonstration catalogue. Only the kinds of product the shop sells
- * today exist: tea and gift sets. Further types (coffee, sweets, accessories) are created in the
- * admin area when TERAN sells them; nothing hypothetical is seeded.
+ * Product types used by the demonstration catalogue: tea and gift sets, which TERAN sells, and the
+ * infusion, drink and teaware types of the wider demonstration range (demo-range.ts), which only
+ * exist where that range is loaded. Real types are created in the admin area.
  */
 export const DEMO_PRODUCT_TYPES: DemoProductType[] = [
   {
@@ -1177,8 +1198,10 @@ export const DEMO_PRODUCT_TYPES: DemoProductType[] = [
           },
           { key: 'compressed', label: { uz: 'Presslangan', ru: 'Прессованный', en: 'Compressed' } },
           { key: 'cut', label: { uz: 'Maydalangan barg', ru: 'Резаный лист', en: 'Cut leaf' } },
+          { key: 'powder', label: { uz: 'Kukun', ru: 'Порошок', en: 'Powder' } },
         ],
       },
+      FLAVOUR_ATTRIBUTE,
       {
         key: 'flavoured',
         kind: 'BOOLEAN',
@@ -1200,19 +1223,22 @@ export const DEMO_PRODUCT_TYPES: DemoProductType[] = [
       },
     ],
   },
+  ...DEMO_RANGE_PRODUCT_TYPES,
 ];
 
 /** The product type of a demo product, from its category. */
 export function demoProductType(product: Pick<DemoProduct, 'category'>): string {
-  return product.category === 'gift-sets' ? 'gift-set' : 'tea';
+  if (product.category === 'gift-sets') return 'gift-set';
+  return DEMO_RANGE_TYPES_BY_CATEGORY[product.category] ?? 'tea';
 }
 
 /**
  * DEMONSTRATION attribute values, typical of each demo product's style (a jasmine tea is scented,
  * a mini pu-erh is pressed) or taken from the demo product itself (the number of teas in a set).
- * The five TERAN identifier products get none: nothing is claimed about the real TERAN teas.
+ * The five TERAN identifier products get only the taste notes of the owner's own descriptions
+ * (demo-range.ts): nothing else is claimed about the real TERAN teas.
  */
-export const DEMO_ATTRIBUTE_VALUES: Record<string, Record<string, string | boolean | number>> = {
+const BASE_ATTRIBUTE_VALUES: Record<string, Record<string, string | boolean | number>> = {
   'classic-black-tea': { 'leaf-style': 'whole-leaf', flavoured: false },
   'black-tea-bags': { 'leaf-style': 'cut', flavoured: false },
   'earl-grey': { 'leaf-style': 'whole-leaf', flavoured: true },
@@ -1230,6 +1256,27 @@ export const DEMO_ATTRIBUTE_VALUES: Record<string, Record<string, string | boole
   'gift-set-duo': { 'teas-in-set': 2 },
   'teran-premium-gift-box': { 'teas-in-set': 5 },
 };
+
+export type DemoAttributeValue = string | boolean | number | string[];
+
+/** Every demonstration attribute value, per product slug. */
+export const DEMO_ATTRIBUTE_VALUES: Record<
+  string,
+  Record<string, DemoAttributeValue>
+> = Object.fromEntries(
+  [
+    ...new Set([
+      ...Object.keys(BASE_ATTRIBUTE_VALUES),
+      ...Object.keys(DEMO_RANGE_ATTRIBUTE_VALUES),
+    ]),
+  ].map((slug) => [slug, { ...BASE_ATTRIBUTE_VALUES[slug], ...DEMO_RANGE_ATTRIBUTE_VALUES[slug] }]),
+);
+
+/** Caffeine of demonstration products: their own `caffeine`, or the generic range's table. */
+export function demoCaffeine(product: Pick<DemoProduct, 'slug' | 'caffeine' | 'testOnly'>) {
+  if (!product.testOnly) return null;
+  return product.caffeine ?? DEMO_RANGE_CAFFEINE[product.slug] ?? null;
+}
 
 /**
  * Demo products, categories and collections from earlier versions of this file. The guarded demo

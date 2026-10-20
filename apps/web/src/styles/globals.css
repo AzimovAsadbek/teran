@@ -218,6 +218,12 @@
   --duration-fast: 150ms;
   --duration-base: 220ms;
   --duration-slow: 320ms;
+  /* The cinematic set (docs/design/design-system.md, Motion): an exponential ease-out for things
+     arriving (words, packs, pictures), a slow in-out for scenes and colour fields changing. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-scene: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-reveal: 950ms;
+  --duration-scene: 700ms;
 
   --animate-fade-in: fade-in 220ms var(--ease-standard) both;
   --animate-pop-in: pop-in 220ms var(--ease-soft) both;
@@ -602,6 +608,28 @@
     }
   }
 
+  /* ── Arrivals (the motion system's first-view moments) ─────────────────────────────────────
+     Each starts from its final, readable layout: lines of a headline rise out of their own mask,
+     packs rise onto the shelf one after another, a picture settles from a slight zoom. They play
+     once, on load; with reduced motion nothing moves. */
+  @media (prefers-reduced-motion: no-preference) {
+    .arrive-line {
+      animation: arrive-line var(--duration-reveal) var(--ease-out-expo) both;
+      animation-delay: calc(120ms + var(--i, 0) * 110ms);
+    }
+    .arrive-rise {
+      animation: arrive-rise 800ms var(--ease-out-expo) both;
+      animation-delay: calc(380ms + var(--i, 0) * 90ms);
+    }
+    .arrive-pack {
+      animation: arrive-pack 1100ms var(--ease-out-expo) both;
+      animation-delay: calc(300ms + var(--i, 0) * 85ms);
+    }
+    .arrive-settle {
+      animation: arrive-settle 2200ms var(--ease-out-expo) both;
+    }
+  }
+
   /* Home product rows (components/home/product-rail.tsx) rise into place as they scroll into
      view, each card a step after the one before: the page's one scroll-linked moment. Movement
      only (no fade), so every card is fully legible at every point; without support or with
@@ -613,6 +641,79 @@
         animation-timeline: view();
         animation-range: entry calc(var(--i, 0) * 5%) cover calc(18% + var(--i, 0) * 5%);
       }
+    }
+  }
+
+  /* The range explorer's tiles (components/home/range-explorer.tsx) rise into the grid as it
+     scrolls into view, one after another, their pictures settling from a slight zoom. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .range-tile {
+        animation: rail-card-rise linear both;
+        animation-timeline: view();
+        animation-range: entry calc(var(--i, 0) * 4%) cover calc(22% + var(--i, 0) * 4%);
+      }
+      .range-tile > a > span:first-child > * {
+        animation: arrive-settle linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 45%;
+      }
+    }
+  }
+
+  /* The light crossing a cold drink's or gift set's picture (components/catalog/product-card.tsx):
+     once, left to right, while the card is pointed at; back out of sight at once when it is left. */
+  .card-sheen {
+    background: linear-gradient(
+      105deg,
+      transparent 32%,
+      rgb(255 255 255 / 0.55) 47%,
+      rgb(255 255 255 / 0.14) 55%,
+      transparent 68%
+    );
+    translate: -110% 0;
+    opacity: 0;
+  }
+  .card-sheen-gold {
+    background: linear-gradient(
+      105deg,
+      transparent 32%,
+      rgb(255 223 156 / 0.55) 47%,
+      rgb(255 223 156 / 0.16) 55%,
+      transparent 68%
+    );
+  }
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .group\/card:hover .card-sheen {
+      translate: 110% 0;
+      opacity: 1;
+      transition:
+        translate 1200ms var(--ease-out-expo),
+        opacity 150ms linear;
+    }
+  }
+
+  /* A framed window of stacked pictures (the story, components/home/story-sequence-view.tsx, and
+     the business index, components/home/business-index.tsx): the next picture waits below the
+     frame and wipes up over the shown one (going back wipes it down again), settling from a slight
+     zoom as it comes; an image mask, not a fade. */
+  .wipe-layer {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path 1000ms var(--ease-out-expo);
+  }
+  .wipe-layer[data-state='next'] {
+    clip-path: inset(100% 0 0 0);
+  }
+  .wipe-layer-media {
+    transition: scale 1400ms var(--ease-out-expo);
+  }
+  .wipe-layer[data-state='next'] .wipe-layer-media {
+    scale: 1.12;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wipe-layer,
+    .wipe-layer-media {
+      transition: none;
     }
   }
 
@@ -670,6 +771,32 @@
   to {
     opacity: 1;
     translate: none;
+  }
+}
+
+@keyframes arrive-line {
+  from {
+    translate: 0 108%;
+  }
+}
+
+@keyframes arrive-rise {
+  from {
+    opacity: 0;
+    translate: 0 1rem;
+  }
+}
+
+@keyframes arrive-pack {
+  from {
+    opacity: 0;
+    translate: 0 32%;
+  }
+}
+
+@keyframes arrive-settle {
+  from {
+    scale: 1.08;
   }
 }
 

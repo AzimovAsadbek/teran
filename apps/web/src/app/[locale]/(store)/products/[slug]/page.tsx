@@ -1,5 +1,5 @@
 import type { Locale, ProductDetailDto, ProductSummaryDto } from '@teran/contracts';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Briefcase } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -24,7 +24,8 @@ import { RecentlyViewed } from '@/components/product/recently-viewed';
 import { formatAverage, ReviewsSection } from '@/components/product/reviews-section';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getPathname } from '@/i18n/navigation';
+import { wholesalePage } from '@/content/pages/wholesale';
+import { getPathname, Link } from '@/i18n/navigation';
 import { getProduct, getRelatedProducts, getSlugRedirect } from '@/lib/data/catalog';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { getProductReviews } from '@/lib/data/reviews';
@@ -223,19 +224,23 @@ async function ProductView({
             ) : null}
             <div className="mt-4">
               {showPrices ? (
-                <PurchasePanel
-                  productName={product.name}
-                  format={product.format}
-                  variants={product.variants}
-                  initialVariantId={initialVariant.id}
-                  image={product.images[0] ?? null}
-                  details={
-                    <>
-                      <ProductTabsSection product={product} />
-                      <AttributeRows product={product} />
-                    </>
-                  }
-                />
+                <>
+                  <PurchasePanel
+                    productName={product.name}
+                    format={product.format}
+                    variants={product.variants}
+                    initialVariantId={initialVariant.id}
+                    image={product.images[0] ?? null}
+                    details={
+                      <>
+                        <ProductTabsSection product={product} />
+                        <AttributeRows product={product} />
+                      </>
+                    }
+                  />
+                  {/* After the purchase itself, never above it. */}
+                  <BusinessLine text={t('businessLine')} cta={wholesalePage[locale].formTitle} />
+                </>
               ) : (
                 // No price and no bag for now: the pack, the card's own "Order" (to the contact
                 // page with this tea named), then the product's facts. The channels themselves stay
@@ -261,6 +266,7 @@ async function ProductView({
                       <ArrowRight aria-hidden className="h-4 w-4" />
                     </ButtonLink>
                   )}
+                  <BusinessLine text={t('businessLine')} cta={wholesalePage[locale].formTitle} />
                   <ProductTabsSection product={product} />
                   <AttributeRows product={product} />
                 </>
@@ -291,6 +297,25 @@ async function ProductView({
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
     </>
+  );
+}
+
+/**
+ * The way in for businesses under the order button: one line and the request form's link (TERAN
+ * sells mostly to hotels, cafés, shops and distributors; no terms are stated, none are published).
+ */
+function BusinessLine({ text, cta }: { text: string; cta: string }) {
+  return (
+    <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[1rem] bg-jade-100 px-4 py-3 text-[0.9375rem] leading-6 text-teal-ink">
+      <Briefcase aria-hidden className="h-4 w-4 shrink-0" />
+      <span>{text}</span>
+      <Link
+        href="/wholesale#request"
+        className="font-semibold underline decoration-teal-ink/40 underline-offset-4 hover:decoration-teal-ink"
+      >
+        {cta}
+      </Link>
+    </p>
   );
 }
 

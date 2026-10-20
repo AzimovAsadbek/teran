@@ -187,7 +187,28 @@
     "galleryCta": "Lavhalarni koʻrish",
     "pairJournalCta": "Maqolani oʻqish",
     "promoCta": "Xarid qilish",
-    "heroHeadingKind": "premium Xitoy choyi"
+    "heroHeadingKind": "premium Xitoy choyi",
+    "signatureTabs": "TERAN choylari",
+    "signatureView": "Choy haqida batafsil",
+    "rangeTitle": "TERAN assortimenti",
+    "rangeText": "Markazda choy — va u bilan birga tortiladigan hamma narsa: uy dasturxoni, kafe peshtaxtasi va mehmonxona patnisi uchun.",
+    "storySteps": {
+      "garden": {
+        "title": "Togʻlarda oʻsadi",
+        "text": "TERAN choylari Xitoyning Xunan va Yunnan provinsiyalaridagi togʻ choy plantatsiyalaridan keladi."
+      },
+      "leaf": {
+        "title": "Har birining oʻz bargi bor",
+        "text": "Ingichka va zich oʻralgan, nozik yoki yirik va butun: besh choyning har biri oʻz bargiga ega."
+      },
+      "brew": {
+        "title": "Qoidasi bilan damlanadi",
+        "text": "250 ml suvga 3–5 g choy, 80–90 °C, 2–3 daqiqa. Har bir choyni damlash usuli uning qadogʻida va sahifasida koʻrsatilgan."
+      },
+      "guest": {
+        "title": "Har bir mehmon uchun"
+      }
+    }
   },
   "Brewing": {
     "temperature": "Harorat",
@@ -403,7 +424,8 @@
       "signIn": "Kirish",
       "register": "Roʻyxatdan oʻtish",
       "staffNote": "Xodim hisobidan baho qoldirib boʻlmaydi: baholarni faqat mijozlar beradi."
-    }
+    },
+    "businessLine": "Mehmonxona, kafe, doʻkon yoki kompaniya uchun xarid qilyapsizmi?"
   },
   "Cart": {
     "title": "Savat",
@@ -1432,9 +1454,10 @@
         "categoryBanner": "Kategoriya banneri: {name}",
         "collectionBanner": "Kolleksiya banneri: {name}",
         "homeHero": "Bosh sahifa: birinchi koʻrinish",
-        "homeBanner": "Bosh sahifa: {number}-kampaniya banneri",
-        "homeBento": "Bosh sahifa: bento, {number}-plitka",
-        "homeFeature": "Bosh sahifa: keng banner (damlash)",
+        "homeRange": "Bosh sahifa: assortiment, birinchi boʻlim plitkasi (choy)",
+        "homeStoryGarden": "Bosh sahifa: hikoya, 1-qadam (togʻ plantatsiyalari)",
+        "homeStoryBrew": "Bosh sahifa: hikoya, 3-qadam (damlash)",
+        "homeStoryGuest": "Bosh sahifa: hikoya, 4-qadam (har bir mehmon uchun)",
         "homeValues": "Bosh sahifa: qadriyatlar banneri",
         "menuShop": "Menyu: «Katalog» kartasi (oʻz rasmi boʻlmagan kategoriya uchun)",
         "menuCollections": "Menyu: «Kolleksiyalar» kartasi (oʻz rasmi boʻlmagan kolleksiya uchun)",
@@ -1450,8 +1473,7 @@
         "wholesaleFlavour": "Biznes uchun: keng taʼm banneri",
         "wholesaleMap": "Biznes uchun: dilerlar tarmogʻi foni",
         "storePicture": "Doʻkon rasmi: {name}",
-        "tea101Amount": "Choy alifbosi: «Qancha choy kerak?» yonidagi rasm",
-        "homePairBusiness": "Bosh sahifa: pastki juftlik, «Biznes uchun» kartasi rasmi"
+        "tea101Amount": "Choy alifbosi: «Qancha choy kerak?» yonidagi rasm"
       },
       "visualSizeSlide": "Keng: kamida 2560 × 750 px; telefon uchun 1200 × 1660 px.",
       "visualSizeTile": "Kamida 1300 × 730 px.",
@@ -1701,7 +1723,12 @@
       "earl-grey": "Erl Grey",
       "coffee": "Kofe",
       "sweets": "Shirinliklar",
-      "teaware": "Choy idishlari"
+      "teaware": "Choy idishlari",
+      "matcha": "Matcha",
+      "dark": "Toʻq choy (puer)",
+      "iced": "Sovuq choy",
+      "water": "Suv",
+      "juice": "Sharbat"
     },
     "readiness": {
       "title": "Eʼlon qilishga tayyorlik",

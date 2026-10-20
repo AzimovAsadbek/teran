@@ -29,3 +29,7 @@ export type ProductFormat = (typeof PRODUCT_FORMATS)[number];
 
 export const PRODUCT_SORTS = ['featured', 'newest', 'price_asc', 'price_desc'] as const;
 export type ProductSort = (typeof PRODUCT_SORTS)[number];
+
+/** How much caffeine a drink has, from none (infusions, water, juice) to high; filterable. */
+export const CAFFEINE_LEVELS = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const;
+export type CaffeineLevel = (typeof CAFFEINE_LEVELS)[number];

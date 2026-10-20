@@ -101,7 +101,7 @@ export const ABOUT_LINKS = [
 
 export const HELP_LINKS = [
   { href: '/contact', label: 'contact' },
-  // The header's "find a store" is a desktop utility; phones reach it here (and in the footer).
+  // The store finder: here (the "About" menu and the drawer) and in the footer.
   { href: '/stores', label: 'findStore' },
   { href: '/delivery', label: 'delivery' },
   { href: '/returns', label: 'returns' },

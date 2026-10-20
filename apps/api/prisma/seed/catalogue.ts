@@ -30,6 +30,7 @@ import {
   DEMO_COLLECTIONS,
   DEMO_PRODUCT_TYPES,
   DEMO_PRODUCTS,
+  demoCaffeine,
   demoProductType,
   EARLIER_DEMO_COPY,
   type DemoProduct,
@@ -219,6 +220,7 @@ async function seedProductTypes(prisma: PrismaClient): Promise<number> {
           create: type.attributes.map((attribute, attributePosition) => ({
             key: attribute.key,
             kind: attribute.kind,
+            unit: attribute.unit ?? null,
             isFilterable: attribute.isFilterable,
             isVisible: true,
             position: attributePosition,
@@ -265,12 +267,16 @@ async function assignDemoAttributes(
   for (const [key, value] of Object.entries(values)) {
     const attribute = type.attributes.find((candidate) => candidate.key === key);
     if (!attribute) continue;
-    if (attribute.kind === 'SELECT') {
-      const option = attribute.options.find((candidate) => candidate.key === value);
-      if (option) {
-        await prisma.productAttributeValue.create({
-          data: { productId, attributeId: attribute.id, optionId: option.id },
-        });
+    if (attribute.kind === 'SELECT' || attribute.kind === 'MULTI_SELECT') {
+      // MULTI_SELECT stores one row per chosen option.
+      const chosen = Array.isArray(value) ? value : [value];
+      for (const key of chosen) {
+        const option = attribute.options.find((candidate) => candidate.key === key);
+        if (option) {
+          await prisma.productAttributeValue.create({
+            data: { productId, attributeId: attribute.id, optionId: option.id },
+          });
+        }
       }
     } else if (attribute.kind === 'BOOLEAN' && typeof value === 'boolean') {
       await prisma.productAttributeValue.create({
@@ -434,6 +440,7 @@ function translationCopy(demo: DemoProduct, locale: Locale) {
     shortDescription: demo.shortDescription[locale],
     description: demo.description[locale],
     tastingNotes: demo.tastingNotes?.[locale] ?? null,
+    ingredients: demo.ingredients?.[locale] ?? null,
     origin: demo.origin?.[locale] ?? null,
   };
 }
@@ -455,6 +462,7 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
         format: demo.format,
         isFeatured: demo.featured,
         illustrationKey: demo.illustrationKey,
+        caffeineLevel: demoCaffeine(demo),
         ...brewingFields(demo),
         publishedAt,
         translations: {
@@ -480,7 +488,8 @@ async function createProduct(prisma: PrismaClient, demo: DemoProduct, now: Date)
 /**
  * A product of the demonstration range's real photograph, when the seed runs with DEMO_PHOTOS_DIR
  * (scripts/build-demo-photos.ts) and the folder holds it; otherwise null (CI and the end-to-end
- * tests draw the product).
+ * tests draw the product). With DEMO_PHOTOS_DIR set, a demonstration product without its
+ * photograph is not created at all (seedCatalogue).
  */
 async function demoPhoto(demo: DemoProduct): Promise<Buffer | null> {
   const folder = process.env.DEMO_PHOTOS_DIR;
@@ -815,6 +824,12 @@ export async function seedCatalogue(
   for (const demo of DEMO_PRODUCTS) {
     if (demo.testOnly && !options.testCatalogue) continue;
     const existing = await findDemoProduct(prisma, demo);
+    // A presentation database (DEMO_PHOTOS_DIR) shows only demonstration products with a real
+    // photograph: one without stays out rather than appear as drawn art.
+    if (!existing && demo.testOnly && process.env.DEMO_PHOTOS_DIR && !(await demoPhoto(demo))) {
+      console.log(`  ${demo.slug}: no photograph in DEMO_PHOTOS_DIR, not created`);
+      continue;
+    }
     if (existing) {
       if (existing.productTypeId === null) {
         const typed = await prisma.$transaction(

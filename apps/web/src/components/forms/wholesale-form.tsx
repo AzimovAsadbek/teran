@@ -9,6 +9,7 @@ import { Notice } from '@/components/ui/notice';
 import { FormErrorSummary, SelectField, TextAreaField, TextField } from '@/components/ui/field';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { useValidationMessage } from '@/lib/use-validation-message';
+import { useLinkedBusinessType } from './business-type-link';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
 
 const EMPTY = {
@@ -32,6 +33,14 @@ export function WholesaleForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const form = useFormSubmission(formRef);
   const [values, setValues] = useState(EMPTY);
+  // A kind of business named in the address (`?type=`, from the home page's business index) is
+  // chosen once it is known, unless the visitor has already chosen one.
+  const linkedType = useLinkedBusinessType();
+  const [appliedType, setAppliedType] = useState<string | null>(null);
+  if (linkedType && linkedType !== appliedType) {
+    setAppliedType(linkedType);
+    if (!values.businessType) setValues((current) => ({ ...current, businessType: linkedType }));
+  }
 
   const set = (key: keyof typeof EMPTY) => (event: { target: { value: string } }) =>
     setValues((current) => ({ ...current, [key]: event.target.value }));

@@ -35,6 +35,11 @@ const PALETTES: Record<IllustrationKey, ArtPalette> = {
   coffee: { tint: '#efe4d6', leaf: '#3f6b35', leafDark: '#1f3b1a', accent: 'beans' },
   sweets: { tint: '#f7e6e3', leaf: '#4f8a3b', leafDark: '#1a5317', accent: 'sweet' },
   teaware: { tint: '#dfece8', leaf: '#2f6f69', leafDark: '#174240', accent: 'cup' },
+  matcha: { tint: '#e6f0d6', leaf: '#5e9c2c', leafDark: '#2f5d17' },
+  dark: { tint: '#ece3d9', leaf: '#6b4a34', leafDark: '#3b2619' },
+  iced: { tint: '#f4ead2', leaf: '#b7862a', leafDark: '#7a5714', accent: 'cup' },
+  water: { tint: '#e2e8f2', leaf: '#3c5a8c', leafDark: '#22355a' },
+  juice: { tint: '#f4e1df', leaf: '#a8322d', leafDark: '#651a17', accent: 'berries' },
 };
 
 function Leaf({ rotate, fill, vein }: { rotate: number; fill: string; vein: string }) {

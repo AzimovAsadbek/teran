@@ -16,8 +16,9 @@ function sentences(text: string): string[] {
 
 /**
  * The front page's first view: TERAN's words — the pack's tagline, what TERAN is, a pill to the
- * teas — over the film of the first view's place (`home.hero.1`, set by the import script), or its
- * picture (Admin → Settings), or the lake painted on the packs. One view, no rotation (the owner's
+ * teas and the way in for businesses — over the film of the first view's place (`home.hero.1`,
+ * set by the import script), or its picture (Admin → Settings), or the lake painted on the packs,
+ * with the five TERAN pouches standing on its lower edge. One view, no rotation (the owner's
  * decision of 2026-10-18, ADR-037). The words are prerendered with the page, and so is the picture
  * (the page's largest paint) when the page has the settings while prerendering: the browser then
  * finds it in the document's first bytes and in its head (ADR-039). Without them (a build with no
@@ -25,13 +26,17 @@ function sentences(text: string): string[] {
  */
 export async function Hero({ settings = null }: { settings?: PublicSettingsDto | null }) {
   const locale = (await rootParams.locale()) as Locale;
-  const t = await getTranslations('Home');
+  const [t, tn] = await Promise.all([
+    getTranslations('Home'),
+    getTranslations({ locale, namespace: 'Nav' }),
+  ]);
   const copy = brandCopy[locale];
   const words: HeroWords = {
     eyebrow: `${BRAND.name}® · ${BRAND.descriptor}`,
     lines: sentences(copy.tagline),
     text: copy.description,
     cta: { href: '/catalog', label: t('heroCta') },
+    business: { href: '/wholesale', label: tn('wholesale') },
   };
   const labels: HeroLabels = {
     // Read by screen readers and search engines only: the brand, what it sells, its tagline.

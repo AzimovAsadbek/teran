@@ -50,35 +50,19 @@ async function railLabels(): Promise<RailLabels> {
 }
 
 /**
- * Section 4: TERAN's own premium collection first (its five teas), then "new arrivals" and "our
- * picks" (the admin's featured flag). A tab that would show the same products as the one before
- * it is left out, so with only TERAN's teas in the shop the row is simply the collection.
+ * Section 4: "new arrivals" and "our picks" (the admin's featured flag), across the whole range
+ * (TERAN's own five teas have their own stage above, SignatureTeas). A tab that would show the
+ * same products as the one before it is left out: a switch that changes nothing reads as broken.
  */
 export async function NewArrivalsRail() {
   await connection();
   const locale = await getLocale();
   const t = await getTranslations('Home');
-  const [collections, premium, latest, featured] = await Promise.all([
-    getCollections(locale).catch(() => []),
-    getProductList(locale, `${PAGE}&collection=${PREMIUM_COLLECTION_SLUG}&sort=featured`).catch(
-      () => null,
-    ),
+  const [latest, featured] = await Promise.all([
     getProductList(locale, `${PAGE}&sort=newest`).catch(() => null),
     getProductList(locale, `${PAGE}&featured=true&sort=featured`).catch(() => null),
   ]);
-  const collection = collections.find((entry) => entry.slug === PREMIUM_COLLECTION_SLUG);
   const tabs: RailTab[] = [
-    ...(collection
-      ? [
-          {
-            id: 'teran',
-            label: collection.name,
-            products: premium?.items ?? [],
-            href: `/collections/${collection.slug}`,
-            cta: t('featuredCta'),
-          },
-        ]
-      : []),
     {
       id: 'new',
       label: t('railNew'),
@@ -94,8 +78,6 @@ export async function NewArrivalsRail() {
       cta: t('railFeaturedCta'),
     },
   ];
-  // A switch that changes nothing reads as broken: a tab showing the same products as an earlier
-  // one is left out, and comes back once the lists differ.
   const shown = (tab: RailTab) =>
     tab.products
       .slice(0, 5)

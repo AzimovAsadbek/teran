@@ -9,6 +9,7 @@ import { Suspense, type ReactNode } from 'react';
 import { ValueMark } from '@/components/brand/ornaments';
 import { Blocks } from '@/components/content/long-form';
 import { VisualPicture } from '@/components/content/visual-picture';
+import { BusinessTypeFromLink } from '@/components/forms/business-type-link';
 import { WholesaleForm } from '@/components/forms/wholesale-form';
 import { SocialIcon } from '@/components/social/social-icon';
 import { BRAND, BRAND_VALUES, brandValueLabels, teaHref, type TeaCode } from '@/content/brand';
@@ -468,6 +469,9 @@ export default async function WholesalePage() {
             </h3>
             <p className="mt-2 text-[1rem] leading-[1.6rem] text-[#121212]/80">{page.formIntro}</p>
             <div className="mt-8">
+              <Suspense fallback={null}>
+                <BusinessTypeFromLink />
+              </Suspense>
               <WholesaleForm />
             </div>
           </section>

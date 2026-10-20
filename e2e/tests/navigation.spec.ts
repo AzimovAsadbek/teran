@@ -55,4 +55,21 @@ test.describe('navigation', () => {
     await expect(page).toHaveURL(/\/en\/tea\/green-tea$/);
     await expect(drawer).toBeHidden();
   });
+
+  test('a kind of business on the home page opens the request form with it chosen', async ({
+    page,
+  }) => {
+    await page.goto('/en');
+    const business = page.getByRole('region', { name: 'Grow with TERAN.' });
+    const hotels = business.getByRole('link', { name: /^Hotels/ });
+    await hotels.scrollIntoViewIfNeeded();
+    await expect(hotels).toHaveAttribute('href', /\/wholesale\?type=HOTEL#request$/);
+    await business.getByRole('link', { name: /^Retail stores/ }).click();
+    await expect(page).toHaveURL(/\/en\/wholesale\?type=RETAIL#request$/);
+    const kind = page.getByLabel('Type of business');
+    await expect(kind).toHaveValue('RETAIL');
+    // A kind the visitor chooses themselves is kept.
+    await kind.selectOption('DISTRIBUTOR');
+    await expect(kind).toHaveValue('DISTRIBUTOR');
+  });
 });

@@ -187,7 +187,28 @@
     "galleryCta": "View the gallery",
     "pairJournalCta": "Read the article",
     "promoCta": "Shop now",
-    "heroHeadingKind": "premium Chinese tea"
+    "heroHeadingKind": "premium Chinese tea",
+    "signatureTabs": "TERAN teas",
+    "signatureView": "View the tea",
+    "rangeTitle": "The TERAN range",
+    "rangeText": "Tea at the centre, and everything served with it: for the home table, the café counter and the hotel tray.",
+    "storySteps": {
+      "garden": {
+        "title": "Grown in the mountains",
+        "text": "TERAN’s teas come from tea gardens in the mountains of Hunan and Yunnan, in China."
+      },
+      "leaf": {
+        "title": "Each with its own leaf",
+        "text": "Thin and tightly rolled, delicate, or large and whole: each of the five teas has a leaf of its own."
+      },
+      "brew": {
+        "title": "Brewed as it should be",
+        "text": "3–5 g of tea for 250 ml of water at 80–90 °C, steeped for 2–3 minutes. Each tea’s own brewing is on its pack and its page."
+      },
+      "guest": {
+        "title": "Poured for every guest"
+      }
+    }
   },
   "Brewing": {
     "temperature": "Temperature",
@@ -403,7 +424,8 @@
       "signIn": "Sign in",
       "register": "Create an account",
       "staffNote": "Staff accounts cannot rate products: only customers do."
-    }
+    },
+    "businessLine": "Buying for a hotel, café, shop or company?"
   },
   "Cart": {
     "title": "Bag",
@@ -1432,9 +1454,10 @@
         "categoryBanner": "Category banner: {name}",
         "collectionBanner": "Collection banner: {name}",
         "homeHero": "Home: first view",
-        "homeBanner": "Home: campaign banner {number}",
-        "homeBento": "Home: bento tile {number}",
-        "homeFeature": "Home: wide banner (brewing)",
+        "homeRange": "Home: the range, the first family’s tile (tea)",
+        "homeStoryGarden": "Home: the story, step 1 (the mountain gardens)",
+        "homeStoryBrew": "Home: the story, step 3 (the brewing)",
+        "homeStoryGuest": "Home: the story, step 4 (poured for every guest)",
         "homeValues": "Home: values banner",
         "menuShop": "Menu: “Shop” card (for a category without a picture of its own)",
         "menuCollections": "Menu: “Collections” card (for a collection without a picture of its own)",
@@ -1450,8 +1473,7 @@
         "wholesaleFlavour": "For business: wide flavour banner",
         "wholesaleMap": "For business: dealer network backdrop",
         "storePicture": "Store picture: {name}",
-        "tea101Amount": "Tea 101: the picture beside “How much do I need?”",
-        "homePairBusiness": "Home: bottom pair, the “For business” card picture"
+        "tea101Amount": "Tea 101: the picture beside “How much do I need?”"
       },
       "visualSizeSlide": "Wide: at least 2560 × 750 px; for phones 1200 × 1660 px.",
       "visualSizeTile": "At least 1300 × 730 px.",
@@ -1701,7 +1723,12 @@
       "earl-grey": "Earl Grey",
       "coffee": "Coffee",
       "sweets": "Sweets",
-      "teaware": "Teaware"
+      "teaware": "Teaware",
+      "matcha": "Matcha",
+      "dark": "Dark tea (pu-erh)",
+      "iced": "Iced tea",
+      "water": "Water",
+      "juice": "Juice"
     },
     "readiness": {
       "title": "Ready to publish",

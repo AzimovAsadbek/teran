@@ -1,12 +1,10 @@
 import { z } from 'zod';
 import { localeSchema, moneySchema, slugSchema } from './common.js';
-import { PRODUCT_FORMATS, PRODUCT_SORTS } from './constants.js';
+import { CAFFEINE_LEVELS, PRODUCT_FORMATS, PRODUCT_SORTS } from './constants.js';
 
 export const productFormatSchema = z.enum(PRODUCT_FORMATS);
 
-export const CAFFEINE_LEVELS = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const;
 export const caffeineLevelSchema = z.enum(CAFFEINE_LEVELS);
-export type CaffeineLevel = z.infer<typeof caffeineLevelSchema>;
 
 export const productSortSchema = z.enum(PRODUCT_SORTS);
 
@@ -74,6 +72,13 @@ export const ILLUSTRATION_KEYS = [
   'coffee',
   'sweets',
   'teaware',
+  // The wider drinks range (demonstration catalogue, 2026-10-20): matcha, dark tea, iced tea,
+  // water and juice.
+  'matcha',
+  'dark',
+  'iced',
+  'water',
+  'juice',
 ] as const;
 export const illustrationKeySchema = z.enum(ILLUSTRATION_KEYS);
 export type IllustrationKey = z.infer<typeof illustrationKeySchema>;
@@ -154,6 +159,8 @@ const productListQueryObject = z
     type: attributeKeySchema.optional(),
     q: z.string().trim().min(1).max(100).optional(),
     format: commaList(productFormatSchema),
+    /** Caffeine levels ("NONE,LOW"): products with one of them. */
+    caffeine: commaList(caffeineLevelSchema),
     minPrice: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
     maxPrice: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
     inStock: z.stringbool().optional(),
@@ -392,6 +399,8 @@ export type AttributeFacetDto = z.infer<typeof attributeFacetSchema>;
 
 export const facetsSchema = z.object({
   formats: z.array(z.object({ value: productFormatSchema, count: z.number().int() })),
+  /** Caffeine levels present in the listing (products without one are not counted). */
+  caffeine: z.array(z.object({ value: caffeineLevelSchema, count: z.number().int() })),
   priceRange: z.object({ min: moneySchema, max: moneySchema }).nullable(),
   attributes: z.array(attributeFacetSchema),
 });

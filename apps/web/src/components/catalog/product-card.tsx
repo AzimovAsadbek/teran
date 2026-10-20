@@ -1,5 +1,5 @@
 import type { ProductSummaryDto } from '@teran/contracts';
-import { ArrowRight, Leaf, MapPin, Package, Thermometer, Timer } from 'lucide-react';
+import { ArrowRight, MapPin, Package, Thermometer, Timer } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Price } from '@/components/ui/price';
 import { PACK_COLOURS, teaCodeOf } from '@/content/brand';
@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatMoney, packLabel } from '@/lib/format';
 import { showPrices } from '@/lib/site';
+import { productFamily } from './product-family';
 import { ProductFilm } from './product-film';
 import { ProductImage } from './product-image';
 import { QuickAdd } from './quick-add';
@@ -41,7 +42,10 @@ function minutes(seconds: number): string {
  * second picture fades in while the pointer is on the picture and a first picture with a film comes
  * alive (product-film.tsx). The second picture also stands as a small round swatch in the lower
  * left on every device, ringed in the pack's colour for TERAN's teas, so cards that open on the same
- * cup still differ at a glance. Under the picture, from the product's own data and nothing
+ * cup still differ at a glance; other products ring it in their family's colour, and the family
+ * (product-family.ts) also sets the mark and ink of the category line, the field behind a cut-out
+ * and, for cold drinks, water and gift sets, a band of light crossing the picture when the card is
+ * pointed at. Under the picture, from the product's own data and nothing
  * invented: the tea type, the name, the customers' stars and their number (before the first
  * review, an invitation to rate it; ADR-042), the origin, and chips for the brewing temperature,
  * time and pack size. Without prices an "Order" button closes the card, outlined and filled while
@@ -78,6 +82,9 @@ export function ProductCard({
   const hoverImage = soldOut ? null : product.hoverImage;
   const teaCode = teaCodeOf(product.slug);
   const packColour = teaCode ? PACK_COLOURS[teaCode] : null;
+  // The family's presentation (product-family.ts): its mark, ink, field, ring and light.
+  const family = productFamily(product.illustrationKey);
+  const FamilyIcon = family.icon;
   const packPrice = product.defaultVariant
     ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
     : null;
@@ -123,7 +130,11 @@ export function ProductCard({
 
   return (
     <article className="group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-[translate,box-shadow] duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)] motion-safe:pointer-fine:hover:-translate-y-1">
-      <div className="group/gallery relative aspect-square overflow-hidden bg-surface">
+      <div
+        className="group/gallery relative aspect-square overflow-hidden bg-surface"
+        // A cut-out stands on its family's field; a photograph covers it.
+        style={product.image?.transparent ? { backgroundColor: family.field } : undefined}
+      >
         {/* The picture, its film and its second view grow together, so they stay aligned. */}
         <div className="absolute inset-0 transition-transform duration-700 ease-out motion-safe:pointer-fine:group-hover/card:scale-[1.04]">
           <ProductImage
@@ -148,6 +159,17 @@ export function ProductCard({
             />
           ) : null}
         </div>
+        {family.sheen && !soldOut ? (
+          // Glass and gift boxes catch the light: a band of it crosses the picture once while the
+          // card is pointed at (styles/globals.css, `.card-sheen`; none with reduced motion).
+          <span
+            aria-hidden
+            className={cn(
+              'card-sheen pointer-events-none absolute inset-0 z-[1]',
+              family.sheen === 'gold' && 'card-sheen-gold',
+            )}
+          />
+        ) : null}
         {hoverImage ? (
           // The second picture (for TERAN's teas, their own dry leaf) as a swatch on every device,
           // ringed in the pack's colour: what tells cards with the same first picture apart. It
@@ -156,7 +178,7 @@ export function ProductCard({
           <span
             aria-hidden
             className="pointer-events-none absolute bottom-2 left-2 z-[2] block h-12 w-12 overflow-hidden rounded-full border-4 bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 min-[46.875rem]:h-16 min-[46.875rem]:w-16 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0"
-            style={{ borderColor: packColour ?? 'var(--color-surface)' }}
+            style={{ borderColor: packColour ?? family.ring }}
           >
             <ProductImage image={hoverImage} name={product.name} sizes="64px" decorative />
           </span>
@@ -196,8 +218,11 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col px-3 pt-3 pb-3 min-[46.875rem]:px-4 min-[46.875rem]:pt-3.5 min-[46.875rem]:pb-4">
-        <p className="flex h-5 min-w-0 items-center gap-1.5 text-[0.8125rem] leading-5 font-medium text-leaf-700">
-          <Leaf aria-hidden className="h-3.5 w-3.5 shrink-0" />
+        <p
+          className="flex h-5 min-w-0 items-center gap-1.5 text-[0.8125rem] leading-5 font-medium"
+          style={{ color: family.ink }}
+        >
+          <FamilyIcon aria-hidden className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{product.category.name}</span>
         </p>
         <Heading className="mt-1 line-clamp-2 text-[1rem] leading-5 font-bold text-fg min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6">

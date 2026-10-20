@@ -37,11 +37,13 @@ export function MobileFilters({
 }) {
   const t = useTranslations('Catalog');
   const tc = useTranslations('Common');
+  const tp = useTranslations('Product');
   const formId = useId();
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const activeCount =
     filters.format.length +
+    filters.caffeine.length +
     (filters.inStock ? 1 : 0) +
     (filters.minPrice !== undefined || filters.maxPrice !== undefined ? 1 : 0) +
     Object.keys(filters.attributes).length;
@@ -129,6 +131,25 @@ export function MobileFilters({
                     defaultChecked={filters.format.includes(value)}
                   />
                   <span className="flex-1">{t(`formats.${value}`)}</span>
+                  <span className="text-body-sm text-fg-subtle">{count}</span>
+                </label>
+              ))}
+            </Group>
+          ) : null}
+
+          {facets.caffeine.length > 0 ? (
+            <Group legend={tp('caffeine')}>
+              {facets.caffeine.map(({ value, count }) => (
+                <label
+                  key={value}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
+                >
+                  <Checkbox
+                    name="caffeine"
+                    value={value}
+                    defaultChecked={filters.caffeine.includes(value)}
+                  />
+                  <span className="flex-1">{tp(`caffeineLevels.${value}`)}</span>
                   <span className="text-body-sm text-fg-subtle">{count}</span>
                 </label>
               ))}

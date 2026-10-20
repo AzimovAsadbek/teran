@@ -5,10 +5,18 @@ import {
   toApiQuery,
   toSearchParams,
   toggleAttribute,
+  toggleCaffeine,
   toggleFormat,
 } from './query';
 
 describe('catalogue URL filters', () => {
+  it('reads caffeine levels, drops unknown ones and writes them in their natural order', () => {
+    const filters = parseCatalogFilters({ caffeine: ['HIGH,BOGUS', 'NONE', 'HIGH'] });
+    expect(filters.caffeine).toEqual(['HIGH', 'NONE']);
+    expect(toSearchParams(filters)).toBe('caffeine=NONE%2CHIGH');
+    expect(toSearchParams(toggleCaffeine(filters, 'NONE'))).toBe('caffeine=HIGH');
+  });
+
   it('parses valid values and ignores malformed ones', () => {
     const filters = parseCatalogFilters({
       format: 'TEA_BAGS,BOGUS,LOOSE_LEAF,TEA_BAGS',
@@ -20,6 +28,7 @@ describe('catalogue URL filters', () => {
     });
     expect(filters).toEqual({
       format: ['TEA_BAGS', 'LOOSE_LEAF'],
+      caffeine: [],
       minPrice: 50000,
       maxPrice: undefined,
       attributes: {},

@@ -3,30 +3,22 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { CategoryCollage, CategoryCollageFallback } from '@/components/home/category-collage';
+import { BusinessSection } from '@/components/home/business-section';
 import {
-  BentoSection,
-  BrewingBanner,
   CategoryMarquee,
-  CategoryShortcuts,
-  GalleryBanner,
   PairSection,
   PromoStrip,
   SloganBand,
-  StoryBanner,
   ValuesBanner,
 } from '@/components/home/editorial-sections';
+import { FamilyFeature } from '@/components/home/family-feature';
 import { Hero } from '@/components/home/hero';
-import { MediaBandSection } from '@/components/home/media-band-section';
-import {
-  CategoriesRail,
-  CollectionsRail,
-  NewArrivalsRail,
-  RailFallback,
-} from '@/components/home/rail-sections';
-import { Skeleton } from '@/components/ui/skeleton';
-import { brandCopy } from '@/content/brand';
+import { RangeExplorer } from '@/components/home/range-explorer';
+import { NewArrivalsRail, RailFallback } from '@/components/home/rail-sections';
+import { SignatureTeas } from '@/components/home/signature-teas';
+import { StorySequence } from '@/components/home/story-sequence';
 import { StoreStructuredData } from '@/components/seo/store-structured-data';
+import { brandCopy } from '@/content/brand';
 import { getPrerenderSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
 import { visualFor } from '@/lib/visuals';
@@ -42,33 +34,33 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-/** A banner's footprint while it streams (inset, rounded). */
-function BannerFallback({ tall = false }: { tall?: boolean }) {
+/**
+ * The home page as one narrative (docs/design/design-system.md, "Home"): the promo strip · the
+ * first view (the film and the five TERAN pouches) · the category ribbon · the signature range
+ * (the five teas, one stage) · the whole range at a glance · the cold drinks (once stocked) ·
+ * TERAN for business (who TERAN works with, each a way into the request form) · new arrivals and
+ * picks · the story from the garden to the cup · the gift sets (once stocked) · what TERAN stands
+ * for · the journal · the slogan. Catalogue sections stream at request
+ * time, each in its own Suspense boundary; anything without real content is left out. The first
+ * view's and the pictured sections' pictures are prerendered with the page when the API answers
+ * (ADR-039).
+ */
+/** The gift sets' feature, with the way in for corporate gifts. */
+async function GiftFeature() {
+  const tw = await getTranslations('Wholesale');
   return (
-    <div aria-hidden className="container-page py-6 sm:py-8">
-      <Skeleton
-        className={
-          tall ? 'h-[39rem] rounded-banner sm:h-[50rem]' : 'h-[28rem] rounded-banner sm:h-[27.5rem]'
-        }
-      />
-    </div>
+    <FamilyFeature
+      slug="gift-sets"
+      tone="gift"
+      business={{ href: '/wholesale?type=CORPORATE#request', label: tw('segments.CORPORATE') }}
+    />
   );
 }
 
-/**
- * The home page in the reference's section order (docs/design/reference-map.md), with TERAN's
- * content: promo strip (a real collection) · hero · category ribbon · new arrivals / our picks ·
- * story banner · category shortcuts · gallery banner · collections row · categories row · bento ·
- * brewing band · category collage · values band · gallery band · journal and business pair ·
- * slogan ribbon · footer (layout). Catalogue sections stream at request time, each in its own
- * Suspense boundary; anything without real content is left out. The first view's and the banners'
- * pictures are prerendered with the page when the API answers (ADR-039).
- */
 export default async function HomePage() {
   const locale = (await rootParams.locale()) as Locale;
   // The pictures from Admin → Settings, read with the page (cached under `settings`, so a change
-  // there renders the page again), go into the prerendered page itself: the first view's picture
-  // is announced in the head, and no banner draws its own artwork first (ADR-039). Without an
+  // there renders the page again), go into the prerendered page itself (ADR-039). Without an
   // answer from the API (a build with none, ADR-008) each place reads its picture at request time.
   const settings = await getPrerenderSettings(locale);
   const photo = (slot: string) => visualFor(settings, slot);
@@ -84,42 +76,24 @@ export default async function HomePage() {
       <Suspense fallback={<div aria-hidden className="h-12 bg-jade-100 sm:h-[4.1875rem]" />}>
         <CategoryMarquee />
       </Suspense>
+      <Suspense fallback={<div aria-hidden className="h-[48rem]" />}>
+        <SignatureTeas />
+      </Suspense>
+      <Suspense fallback={<div aria-hidden className="h-[40rem]" />}>
+        <RangeExplorer />
+      </Suspense>
+      <Suspense fallback={null}>
+        <FamilyFeature slug="drinks" tone="summer" />
+      </Suspense>
+      <BusinessSection settings={settings} />
       <Suspense fallback={<RailFallback />}>
         <NewArrivalsRail />
       </Suspense>
-      {/* Without the settings each banner renders at once with its own artwork, and a photograph
-          set in Admin → Settings streams in over it (same frame, so nothing moves). */}
-      {settings ? (
-        <StoryBanner photo={photo('home.banner.1')} />
-      ) : (
-        <Suspense fallback={<StoryBanner />}>
-          <StoryBanner withPhoto />
-        </Suspense>
-      )}
+      <Suspense fallback={<div aria-hidden className="h-[60rem] bg-lavender" />}>
+        <StorySequence />
+      </Suspense>
       <Suspense fallback={null}>
-        <CategoryShortcuts />
-      </Suspense>
-      <Suspense fallback={<BannerFallback />}>
-        <GalleryBanner />
-      </Suspense>
-      <Suspense fallback={<RailFallback compact cta={false} />}>
-        <CollectionsRail />
-      </Suspense>
-      <Suspense fallback={<RailFallback compact />}>
-        <CategoriesRail />
-      </Suspense>
-      <Suspense fallback={<BannerFallback tall />}>
-        <BentoSection />
-      </Suspense>
-      {settings ? (
-        <BrewingBanner photo={photo('home.feature')} />
-      ) : (
-        <Suspense fallback={<BrewingBanner />}>
-          <BrewingBanner withPhoto />
-        </Suspense>
-      )}
-      <Suspense fallback={<CategoryCollageFallback />}>
-        <CategoryCollage />
+        <GiftFeature />
       </Suspense>
       {settings ? (
         <ValuesBanner photo={photo('home.values')} />
@@ -128,9 +102,6 @@ export default async function HomePage() {
           <ValuesBanner withPhoto />
         </Suspense>
       )}
-      <Suspense fallback={null}>
-        <MediaBandSection />
-      </Suspense>
       <Suspense fallback={null}>
         <PairSection />
       </Suspense>

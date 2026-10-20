@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ChevronRight, Menu, UserRound } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronRight, Menu, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import {
@@ -47,6 +47,9 @@ function TileLabel({ children }: { children: string }) {
 }
 const ROW =
   'flex min-h-14 w-full items-center justify-between gap-3 rounded-tile bg-surface-muted px-5 text-[1.0625rem] font-medium text-fg transition-colors hover:bg-surface-sunken';
+/** The same row in TERAN's deep teal: the way in for businesses. */
+const BUSINESS_ROW =
+  'flex min-h-14 w-full items-center justify-between gap-3 rounded-tile bg-teal-ink px-5 text-[1.0625rem] font-semibold text-ivory-50 transition-colors hover:bg-gold-800';
 const LINK_ROW =
   'flex min-h-12 items-center justify-between gap-3 border-b border-line-subtle py-3 text-body hover:underline hover:underline-offset-4';
 
@@ -153,6 +156,14 @@ export function MobileMenu({
                       </button>
                     </li>
                   ))}
+                  {/* TERAN's way in for businesses, straight to its page (the header's link on
+                      wide screens). */}
+                  <li>
+                    <Link href="/wholesale" className={BUSINESS_ROW}>
+                      {t('wholesale')}
+                      <ArrowRight aria-hidden className="h-5 w-5 shrink-0" />
+                    </Link>
+                  </li>
                 </ul>
               </>
             )}

@@ -870,106 +870,99 @@ export async function ValuesBanner({
 /* ── 16. Pair ────────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Two columns, picture over words: a journal article and the business page. The article card
- * shows the article's own cover (the newest article that has one, featured first), so the page it
- * opens starts with the same picture; an article without a cover shows its illustration, as its
- * page does. Each picture leads where its pill does.
+ * Two columns, picture over words: the journal's two newest articles (featured first, those with
+ * a cover before those without), as the reference's pair. Each card shows its article's own
+ * cover, so the page it opens starts with the same picture; an article without a cover shows its
+ * illustration, as its page does. Each picture leads where its pill does. (The business card that
+ * stood here is now the home page's own business section, components/home/business-section.tsx.)
  */
 export async function PairSection() {
   await connection();
   const locale = (await getLocale()) as Locale;
-  const t = await getTranslations('Home');
-  const copy = brandCopy[locale];
-  const [articles, settings] = await Promise.all([
+  const [t, tn, articles] = await Promise.all([
+    getTranslations('Home'),
+    getTranslations('Nav'),
     getArticles(locale, 1, 6, true).catch(() => null),
-    getPublicSettings(locale).catch(() => null),
   ]);
   const items = articles?.items ?? [];
-  const article = items.find((item) => item.cover) ?? items[0] ?? null;
-  const cover = article?.cover ? imageSources(article.cover, 960) : null;
-  // The business card's campaign photograph (Admin → Settings), as the reference's pair.
-  const businessPhoto = visualFor(settings, 'home.pair.2');
+  const chosen = [
+    ...items.filter((item) => item.cover),
+    ...items.filter((item) => !item.cover),
+  ].slice(0, 2);
+  if (chosen.length === 0) return null;
   const pairSizes = '(min-width: 1024px) 45vw, 100vw';
 
-  const cards = [
-    article
-      ? {
-          key: 'journal',
-          href: `/journal/${article.slug}`,
-          title: article.title,
-          text: article.excerpt ?? t('journalTitle'),
-          cta: t('pairJournalCta'),
-          picture:
-            cover && article.cover ? (
-              // eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009)
-              <img
-                src={cover.src}
-                srcSet={cover.srcSet}
-                sizes={pairSizes}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center bg-ivory-200">
-                <span className="h-32 w-32 sm:h-40 sm:w-40">
-                  <TeaTypeArt kind={article.illustrationKey} />
-                </span>
-              </span>
-            ),
-        }
-      : null,
-    {
-      key: 'business',
-      href: '/wholesale',
-      title: copy.partnership.heading,
-      text: copy.partnership.text,
-      cta: t('businessCta'),
-      picture: businessPhoto ? (
-        <VisualPicture visual={businessPhoto} sizes={pairSizes} />
-      ) : (
-        <Image
-          src={terraces}
-          alt=""
-          fill
-          sizes="(min-width: 1024px) 45vw, 100vw"
-          className="object-cover object-right"
-        />
-      ),
-    },
-  ].filter((card) => card !== null);
-
   return (
-    <section className="container-page pt-8 pb-8 sm:pt-12 sm:pb-16">
+    <section aria-labelledby="pair-title" className="container-page pt-8 pb-8 sm:pt-12 sm:pb-16">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-2">
+        <h2
+          id="pair-title"
+          className="font-heading text-[2.25rem] leading-[1.1] text-fg min-[46.875rem]:text-[2.75rem]"
+        >
+          {t('journalTitle')}
+        </h2>
+        <Link
+          href="/journal"
+          className="inline-flex min-h-11 items-center text-[1rem] font-semibold text-forest-900 underline decoration-forest-900/30 underline-offset-[6px] hover:decoration-forest-900"
+        >
+          {tn('allArticles')}
+        </Link>
+      </div>
       {/* The pills are the links for assistive technology; each picture leads to the same place
           for a pointer (hidden from screen readers and the tab order, so nothing is said twice). */}
       <ul
         className={cn(
-          'grid gap-x-4 gap-y-10 sm:gap-y-[3.125rem]',
-          cards.length > 1 && 'lg:grid-cols-2',
+          'mt-6 grid gap-x-4 gap-y-10 sm:gap-y-[3.125rem]',
+          chosen.length > 1 && 'lg:grid-cols-2',
         )}
       >
-        {cards.map((card) => (
-          <li key={card.key} className="flex flex-col">
-            <Link
-              href={card.href}
-              tabIndex={-1}
-              aria-hidden
-              className="relative block aspect-[648/364] overflow-hidden rounded-[0.75rem] bg-surface-muted"
-            >
-              <span className="picture-hover absolute inset-0 block">{card.picture}</span>
-            </Link>
-            <h2 className="mt-4 font-heading text-[1.5rem] leading-[1.2] text-fg">{card.title}</h2>
-            <p className="mt-2 line-clamp-3 text-[1rem] leading-normal text-fg">{card.text}</p>
-            <Link
-              href={card.href}
-              className={cn(PILL, 'mt-4 h-12 self-start bg-forest-900 text-[1rem] text-ivory-50')}
-            >
-              {card.cta}
-            </Link>
-          </li>
-        ))}
+        {chosen.map((article) => {
+          const cover = article.cover ? imageSources(article.cover, 960) : null;
+          const href = `/journal/${article.slug}`;
+          return (
+            <li key={article.slug} className="flex flex-col">
+              <Link
+                href={href}
+                tabIndex={-1}
+                aria-hidden
+                className="relative block aspect-[648/364] overflow-hidden rounded-[0.75rem] bg-surface-muted"
+              >
+                <span className="picture-hover absolute inset-0 block">
+                  {cover ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009)
+                    <img
+                      src={cover.src}
+                      srcSet={cover.srcSet}
+                      sizes={pairSizes}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-ivory-200">
+                      <span className="h-32 w-32 sm:h-40 sm:w-40">
+                        <TeaTypeArt kind={article.illustrationKey} />
+                      </span>
+                    </span>
+                  )}
+                </span>
+              </Link>
+              <h3 className="mt-4 font-heading text-[1.5rem] leading-[1.2] text-fg">
+                {article.title}
+              </h3>
+              <p className="mt-2 line-clamp-3 text-[1rem] leading-normal text-fg">
+                {article.excerpt ?? t('journalTitle')}
+              </p>
+              <Link
+                href={href}
+                className={cn(PILL, 'mt-4 h-12 self-start bg-forest-900 text-[1rem] text-ivory-50')}
+              >
+                {t('pairJournalCta')}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

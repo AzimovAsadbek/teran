@@ -109,25 +109,28 @@ export default async function AdminSettingsPage() {
         t('settings.visualSizeTile'),
       ),
     ),
+    // The home page's pictured places, in its order (components/home): the first view, the range's
+    // first family, the story's three pictured steps and the values. The other `home.*` slots (the
+    // banners, bento tiles and feature band of the earlier home page) keep their stored pictures
+    // but are no longer shown, so they are not offered here.
     place('home.hero.1', t('settings.visualSlots.homeHero'), t('settings.visualSizeSlide')),
-    ...[1, 2, 3].map((number) =>
-      place(
-        `home.banner.${number}`,
-        t('settings.visualSlots.homeBanner', { number }),
-        t('settings.visualSizeSlide'),
-      ),
+    place('home.bento.1', t('settings.visualSlots.homeRange'), t('settings.visualSizeTile')),
+    place(
+      'home.pair.2',
+      t('settings.visualSlots.homeStoryGarden'),
+      t('settings.visualSizePortrait'),
     ),
-    ...[1, 2, 3, 4].map((number) =>
-      place(
-        `home.bento.${number}`,
-        t('settings.visualSlots.homeBento', { number }),
-        t('settings.visualSizeTile'),
-      ),
+    place(
+      'home.bento.2',
+      t('settings.visualSlots.homeStoryBrew'),
+      t('settings.visualSizePortrait'),
     ),
-    place('home.feature', t('settings.visualSlots.homeFeature'), t('settings.visualSizeSlide')),
+    place(
+      'home.banner.3',
+      t('settings.visualSlots.homeStoryGuest'),
+      t('settings.visualSizePortrait'),
+    ),
     place('home.values', t('settings.visualSlots.homeValues'), t('settings.visualSizeSlide')),
-    // The pair's first card shows its article's own cover; only the business card takes a picture.
-    place('home.pair.2', t('settings.visualSlots.homePairBusiness'), t('settings.visualSizeTile')),
     place('menu.shop', t('settings.visualSlots.menuShop'), t('settings.visualSizeMenu')),
     place(
       'menu.collections',

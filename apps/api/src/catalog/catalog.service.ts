@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  CAFFEINE_LEVELS,
   FILTERABLE_ATTRIBUTE_KINDS,
   normalizeSearchText,
   type AttributeFacetDto,
@@ -209,35 +210,52 @@ export class CatalogService {
     const formatCondition: Prisma.ProductWhereInput[] = query.format?.length
       ? [{ format: { in: query.format } }]
       : [];
+    const caffeineCondition: Prisma.ProductWhereInput[] = query.caffeine?.length
+      ? [{ caffeineLevel: { in: query.caffeine } }]
+      : [];
     const attributeConditions = filters.map(attributeFilterWhere);
-    const where = { AND: [...base, ...formatCondition, ...attributeConditions] };
+    const where = {
+      AND: [...base, ...formatCondition, ...caffeineCondition, ...attributeConditions],
+    };
     // Each filter's options are counted without that filter, so choosing one keeps the others.
-    const formatFacetWhere = { AND: [...base, ...attributeConditions] };
+    const formatFacetWhere = { AND: [...base, ...caffeineCondition, ...attributeConditions] };
+    const caffeineFacetWhere = { AND: [...base, ...formatCondition, ...attributeConditions] };
     const skip = (query.page - 1) * query.pageSize;
 
     // Independent reads: run them concurrently on pooled connections (no transaction needed).
-    const [total, products, formatGroups, priceRange, attributeFacets] = await Promise.all([
-      this.prisma.product.count({ where }),
-      this.prisma.product.findMany({
-        where,
-        orderBy: this.listOrder(query),
-        skip,
-        take: query.pageSize,
-        include: summaryInclude(query.locale),
-      }),
-      this.prisma.product.groupBy({
-        by: ['format'],
-        where: formatFacetWhere,
-        _count: { _all: true },
-        orderBy: { format: 'asc' },
-      }),
-      this.prisma.product.aggregate({
-        where: formatFacetWhere,
-        _min: { minPrice: true },
-        _max: { minPrice: true },
-      }),
-      this.attributeFacets([...base, ...formatCondition], filters, query.locale),
-    ]);
+    const [total, products, formatGroups, caffeineGroups, priceRange, attributeFacets] =
+      await Promise.all([
+        this.prisma.product.count({ where }),
+        this.prisma.product.findMany({
+          where,
+          orderBy: this.listOrder(query),
+          skip,
+          take: query.pageSize,
+          include: summaryInclude(query.locale),
+        }),
+        this.prisma.product.groupBy({
+          by: ['format'],
+          where: formatFacetWhere,
+          _count: { _all: true },
+          orderBy: { format: 'asc' },
+        }),
+        this.prisma.product.groupBy({
+          by: ['caffeineLevel'],
+          where: { AND: [...caffeineFacetWhere.AND, { caffeineLevel: { not: null } }] },
+          _count: { _all: true },
+          orderBy: { caffeineLevel: 'asc' },
+        }),
+        this.prisma.product.aggregate({
+          where: formatFacetWhere,
+          _min: { minPrice: true },
+          _max: { minPrice: true },
+        }),
+        this.attributeFacets(
+          [...base, ...formatCondition, ...caffeineCondition],
+          filters,
+          query.locale,
+        ),
+      ]);
 
     const now = new Date();
     const stageImages = await this.stageImages(products.map((product) => product.id));
@@ -249,6 +267,11 @@ export class CatalogService {
           value: group.format,
           count: typeof group._count === 'object' ? (group._count._all ?? 0) : 0,
         })),
+      caffeine: CAFFEINE_LEVELS.flatMap((level) => {
+        const group = caffeineGroups.find((candidate) => candidate.caffeineLevel === level);
+        const count = typeof group?._count === 'object' ? (group._count._all ?? 0) : 0;
+        return count > 0 ? [{ value: level, count }] : [];
+      }),
       priceRange:
         priceRange._min.minPrice && priceRange._max.minPrice
           ? { min: toMoney(priceRange._min.minPrice), max: toMoney(priceRange._max.minPrice) }

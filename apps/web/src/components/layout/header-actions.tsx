@@ -19,9 +19,10 @@ const SearchDialog = dynamic(() => loadSearch().then((module) => module.SearchDi
 });
 
 /**
- * The bar's right side, as on the reference: its store finder as a text link with a solid pin,
- * then search, account and bag as 44 px icons. Below 1280 px only search and bag stay here
- * (account and language are in the drawer).
+ * The bar's right side, as on the reference: a text link with a solid mark — here TERAN's way in
+ * for businesses, where the reference has its store finder (TERAN sells mostly to businesses; the
+ * store finder stays in the "About" menu, the drawer and the footer) — then search, account and
+ * bag as 44 px icons. Below 1280 px only search and bag stay here (the drawer has the rest).
  */
 export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) {
   const t = useTranslations('Nav');
@@ -46,11 +47,11 @@ export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) 
     // The reference's actions: 32 px apart (40 px from 1920 px) and unchanged when pointed at.
     <div className="flex items-center justify-end xl:gap-8 min-[120rem]:gap-10">
       <Link
-        href="/stores"
-        className="hidden h-11 items-center gap-1 text-[0.9375rem] leading-6 font-medium whitespace-nowrap text-fg xl:inline-flex"
+        href="/wholesale"
+        className="hidden h-11 items-center gap-1.5 text-[0.9375rem] leading-6 font-medium whitespace-nowrap text-fg xl:inline-flex"
       >
-        <PinMark />
-        {t('findStore')}
+        <BriefcaseMark />
+        {t('wholesale')}
       </Link>
       <IconButton
         label={t('search')}
@@ -78,14 +79,14 @@ export function HeaderActions({ account }: { account: Promise<HeaderAccount> }) 
   );
 }
 
-/** The reference's solid location pin, 21 px. */
-function PinMark() {
+/** A solid briefcase, as large as the reference's solid pin (21 px). */
+function BriefcaseMark() {
   return (
     <svg aria-hidden viewBox="0 0 24 24" className="h-[1.34rem] w-[1.34rem] text-fg">
       <path
         fill="currentColor"
         fillRule="evenodd"
-        d="M12 1.6a7.6 7.6 0 0 0-7.6 7.6c0 5.6 6.6 12.4 6.9 12.7a1 1 0 0 0 1.4 0c.3-.3 6.9-7.1 6.9-12.7A7.6 7.6 0 0 0 12 1.6Zm0 10.6a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"
+        d="M9 3.5A1.5 1.5 0 0 0 7.5 5v1.5H4.5A2.5 2.5 0 0 0 2 9v3.2c0 .5.3.9.8 1.1l7.2 2.6v-.9a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v.9l7.2-2.6c.5-.2.8-.6.8-1.1V9a2.5 2.5 0 0 0-2.5-2.5h-3V5A1.5 1.5 0 0 0 15 3.5H9Zm5.5 3V5.5h-5v1h5ZM2 15.4V18a2.5 2.5 0 0 0 2.5 2.5h15A2.5 2.5 0 0 0 22 18v-2.6l-8 2.9v.2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-.2l-8-2.9Z"
       />
     </svg>
   );

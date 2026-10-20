@@ -31,10 +31,15 @@ test.describe('phone', () => {
 
     await page.goto('/en/products/classic-black-tea');
     await expectNoSidewaysScroll(page);
-    // Once the main button scrolls away, the sticky bar at the bottom takes over.
+    // Once the main button scrolls away, the sticky bar at the bottom takes over. The main button
+    // (its label carries the price) is scrolled past the top of the screen, however long the
+    // product's facts above it are.
     const stickyAdd = page.getByRole('button', { name: 'Add to bag', exact: true });
     await expect(stickyAdd).toBeHidden();
-    await page.evaluate(() => window.scrollBy(0, 1600));
+    const mainAdd = visible(page.getByRole('button', { name: /^Add to bag ·/ }));
+    await mainAdd.evaluate((button) =>
+      window.scrollBy(0, button.getBoundingClientRect().bottom + 200),
+    );
     await stickyAdd.click();
 
     const drawer = page.getByRole('dialog', { name: 'Your bag' });
@@ -122,11 +127,13 @@ test.describe('phone', () => {
     await expectNoSidewaysScroll(page);
 
     // The menus' category list is cached and refreshed about a second after the change, while
-    // the new category's own page is fresh at once: reload until the menu has it too.
+    // the new category's own page is fresh at once: reload until the menu has it too. The
+    // drawer's first view holds five picture tiles; every category is under its "Shop" row.
     const menu = page.getByRole('dialog', { name: 'Explore' });
     await expect(async () => {
       await page.reload();
       await page.getByRole('button', { name: 'Open menu' }).click();
+      await menu.getByRole('button', { name: 'Shop', exact: true }).click();
       await expect(menu.getByText(english).first()).toBeVisible({ timeout: 1_000 });
     }).toPass({ timeout: 20_000 });
     const fits = await menu.evaluate((element) => element.scrollWidth <= element.clientWidth);

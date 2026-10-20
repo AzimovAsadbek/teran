@@ -8,11 +8,10 @@ import {
   illustrationKeySchema,
   productFormatSchema,
   type AttributeKind,
-  type CaffeineLevel,
   type IllustrationKey,
   type ImageDto,
 } from './catalog.js';
-import type { Locale, ProductFormat } from './constants.js';
+import type { CaffeineLevel, Locale, ProductFormat } from './constants.js';
 import { mediaKindSchema, type MediaKind } from './content.js';
 import type { AdminTelegramStatus, Readiness, ReadinessCode } from './publishing.js';
 import { inquiryStatusSchema, type BusinessType, type InquiryStatus } from './inquiries.js';

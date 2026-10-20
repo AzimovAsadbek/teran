@@ -1,7 +1,9 @@
 // Used by client filters too: the constants entry keeps Zod out of their bundle.
 import {
+  CAFFEINE_LEVELS,
   PRODUCT_FORMATS,
   PRODUCT_SORTS,
+  type CaffeineLevel,
   type ProductFormat,
   type ProductSort,
 } from '@teran/contracts/constants';
@@ -9,6 +11,8 @@ import {
 /** Catalogue filters as they appear in the storefront URL. */
 export interface CatalogFilters {
   format: ProductFormat[];
+  /** Caffeine levels, `caffeine=NONE,LOW` in the URL. */
+  caffeine: CaffeineLevel[];
   minPrice?: number;
   maxPrice?: number;
   inStock: boolean;
@@ -88,6 +92,12 @@ export function parseCatalogFilters(params: RawSearchParams): CatalogFilters {
     .filter((value): value is ProductFormat =>
       (PRODUCT_FORMATS as readonly string[]).includes(value),
     );
+  const rawCaffeine = Array.isArray(params.caffeine) ? params.caffeine : [params.caffeine ?? ''];
+  const caffeine = rawCaffeine
+    .flatMap((value) => value.split(','))
+    .filter((value): value is CaffeineLevel =>
+      (CAFFEINE_LEVELS as readonly string[]).includes(value),
+    );
   const sort = first(params.sort);
   const page = Number(first(params.page));
   let minPrice = toPrice(first(params.minPrice));
@@ -97,6 +107,7 @@ export function parseCatalogFilters(params: RawSearchParams): CatalogFilters {
   }
   return {
     format: [...new Set(formats)],
+    caffeine: [...new Set(caffeine)],
     minPrice,
     maxPrice,
     attributes: parseAttributes(params),
@@ -113,6 +124,7 @@ export function parseCatalogFilters(params: RawSearchParams): CatalogFilters {
 export function hasRefinements(filters: CatalogFilters): boolean {
   return (
     filters.format.length > 0 ||
+    filters.caffeine.length > 0 ||
     filters.minPrice !== undefined ||
     filters.maxPrice !== undefined ||
     filters.inStock ||
@@ -128,6 +140,7 @@ export function toSearchParams(
 ): string {
   const params = new URLSearchParams(extra);
   if (filters.format.length > 0) params.set('format', [...filters.format].sort().join(','));
+  if (filters.caffeine.length > 0) params.set('caffeine', sortedLevels(filters.caffeine));
   if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
   if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
   if (filters.inStock) params.set('inStock', 'true');
@@ -149,6 +162,7 @@ export function toApiQuery(
   if (scope.collection) params.set('collection', scope.collection);
   if (scope.q) params.set('q', scope.q);
   if (filters.format.length > 0) params.set('format', [...filters.format].sort().join(','));
+  if (filters.caffeine.length > 0) params.set('caffeine', sortedLevels(filters.caffeine));
   if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
   if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
   if (filters.inStock) params.set('inStock', 'true');
@@ -158,6 +172,18 @@ export function toApiQuery(
   writeAttributes(params, filters.attributes);
   params.sort();
   return params.toString();
+}
+
+/** Caffeine levels in their natural order (none to high), so equal filters share one URL. */
+function sortedLevels(levels: CaffeineLevel[]): string {
+  return CAFFEINE_LEVELS.filter((level) => levels.includes(level)).join(',');
+}
+
+export function toggleCaffeine(filters: CatalogFilters, level: CaffeineLevel): CatalogFilters {
+  const next = filters.caffeine.includes(level)
+    ? filters.caffeine.filter((value) => value !== level)
+    : [...filters.caffeine, level];
+  return { ...filters, caffeine: next, page: 1 };
 }
 
 export function toggleFormat(filters: CatalogFilters, format: ProductFormat): CatalogFilters {

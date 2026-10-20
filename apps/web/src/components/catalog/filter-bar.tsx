@@ -1,4 +1,4 @@
-import type { AttributeFacetDto, FacetsDto, ProductFormat } from '@teran/contracts';
+import type { AttributeFacetDto, CaffeineLevel, FacetsDto, ProductFormat } from '@teran/contracts';
 import { Check, X } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Link, getPathname } from '@/i18n/navigation';
@@ -7,6 +7,7 @@ import { formatMoney } from '@/lib/format';
 import {
   toSearchParams,
   toggleAttribute,
+  toggleCaffeine,
   toggleFormat,
   withAttribute,
   type CatalogFilters,
@@ -58,11 +59,13 @@ export async function FilterBar({
   facets: FacetsDto;
   total: number;
 }) {
-  const [t, tc, locale] = await Promise.all([
+  const [t, tc, tp, locale] = await Promise.all([
     getTranslations('Catalog'),
     getTranslations('Common'),
+    getTranslations('Product'),
     getLocale(),
   ]);
+  const caffeineLabel = (level: CaffeineLevel) => tp(`caffeineLevels.${level}`);
   // Native form submissions need the locale prefix (links get it from <Link>).
   const formAction = getPathname({ href: basePath, locale });
   const href = (next: CatalogFilters) => {
@@ -117,6 +120,11 @@ export async function FilterBar({
       label: t(`formats.${format}`),
       href: href(toggleFormat(filters, format)),
     })),
+    ...filters.caffeine.map((level) => ({
+      key: `caffeine-${level}`,
+      label: `${tp('caffeine')}: ${caffeineLabel(level)}`,
+      href: href(toggleCaffeine(filters, level)),
+    })),
     ...(filters.inStock
       ? [
           {
@@ -140,6 +148,7 @@ export async function FilterBar({
   const clearAll = href({
     ...filters,
     format: [],
+    caffeine: [],
     inStock: false,
     minPrice: undefined,
     maxPrice: undefined,
@@ -171,6 +180,35 @@ export async function FilterBar({
                       >
                         <Box on={on} />
                         <span className="flex-1">{t(`formats.${value as ProductFormat}`)}</span>
+                        {on ? <span className="sr-only">({t('filterApplied')})</span> : null}
+                        <span className="text-caption text-fg-subtle">{count}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </FilterDropdown>
+          ) : null}
+          {facets.caffeine.length > 0 ? (
+            <FilterDropdown
+              label={tp('caffeine')}
+              selectedCount={filters.caffeine.length}
+              appliedLabel={t('filterApplied')}
+            >
+              <ul>
+                {facets.caffeine.map(({ value, count }) => {
+                  const on = filters.caffeine.includes(value);
+                  return (
+                    <li key={value}>
+                      <Link
+                        href={href(toggleCaffeine(filters, value))}
+                        rel="nofollow"
+                        scroll={false}
+                        aria-current={on ? 'true' : undefined}
+                        className={FILTER_OPTION}
+                      >
+                        <Box on={on} />
+                        <span className="flex-1">{caffeineLabel(value)}</span>
                         {on ? <span className="sr-only">({t('filterApplied')})</span> : null}
                         <span className="text-caption text-fg-subtle">{count}</span>
                       </Link>

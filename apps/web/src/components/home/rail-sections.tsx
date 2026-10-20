@@ -55,7 +55,12 @@ async function railLabels(): Promise<RailLabels> {
  * it is left out (a switch that changes nothing reads as broken), and so is the row when nothing
  * but the five is stocked.
  */
-export async function NewArrivalsRail() {
+export async function NewArrivalsRail({
+  featuredFamilies = [],
+}: {
+  /** Families shown in their own feature on the page (top-level category slugs). */
+  featuredFamilies?: string[];
+} = {}) {
   await connection();
   const locale = await getLocale();
   const t = await getTranslations('Home');
@@ -79,11 +84,16 @@ export async function NewArrivalsRail() {
       cta: t('railFeaturedCta'),
     },
   ];
-  // TERAN's own five are on the stage above (signature-teas.tsx): the row shows the rest of the
-  // range, and with nothing else stocked (production today) it is left out.
+  // TERAN's own five are on the stage above (signature-teas.tsx) and the featured families in
+  // their own sections (family-feature.tsx): the row shows the rest of the range, and with nothing
+  // else stocked (production today) it is left out.
+  const inFeature = (path: string) =>
+    featuredFamilies.some((family) => path === family || path.startsWith(`${family}/`));
   const others = tabs.map((tab) => ({
     ...tab,
-    products: tab.products.filter((product) => !teaCodeOf(product.slug)),
+    products: tab.products.filter(
+      (product) => !teaCodeOf(product.slug) && !inFeature(product.category.path),
+    ),
   }));
   const shown = (tab: RailTab) =>
     tab.products

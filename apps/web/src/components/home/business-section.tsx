@@ -25,12 +25,17 @@ import { BusinessIndex, type BusinessCase } from './business-index';
  * table for cafés and restaurants, the tins for shops, the open baskets for distributors. Gifts
  * show TERAN's own five pouches.
  */
-const CASES: { type: Exclude<BusinessType, 'OTHER'>; slot: string | null }[] = [
-  { type: 'HOTEL', slot: 'wholesale.card.2' },
-  { type: 'CAFE_RESTAURANT', slot: 'wholesale.community' },
-  { type: 'RETAIL', slot: 'wholesale.card.3' },
-  { type: 'DISTRIBUTOR', slot: 'wholesale.card.1' },
-  { type: 'CORPORATE', slot: null },
+const CASES: {
+  type: Exclude<BusinessType, 'OTHER'>;
+  slot: string | null;
+  /** TERAN's pouches when the place has no picture: on a shelf for shops, fanned out as a gift. */
+  packs: 'shelf' | 'fan';
+}[] = [
+  { type: 'HOTEL', slot: 'wholesale.card.2', packs: 'fan' },
+  { type: 'CAFE_RESTAURANT', slot: 'wholesale.community', packs: 'fan' },
+  { type: 'RETAIL', slot: 'wholesale.card.3', packs: 'shelf' },
+  { type: 'DISTRIBUTOR', slot: 'wholesale.card.1', packs: 'fan' },
+  { type: 'CORPORATE', slot: null, packs: 'fan' },
 ];
 
 /** The five pouches in the collection's order. */
@@ -41,6 +46,26 @@ const PACKS: { code: string; image: StaticImageData }[] = [
   { code: '8830', image: pack8830 },
   { code: '8009', image: pack8009 },
 ];
+
+/** The five pouches standing side by side on a shelf: TERAN's packs as a shop shows them. */
+function PackShelf({ compact = false }: { compact?: boolean }) {
+  const packs = compact ? PACKS.slice(0, 3) : PACKS;
+  return (
+    <span className="absolute inset-0 flex items-end justify-center gap-[2%] bg-ivory-200 px-[6%] pb-[16%]">
+      <span aria-hidden className="absolute inset-x-0 bottom-[12%] h-[4%] bg-[#c9b79a]" />
+      {packs.map((pack) => (
+        <span key={pack.code} className="relative block w-full">
+          <Image
+            src={pack.image}
+            alt=""
+            sizes={compact ? '2rem' : '8rem'}
+            className="h-auto w-full drop-shadow-[0_10px_12px_rgb(60_40_10_/_0.22)]"
+          />
+        </span>
+      ))}
+    </span>
+  );
+}
 
 /** The five pouches fanned out on a warm ground: TERAN's packs as a gift. */
 function PackFan({ compact = false }: { compact?: boolean }) {
@@ -105,8 +130,9 @@ async function BusinessView({ settings }: { settings: PublicSettingsDto | null }
   const page = wholesalePage[locale];
   const phone = phoneLinks(settings?.contact)[0] ?? null;
 
-  const cases: BusinessCase[] = CASES.map(({ type, slot }) => {
+  const cases: BusinessCase[] = CASES.map(({ type, slot, packs }) => {
     const visual = slot ? visualFor(settings, slot) : null;
+    const Packs = packs === 'shelf' ? PackShelf : PackFan;
     return {
       type,
       label: tw(`segments.${type}`),
@@ -115,9 +141,9 @@ async function BusinessView({ settings }: { settings: PublicSettingsDto | null }
       picture: visual ? (
         <VisualPicture visual={visual} sizes="(min-width: 1440px) 34rem, 40vw" />
       ) : (
-        <PackFan />
+        <Packs />
       ),
-      thumb: visual ? <VisualPicture visual={visual} sizes="6rem" /> : <PackFan compact />,
+      thumb: visual ? <VisualPicture visual={visual} sizes="6rem" /> : <Packs compact />,
     };
   });
 

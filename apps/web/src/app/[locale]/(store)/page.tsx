@@ -87,7 +87,7 @@ export default async function HomePage() {
         <StorySequence />
       </Suspense>
       <Suspense fallback={<RailFallback />}>
-        <NewArrivalsRail />
+        <NewArrivalsRail featuredFamilies={['drinks', 'gift-sets']} />
       </Suspense>
       <Suspense fallback={null}>
         <GiftFeature />

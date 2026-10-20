@@ -72,11 +72,13 @@ export function ProductCard({
   const soldOut = product.stockLevel === 'out_of_stock';
   const discount =
     soldOut || !showPrices ? null : discountPercent(product.priceFrom, product.compareAtPriceFrom);
-  const pack = product.defaultVariant
-    ? packLabel(product.defaultVariant, product.format, locale, (key, values) =>
-        t(`units.${key}`, values),
-      )
-    : null;
+  // A single item without a weight ("1 piece": a bottle, a whisk) says nothing the name does not.
+  const variant = product.defaultVariant;
+  const single = variant ? variant.unitCount === 1 && !variant.weightGrams : false;
+  const pack =
+    variant && !single
+      ? packLabel(variant, product.format, locale, (key, values) => t(`units.${key}`, values))
+      : null;
 
   const href = `/products/${product.slug}`;
   const hoverImage = soldOut ? null : product.hoverImage;

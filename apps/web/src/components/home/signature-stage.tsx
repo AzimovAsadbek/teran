@@ -241,7 +241,8 @@ export function SignatureStage({
             role="tablist"
             aria-label={labels.tabs}
             onKeyDown={onKeyDown}
-            className="-mx-gutter mt-7 flex gap-2 overflow-x-auto px-gutter py-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0"
+            // All five in view on every screen (two rows on a phone), never scrolled away.
+            className="mt-7 flex flex-wrap gap-2 py-1"
           >
             {teas.map((entry, index) => {
               const on = index === active;

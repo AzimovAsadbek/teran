@@ -63,8 +63,13 @@ interface Tile {
   image: ImageDto | null;
 }
 
-/** The picture of a family without its own cover: one of its photographed products. */
-function pictureOf(items: ProductSummaryDto[]): ImageDto | null {
+/**
+ * The picture of a family without its own cover: one of its photographed products, beyond the
+ * first three when there are more (a family's feature further down shows those three, so the
+ * page does not show the same photograph twice).
+ */
+function pictureOf(list: ProductSummaryDto[]): ImageDto | null {
+  const items = list.length > 3 ? [...list.slice(3), ...list.slice(0, 3)] : list;
   const photo = items.find((item) => item.image && !item.image.transparent)?.image;
   return photo ?? items.find((item) => item.stageImage)?.stageImage ?? items[0]?.image ?? null;
 }

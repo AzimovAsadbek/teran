@@ -193,7 +193,7 @@ export default async function AboutPage() {
           </span>
           <h2
             id="difference-title"
-            className="mt-6 font-headline text-[1rem] tracking-[0.14em] text-sun uppercase"
+            className="mt-6 font-headline text-[1rem] tracking-[0.14em] text-ivory-50 uppercase"
           >
             {tpr('differenceTitle')}
           </h2>

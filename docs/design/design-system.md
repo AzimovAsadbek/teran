@@ -301,7 +301,7 @@ and business its centre ([ADR-050](../architecture/decisions.md)), with the iden
   wipes, `--ease-scene` for scrubbed scenes; arrivals 800–1100 ms (`arrive-line`, `arrive-rise`,
   `arrive-pack`, `arrive-settle`, staggered by `--i`), wipes 1000 ms (`.wipe-layer`), the card
   light 1200 ms (`.card-sheen`). Scroll-scrubbed depth (GSAP + ScrollTrigger, loaded on the first
-  scroll) only in the first view and the signature stage. Nothing pins; reduced motion stills
+  scroll, never with reduced motion) only in the first view and the signature stage. Nothing pins; reduced motion stills
   everything.
 
 ## Components

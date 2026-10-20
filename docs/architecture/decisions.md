@@ -1178,7 +1178,8 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
   scrolls the film, the words and the pouches move at different speeds (depth), and the pouches
   part as the view leaves.
 - **Signature stage:** the five teas as tabs on one stage tinted (16 %) in the chosen tea's pack
-  colour, its dry leaf, pouch and cup, its notes and brewing, and its actions.
+  colour, its dry leaf, pouch and cup, its notes and brewing, and its actions. A tea's leaf, cup
+  and film load once it is chosen, pointed at or focused (the first tea's with the page).
 - **The range at a glance:** one tile per stocked family (tea first), each with its picture, name,
   count and ranges. **Family features** (cold drinks, gift sets) render only from three stocked
   products, from catalogue data alone.
@@ -1187,7 +1188,11 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
   (`/wholesale?type=HOTEL#request`; the form takes `type` from the address without being rendered
   again), and gives its proof and process: five teas in one pack size straight from the importer,
   and the four steps from request to supply. The page closes with the request again (the form,
-  phone and Telegram). Every word is the for-business page's own. The header's text link becomes "For business" (the
+  phone and Telegram). Every word is the for-business page's own. Hotels, cafés and restaurants and
+  distributors show the for-business page's pictures; shops and corporate gifts show TERAN's own
+  pouches (on two shelves, fanned out), never card 3's tea canisters (a Japanese shop's labels,
+  priced in yen). The framed picture loads from 1024 px only, the small pictures below it only.
+  The header's text link becomes "For business" (the
   store finder stays in the "About" menu, the drawer and the footer); the drawer has a "For
   business" row; product pages carry one line to the request form.
 - **New arrivals and picks** show the range beyond the five teas (the stage has them); with nothing
@@ -1202,8 +1207,8 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
   scroll-linked rises (`animation-timeline: view()`, transform only); clip-path wipes for the
   framed pictures of the story and the business index; GSAP 3.15 with ScrollTrigger only for the
   first view's and the signature stage's scrubbed depth (`lib/scroll-scene.ts`: loaded on the
-  visitor's first scroll, touch or key, set up only without a reduced-motion preference, reverted
-  on unmount). Nothing is pinned and scrolling is never taken over; with reduced motion nothing
+  visitor's first scroll, touch or key, and only without a reduced-motion preference; reverted on
+  unmount). Nothing is pinned and scrolling is never taken over; with reduced motion nothing
   moves.
 - **Demonstration range:** 22 more demonstration products (matcha, infusions, cold drinks — iced
   tea, water, juice — teaware, a black tea and a gift set) with a flavour attribute and a caffeine
@@ -1211,7 +1216,9 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
   presentation mode (`DEMO_PHOTOS_DIR`) a product without a photograph is not created. Their
   photographs are 21 Pexels and Unsplash pictures the owner approved on 2026-10-20 (two of them for
   the earlier gift sets), cropped by `scripts/build-demo-photos.ts` (reference-assets, section 11);
-  the sparkling black tea has none yet.
+  the sparkling black tea has none yet, and the "TERAN premium" gift box none on purpose (a stock
+  box would pass for TERAN's own packaging). The infusion, drink and teaware product types are
+  created with the test range only.
 - **Page pictures:** Admin → Settings offers the home places in use: the first view, the range's
   first tile and the story's three pictured steps (Chinese tea terraces `home.values`, the gongfu
   tray `home.feature`, the celadon pour `home.banner.3`; the story shows their phone crops). The

@@ -824,6 +824,7 @@
   },
   "Pages": {
     "draftNotice": "Draft: this text has not yet been reviewed by TERAN and a lawyer. Highlighted parts are details that still need to be confirmed.",
+    "onThisPage": "On this page",
     "faqTitle": "Help & FAQ",
     "faqDescription": "Answers about ordering, payment, delivery and tea.",
     "contactTitle": "Contact us",

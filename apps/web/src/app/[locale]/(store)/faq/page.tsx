@@ -9,8 +9,8 @@ import {
   QuestionList,
   searchEntries,
   searchProps,
-  SupportRow,
 } from '@/components/help/help-parts';
+import { SupportRow } from '@/components/content/support-row';
 import { HelpSearch } from '@/components/help/help-search';
 import { Link } from '@/i18n/navigation';
 import { pageMetadata } from '@/lib/seo';

@@ -1,7 +1,6 @@
 import { Info } from 'lucide-react';
 import { Fragment } from 'react';
 import type { Block, Section } from '@/content/types';
-import { cn } from '@/lib/cn';
 
 /** Renders text with [placeholders] marked, so unconfirmed details are visible at a glance. */
 export function RichText({ text }: { text: string }) {
@@ -60,37 +59,27 @@ export function Blocks({ blocks }: { blocks: readonly Block[] }) {
 }
 
 /**
- * A policy document on the reference's page template: 16 px text in one column, each section
- * under either a bold line (`bold`: privacy and terms) or a large teal condensed heading (`teal`:
- * as the reference's shipping and returns page).
+ * A policy document's sections (ADR-051): each under a heading in TERAN's serif, well clear of
+ * the section before and close to its own text, so the headings can be scanned; lists keep the
+ * brand's teal marks.
  */
-export function LongForm({
-  sections,
-  headings = 'bold',
-}: {
-  sections: readonly Section[];
-  headings?: 'bold' | 'teal';
-}) {
+export function LongForm({ sections }: { sections: readonly Section[] }) {
   return (
-    <div className={cn(headings === 'teal' ? 'space-y-10' : 'space-y-4')}>
+    <div>
       {sections.map((section) => (
         <section
           key={section.id}
           id={section.id}
           aria-labelledby={`${section.id}-title`}
-          className="scroll-mt-24"
+          className="mt-10 scroll-mt-28 first:mt-6"
         >
           <h2
             id={`${section.id}-title`}
-            className={
-              headings === 'teal'
-                ? 'mb-2 font-headline text-[2rem] leading-8 text-[#00a6a5] [--heading-case:none]'
-                : 'font-bold'
-            }
+            className="font-heading text-[1.375rem] leading-snug text-balance text-fg sm:text-[1.5rem]"
           >
             {section.heading}
           </h2>
-          <div className={cn('space-y-4', headings === 'teal' ? 'mt-10' : 'mt-4')}>
+          <div className="mt-3 space-y-4 [&_ul]:marker:text-forest-900">
             <Blocks blocks={section.blocks} />
           </div>
         </section>

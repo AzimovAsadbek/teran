@@ -12,8 +12,8 @@ import {
   searchEntries,
   searchProps,
   shellLabels,
-  SupportRow,
 } from '@/components/help/help-parts';
+import { SupportRow } from '@/components/content/support-row';
 import { HelpSearch } from '@/components/help/help-search';
 import { HelpShell } from '@/components/help/help-shell';
 import { Link } from '@/i18n/navigation';

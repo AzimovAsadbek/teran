@@ -4,13 +4,12 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
-import { POLICY_COLUMN } from '@/components/content/legal-page';
+import { POLICY_PROSE } from '@/components/content/legal-page';
 import { PageHeader } from '@/components/content/page-header';
-import { PromiseCard } from '@/components/content/promise-card';
+import { SupportRow } from '@/components/content/support-row';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { deliveryPage } from '@/content/pages/delivery';
-import { Link } from '@/i18n/navigation';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { formatMoney } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
@@ -36,14 +35,14 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-/** The reference's teal section heading (as on its shipping and returns page). */
-const HEADING = 'mb-2 font-headline text-[2rem] leading-8 text-[#00a6a5] [--heading-case:none]';
-/** A table cell as the reference's delivery-times table: 11 by 13 px of room, rules between rows. */
+/** The policy pages' section heading (components/content/long-form.tsx). */
+const HEADING = 'font-heading text-[1.375rem] leading-snug text-balance text-fg sm:text-[1.5rem]';
+/** A table cell of the delivery-times table: 11 by 13 px of room, rules between rows. */
 const CELL = 'px-[0.8rem] py-[0.7rem] text-left align-middle';
 
 /**
- * Methods, fees, estimates and coverage exactly as checkout offers them, as the reference's
- * delivery-times table (fees and payment methods only while the shop shows prices).
+ * Methods, fees, estimates and coverage exactly as checkout offers them (only while the shop
+ * shows prices: while orders go by phone, delivery is agreed then and the intro says so).
  */
 async function ConfiguredOptions() {
   await connection();
@@ -67,10 +66,8 @@ async function ConfiguredOptions() {
 
   return (
     <>
-      {/* While orders go by phone (no prices), delivery is agreed then: no table of methods,
-          times and areas that TERAN has not confirmed (lib/site showPrices). */}
-      {!showPrices || options.deliveryMethods.length === 0 ? (
-        <p>{showPrices ? tp('deliveryText') : tp('deliveryTextByContact')}</p>
+      {options.deliveryMethods.length === 0 ? (
+        <p>{tp('deliveryText')}</p>
       ) : (
         // Wider than a phone: the table scrolls sideways, and keyboards can reach it to scroll.
         <div
@@ -81,7 +78,7 @@ async function ConfiguredOptions() {
         >
           <table className="w-full min-w-[34rem] border-collapse">
             <thead>
-              <tr className="border-b border-[#121212]/10">
+              <tr className="border-b border-line">
                 <th scope="col" className={`${CELL} w-[30%] font-bold`}>
                   {t('deliveryMethod')}
                 </th>
@@ -100,11 +97,11 @@ async function ConfiguredOptions() {
             </thead>
             <tbody>
               {options.deliveryMethods.map((method) => (
-                <tr key={method.code} className="border-b border-[#121212]/10">
+                <tr key={method.code} className="border-b border-line">
                   <th scope="row" className={`${CELL} font-medium`}>
                     {method.name}
                     {method.description ? (
-                      <span className="block text-[0.875rem] leading-[1.4rem] text-[#121212]/80">
+                      <span className="block text-[0.875rem] leading-[1.4rem] text-fg-muted">
                         {method.description}
                       </span>
                     ) : null}
@@ -121,7 +118,7 @@ async function ConfiguredOptions() {
                         ? t('free')
                         : formatMoney(method.price, locale, currency)}
                       {method.freeFromAmount ? (
-                        <span className="block text-[0.875rem] leading-[1.4rem] text-[#121212]/80">
+                        <span className="block text-[0.875rem] leading-[1.4rem] text-fg-muted">
                           {t('freeFrom', {
                             amount: formatMoney(method.freeFromAmount, locale, currency),
                           })}
@@ -136,11 +133,11 @@ async function ConfiguredOptions() {
         </div>
       )}
       {showPrices && options.paymentMethods.length > 0 ? (
-        <section aria-labelledby="payment-title" className="pt-6">
+        <section aria-labelledby="payment-title" className="pt-8">
           <h2 id="payment-title" className={HEADING}>
             {page.paymentTitle}
           </h2>
-          <ul className="mt-10 list-disc pl-6">
+          <ul className="mt-3 list-disc pl-6 marker:text-forest-900">
             {options.paymentMethods.map((method) => (
               <li key={method}>
                 <strong className="font-bold">{t(`paymentMethods.${method}`)}.</strong>{' '}
@@ -155,62 +152,60 @@ async function ConfiguredOptions() {
 }
 
 /**
- * Delivery on the reference's shipping and returns page: the banner, the promise card, then one
- * 920 px column: the methods (the intro, then the table of methods, regions and times), how an
- * order goes, what is good to know, and a link to the contact page.
+ * Delivery on the policy pages' reading template (ADR-051): the opening, then the methods (while
+ * the shop shows prices, the table of methods, regions and times checkout offers), how an order
+ * goes and what is good to know, and at the end the row for writing or calling — the steps say
+ * "call us or write on Telegram", and that row is where it can be done.
  */
 export default async function DeliveryPage() {
   const locale = (await rootParams.locale()) as Locale;
   const page = copyFor(locale);
-  const t = await getTranslations('Footer');
 
   return (
     <>
       <PageHeader title={page.title} />
-      <PromiseCard />
-      <div className={`${POLICY_COLUMN} space-y-10`}>
-        <section aria-labelledby="methods-title">
-          <h2 id="methods-title" className={HEADING}>
-            {page.methodsTitle}
-          </h2>
-          <div className="mt-10 space-y-4">
-            <p>{page.intro}</p>
-            <Suspense fallback={<Skeleton className="h-40 rounded-[0.5rem]" />}>
-              <ConfiguredOptions />
-            </Suspense>
-          </div>
-        </section>
-        <section aria-labelledby="steps-title">
-          <h2 id="steps-title" className={HEADING}>
-            {page.stepsTitle}
-          </h2>
-          <ol className="mt-10 list-decimal space-y-4 pl-6">
-            {page.steps.map((step) => (
-              <li key={step.title}>
-                <strong className="font-bold">{step.title}.</strong> {step.text}
-              </li>
-            ))}
-          </ol>
-        </section>
-        <section aria-labelledby="notes-title">
-          <h2 id="notes-title" className={HEADING}>
-            {page.notesTitle}
-          </h2>
-          <ul className="mt-10 list-disc pl-6">
-            {page.notes.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ul>
-          <p className="mt-4">
-            <Link
-              href="/contact"
-              className="underline decoration-[0.075rem] underline-offset-2 transition-colors duration-200 hover:text-[#121212]/70"
-            >
-              {t('contactUs')}
-            </Link>
-          </p>
-        </section>
+      <div className="container-page pt-8 pb-14 sm:pt-10 lg:pt-14 lg:pb-20">
+        <div className={`${POLICY_PROSE} space-y-10`}>
+          <section aria-labelledby="methods-title">
+            <h2 id="methods-title" className={HEADING}>
+              {page.methodsTitle}
+            </h2>
+            <div className="mt-3 space-y-4">
+              <p>{page.intro}</p>
+              {showPrices ? (
+                <Suspense fallback={<Skeleton className="h-40 rounded-[0.5rem]" />}>
+                  <ConfiguredOptions />
+                </Suspense>
+              ) : null}
+            </div>
+          </section>
+          <section aria-labelledby="steps-title">
+            <h2 id="steps-title" className={HEADING}>
+              {page.stepsTitle}
+            </h2>
+            <ol className="mt-3 list-decimal space-y-3 pl-6 marker:font-semibold marker:text-forest-900">
+              {page.steps.map((step) => (
+                <li key={step.title}>
+                  <strong className="font-bold">{step.title}.</strong> {step.text}
+                </li>
+              ))}
+            </ol>
+          </section>
+          <section aria-labelledby="notes-title">
+            <h2 id="notes-title" className={HEADING}>
+              {page.notesTitle}
+            </h2>
+            <ul className="mt-3 list-disc space-y-2 pl-6 marker:text-forest-900">
+              {page.notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
+      <Suspense fallback={null}>
+        <SupportRow />
+      </Suspense>
     </>
   );
 }

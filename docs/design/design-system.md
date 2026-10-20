@@ -269,6 +269,31 @@ look: the teal frame, gold Oswald headlines, films, pills and rounded banners ar
 - **Copy kept, repetition removed:** the story banner answers its heading with the brand's own
   first sentence; the values band reads "What TERAN stands for" instead of repeating the tagline.
 
+## Experience upgrade of 2026-10-20
+
+The client found the refined storefront still too ordinary; the home page became one narrative
+and business its centre ([ADR-050](../architecture/decisions.md)), with the identity unchanged.
+
+- **Rhythm of surfaces:** film (first view) · jade ribbon · pack-tinted stage · ivory tiles · sky
+  (cold drinks) · deep teal `teal-ink` (business) · white rows · lavender (story) · black and gold
+  (gift sets) · photograph (values) · white (journal) · aqua (slogan) · teal footer. No two
+  neighbouring sections share a surface.
+- **Type:** Fraunces for section headings (up to 4.25rem), Oswald capitals for eyebrows, steps
+  and the business index (2.5rem), Nunito for text; the first view keeps the largest headline.
+- **Business index:** rows of kinds of business (number, name, the for-business page's line,
+  arrow disc) beside a framed picture that wipes to the row pointed at; phones show a small
+  picture in each row. Every row opens the request form with its kind chosen.
+- **Story:** a sticky framed window (below the header, as tall as the view allows) beside four
+  steps; each step crossing the middle of the view wipes its picture up over the last. Phones
+  show each step's picture above its words (upright crops). Only the shown step's film plays.
+- **Product families:** mark, ink, field, swatch ring and hover light per family
+  (`components/catalog/product-family.ts`); tea keeps its film and leaves.
+- **Motion vocabulary:** `--ease-out-expo` `cubic-bezier(0.16, 1, 0.3, 1)` for arrivals and
+  wipes, `--ease-scene` for scrubbed scenes; arrivals 800–1100 ms (`arrive-line`, `arrive-rise`,
+  `arrive-pack`, `arrive-settle`, staggered by `--i`), wipes 1000 ms (`.wipe-layer`), the card
+  light 1200 ms (`.card-sheen`). Scroll-scrubbed depth (GSAP + ScrollTrigger) only in the first
+  view and the signature stage. Nothing pins; reduced motion stills everything.
+
 ## Components
 
 See the [component audit](./component-audit.md) for every primitive, its variants, states and
@@ -323,34 +348,21 @@ desktop, in the drawer and on the home page's cards. No category is named in cod
 
 ### Home hero
 
-Two columns from 1024 px (about 45 : 55). On the left, as one group: the descriptor, the pack's
-tagline as the headline (one sentence per line), the signature line with its gold rule, the
-description and both calls to action. On the right, the product stage: a moon gate onto the lake
-painting (the page's largest image, prerendered and requested first), a halo and the gate's rim,
-the botanical layers before and behind, and one product at a time (`components/home/hero*.tsx`,
-`styles/hero.css`).
+One view, no rotation (ADR-037): TERAN's words on the left over the film of `home.hero.1` (its
+picture, or the lake painted on the packs, without one), and the five pouches standing on the
+view's lower edge, XC2025 in the middle, the outer ones lower and turned outwards
+(`components/home/hero.tsx`, `hero-stage.tsx`).
 
-- **Data.** The stage shows up to six products the catalogue marks as featured, in the
-  catalogue's featured order: those with a cut-out image stand in front of the gate, otherwise
-  their photograph sits inside it. Under each: category · pack, name (the link), price ("from …"
-  with several packs). Nothing in the code names a product; with no featured product the gate
-  stays as an image.
-- **Change.** Every 6.5 s: the product leaves away from the viewer (640 ms) and the next arrives
-  from the other side (1100 ms, starting 340 ms later), the painting in the gate shifts a little
-  and the halo brightens — transforms and opacity only (Web Animations API, no library). The
-  active indicator fills over the interval and its end advances the stage.
-- **Control.** Previous/next buttons, one hairline indicator per product (equal lengths; the
-  active one fills with gold), ←/→ on any of them and swiping on the stage. It holds while the
-  pointer rests on the stage, while keyboard focus is inside it (a mouse click on a control does
-  not hold it), in a hidden tab and while scrolled away, and goes on by itself afterwards. There
-  is no visible pause button; a pause control appears only when it receives keyboard focus, for
-  keyboard and screen-reader users (WCAG 2.2.2). With reduced motion nothing advances by itself
-  and changes are immediate. Captions are a labelled group per product (`aria-roledescription`),
-  inactive ones inert; announcements are off while it rotates.
-- **Phones.** One column: words and buttons first, then a shorter stage with the caption and
-  controls centred beneath the product; of the atmosphere only the far ridges remain.
-- **Layout stability.** The stage has a fixed height per breakpoint and the caption area a fixed
-  height, so nothing moves when products, captions or images arrive.
+- **Words:** the descriptor, the pack's tagline as the headline (one sentence per line, each line
+  rising out of its own mask), the description, then "Shop teas" (the one pill) and "For
+  business →" (a text link). The headline is fitted to its longest line (`--hero-fit`).
+- **Depth:** while the view scrolls away the film moves slower than the page, the words faster,
+  and the pouches rise and part (GSAP ScrollTrigger, scrubbed; nothing pinned). The view is
+  clipped at its sides only, so the pouches never widen the page.
+- **Arrival:** the film settles from a slight zoom, the lines rise, the words and pouches follow
+  one after another (CSS, from the first paint; still with reduced motion).
+- **Phones:** the taller crop and film under 900 px, the words over its lower half, the pouches
+  smaller; the e2e tests keep "Deep Taste." and "Shop teas" in the first view.
 
 ### Category cards
 

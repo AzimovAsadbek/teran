@@ -1148,3 +1148,64 @@ the packs ("the interface uses only the brand greens and golds").
 `Pages.orderOtherChannels`). The swatch costs one small image rendition per card on touch screens
 (the full second picture is still never loaded there). A sixth tea gets a swatch without a
 coloured ring until its pack colour is added.
+
+## ADR-050: A visual narrative for a tea house that sells mostly to businesses
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`, 2026-10-20);
+to be reviewed by the owner before release. Amends ADR-049 on where pack colours may appear.
+
+**Context.** The client found the refined storefront still too ordinary: one familiar module after
+another, no first view with depth, every product presented the same way, and the way in for
+businesses (TERAN's main customers: hotels, cafés and restaurants, shops, distributors, corporate
+gifts) one card at the foot of the home page. The identity (teal frame, gold Oswald headlines,
+Fraunces headings, pills, rounded photographs, films) had to stay recognisable, and nothing may be
+invented: no terms, volumes, clients, certifications, statistics or health claims.
+
+**Decision.**
+
+- **The home page is one narrative** (`app/[locale]/(store)/page.tsx`): promo strip · first view ·
+  category ribbon · the five TERAN teas on one stage · the whole range at a glance · the cold drinks
+  (once stocked) · TERAN for business · new arrivals · the story from the garden to the cup · the
+  gift sets (once stocked) · what TERAN stands for · the journal · the slogan. The story and
+  brewing banners, category shortcuts, bento, gallery band, collage, media band and the
+  collections and categories rows leave the home page; their components stay in the code (unused).
+- **First view:** TERAN's words on the left over the film, the five pouches standing on its lower
+  edge, one primary action ("Shop teas") and one quiet second ("For business →"). As the page
+  scrolls the film, the words and the pouches move at different speeds (depth), and the pouches
+  part as the view leaves.
+- **Signature stage:** the five teas as tabs on one stage tinted (16 %) in the chosen tea's pack
+  colour, its dry leaf, pouch and cup, its notes and brewing, and its actions.
+- **The range at a glance:** one tile per stocked family (tea first), each with its picture, name,
+  count and ranges. **Family features** (cold drinks, gift sets) render only from three stocked
+  products, from catalogue data alone.
+- **Business is central.** A home section names the partnership in the brand's words and indexes
+  the kinds of business TERAN serves (the for-business page's own lines), each leading to the
+  request form with its kind chosen (`/wholesale?type=HOTEL#request`; the form takes `type` from
+  the address without being rendered again). The header's text link becomes "For business" (the
+  store finder stays in the "About" menu, the drawer and the footer); the drawer has a "For
+  business" row; product pages carry one line to the request form.
+- **Product families** (`components/catalog/product-family.ts`): a card's category line takes its
+  family's mark and ink, a cut-out stands on its family's field, the second-picture swatch is
+  ringed in the family's colour, and cold drinks, water and gift sets catch a band of light while
+  pointed at. Read from the product's illustration key.
+- **Pack colours** mark a tea: its swatch ring, its name and code, and the 16 % tint of the
+  signature stage behind it; never a button or body text (amends ADR-049).
+- **Motion:** CSS for arrivals (masked headline lines, rising words, the pouches settling) and for
+  scroll-linked rises (`animation-timeline: view()`, transform only); clip-path wipes for the
+  framed pictures of the story and the business index; GSAP 3.15 with ScrollTrigger only for the
+  first view's and the signature stage's scrubbed depth (`lib/scroll-scene.ts`: loaded on demand,
+  inside `gsap.matchMedia('(prefers-reduced-motion: no-preference)')`, reverted on unmount).
+  Nothing is pinned and scrolling is never taken over; with reduced motion nothing moves.
+- **Demonstration range:** 22 more demonstration products (matcha, infusions, cold drinks — iced
+  tea, water, juice — teaware, a black tea and a gift set) with a flavour attribute and a caffeine
+  filter, loaded only with `SEED_TEST_CATALOGUE=true` like the rest of the test range. In
+  presentation mode (`DEMO_PHOTOS_DIR`) a product without a photograph is not created.
+- **Page pictures:** Admin → Settings offers the home places in use (first view, the range's first
+  tile, the story's three pictured steps, the values band); the earlier home slots keep their
+  stored pictures but are no longer offered.
+
+**Consequences.** The story shows the pictures already set for `home.pair.2`, `home.bento.2` and
+`home.banner.3` (their admin labels now say so); the owner should review them before release.
+GSAP loads only where a scrubbed scene is on the page, after the page itself. On production, where
+the demonstration range is not loaded, the family features stay hidden and the range shows the
+families TERAN stocks.

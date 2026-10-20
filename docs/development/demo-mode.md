@@ -45,7 +45,12 @@ Instagram and working hours were not supplied.
 The **test range** (`testOnly` in `apps/api/prisma/seed/demo-catalog.ts`) adds black, white,
 oolong and pu-erh teas and gift sets in other pack sizes and formats, a sale price (Earl Grey), low
 and no stock (Jasmine green tea, Mini pu-erh) and a draft (Spring green tea): the states the
-journeys exercise.
+journeys exercise. Since 2026-10-20 (ADR-050) it also holds the wider range of
+`apps/api/prisma/seed/demo-range.ts`: matcha, infusions, cold drinks (iced tea, still and
+sparkling water, juices), teaware, a spiced black tea and a gift set (22 products, about 42 active
+products with TERAN's five), with a flavour attribute, caffeine levels for the catalogue's caffeine
+filter and two collections. Every one is a demonstration product: its description says so, and no
+health, caffeine-content or sourcing claim is made.
 
 Its products are drawn in code unless the seed is given real photographs. To show the range with
 tea photography (a presentation database, not CI), build the photographs from the licensed
@@ -59,7 +64,9 @@ DEMO_PHOTOS_DIR=~/teran-demo-photos SEED_TEST_CATALOGUE=true corepack pnpm db:se
 
 Each photograph is a square crop of one Unsplash or Pexels picture; the folder's `credits.json`
 names the source, photographer and licence of every file. Only products created by that seed run
-get them (the seed never replaces existing pictures).
+get them (the seed never replaces existing pictures). With `DEMO_PHOTOS_DIR` set, a test-range
+product whose photograph is missing from the folder is not created at all, so a presentation
+database never shows a drawn picture; without it (CI) every product is created with its drawing.
 
 A database seeded by an earlier version is brought up to date by the next `pnpm db:seed`, once
 and only for records nobody has edited since: the TERAN products get the owner's copy, a single

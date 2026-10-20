@@ -11,6 +11,7 @@ import {
   toggleFormat,
   withAttribute,
   type CatalogFilters,
+  usefulFacets,
 } from '@/features/catalog/query';
 import { FilterDropdown } from './filter-dropdown';
 import {
@@ -51,7 +52,7 @@ function Box({ on }: { on: boolean }) {
 export async function FilterBar({
   basePath,
   filters,
-  facets,
+  facets: listed,
   total,
 }: {
   basePath: string;
@@ -59,6 +60,8 @@ export async function FilterBar({
   facets: FacetsDto;
   total: number;
 }) {
+  // Only filters that can narrow this listing (or are applied): features/catalog/query.ts.
+  const facets = usefulFacets(listed, filters, total);
   const [t, tc, tp, locale] = await Promise.all([
     getTranslations('Catalog'),
     getTranslations('Common'),

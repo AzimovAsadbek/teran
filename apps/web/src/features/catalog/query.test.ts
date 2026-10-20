@@ -1,3 +1,4 @@
+import type { FacetsDto } from '@teran/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   hasRefinements,
@@ -7,6 +8,7 @@ import {
   toggleAttribute,
   toggleCaffeine,
   toggleFormat,
+  usefulFacets,
 } from './query';
 
 describe('catalogue URL filters', () => {
@@ -114,5 +116,59 @@ describe('catalogue URL filters', () => {
       page: 1,
     });
     expect(toggleAttribute(filters, 'leaf-style', 'rolled').attributes).toEqual({});
+  });
+});
+
+describe('usefulFacets', () => {
+  const none = parseCatalogFilters({});
+  const facets = (overrides: Partial<FacetsDto>): FacetsDto => ({
+    formats: [],
+    caffeine: [],
+    priceRange: null,
+    attributes: [],
+    ...overrides,
+  });
+
+  it('drops a caffeine level every product shares, keeps one that narrows', () => {
+    expect(
+      usefulFacets(facets({ caffeine: [{ value: 'HIGH', count: 2 }] }), none, 2).caffeine,
+    ).toEqual([]);
+    const mixed = [
+      { value: 'HIGH' as const, count: 1 },
+      { value: 'LOW' as const, count: 1 },
+    ];
+    expect(usefulFacets(facets({ caffeine: mixed }), none, 2).caffeine).toEqual(mixed);
+  });
+
+  it('keeps an applied filter even when it no longer narrows, so it can be undone', () => {
+    const applied = parseCatalogFilters({ caffeine: 'HIGH' });
+    const caffeine = [{ value: 'HIGH' as const, count: 2 }];
+    expect(usefulFacets(facets({ caffeine }), applied, 2).caffeine).toEqual(caffeine);
+  });
+
+  it('drops a yes/no held by none or all, and a number range of one value', () => {
+    const yesNo = (count: number) => ({
+      key: 'sparkling',
+      label: 'Sparkling',
+      kind: 'BOOLEAN' as const,
+      unit: null,
+      options: [{ key: 'true', label: 'Yes', count }],
+      range: null,
+    });
+    const number = (min: string, max: string) => ({
+      key: 'volume',
+      label: 'Volume',
+      kind: 'NUMBER' as const,
+      unit: 'ml',
+      options: [],
+      range: { min, max },
+    });
+    const kept = (attribute: FacetsDto['attributes'][number]) =>
+      usefulFacets(facets({ attributes: [attribute] }), none, 4).attributes.length;
+    expect(kept(yesNo(0))).toBe(0);
+    expect(kept(yesNo(4))).toBe(0);
+    expect(kept(yesNo(1))).toBe(1);
+    expect(kept(number('500', '500'))).toBe(0);
+    expect(kept(number('330', '1000'))).toBe(1);
   });
 });

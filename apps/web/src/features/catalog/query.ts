@@ -7,6 +7,7 @@ import {
   type ProductFormat,
   type ProductSort,
 } from '@teran/contracts/constants';
+import type { FacetsDto } from '@teran/contracts';
 
 /** Catalogue filters as they appear in the storefront URL. */
 export interface CatalogFilters {
@@ -216,4 +217,33 @@ export function withAttribute(
   if (values.length > 0) attributes[key] = values;
   else delete attributes[key];
   return { ...filters, attributes, page: 1 };
+}
+
+/** Whether choosing one of these options would leave out part of a listing of `total` products. */
+function narrows(options: readonly { count: number }[], total: number): boolean {
+  const present = options.filter((option) => option.count > 0);
+  return present.length > 1 || (present.length === 1 && present[0]!.count < total);
+}
+
+/**
+ * The facets worth offering (ADR-051, an honest filter bar): a filter is shown only when one of its
+ * choices would narrow the listing — not a caffeine level every matcha shares, a yes/no that holds
+ * none or all, a number range with one value — unless it is applied, so it can always be undone.
+ */
+export function usefulFacets(facets: FacetsDto, filters: CatalogFilters, total: number): FacetsDto {
+  return {
+    ...facets,
+    formats: filters.format.length > 0 || narrows(facets.formats, total) ? facets.formats : [],
+    caffeine: filters.caffeine.length > 0 || narrows(facets.caffeine, total) ? facets.caffeine : [],
+    attributes: facets.attributes.filter((facet) => {
+      if ((filters.attributes[facet.key] ?? []).length > 0) return true;
+      if (facet.kind === 'NUMBER')
+        return facet.range !== null && facet.range.min !== facet.range.max;
+      if (facet.kind === 'BOOLEAN') {
+        const yes = facet.options.find((option) => option.key === 'true')?.count ?? 0;
+        return yes > 0 && yes < total;
+      }
+      return narrows(facet.options, total);
+    }),
+  };
 }

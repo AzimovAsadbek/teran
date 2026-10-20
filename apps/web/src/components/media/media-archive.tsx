@@ -68,7 +68,7 @@ export function MediaHeader({
       />
       <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/65" />
       <div className="container-page flex min-h-[17rem] flex-col items-center justify-center py-14 text-center sm:min-h-[25rem] sm:py-20">
-        <p className="text-eyebrow text-gold-300">{eyebrow}</p>
+        <p className="text-eyebrow text-sun">{eyebrow}</p>
         <h1 className="mt-3 font-headline text-[3rem] break-words text-ivory-50 sm:text-[5rem]">
           {title}
         </h1>

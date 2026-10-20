@@ -38,7 +38,7 @@ function Ruler({ measure }: { measure: BrewingMeasure }) {
         <span className="brew-ruler-range absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[var(--gauge)]" />
       </span>
       {measure.ends ? (
-        <span className="mt-1.5 flex justify-between text-[0.6875rem] leading-none opacity-60">
+        <span className="mt-1.5 flex justify-between text-[0.6875rem] leading-none text-fg-muted">
           <span>{measure.ends[0]}</span>
           <span>{measure.ends[1]}</span>
         </span>

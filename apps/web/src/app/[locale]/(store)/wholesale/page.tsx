@@ -313,7 +313,7 @@ export default async function WholesalePage() {
               <li key={step.title} className="relative">
                 <span
                   aria-hidden
-                  className="absolute top-0 -left-12 flex size-[1.875rem] items-center justify-center rounded-full bg-ivory-100 font-headline text-[0.9375rem] text-forest-900 ring-2 ring-forest-900/45 lg:static lg:block lg:size-auto lg:bg-transparent lg:text-[3.5rem] lg:leading-none lg:ring-0"
+                  className="absolute top-0 -left-12 flex size-[1.875rem] items-center justify-center rounded-full bg-ivory-100 font-headline text-[0.9375rem] text-teal-ink ring-2 ring-forest-900/45 lg:static lg:block lg:size-auto lg:bg-transparent lg:text-[3.5rem] lg:leading-none lg:text-forest-900 lg:ring-0"
                 >
                   {String(index + 1).padStart(2, '0')}
                 </span>

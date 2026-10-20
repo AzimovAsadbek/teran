@@ -336,6 +336,17 @@
     outline-color: var(--color-focus-inverse);
   }
 
+  /* On the aqua of the contact panel the teal focus colour fades: ink there, for outlines and the
+     fields' rings alike. */
+  .on-aqua {
+    --color-focus: var(--color-ink-900);
+    /* Errors in a red deep enough for the aqua (4.9:1); "(optional)" in ink (7:1). */
+    --color-danger: #6b1010;
+  }
+  .on-aqua label {
+    --color-fg-subtle: var(--color-ink-900);
+  }
+
   ::selection {
     background: var(--color-gold-100);
     color: var(--color-forest-900);

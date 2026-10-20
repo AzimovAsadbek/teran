@@ -12,7 +12,8 @@ export type ControlSize = 'xs' | 'sm' | 'md' | 'lg';
 const CONTROL =
   'rounded-control border bg-surface text-fg shadow-xs outline-none ' +
   'transition-[border-color,box-shadow,background-color] duration-150 ease-[var(--ease-standard)] ' +
-  'placeholder:text-fg-subtle hover:border-fg-subtle focus:border-focus focus:ring-[3px] focus:ring-focus/15 ' +
+  // Focus: a solid 2 px ring in the focus colour around the field (3:1 or more on every surface).
+  'placeholder:text-fg-subtle hover:border-fg-subtle focus:border-focus focus:ring-2 focus:ring-focus ' +
   'disabled:cursor-not-allowed disabled:border-line disabled:bg-surface-muted disabled:text-fg-subtle ' +
   // :read-only also matches every <select>, so the read-only look is limited to text fields.
   '[&:is(input,textarea):read-only]:bg-surface-muted';
@@ -42,7 +43,7 @@ export function inputClasses({
     CONTROL_SIZES[size],
     fullWidth ? 'w-full' : 'w-auto',
     invalid
-      ? 'border-danger hover:border-danger focus:border-danger focus:ring-danger/15'
+      ? 'border-danger hover:border-danger focus:border-danger focus:ring-danger'
       : 'border-line-strong',
     className,
   );
@@ -57,7 +58,7 @@ export function textareaClasses({
     CONTROL,
     'block min-h-28 w-full resize-y px-3.5 py-3 text-body',
     invalid
-      ? 'border-danger hover:border-danger focus:border-danger focus:ring-danger/15'
+      ? 'border-danger hover:border-danger focus:border-danger focus:ring-danger'
       : 'border-line-strong',
     className,
   );

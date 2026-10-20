@@ -206,12 +206,28 @@ async function OrderSummary({
 }
 
 /**
- * Contact page on the reference's: a teal panel (20 px corners) with the heading and the form on
- * the left and a portrait picture taking 40 % on the right; while the panel is 768 px or narrower
- * the picture sits on top, edge to edge, and the corners go square. The panel's inner layout
- * follows its own width (container queries), as the reference's embedded form follows its frame.
- * Under it, the two option cards. A tea's "Order" brings the visitor here with that tea named
- * above the form (OrderSummary).
+ * The page's title: "Place an order" when a tea's "Order" brought the visitor here, else "Contact
+ * us" (the title the page opens with, so nothing moves).
+ */
+async function ContactTitle({
+  searchParams,
+  title,
+}: {
+  searchParams: PageProps<'/[locale]/contact'>['searchParams'];
+  title: string;
+}) {
+  const [query, tf] = await Promise.all([searchParams, getTranslations('Forms')]);
+  const tea = Array.isArray(query.tea) ? query.tea[0] : query.tea;
+  return <>{tea ? tf('subjects.newOrder') : title}</>;
+}
+
+/**
+ * Contact page: an aqua panel (20 px corners) with the heading and the form on the left and a
+ * portrait picture taking 40 % on the right; while the panel is 768 px or narrower the form comes
+ * first and the picture follows it, edge to edge, so a phone reaches the first field at once. The
+ * panel's inner layout follows its own width (container queries). Under it, the two option cards.
+ * A tea's "Order" brings the visitor here with that tea named above the form (OrderSummary) and
+ * the title "Place an order".
  */
 export default async function ContactPage({ searchParams }: PageProps<'/[locale]/contact'>) {
   const t = await getTranslations('Pages');
@@ -223,22 +239,22 @@ export default async function ContactPage({ searchParams }: PageProps<'/[locale]
         className="container-frame pt-7 min-[61.875rem]:pt-10"
       >
         <div className="@container">
-          <div className="flex flex-col-reverse bg-[#00b1b0] @min-[48.0625rem]:flex-row @min-[48.0625rem]:items-start @min-[48.0625rem]:rounded-[1.25rem]">
+          <div className="on-aqua flex flex-col overflow-hidden bg-gold-500 @min-[48.0625rem]:flex-row @min-[48.0625rem]:items-start @min-[48.0625rem]:rounded-[1.25rem]">
             <div className="w-full min-w-0 @min-[48.0625rem]:flex-1">
-              <div className="mx-auto @min-[77.5rem]:max-w-[42.5rem]">
-                <div className="m-5">
-                  <h1
-                    id="contact-title"
-                    className="px-4 py-6 text-[1.5rem] leading-8 font-semibold text-black @min-[35.5rem]:px-6"
-                  >
-                    {t('contactTitle')}
-                  </h1>
-                  <div className="px-4 py-6 @min-[35.5rem]:px-6">
-                    <Suspense fallback={null}>
-                      <OrderSummary searchParams={searchParams} />
-                    </Suspense>
-                    <ContactForm />
-                  </div>
+              <div className="mx-auto px-5 py-7 @min-[35.5rem]:px-9 @min-[35.5rem]:py-10 @min-[77.5rem]:max-w-[44rem]">
+                <h1
+                  id="contact-title"
+                  className="font-heading text-[2.25rem] leading-[1.1] text-balance text-ink-900 @min-[35.5rem]:text-[2.75rem]"
+                >
+                  <Suspense fallback={t('contactTitle')}>
+                    <ContactTitle searchParams={searchParams} title={t('contactTitle')} />
+                  </Suspense>
+                </h1>
+                <div className="mt-6">
+                  <Suspense fallback={null}>
+                    <OrderSummary searchParams={searchParams} />
+                  </Suspense>
+                  <ContactForm />
                 </div>
               </div>
             </div>

@@ -1,13 +1,22 @@
 'use client';
 
 import { contactInquirySchema, type Locale } from '@teran/contracts';
-import { ChevronDown, CircleAlert, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { FormErrorSummary } from '@/components/ui/field';
+import { useId, useRef, useState, type FormEvent } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  FieldError,
+  FieldLabel,
+  FormErrorSummary,
+  inputClasses,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
-import { cn } from '@/lib/cn';
+import { usePrimaryAction } from '@/lib/floating';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
 import { useOrderLine } from './order-line';
@@ -27,32 +36,22 @@ const SUBJECTS = [
 ] as const;
 
 /**
- * The reference's fields on the teal panel: 55 px boxes in a pale mint with a dark teal edge and
- * text, 4 px corners; focus turns the edge blue (drawn 2 px wide, so keyboard users see it). The
- * examples inside empty fields are a quieter grey-green than typed text, so they never read as
- * filled in.
- */
-const FIELD =
-  'block w-full rounded-[0.25rem] border border-[#0c504e] bg-[#f3fafb] px-3 text-[1rem] leading-5 tracking-[-0.00875rem] text-[#126b69] outline-none transition-[border-color,box-shadow] duration-200 ease-in-out placeholder:text-[#5f6b68] placeholder:opacity-100 focus:border-[#115cb5] focus:shadow-[0_0_0_1px_#115cb5] aria-invalid:border-[#a32e2e] aria-invalid:shadow-[0_0_0_1px_#a32e2e]';
-/** The small line over a field (the reference's hint), in black so it reads on the teal. */
-const LINE = 'mb-1 block text-[0.75rem] leading-5 text-[#121212]';
-
-/**
- * The contact form as the reference's: name, phone and e-mail under their small lines, the subject
- * list, the message box and the light "Send message" button whose edge darkens while pointed at
- * (the whole width while the panel is 768 px or narrower; it sits in the contact page's container).
- * One of phone or e-mail is needed (TERAN answers by either); errors are named under each field.
- * Reached from a tea's "Order" (`/contact?tea=…`), it takes "Place an order" and the tea's name and
- * pack from the order summary above it (order-line.ts) while those fields are still untouched, and
- * comes back to that state after a reset.
+ * The contact form — while prices are hidden, the way to order — on the design system's fields
+ * (components/ui/field.tsx): name, then how TERAN can answer (a phone or an e-mail, either one,
+ * as one group named by the hint), the subject, the message and the send button, which keeps
+ * keyboard focus and shows its progress while sending. Errors are named under each field. Reached
+ * from a tea's "Order" (`/contact?tea=…`), it takes "Place an order" and the tea's name and pack
+ * from the order summary above it (order-line.ts) while those fields are still untouched, and
+ * comes back to that state after a reset. While it fills the lower part of a phone's screen the
+ * floating contact disc steps aside (lib/floating).
  */
 export function ContactForm() {
   const t = useTranslations('Forms');
-  const tc = useTranslations('Common');
   const locale = useLocale() as Locale;
   const message = useValidationMessage();
   const formRef = useRef<HTMLFormElement>(null);
   const form = useFormSubmission(formRef);
+  usePrimaryAction(formRef);
   const orderLine = useOrderLine();
   const ordering = (line: string | null) =>
     line ? { subject: t('subjects.newOrder'), message: `${line}\n` } : null;
@@ -72,17 +71,7 @@ export function ContactForm() {
     (key: keyof typeof EMPTY) =>
     (event: { target: { value: string } }): void =>
       setValues((current) => ({ ...current, [key]: event.target.value }));
-  const error = (key: keyof typeof EMPTY) => message(form.errors[key], values[key]);
-  const control = (key: keyof typeof EMPTY, describedBy?: string) => ({
-    id: `${id}-${key}`,
-    name: key,
-    value: values[key],
-    onChange: set(key),
-    'aria-invalid': error(key) ? true : undefined,
-    'aria-describedby':
-      [describedBy, error(key) ? `${id}-${key}-error` : undefined].filter(Boolean).join(' ') ||
-      undefined,
-  });
+  const error = (key: keyof typeof EMPTY) => message(form.errors[key], values[key]) ?? undefined;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,7 +94,21 @@ export function ContactForm() {
     );
   }
 
-  const optional = <> ({tc('optional')})</>;
+  const reach = (key: 'phone' | 'email') => {
+    const fieldError = error(key);
+    return {
+      id: `${id}-${key}`,
+      name: key,
+      value: values[key],
+      onChange: set(key),
+      'aria-invalid': fieldError ? true : undefined,
+      'aria-describedby': [`${id}-reach`, fieldError ? `${id}-${key}-error` : undefined]
+        .filter(Boolean)
+        .join(' '),
+      className: inputClasses({ invalid: Boolean(fieldError) }),
+    };
+  };
+
   return (
     <form
       method="post"
@@ -115,121 +118,91 @@ export function ContactForm() {
       className="flex flex-col gap-6"
     >
       <FormErrorSummary message={form.summary} />
-      <div>
-        <label htmlFor={`${id}-name`} className={LINE}>
-          {t('name')}
-        </label>
-        <input
-          {...control('name')}
-          autoComplete="name"
-          required
-          placeholder={t('namePlaceholder')}
-          className={cn(FIELD, 'h-[3.4375rem]')}
-        />
-        <FieldError id={`${id}-name-error`}>{error('name')}</FieldError>
-      </div>
-      <div>
-        <label htmlFor={`${id}-phone`} className={LINE}>
-          {t('phone')}
-        </label>
-        <input
-          {...control('phone', `${id}-reach`)}
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="+998 90 123 45 67"
-          className={cn(FIELD, 'h-[3.4375rem]')}
-        />
-        <FieldError id={`${id}-phone-error`}>{error('phone')}</FieldError>
-      </div>
-      <div>
-        <label htmlFor={`${id}-email`} className={LINE}>
-          {t('email')}
-        </label>
-        <input
-          {...control('email', `${id}-reach`)}
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder={t('emailPlaceholder')}
-          className={cn(FIELD, 'h-[3.4375rem]')}
-        />
-        <FieldError id={`${id}-email-error`}>{error('email')}</FieldError>
-        <p id={`${id}-reach`} className="pt-2 text-[0.75rem] leading-5 text-[#121212]">
+      <TextField
+        label={t('name')}
+        name="name"
+        value={values.name}
+        onChange={set('name')}
+        error={error('name')}
+        required
+        autoComplete="name"
+        placeholder={t('namePlaceholder')}
+      />
+      {/* How TERAN can answer: either one is enough, so the pair is one group under the hint. */}
+      <fieldset className="grid grid-cols-1 gap-x-4 gap-y-5 @min-[35.5rem]:grid-cols-2">
+        <legend id={`${id}-reach`} className="mb-3 text-label text-fg">
           {t('contactHint')}
-        </p>
-      </div>
-      <div>
-        <label htmlFor={`${id}-subject`} className="sr-only">
-          {t('subject')}
-          {optional}
-        </label>
-        {/* The reference's subject list: a white box with a light edge that greys while pointed at. */}
-        <div className="relative">
-          <select
-            {...control('subject')}
-            className={cn(
-              'block h-[2.875rem] w-full min-w-[12.5rem] cursor-pointer appearance-none rounded-[0.25rem] border border-[#ddd] bg-white py-3 pr-10 pl-3 text-[0.875rem] leading-5 tracking-[-0.00875rem] outline-none hover:not-focus:border-[#afafaf] focus:border-[#115cb5] focus:shadow-[0_0_0_1px_#115cb5]',
-              values.subject ? 'text-[#161616]' : 'text-[#6a6a6a]',
-            )}
-          >
-            <option value="" disabled>
-              {t('subjectPlaceholder')}
-            </option>
-            {SUBJECTS.map((subject) => (
-              <option key={subject} value={t(`subjects.${subject}`)} className="text-[#161616]">
-                {t(`subjects.${subject}`)}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-[#161616]"
+        </legend>
+        <div>
+          <FieldLabel htmlFor={`${id}-phone`} required>
+            {t('phone')}
+          </FieldLabel>
+          <input
+            {...reach('phone')}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+998 90 123 45 67"
           />
+          {error('phone') ? (
+            <FieldError id={`${id}-phone-error`}>{error('phone')}</FieldError>
+          ) : null}
         </div>
-        <FieldError id={`${id}-subject-error`}>{error('subject')}</FieldError>
-      </div>
-      <div>
-        <label htmlFor={`${id}-message`} className={LINE}>
-          {t('message')}
-        </label>
-        <textarea
-          {...control('message')}
-          required
-          rows={5}
-          maxLength={3000}
-          placeholder={t('messagePlaceholder')}
-          className={cn(FIELD, 'h-[7.875rem] max-h-[10.625rem] resize-y py-3')}
-        />
-        <FieldError id={`${id}-message-error`}>{error('message')}</FieldError>
-      </div>
+        <div>
+          <FieldLabel htmlFor={`${id}-email`} required>
+            {t('email')}
+          </FieldLabel>
+          <input
+            {...reach('email')}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder={t('emailPlaceholder')}
+          />
+          {error('email') ? (
+            <FieldError id={`${id}-email-error`}>{error('email')}</FieldError>
+          ) : null}
+        </div>
+      </fieldset>
+      <SelectField
+        label={t('subject')}
+        name="subject"
+        value={values.subject}
+        onChange={set('subject')}
+        error={error('subject')}
+        placeholder={t('subjectPlaceholder')}
+        options={SUBJECTS.map((subject) => ({
+          value: t(`subjects.${subject}`),
+          label: t(`subjects.${subject}`),
+        }))}
+      />
+      <TextAreaField
+        label={t('message')}
+        name="message"
+        value={values.message}
+        onChange={set('message')}
+        error={error('message')}
+        required
+        rows={5}
+        maxLength={3000}
+        placeholder={t('messagePlaceholder')}
+      />
       <Honeypot />
       {form.apiErrorMessage ? (
         <Notice tone="danger" role="alert">
           {form.apiErrorMessage}
         </Notice>
       ) : null}
-      <button
+      <Button
         type="submit"
-        disabled={form.status === 'sending'}
-        className="mt-4 inline-flex h-[3.375rem] w-full items-center justify-center gap-3 rounded-[0.25rem] border border-[#f3fafb] bg-[#f3fafb] px-5 text-[1.25rem] leading-6 font-medium text-[#0c504e] transition-[border-color] duration-200 hover:border-[#0c504e] disabled:cursor-wait disabled:opacity-80 @min-[48.0625rem]:w-auto @min-[48.0625rem]:max-w-max"
+        variant="inverse"
+        size="lg"
+        loading={form.status === 'sending'}
+        className="w-full gap-2.5 @min-[35.5rem]:w-auto @min-[35.5rem]:self-start"
       >
         {form.status === 'sending' ? t('sending') : orderLine ? t('sendOrder') : t('sendMessage')}
-        <Send aria-hidden className="h-5 w-5" strokeWidth={1.75} />
-      </button>
+        {form.status === 'sending' ? null : <Send aria-hidden className="h-4 w-4" />}
+      </Button>
     </form>
-  );
-}
-
-function FieldError({ id, children }: { id: string; children: ReactNode }) {
-  if (!children) return null;
-  return (
-    <p
-      id={id}
-      className="mt-1.5 flex items-start gap-1.5 text-[0.8125rem] leading-5 font-semibold text-[#121212]"
-    >
-      <CircleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-[#a32e2e]" />
-      <span>{children}</span>
-    </p>
   );
 }

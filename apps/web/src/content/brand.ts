@@ -79,6 +79,26 @@ export function teaHref(code: TeaCode): string {
   return `/products/teran-${code.toLowerCase()}`;
 }
 
+/**
+ * Each pack's own colour (its ribbon and lower band), sampled from the pack photographs in
+ * public/brand/packs: the one thing besides the leaf that tells the five pouches apart.
+ */
+export const PACK_COLOURS: Record<TeaCode, string> = {
+  XC2025: '#790810',
+  G8810: '#191816',
+  '8800': '#6a7c13',
+  '8830': '#0b2f73',
+  '8009': '#245719',
+};
+
+/** The identifier of one of TERAN's five teas from its catalogue address, else null. */
+export function teaCodeOf(slug: string): TeaCode | null {
+  const code = slug.replace(/^teran-/, '').toUpperCase();
+  return slug.startsWith('teran-') && (TEA_CODES as readonly string[]).includes(code)
+    ? (code as TeaCode)
+    : null;
+}
+
 /** Slug of the demonstration collection that groups the five identifiers. */
 export const PREMIUM_COLLECTION_SLUG = 'teran-premium';
 

@@ -35,6 +35,12 @@ const CARD_SIZES = '(min-width: 1024px) 22vw, (min-width: 768px) 30vw, calc(50vw
 /** The home page's grid: four cards from 1200 px, two below (the reference's featured tabs). */
 const GRID_SIZES = '(min-width: 1920px) 440px, (min-width: 1200px) 23vw, 48vw';
 const GRID_ITEMS = 4;
+/**
+ * A row that holds exactly five products (TERAN's five teas, as on the live shop) shows all five,
+ * five across from 1200 px, rather than leaving one out of a row of four.
+ */
+const WHOLE_RANGE = 5;
+const WHOLE_SIZES = '(min-width: 1920px) 352px, (min-width: 1200px) 18vw, 48vw';
 
 /**
  * The reference's tabbed product rows. On the home page (`centred`, `hidden`) as its featured tabs:
@@ -159,7 +165,10 @@ export function ProductRail({
   const bare = heading === 'none';
   const start = single && heading !== 'centred' && !hidden && !bare;
   const grid = heading === 'centred' || hidden;
-  const products = grid ? current.products.slice(0, GRID_ITEMS) : current.products;
+  const whole = grid && current.products.length === WHOLE_RANGE;
+  const products = grid
+    ? current.products.slice(0, whole ? WHOLE_RANGE : GRID_ITEMS)
+    : current.products;
 
   return (
     <section
@@ -267,7 +276,10 @@ export function ProductRail({
             data-entering={entering ? '' : undefined}
             className={
               grid
-                ? 'rail-grid grid grid-cols-2 gap-2 min-[46.875rem]:gap-4 min-[75rem]:grid-cols-4'
+                ? cn(
+                    'rail-grid grid grid-cols-2 gap-2 min-[46.875rem]:gap-4',
+                    whole ? 'min-[75rem]:grid-cols-5' : 'min-[75rem]:grid-cols-4',
+                  )
                 : 'grid grid-cols-2 gap-2.5 md:-mx-2 md:flex md:snap-x md:snap-mandatory md:scroll-px-2 md:gap-4 md:overflow-x-auto md:overscroll-x-contain md:px-2 md:py-3 md:[scrollbar-width:none]'
             }
           >
@@ -283,7 +295,7 @@ export function ProductRail({
               >
                 <ProductCard
                   product={product}
-                  sizes={grid ? GRID_SIZES : CARD_SIZES}
+                  sizes={grid ? (whole ? WHOLE_SIZES : GRID_SIZES) : CARD_SIZES}
                   priority={active === 0 && index < priorityCount}
                 />
               </li>

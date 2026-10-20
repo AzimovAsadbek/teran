@@ -36,8 +36,9 @@ function tileSpan(index: number, count: number): 'wide' | 'narrow' | 'full' {
 /**
  * The catalogue as a collage of cream tiles, each with its name, a picture (the category's own,
  * or one of its products standing) and a pill. Built from the API's tree in menu order: stocked
- * categories (a top-level category too when it has its own cover), then stocked collections, up to
- * six; a new category appears here without code changes once it has products.
+ * categories (a top-level category too when it has its own cover and more than one stocked range),
+ * then stocked collections, up to six, and shown from three tiles; a new category appears here
+ * without code changes once it has products.
  */
 export async function CategoryCollage() {
   await connection();
@@ -49,9 +50,17 @@ export async function CategoryCollage() {
   ]);
   const tree = categoryTree(categories);
   const stocked = new Set(browsableCategories(tree).map((category) => category.slug));
+  // A family with a single stocked range holds exactly what that range holds: its own tile would
+  // be a second door to the same teas, so the range's tile stands for it.
+  const single = new Set(
+    tree
+      .filter((top) => top.children.filter((child) => stocked.has(child.slug)).length === 1)
+      .map((top) => top.slug),
+  );
   const sources = [
     ...tree
       .flatMap((top) => [top, ...top.children])
+      .filter((category) => !single.has(category.slug))
       .filter(
         (category) => stocked.has(category.slug) || (category.image && category.productCount > 0),
       )
@@ -72,7 +81,8 @@ export async function CategoryCollage() {
         query: `collection=${collection.slug}`,
       })),
   ].slice(0, MAX_TILES);
-  if (sources.length < 2) return null;
+  // Two tiles are no collage (and repeat the rows above); it comes back from three.
+  if (sources.length < 3) return null;
 
   // A tile without its own picture borrows one of its products (a cut-out first).
   const tiles: Tile[] = await Promise.all(

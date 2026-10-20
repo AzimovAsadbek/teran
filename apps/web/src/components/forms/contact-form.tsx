@@ -15,6 +15,7 @@ const EMPTY = { name: '', phone: '', email: '', subject: '', message: '' };
 
 /** The reference's subjects, as TERAN's: what the choice sends is its wording in the language read. */
 const SUBJECTS = [
+  'newOrder',
   'order',
   'damaged',
   'missing',
@@ -38,15 +39,20 @@ const LINE = 'mb-1 block text-[0.75rem] leading-5 text-[#121212]';
  * list, the message box and the light "Send message" button whose edge darkens while pointed at
  * (the whole width while the panel is 768 px or narrower; it sits in the contact page's container).
  * One of phone or e-mail is needed (TERAN answers by either); errors are named under each field.
+ * Reached from a tea's "Order" (`/contact?tea=…`), it opens on "Place an order" with that tea's
+ * name and pack already in the message, and it comes back to that state after a reset.
  */
-export function ContactForm() {
+export function ContactForm({ orderLine }: { orderLine?: string }) {
   const t = useTranslations('Forms');
   const tc = useTranslations('Common');
   const locale = useLocale() as Locale;
   const message = useValidationMessage();
   const formRef = useRef<HTMLFormElement>(null);
   const form = useFormSubmission(formRef);
-  const [values, setValues] = useState(EMPTY);
+  const initial = orderLine
+    ? { ...EMPTY, subject: t('subjects.newOrder'), message: `${orderLine}\n` }
+    : EMPTY;
+  const [values, setValues] = useState(initial);
   const id = useId();
 
   const set =
@@ -78,7 +84,7 @@ export function ContactForm() {
     return (
       <FormSuccess
         onReset={() => {
-          setValues(EMPTY);
+          setValues(initial);
           form.reset();
         }}
       />

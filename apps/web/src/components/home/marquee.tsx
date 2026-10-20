@@ -4,6 +4,7 @@ import { Leaf } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { useMotionPaused } from '@/lib/motion';
 
 const TONES = {
   jade: 'bg-jade-100 text-fg',
@@ -22,10 +23,11 @@ export interface MarqueeItem {
 
 /**
  * The reference's ribbons of moving capitals. The track holds two copies of the words and moves
- * by one copy, so the loop is seamless (globals.css). As on the reference it keeps moving under
- * the pointer, and a word with a link is underlined when pointed at; it stops off screen, while a
- * keyboard user is on one of its links, and with reduced motion. The second copy is hidden from
- * assistive technology and the keyboard.
+ * by one copy, so the loop is seamless (globals.css). A word with a link is underlined when pointed
+ * at, and the ribbon holds still under the pointer or a pressing finger so its words can be read
+ * and chosen; it stops off screen, while a keyboard user is on one of its links, with reduced
+ * motion, and while the visitor has paused the storefront's motion with the footer's switch
+ * (lib/motion.ts). The second copy is hidden from assistive technology and the keyboard.
  *
  * - `md`: the 67 px band under the hero (48 px on phones), 56 px capitals with a mark between
  *   the words, one full turn in 48 s;
@@ -48,6 +50,7 @@ export function Marquee({
   marks?: ReactNode[];
 }) {
   const ref = useRef<HTMLElement>(null);
+  const paused = useMotionPaused();
 
   useEffect(() => {
     const element = ref.current;
@@ -124,7 +127,13 @@ export function Marquee({
   const style = size === 'lg' ? ({ '--marquee-duration': '36.8s' } as CSSProperties) : undefined;
   // With links it is a small navigation; without, a picture of words with one spoken name.
   return linked ? (
-    <nav ref={ref} aria-label={label} className={className} style={style}>
+    <nav
+      ref={ref}
+      aria-label={label}
+      className={className}
+      style={style}
+      data-paused={paused ? '' : undefined}
+    >
       {track}
     </nav>
   ) : (
@@ -132,6 +141,7 @@ export function Marquee({
       ref={ref as Ref<HTMLDivElement>}
       role="img"
       aria-label={label}
+      data-paused={paused ? '' : undefined}
       className={className}
       style={style}
     >

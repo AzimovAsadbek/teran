@@ -1,10 +1,12 @@
 import type { Locale, ProductDetailDto, ProductSummaryDto } from '@teran/contracts';
+import { ArrowRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { ButtonLink } from '@/components/ui/button';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
 import { Stars } from '@/components/catalog/stars';
 import { ProductRail } from '@/components/home/product-rail';
@@ -235,7 +237,8 @@ async function ProductView({
                   }
                 />
               ) : (
-                // No price and no bag for now: the pack, then the product's facts. How to order is
+                // No price and no bag for now: the pack, the card's own "Order" (to the contact
+                // page with this tea named), then the product's facts. The channels themselves stay
                 // in the footer, the contact page and the floating button (ADR-045).
                 <>
                   <p className="text-[1.125rem] leading-[1.6] text-fg">
@@ -247,6 +250,17 @@ async function ProductView({
                       )
                       .join(' · ')}
                   </p>
+                  {product.stockLevel === 'out_of_stock' ? null : (
+                    <ButtonLink
+                      href={`/contact?tea=${encodeURIComponent(product.slug)}`}
+                      aria-label={t('orderAction', { name: product.name })}
+                      size="lg"
+                      className="mt-5 w-full gap-2 sm:w-auto sm:min-w-[14rem]"
+                    >
+                      {t('orderNow')}
+                      <ArrowRight aria-hidden className="h-4 w-4" />
+                    </ButtonLink>
+                  )}
                   <ProductTabsSection product={product} />
                   <AttributeRows product={product} />
                 </>

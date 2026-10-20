@@ -166,7 +166,6 @@
     "categoriesTitle": "Shop by category",
     "storyEyebrow": "The TERAN philosophy",
     "storyCta": "About TERAN",
-    "featuredEyebrow": "Collection",
     "featuredCta": "Explore the collection",
     "brewingEyebrow": "Tea school",
     "brewingTitle": "The art of brewing",
@@ -674,7 +673,8 @@
       "product": "Product or tea question",
       "wholesale": "Wholesale and partnership",
       "feedback": "Feedback",
-      "other": "Other"
+      "other": "Other",
+      "newOrder": "Place an order"
     }
   },
   "Account": {
@@ -829,7 +829,9 @@
     "accessibilityContact": "Contact us",
     "contactMetaDescription": "Contact TERAN: call us or write on Telegram or WhatsApp about an order, our teas or working together. TERAN TRADE MChJ, Namangan.",
     "journalMetaDescription": "The TERAN tea journal: articles on brewing and storing tea, the kinds of tea and tea customs at the Uzbek table.",
-    "faqMetaDescription": "Answers to common questions about ordering, payment, delivery, returns and TERAN’s teas."
+    "faqMetaDescription": "Answers to common questions about ordering, payment, delivery, returns and TERAN’s teas.",
+    "orderSummaryTitle": "Your order",
+    "orderOtherChannels": "Prefer Telegram, WhatsApp or a call?"
   },
   "Admin": {
     "demoBadge": "Demo",

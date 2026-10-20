@@ -63,13 +63,14 @@ function StripLink({ href }: { href: string }) {
 }
 
 /**
- * A campaign headline's size by its length, so TERAN's longer lines keep the reference's two or
- * three lines: its 110 px (56 px on phones) for short headlines, smaller for longer ones.
+ * A campaign headline's size by its length, so TERAN's longer lines keep two or three lines: 80 px
+ * (52 px on phones) for short headlines, smaller for longer ones. The first view's headline stays
+ * the page's largest (up to 6rem), so the banners after it stop at 5rem.
  */
 function bannerHeadline(title: string): string {
-  if (title.length <= 18) return 'text-[3.5rem] lg:text-[6.875rem]';
-  if (title.length <= 28) return 'text-[3rem] lg:text-[5.5rem]';
-  return 'text-[2.5rem] lg:text-[4.5rem]';
+  if (title.length <= 18) return 'text-[3.25rem] lg:text-[5rem]';
+  if (title.length <= 28) return 'text-[2.875rem] lg:text-[4.5rem]';
+  return 'text-[2.5rem] lg:text-[4rem]';
 }
 
 /**
@@ -300,7 +301,8 @@ const SCATTER: {
 
 /**
  * Section 5, the reference's gift-guide banner: a pastel field with products scattered around a
- * large soft-serif title and a pill. Here the TERAN packs around the brand's story heading.
+ * large soft-serif title and a pill. Here the TERAN packs around the brand's story heading, with
+ * the story's first sentence under it (what the name means), so the tease is answered on the spot.
  */
 export async function StoryBanner({
   withPhoto = false,
@@ -319,7 +321,11 @@ export async function StoryBanner({
   return (
     <BannerFrame
       href="/about"
-      className="items-center justify-center bg-lavender px-6 py-16 text-center"
+      className={cn(
+        'items-center justify-center bg-lavender px-6 py-16 text-center',
+        // The photograph's phone crop keeps its teapot in the lower third: the words stay above it.
+        photo && 'max-sm:items-start max-sm:pb-56',
+      )}
     >
       {photo ? <PhotoFill photo={photo} sizes="(min-width: 1920px) 1792px, 100vw" /> : null}
       {(photo ? [] : SCATTER).map((item, index) => (
@@ -347,10 +353,14 @@ export async function StoryBanner({
         />
       ))}
       <div className="flex max-w-[34rem] flex-col items-center">
-        <h2 className="font-heading text-[2.75rem] leading-[0.95] text-balance text-cherry uppercase sm:text-[4rem] lg:text-[4.5rem]">
+        <h2 className="font-heading text-[2.5rem] leading-[0.95] text-balance text-cherry uppercase sm:text-[4rem] lg:text-[4.5rem]">
           <TitleLink href="/about">{copy.story.heading}</TitleLink>
         </h2>
-        <Link href="/about" className={cn(PILL, 'mt-8 bg-ivory-200 text-wine lg:mt-10')}>
+        {/* The heading's promise kept at once: what the name means, in the brand's own words. */}
+        <p className="mt-5 max-w-[28rem] text-[1.0625rem] leading-relaxed text-pretty text-wine lg:mt-6 lg:text-[1.125rem]">
+          {copy.story.paragraphs[0]}
+        </p>
+        <Link href="/about" className={cn(PILL, 'mt-7 bg-ivory-200 text-wine lg:mt-8')}>
           {t('storyCta')}
         </Link>
       </div>
@@ -490,7 +500,11 @@ const SHORTCUT_COLOURS = [
   'text-tangerine-ink',
 ];
 
-/** Five pastel tiles (210 × 193 px) with category names in coloured capitals, centred. */
+/**
+ * Five pastel tiles (210 × 193 px) with category names in coloured capitals, centred. Shown from
+ * three stocked categories: one or two text tiles read as an unfinished shop (and the menus, the
+ * ribbon and the rows already lead there); they come back as the range grows.
+ */
 export async function CategoryShortcuts() {
   await connection();
   const locale = await getLocale();
@@ -504,9 +518,9 @@ export async function CategoryShortcuts() {
     if (items.length >= 5) break;
     if (!items.some((item) => item.path === category.path)) items.push(category);
   }
-  if (items.length === 0) return null;
+  if (items.length < 3) return null;
   return (
-    <nav aria-label={t('categoriesTitle')} className="container-page">
+    <nav aria-label={t('categoriesTitle')} className="container-page py-3 sm:py-6">
       {/* Phones scroll the tiles sideways; from 640 px they share the row, at most 210 px each. */}
       <ul className="-mx-gutter flex snap-x snap-mandatory scroll-px-gutter gap-3 overflow-x-auto px-gutter py-1 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:overflow-visible sm:px-0 lg:gap-4">
         {items.map((category, index) => (
@@ -659,7 +673,7 @@ export async function BentoSection() {
                 <span className="@container pointer-events-none relative z-10 w-[55%]">
                   <span
                     className={cn(
-                      'block font-headline text-[length:min(3rem,var(--fit))] [overflow-wrap:anywhere] sm:text-[length:min(5rem,var(--fit))]',
+                      'block font-headline text-[length:min(3rem,var(--fit))] [overflow-wrap:anywhere] sm:text-[length:min(4.5rem,var(--fit))]',
                       tone.title,
                       photo && '[text-shadow:0_2px_14px_rgb(0_0_0_/_0.35)]',
                     )}
@@ -764,7 +778,7 @@ export async function BrewingBanner({
           </p>
           <h2
             id="brewing-title"
-            className="mt-3 font-headline text-[2.25rem] text-balance text-blush-light sm:text-[3.5rem] lg:text-[5rem]"
+            className="mt-3 font-headline text-[2.25rem] text-balance text-blush-light sm:text-[3.5rem] lg:text-[4.5rem]"
           >
             {t('brewingTitle')}
           </h2>
@@ -792,8 +806,9 @@ export async function BrewingBanner({
 
 /**
  * The reference's full-width statement band (560 px): a painting behind white 80 px capitals, a
- * row of marks and a white pill. Here the tea terraces, the pack's tagline and its four values
- * (where the reference shows certifications — none is claimed).
+ * row of marks and a white pill. Here the tea terraces under "What TERAN stands for" (the first
+ * view already carries the tagline) and the pack's four values (where the reference shows
+ * certifications — none is claimed).
  */
 export async function ValuesBanner({
   withPhoto = false,
@@ -806,7 +821,6 @@ export async function ValuesBanner({
 }) {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Home');
-  const copy = brandCopy[locale];
   const photo = given !== undefined ? given : withPhoto ? await homeVisual('home.values') : null;
   return (
     <section
@@ -834,9 +848,9 @@ export async function ValuesBanner({
       <div className="pointer-events-none container-page flex min-h-[33.625rem] flex-col items-center justify-center py-14 text-center lg:min-h-[max(35rem,calc(100vw/var(--band-ratio,100)))]">
         <h2
           id="values-banner-title"
-          className="pointer-events-auto max-w-[31rem] font-headline text-[2.75rem] text-balance [text-shadow:0_2px_18px_rgb(0_0_0/0.35)] sm:text-[4rem] lg:max-w-[50rem] lg:text-[5rem]"
+          className="pointer-events-auto max-w-[31rem] font-headline text-[2.75rem] text-balance [text-shadow:0_2px_18px_rgb(0_0_0/0.35)] sm:text-[4rem] lg:max-w-[50rem] lg:text-[4.5rem]"
         >
-          {copy.tagline}
+          {t('valuesTitle')}
         </h2>
         <BrandValues
           locale={locale}

@@ -584,8 +584,16 @@
     animation: marquee var(--marquee-duration, 48s) linear infinite;
   }
   .marquee:focus-within .marquee-track,
-  .marquee[data-offscreen] .marquee-track {
+  .marquee:active .marquee-track,
+  .marquee[data-offscreen] .marquee-track,
+  .marquee[data-paused] .marquee-track {
     animation-play-state: paused;
+  }
+  /* Words that are links hold still under the pointer, so they can be read and clicked. */
+  @media (hover: hover) {
+    .marquee:hover .marquee-track {
+      animation-play-state: paused;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .marquee-track {
@@ -593,8 +601,22 @@
     }
   }
 
-  /* Home product rows (components/home/product-rail.tsx): after a tab is chosen its cards come
-     in one after another and the pill fades in after them, as the reference's featured tabs. */
+  /* Home product rows (components/home/product-rail.tsx) rise into place as they scroll into
+     view, each card a step after the one before: the page's one scroll-linked moment. The cards
+     stand fully visible without it (older browsers, reduced motion), and it only ever follows the
+     visitor's own scrolling. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .rail-grid > li {
+        animation: rail-card-rise cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation-timeline: view();
+        animation-range: entry calc(var(--i, 0) * 5%) cover calc(18% + var(--i, 0) * 5%);
+      }
+    }
+  }
+
+  /* After a tab is chosen its cards come in one after another and the pill fades in after them,
+     as the reference's featured tabs. */
   .rail-grid[data-entering] > li {
     animation: rail-card-in calc(var(--panel-duration) * 1.5) var(--panel-ease) both;
     animation-delay: calc(45ms * var(--i, 0));
@@ -643,6 +665,17 @@
   from {
     opacity: 0;
     translate: 0 var(--panel-travel);
+  }
+  to {
+    opacity: 1;
+    translate: none;
+  }
+}
+
+@keyframes rail-card-rise {
+  from {
+    opacity: 0.35;
+    translate: 0 2.5rem;
   }
   to {
     opacity: 1;

@@ -166,7 +166,6 @@
     "categoriesTitle": "По категориям",
     "storyEyebrow": "Философия TERAN",
     "storyCta": "О TERAN",
-    "featuredEyebrow": "Коллекция",
     "featuredCta": "Смотреть коллекцию",
     "brewingEyebrow": "Чайная школа",
     "brewingTitle": "Искусство заваривания",
@@ -674,7 +673,8 @@
       "product": "Вопрос о товаре или чае",
       "wholesale": "Опт и сотрудничество",
       "feedback": "Отзывы и предложения",
-      "other": "Другое"
+      "other": "Другое",
+      "newOrder": "Оформить заказ"
     }
   },
   "Account": {
@@ -829,7 +829,9 @@
     "accessibilityContact": "Связаться с нами",
     "contactMetaDescription": "Свяжитесь с TERAN: позвоните или напишите в Telegram или WhatsApp о заказе, нашем чае или сотрудничестве. TERAN TRADE MChJ, Наманган.",
     "journalMetaDescription": "Чайный журнал TERAN: статьи о том, как заваривать и хранить чай, о видах чая и чаепитии за узбекским дастарханом.",
-    "faqMetaDescription": "Ответы на частые вопросы о заказе, оплате, доставке, возврате и чае TERAN."
+    "faqMetaDescription": "Ответы на частые вопросы о заказе, оплате, доставке, возврате и чае TERAN.",
+    "orderSummaryTitle": "Ваш заказ",
+    "orderOtherChannels": "Удобнее Telegram, WhatsApp или звонок?"
   },
   "Admin": {
     "demoBadge": "Демо",

@@ -3,8 +3,8 @@ import { useSyncExternalStore } from 'react';
 /*
  * When the storefront's films may move: never with reduced motion or on a data-saving connection,
  * and not while the visitor has paused them with the footer's switch, which is remembered on this
- * device. That switch is the WCAG 2.2.2 mechanism for every film on the storefront: none has a
- * button of its own.
+ * device. That switch is the WCAG 2.2.2 mechanism for every film on the storefront (none has a
+ * button of its own) and for the home page's moving ribbons (components/home/marquee.tsx).
  */
 
 const KEY = 'teran.motion';

@@ -2,6 +2,7 @@
 
 import type { PublicVisualDto } from '@teran/contracts';
 import Image, { type StaticImageData } from 'next/image';
+import type { CSSProperties } from 'react';
 import { LoopingFilm } from '@/components/content/looping-film';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { Link } from '@/i18n/navigation';
@@ -30,11 +31,12 @@ export interface HeroLabels {
 }
 
 /**
- * Headline size, so a long line still fits: the reference's 72 px (phones) and 100 px (desktop)
- * capitals for short words, smaller for long ones. On wide screens the words keep to the left
- * side, so the line counts there (up to the 16 characters the block holds before it wraps).
+ * Headline size, so a long line still fits: the reference's 72 px capitals on phones for short
+ * words, smaller for long ones. From 1024 px the headline is the page's largest type, up to 6rem,
+ * sized so its longest line just fits the words' column (min(56rem, 62vw)): `--hero-fit` is that
+ * line's width in ems, taking Oswald's capitals at about half an em each (Cyrillic a little wider).
  */
-function headlineSize(lines: string[]): string {
+function headlineSize(lines: string[]): { className: string; fit: number } {
   const longestWord = Math.max(
     ...lines.flatMap((line) => line.split(/\s+/)).map((word) => word.length),
   );
@@ -45,16 +47,12 @@ function headlineSize(lines: string[]): string {
       : longestWord <= 11
         ? 'text-[clamp(2.5rem,0.75rem+7.5vw,3.5rem)]'
         : 'text-[clamp(2.25rem,0.5rem+7.5vw,2.75rem)]';
-  const desktop = Math.max(longestWord, Math.min(longestLine, 16));
-  const desktopSize =
-    desktop <= 9
-      ? 'lg:text-[6.25rem]'
-      : desktop <= 13
-        ? 'lg:text-[5rem]'
-        : desktop <= 16
-          ? 'lg:text-[4.25rem]'
-          : 'lg:text-[4rem]';
-  return `${phoneSize} ${desktopSize}`;
+  const cyrillic = lines.some((line) => /[\u0400-\u04ff]/.test(line));
+  const fit = Math.max(4, longestLine * (cyrillic ? 0.53 : 0.49));
+  return {
+    className: `${phoneSize} lg:text-[min(6rem,calc(min(56rem,62vw)/var(--hero-fit)))]`,
+    fit: Math.round(fit * 100) / 100,
+  };
 }
 
 /**
@@ -64,8 +62,8 @@ function headlineSize(lines: string[]): string {
  * as tall as it is wide (464 to 672 px: the next section shows on a phone's first screen), from
  * 900 px 560 px or as tall as a 3.1:1 picture at wider windows. The words stand in the middle on
  * phones (over a soft veil behind them only), on the left from 1024 px, where the film stays as
- * bright as it is (the owner's wish of 2026-10-18); a soft shadow behind the letters keeps them
- * readable.
+ * bright as it is (the owner's wish of 2026-10-18); a layered soft shadow around the letters keeps
+ * them readable. The headline is the page's largest type (later banners stop at 5rem).
  *
  * The film (LoopingFilm): the place's picture is its first frame, painted at once (the page's
  * largest paint); the film is fetched once the page has loaded, fades in over it and loops
@@ -85,6 +83,7 @@ export function HeroStage({
 }) {
   const visual = media === 'pending' ? null : media;
   const film = visual?.video ?? null;
+  const headline = headlineSize(words.lines);
   return (
     <section className="relative isolate h-[clamp(29rem,112vw,42rem)] w-full overflow-hidden bg-forest-950 min-[56.25rem]:h-[max(35rem,calc(100vw/3.0956))]">
       <h1 className="sr-only">{labels.heading}</h1>
@@ -128,15 +127,16 @@ export function HeroStage({
           way and the screen readers'). */}
       <Link href={words.cta.href} tabIndex={-1} aria-hidden className="absolute inset-0 -z-[5]" />
       <div className="pointer-events-none container-page flex h-full flex-col items-center justify-center text-center lg:items-start lg:text-left">
-        <div className="pointer-events-auto flex max-w-[45rem] flex-col items-center [text-shadow:0_2px_18px_rgb(0_0_0_/_0.45),0_1px_3px_rgb(0_0_0_/_0.3)] lg:max-w-[min(36rem,40vw)] lg:items-start">
+        <div className="pointer-events-auto flex max-w-[45rem] flex-col items-center [text-shadow:0_1px_2px_rgb(0_0_0_/_0.5),0_3px_10px_rgb(0_0_0_/_0.35),0_6px_32px_rgb(0_0_0_/_0.5)] lg:max-w-[min(56rem,62vw)] lg:items-start">
           <p className="text-[1.25rem] leading-[1.1] font-bold text-ivory-50 uppercase">
             {words.eyebrow}
           </p>
           <p
             className={cn(
               'mt-3 font-headline text-sun [overflow-wrap:anywhere] lg:mt-4',
-              headlineSize(words.lines),
+              headline.className,
             )}
+            style={{ '--hero-fit': headline.fit } as CSSProperties}
           >
             {words.lines.map((line, index) => (
               <span key={line} className="block">
@@ -146,7 +146,7 @@ export function HeroStage({
             ))}
           </p>
           {words.text ? (
-            <p className="mt-4 line-clamp-2 max-w-[30rem] text-[0.8125rem] leading-normal text-ivory-50 max-lg:hidden lg:mt-6 lg:text-[1rem]">
+            <p className="mt-4 line-clamp-2 max-w-[30rem] text-[0.8125rem] leading-normal font-semibold text-ivory-50 max-lg:hidden lg:mt-6 lg:text-[1.0625rem]">
               {words.text}
             </p>
           ) : null}

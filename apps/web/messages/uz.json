@@ -166,7 +166,6 @@
     "categoriesTitle": "Turkum boʻyicha",
     "storyEyebrow": "TERAN falsafasi",
     "storyCta": "TERAN haqida",
-    "featuredEyebrow": "Kolleksiya",
     "featuredCta": "Kolleksiyani koʻrish",
     "brewingEyebrow": "Choy maktabi",
     "brewingTitle": "Choy damlash sanʼati",
@@ -674,7 +673,8 @@
       "product": "Mahsulot yoki choy haqida savol",
       "wholesale": "Ulgurji savdo va hamkorlik",
       "feedback": "Taklif va fikrlar",
-      "other": "Boshqa"
+      "other": "Boshqa",
+      "newOrder": "Buyurtma berish"
     }
   },
   "Account": {
@@ -829,7 +829,9 @@
     "accessibilityContact": "Biz bilan bogʻlanish",
     "contactMetaDescription": "TERAN bilan bogʻlaning: buyurtma, choylarimiz yoki hamkorlik boʻyicha qoʻngʻiroq qiling yoki Telegram, WhatsApp orqali yozing. TERAN TRADE MChJ, Namangan.",
     "journalMetaDescription": "TERAN choy jurnali: choyni damlash va saqlash, choy turlari va oʻzbek dasturxonidagi choy odatlari haqida maqolalar.",
-    "faqMetaDescription": "Buyurtma berish, toʻlov, yetkazib berish, qaytarish va TERAN choylari haqida koʻp beriladigan savollarga javoblar."
+    "faqMetaDescription": "Buyurtma berish, toʻlov, yetkazib berish, qaytarish va TERAN choylari haqida koʻp beriladigan savollarga javoblar.",
+    "orderSummaryTitle": "Buyurtmangiz",
+    "orderOtherChannels": "Telegram, WhatsApp yoki qoʻngʻiroq qulayroqmi?"
   },
   "Admin": {
     "demoBadge": "Namoyish",

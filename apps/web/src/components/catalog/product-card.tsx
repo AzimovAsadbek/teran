@@ -2,6 +2,7 @@ import type { ProductSummaryDto } from '@teran/contracts';
 import { ArrowRight, Leaf, MapPin, Package, Thermometer, Timer } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Price } from '@/components/ui/price';
+import { PACK_COLOURS, teaCodeOf } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatMoney, packLabel } from '@/lib/format';
@@ -38,13 +39,15 @@ function minutes(seconds: number): string {
  * Product card: a white card with 16 px corners on a soft shadow, lifting a little while pointed
  * at as its picture slowly grows; "new" and "few left" pills top-left, the discount top-right; the
  * second picture fades in while the pointer is on the picture and a first picture with a film comes
- * alive (product-film.tsx). Under the picture, from the product's own data and nothing invented:
- * the tea type, the name, the customers' stars and their number (before the first review, an
- * invitation to rate it; ADR-042), the origin, and chips for the brewing temperature, time and
- * pack size. Without prices an "Order" button closes the card, outlined and filled while the card
- * is pointed at, leading to the product page's ordering block; with prices, the price row and the
- * "Add to bag" pill over the picture (quick-add.tsx). The picture and the name lead to the
- * product, the stars to its reviews.
+ * alive (product-film.tsx). The second picture also stands as a small round swatch in the lower
+ * left on every device, ringed in the pack's colour for TERAN's teas, so cards that open on the same
+ * cup still differ at a glance. Under the picture, from the product's own data and nothing
+ * invented: the tea type, the name, the customers' stars and their number (before the first
+ * review, an invitation to rate it; ADR-042), the origin, and chips for the brewing temperature,
+ * time and pack size. Without prices an "Order" button closes the card, outlined and filled while
+ * the card is pointed at, leading to the contact page with this tea already named; with prices,
+ * the price row and the "Add to bag" pill over the picture (quick-add.tsx). The picture and the
+ * name lead to the product, the stars to its reviews.
  */
 export function ProductCard({
   product,
@@ -73,6 +76,8 @@ export function ProductCard({
 
   const href = `/products/${product.slug}`;
   const hoverImage = soldOut ? null : product.hoverImage;
+  const teaCode = teaCodeOf(product.slug);
+  const packColour = teaCode ? PACK_COLOURS[teaCode] : null;
   const packPrice = product.defaultVariant
     ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
     : null;
@@ -143,6 +148,19 @@ export function ProductCard({
             />
           ) : null}
         </div>
+        {hoverImage ? (
+          // The second picture (for TERAN's teas, their own dry leaf) as a swatch on every device,
+          // ringed in the pack's colour: what tells cards with the same first picture apart. It
+          // steps aside while the card is pointed at (the full second picture, or the quick add,
+          // takes the picture's foot then).
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-2 left-2 z-[2] block h-12 w-12 overflow-hidden rounded-full border-[3px] bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 min-[46.875rem]:h-16 min-[46.875rem]:w-16 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0"
+            style={{ borderColor: packColour ?? 'var(--color-surface)' }}
+          >
+            <ProductImage image={hoverImage} name={product.name} sizes="64px" decorative />
+          </span>
+        ) : null}
         <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 z-[1]" />
         <div className="pointer-events-none absolute inset-x-2 top-2 z-[2] flex items-start justify-between gap-2 min-[46.875rem]:inset-x-3 min-[46.875rem]:top-3">
           <div className="flex flex-wrap gap-1.5">
@@ -194,7 +212,7 @@ export function ProductCard({
               ? t('ratingLabel', { average, count: rating.count })
               : t('rateFirstLabel', { name: product.name })
           }
-          className="relative z-[1] mt-1.5 inline-flex w-fit items-center gap-1.5 text-[0.8125rem] leading-5 hover:underline hover:underline-offset-2"
+          className="relative z-[1] mt-2 inline-flex min-h-6 w-fit items-center gap-1.5 text-[0.8125rem] leading-5 hover:underline hover:underline-offset-2"
         >
           <Stars value={rating?.average ?? 0} className="text-[0.875rem]" />
           {rating ? (
@@ -241,10 +259,10 @@ export function ProductCard({
           </p>
         ) : soldOut ? null : (
           // Without prices there is no bag: the button leads to the contact page, where every
-          // channel to order by is (ADR-045).
+          // channel to order by is (ADR-045), with this tea named in the message.
           <div className="mt-auto pt-3.5">
             <Link
-              href="/contact"
+              href={`/contact?tea=${encodeURIComponent(product.slug)}`}
               aria-label={t('orderAction', { name: product.name })}
               // A phone's half-width card keeps the whole word: smaller type, no arrow.
               className="relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50"

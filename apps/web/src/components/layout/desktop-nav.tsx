@@ -51,7 +51,7 @@ const PANEL_TONE: Record<MenuId, string> = {
  * the bar's lower edge that colours in (200 ms) while pointed at or open; the words keep their ink.
  */
 const ITEM =
-  'inline-flex h-full items-center gap-0.5 border-b-2 border-transparent px-1 text-[1rem] leading-6 font-semibold whitespace-nowrap text-fg transition-[border-color] duration-200 ease-[ease] hover:border-[#00a6a5] aria-expanded:border-[#00a6a5]';
+  'inline-flex h-full items-center gap-0.5 border-b-2 border-transparent px-1 text-[0.9375rem] leading-6 font-semibold whitespace-nowrap text-fg min-[90rem]:text-[1rem] transition-[border-color] duration-200 ease-[ease] hover:border-[#00a6a5] aria-expanded:border-[#00a6a5]';
 
 const COLUMN_HEADING = 'font-heading text-[2rem] leading-[1.2] text-black';
 /** The reference's menu links: 15 px words that are underlined while pointed at. */
@@ -157,7 +157,9 @@ export function DesktopNav({ navigation }: { navigation: Promise<Navigation> }) 
       }}
     >
       <nav aria-label={t('main')} className="h-full">
-        <ul className="-ml-1 flex h-full items-stretch gap-4">
+        {/* Slightly tighter below 1440 px, so the longest menu names (Uzbek) keep clear of the
+            centred wordmark. */}
+        <ul className="-ml-1 flex h-full items-stretch gap-3 min-[90rem]:gap-4">
           {menus.map((menu) => (
             // Each panel follows its trigger in the DOM, so Tab moves from a button into its menu.
             <li key={menu.id} className="flex">
@@ -473,12 +475,15 @@ function CategoryColumns({
                 </Link>
               </li>
             </>
-          ) : null}
-          <li>
-            <Link href="/catalog?sort=newest" className={COLUMN_LINK}>
-              {t('shopAll')}
-            </Link>
-          </li>
+          ) : (
+            // The panel's own "All products" row stands under the categories; an empty category's
+            // column repeats it, so the column is not left empty.
+            <li>
+              <Link href="/catalog?sort=newest" className={COLUMN_LINK}>
+                {t('shopAll')}
+              </Link>
+            </li>
+          )}
         </ul>
       </div>
     </div>

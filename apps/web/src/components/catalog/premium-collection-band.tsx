@@ -3,7 +3,12 @@ import { ArrowRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import { ButtonLink } from '@/components/ui/button';
-import { brandCopy, COLLECTION_CODES, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
+import {
+  brandCopy,
+  COLLECTION_CODES,
+  PACK_COLOURS,
+  PREMIUM_COLLECTION_SLUG,
+} from '@/content/brand';
 import { getCollections } from '@/lib/data/catalog';
 
 /**
@@ -28,13 +33,22 @@ export async function PremiumCollectionBand({ locale }: { locale: Locale }) {
     >
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
         <div className="min-w-0">
-          <p className="text-eyebrow text-accent-fg">{t('featuredEyebrow')}</p>
-          <h2 id="premium-collection-title" className="mt-3 text-display-md text-fg">
+          <h2 id="premium-collection-title" className="text-display-md text-fg">
             {copy.collection.heading}
           </h2>
           <p className="mt-2 text-body-lg text-fg-muted">{copy.collection.text}</p>
-          <p className="mt-5 font-headline text-[1.5rem] leading-snug text-jade-700 sm:text-[1.75rem]">
-            {COLLECTION_CODES.join(' · ')}
+          {/* The five identifiers, each in its own pack's colour. */}
+          <p className="mt-5 flex flex-wrap gap-x-3 font-headline text-[1.5rem] leading-snug sm:text-[1.75rem]">
+            {COLLECTION_CODES.map((code, index) => (
+              <span key={code} style={{ color: PACK_COLOURS[code] }}>
+                {code}
+                {index < COLLECTION_CODES.length - 1 ? (
+                  <span aria-hidden className="pl-3 text-fg-subtle">
+                    ·
+                  </span>
+                ) : null}
+              </span>
+            ))}
           </p>
         </div>
         <ButtonLink

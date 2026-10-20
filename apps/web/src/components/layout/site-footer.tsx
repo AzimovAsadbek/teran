@@ -193,7 +193,7 @@ export async function SiteFooter() {
           <p className="font-headline text-[1.125rem] leading-[1.6875rem] [--headline-weight:600] min-[61.875rem]:leading-[1.375rem]">
             {tl('title')}
           </p>
-          <p className="mt-4 text-[0.84375rem] leading-[1.3125rem] font-medium min-[61.875rem]:text-[0.875rem] min-[61.875rem]:leading-[1.125rem] min-[61.875rem]:tracking-[1px]">
+          <p className="mt-4 text-[0.84375rem] leading-[1.3125rem] font-medium min-[61.875rem]:text-[0.875rem] min-[61.875rem]:leading-[1.375rem]">
             {tl('text')}
           </p>
           <div className="mt-4">

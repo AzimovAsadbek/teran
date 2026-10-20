@@ -60,7 +60,18 @@ export async function NewArrivalsRail() {
       cta: t('railFeaturedCta'),
     },
   ];
-  return <ProductRail tabs={tabs} labels={await railLabels()} />;
+  // A tab that would show the same teas as the other (a small catalogue) is left out: a switch
+  // that changes nothing reads as broken. It comes back once the picks differ from the newest.
+  const shown = (tab: RailTab) =>
+    tab.products
+      .slice(0, 5)
+      .map((product) => product.slug)
+      .sort()
+      .join(' ');
+  const distinct = tabs.filter(
+    (tab, index) => index === 0 || tab.products.length === 0 || shown(tab) !== shown(tabs[0]!),
+  );
+  return <ProductRail tabs={distinct} labels={await railLabels()} />;
 }
 
 /**

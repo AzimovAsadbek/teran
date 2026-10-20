@@ -78,6 +78,8 @@
   --color-cream: #fcefd2;
   --color-sun: #ffc664;
   --color-reef: #21a3a8;
+  /* Warm paper: the field TERAN's pouches stand on (tea stage, listing headers, About). */
+  --color-paper: #f7f4ee;
   /* Where the reference's text colour fails WCAG AA on its own background, the nearest one that
      passes (contrast with that background in brackets). */
   --color-tangerine-ink: #b83c0d; /* on lavender, 3.3:1 for large type */
@@ -817,6 +819,24 @@
       transparent var(--steep)
     );
     animation: steep 1800ms var(--ease-steep) both;
+  }
+  /* The same steep, following the visitor's scrolling: a band's deeper colour spreading from its
+     emblem as the band comes into view (about/page.tsx). Without scroll-driven animations or with
+     reduced motion the colour simply stands; it is a background only, so nothing waits on it.
+     The band clips with `overflow: clip`: `hidden` would make it the timeline's scroller. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .scroll-steep {
+        mask-image: radial-gradient(
+          circle at var(--steep-at, 50% 12%),
+          #000 calc(var(--steep) - 32%),
+          transparent var(--steep)
+        );
+        animation: steep linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 45%;
+      }
+    }
   }
 
   /* POUR: a picture rising into its frame like a level, its surface soft. */

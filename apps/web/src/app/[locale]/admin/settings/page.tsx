@@ -24,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AdminSettingsPage() {
   const t = await getTranslations('Admin');
+  const tw = await getTranslations('Wholesale');
   const user = await currentUser();
   if (user?.role !== 'ADMIN') return <AccessDenied adminOnly />;
   const [settings, categories, collections] = await Promise.all([
@@ -65,15 +66,6 @@ export default async function AdminSettingsPage() {
   };
   const banner = t('settings.visualSizeBanner');
   const places: VisualPlace[] = [
-    place('about.hero', t('settings.visualSlots.aboutHero'), t('settings.visualSizeHero')),
-    ...[1, 2, 3].map((number) =>
-      place(
-        `about.idea.${number}`,
-        t('settings.visualSlots.aboutIdea', { number }),
-        t('settings.visualSizePicture'),
-      ),
-    ),
-    place('about.showcase', t('settings.visualSlots.aboutShowcase'), t('settings.visualSizeHero')),
     place('banner:catalog', t('settings.visualSlots.catalogBanner'), banner),
     place(
       'contact.picture',
@@ -81,26 +73,21 @@ export default async function AdminSettingsPage() {
       t('settings.visualSizePortrait'),
     ),
     place('help.banner', t('settings.visualSlots.helpBanner'), banner),
-    place('wholesale.hero', t('settings.visualSlots.wholesaleHero'), t('settings.visualSizeSlide')),
-    ...[1, 2, 3].map((number) =>
-      place(
-        `wholesale.card.${number}`,
-        t('settings.visualSlots.wholesaleCard', { number }),
-        t('settings.visualSizeTile'),
-      ),
-    ),
-    place('wholesale.why', t('settings.visualSlots.wholesaleWhy'), t('settings.visualSizeTile')),
+    // The kinds of business (components/home/business-section.tsx, on the home page and the
+    // for-business page): hotels and cafés show a picture when one is set; shops, distributors
+    // and gifts show TERAN's own pouches. About TERAN (ADR-051) shows the pouches and the rest of
+    // the earlier for-business pictures are no longer shown, so, as the home page's earlier
+    // places below, they keep their stored pictures but are not offered here.
     place(
-      'wholesale.community',
-      t('settings.visualSlots.wholesaleCommunity'),
+      'wholesale.card.2',
+      t('settings.visualSlots.businessRow', { name: tw('segments.HOTEL') }),
       t('settings.visualSizeTile'),
     ),
     place(
-      'wholesale.flavour',
-      t('settings.visualSlots.wholesaleFlavour'),
-      t('settings.visualSizeSlide'),
+      'wholesale.community',
+      t('settings.visualSlots.businessRow', { name: tw('segments.CAFE_RESTAURANT') }),
+      t('settings.visualSizeTile'),
     ),
-    place('wholesale.map', t('settings.visualSlots.wholesaleMap'), t('settings.visualSizeSlide')),
     place('tea101.amount', t('settings.visualSlots.tea101Amount'), t('settings.visualSizeSlide')),
     ...helpCentre('uz', false).map((category) =>
       place(

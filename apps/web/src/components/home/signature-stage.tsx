@@ -179,7 +179,7 @@ export function SignatureStage({
                 className={cn('absolute inset-0 -z-20', index > 0 && 'steep-in')}
                 style={
                   {
-                    backgroundColor: `color-mix(in oklab, ${field.colour} 16%, #f7f4ee)`,
+                    backgroundColor: `color-mix(in oklab, ${field.colour} 16%, var(--color-paper))`,
                     '--steep-at': '80% 80%',
                   } as CSSProperties
                 }

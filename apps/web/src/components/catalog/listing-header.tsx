@@ -41,7 +41,7 @@ const THEMES: Record<
 };
 
 /** The premium collection's warm paper (the tea stage's), its words in ink. */
-const PAPER = { field: '#f7f4ee', ink: 'text-fg', text: 'text-fg-muted', dark: false };
+const PAPER = { field: '--color-paper', ink: 'text-fg', text: 'text-fg-muted', dark: false };
 
 /**
  * How each family's colour arrives (ADR-051): tea, matcha and infusions STEEP in; the cold drinks'
@@ -63,7 +63,7 @@ const MOTIONS: Record<ProductFamily['key'], 'steep' | 'pour' | 'light'> = {
  * for the light ones, so the words read on both while the colour spreads.
  */
 function baseOf(theme: { field: string; dark: boolean }, key: ProductFamily['key']): string {
-  const field = theme.field.startsWith('#') ? theme.field : `var(${theme.field})`;
+  const field = `var(${theme.field})`;
   if (key === 'gift') return `color-mix(in oklab, ${field} 86%, var(--color-sun))`;
   return theme.dark
     ? `color-mix(in oklab, ${field} 80%, black)`
@@ -156,7 +156,7 @@ export function ListingHeader({
       )}
       style={
         {
-          backgroundColor: theme.field.startsWith('#') ? theme.field : `var(${theme.field})`,
+          backgroundColor: `var(${theme.field})`,
           backgroundImage: `radial-gradient(ellipse 55% 85% at 84% 50%, rgb(255 255 255 / ${theme.dark ? 0.1 : 0.32}), transparent 70%)`,
           '--steep-at': '88% 50%',
         } as CSSProperties

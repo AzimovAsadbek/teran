@@ -9,7 +9,7 @@ import { PACK_IMAGES } from './pack-images';
 
 /** The stage's field: the pack's colour at 16 % over warm paper (as on the home page's stage). */
 export function teaTint(colour: string): string {
-  return `color-mix(in oklab, ${colour} 16%, #f7f4ee)`;
+  return `color-mix(in oklab, ${colour} 16%, var(--color-paper))`;
 }
 
 /**
@@ -41,7 +41,7 @@ export function TeaStage({
   packSizes: string;
 }) {
   return (
-    <div className="relative isolate h-full w-full overflow-hidden bg-[#f7f4ee]">
+    <div className="relative isolate h-full w-full overflow-hidden bg-paper">
       <span
         aria-hidden
         className={cn('absolute inset-0 -z-20', entering && 'steep-in')}

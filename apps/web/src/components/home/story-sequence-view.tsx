@@ -27,7 +27,16 @@ export interface StoryStep {
  * story's frames are upright, so a page picture shows its taller crop and film (the ones the
  * banners use on phones) wherever there is one, at every width.
  */
-function Media({ media, playing, sizes }: { media: StoryMedia; playing: boolean; sizes: string }) {
+function Media({
+  media,
+  playing,
+  frame,
+}: {
+  media: StoryMedia;
+  playing: boolean;
+  /** Where the picture shows: the framed window (wide screens) or above its step (phones). */
+  frame: 'window' | 'step';
+}) {
   if (media.kind === 'visual') {
     const { visual } = media;
     const film = visual.mobileVideo ?? visual.video;
@@ -39,7 +48,11 @@ function Media({ media, playing, sizes }: { media: StoryMedia; playing: boolean;
     return (
       <>
         <span className="absolute inset-0 -z-30">
-          <VisualPicture visual={upright} sizes={sizes} position={filmPosition(film)} />
+          <VisualPicture
+            visual={upright}
+            sizes={coverSizes(upright.image.width / upright.image.height, frame)}
+            position={filmPosition(film)}
+          />
         </span>
         {playing && film ? <LoopingFilm film={film} /> : null}
       </>
@@ -72,6 +85,22 @@ function Media({ media, playing, sizes }: { media: StoryMedia; playing: boolean;
       ))}
     </span>
   );
+}
+
+/**
+ * The width a picture is drawn at when it covers its frame: as wide as the frame when it is as
+ * upright as the frame or more, else as wide as the frame's height times its own proportions (a
+ * landscape picture in an upright frame is cut at its sides and drawn wider than the frame). The
+ * window is up to 40rem wide and 48rem high (wide screens, about 0.85 : 1); a step's frame is 4 : 5
+ * and up to 28rem wide.
+ */
+function coverSizes(aspect: number, frame: 'window' | 'step'): string {
+  if (frame === 'window') {
+    return aspect <= 0.85 ? '(min-width: 1440px) 40rem, 45vw' : `${Math.ceil(48 * aspect)}rem`;
+  }
+  return aspect <= 0.8
+    ? '(min-width: 750px) 28rem, 100vw'
+    : `(min-width: 750px) ${Math.ceil(35 * aspect)}rem, ${Math.ceil(125 * aspect)}vw`;
 }
 
 /**
@@ -141,11 +170,7 @@ export function StorySequenceView({
                   style={{ zIndex: index + 1 } as CSSProperties}
                 >
                   <div className="wipe-layer-media absolute inset-0">
-                    <Media
-                      media={step.media!}
-                      playing={state === 'shown'}
-                      sizes="(min-width: 1440px) 40rem, 45vw"
-                    />
+                    <Media media={step.media!} playing={state === 'shown'} frame="window" />
                   </div>
                 </div>
               );
@@ -160,7 +185,9 @@ export function StorySequenceView({
           >
             {heading}
           </h2>
-          <p className="mt-5 max-w-[34rem] text-[1.125rem] leading-relaxed text-wine">{intro}</p>
+          <p className="mt-5 max-w-[34rem] text-[1.125rem] leading-relaxed text-pretty text-wine">
+            {intro}
+          </p>
 
           <ol className="mt-10 lg:mt-4">
             {steps.map((step, index) => (
@@ -170,7 +197,7 @@ export function StorySequenceView({
                   stepRefs.current[index] = element;
                 }}
                 data-active={index === active ? '' : undefined}
-                className="story-step group/step border-t border-wine/20 py-8 lg:flex lg:min-h-[62svh] lg:flex-col lg:justify-center lg:border-t-0 lg:py-0"
+                className="story-step group/step border-t border-wine/20 py-8 lg:flex lg:min-h-[50svh] lg:flex-col lg:justify-center lg:border-t-0 lg:py-0"
               >
                 {step.media ? (
                   // Phones and tablets: the step's own picture above its words.
@@ -178,7 +205,7 @@ export function StorySequenceView({
                     aria-hidden
                     className="relative isolate mb-6 aspect-[4/5] w-full max-w-[28rem] overflow-hidden rounded-[1.5rem] bg-forest-950 lg:hidden"
                   >
-                    <Media media={step.media} playing sizes="(min-width: 750px) 28rem, 100vw" />
+                    <Media media={step.media} playing frame="step" />
                   </div>
                 ) : null}
                 <p className="flex items-center gap-3 font-headline text-[1rem] tracking-[0.08em] text-wine">
@@ -192,7 +219,7 @@ export function StorySequenceView({
                 <h3 className="mt-3 font-headline text-[2rem] leading-[1.05] text-cherry uppercase min-[46.875rem]:text-[2.5rem]">
                   {step.title}
                 </h3>
-                <p className="mt-3 max-w-[32rem] text-[1.0625rem] leading-relaxed text-wine">
+                <p className="mt-3 max-w-[32rem] text-[1.0625rem] leading-relaxed text-pretty text-wine">
                   {step.text}
                 </p>
               </li>

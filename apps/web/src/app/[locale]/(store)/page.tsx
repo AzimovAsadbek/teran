@@ -3,13 +3,12 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
-import { BusinessSection } from '@/components/home/business-section';
+import { BusinessCloser, BusinessSection } from '@/components/home/business-section';
 import {
   CategoryMarquee,
   PairSection,
   PromoStrip,
   SloganBand,
-  ValuesBanner,
 } from '@/components/home/editorial-sections';
 import { FamilyFeature } from '@/components/home/family-feature';
 import { Hero } from '@/components/home/hero';
@@ -21,7 +20,6 @@ import { StoreStructuredData } from '@/components/seo/store-structured-data';
 import { brandCopy } from '@/content/brand';
 import { getPrerenderSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import { visualFor } from '@/lib/visuals';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -35,15 +33,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The home page as one narrative (docs/design/design-system.md, "Home"): the promo strip · the
- * first view (the film and the five TERAN pouches) · the category ribbon · the signature range
- * (the five teas, one stage) · the whole range at a glance · the cold drinks (once stocked) ·
- * TERAN for business (who TERAN works with, each a way into the request form) · new arrivals and
- * picks · the story from the garden to the cup · the gift sets (once stocked) · what TERAN stands
- * for · the journal · the slogan. Catalogue sections stream at request
- * time, each in its own Suspense boundary; anything without real content is left out. The first
- * view's and the pictured sections' pictures are prerendered with the page when the API answers
- * (ADR-039).
+ * The home page as one narrative (docs/design/design-system.md, "Experience upgrade"): the promo
+ * strip · the first view (the film and the five TERAN pouches) · the category ribbon · the five
+ * teas on one stage · the whole range at a glance · the cold drinks (once stocked) · TERAN for
+ * business (who TERAN works with, the proof and the process) · the story from the garden to the
+ * cup · new arrivals beyond the five teas · the gift sets (once stocked) · the journal · the request
+ * again · the slogan. Catalogue sections stream at request time, each in its own Suspense boundary;
+ * anything without real content is left out. The first view's and the business section's pictures
+ * are prerendered with the page when the API answers (ADR-039). What TERAN stands for is the
+ * footer's, on every page.
  */
 /** The gift sets' feature, with the way in for corporate gifts. */
 async function GiftFeature() {
@@ -63,7 +61,6 @@ export default async function HomePage() {
   // there renders the page again), go into the prerendered page itself (ADR-039). Without an
   // answer from the API (a build with none, ADR-008) each place reads its picture at request time.
   const settings = await getPrerenderSettings(locale);
-  const photo = (slot: string) => visualFor(settings, slot);
 
   return (
     <>
@@ -86,24 +83,20 @@ export default async function HomePage() {
         <FamilyFeature slug="drinks" tone="summer" />
       </Suspense>
       <BusinessSection settings={settings} />
-      <Suspense fallback={<RailFallback />}>
-        <NewArrivalsRail />
-      </Suspense>
       <Suspense fallback={<div aria-hidden className="h-[60rem] bg-lavender" />}>
         <StorySequence />
+      </Suspense>
+      <Suspense fallback={<RailFallback />}>
+        <NewArrivalsRail />
       </Suspense>
       <Suspense fallback={null}>
         <GiftFeature />
       </Suspense>
-      {settings ? (
-        <ValuesBanner photo={photo('home.values')} />
-      ) : (
-        <Suspense fallback={<ValuesBanner />}>
-          <ValuesBanner withPhoto />
-        </Suspense>
-      )}
       <Suspense fallback={null}>
         <PairSection />
+      </Suspense>
+      <Suspense fallback={null}>
+        <BusinessCloser />
       </Suspense>
       <SloganBand />
       <Suspense fallback={null}>

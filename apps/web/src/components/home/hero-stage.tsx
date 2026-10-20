@@ -202,7 +202,7 @@ export function HeroStage({
           </p>
           {words.text ? (
             <p
-              className="arrive-rise mt-4 line-clamp-2 max-w-[30rem] text-[0.8125rem] leading-normal font-semibold text-ivory-50 max-lg:hidden lg:mt-6 lg:text-[1.0625rem]"
+              className="arrive-rise mt-4 max-w-[30rem] text-[0.8125rem] leading-normal font-semibold text-ivory-50 max-lg:hidden lg:mt-6 lg:text-[1.0625rem]"
               style={{ '--i': 0 } as CSSProperties}
             >
               {words.text}

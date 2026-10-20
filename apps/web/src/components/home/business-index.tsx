@@ -53,7 +53,7 @@ export function BusinessIndex({ title, cases }: { title: string; cases: Business
                 onPointerEnter={() => setActive(index)}
                 onFocus={() => setActive(index)}
                 data-active={index === active ? '' : undefined}
-                className="group/case flex items-center gap-4 py-4 focus-visible:outline-offset-4 min-[46.875rem]:gap-6 lg:py-5"
+                className="group/case flex items-center gap-4 py-4 focus-visible:outline-sun focus-visible:outline-offset-4 min-[46.875rem]:gap-6 lg:py-5"
               >
                 <span
                   aria-hidden
@@ -75,11 +75,12 @@ export function BusinessIndex({ title, cases }: { title: string; cases: Business
                     {item.text}
                   </span>
                 </span>
+                {/* An arrow on (not out of) the page: every row leads to TERAN's own form. */}
                 <span
                   aria-hidden
-                  className="flex size-11 shrink-0 -rotate-45 items-center justify-center rounded-full border border-ivory-50/40 text-ivory-50 transition-[rotate,background-color,border-color,color] duration-500 ease-[var(--ease-out-expo)] group-hover/case:rotate-0 group-hover/case:border-sun group-hover/case:bg-sun group-hover/case:text-ink-900 lg:group-data-[active]/case:rotate-0"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full border border-ivory-50/40 text-ivory-50 transition-[background-color,border-color,color] duration-500 ease-[var(--ease-out-expo)] group-hover/case:border-sun group-hover/case:bg-sun group-hover/case:text-ink-900"
                 >
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-5 w-5 transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover/case:translate-x-0.5" />
                 </span>
               </Link>
             </li>

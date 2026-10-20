@@ -274,25 +274,32 @@ look: the teal frame, gold Oswald headlines, films, pills and rounded banners ar
 The client found the refined storefront still too ordinary; the home page became one narrative
 and business its centre ([ADR-050](../architecture/decisions.md)), with the identity unchanged.
 
-- **Rhythm of surfaces:** film (first view) · jade ribbon · pack-tinted stage · ivory tiles · sky
-  (cold drinks) · deep teal `teal-ink` (business) · white rows · lavender (story) · black and gold
-  (gift sets) · photograph (values) · white (journal) · aqua (slogan) · teal footer. No two
-  neighbouring sections share a surface.
-- **Type:** Fraunces for section headings (up to 4.25rem), Oswald capitals for eyebrows, steps
-  and the business index (2.5rem), Nunito for text; the first view keeps the largest headline.
-- **Business index:** rows of kinds of business (number, name, the for-business page's line,
-  arrow disc) beside a framed picture that wipes to the row pointed at; phones show a small
-  picture in each row. Every row opens the request form with its kind chosen.
+- **Rhythm of surfaces:** film (first view) · jade ribbon · white with a pack-tinted stage · light
+  grey (the range) · sky (cold drinks) · deep teal `teal-ink` (business) · lavender (story) ·
+  white rows · black and gold (gift sets) · white (journal) · deep teal (the request again) · aqua
+  (slogan) · teal footer. No two neighbouring sections share a surface.
+- **Type:** Fraunces for section headings (up to 4.25rem), Oswald capitals for labels, steps and
+  the business index (2.5rem), Nunito for text (`text-pretty` on paragraphs, so no word is left
+  alone on a line); the first view keeps the largest headline.
+- **Business:** "TERAN for business" in Fraunces; rows of kinds of business (number, name, the
+  for-business page's line, arrow disc) beside a framed picture that wipes to the row pointed at;
+  phones show a small picture in each row; every row opens the request form with its kind chosen.
+  Under it the proof (five pouches, one pack size, straight from the importer) and "How it works"
+  in four steps. Focus rings in the dark sections are gold. Arrows point on, not out (→, not ↗):
+  every link is TERAN's own page.
 - **Story:** a sticky framed window (below the header, as tall as the view allows) beside four
-  steps; each step crossing the middle of the view wipes its picture up over the last. Phones
-  show each step's picture above its words (upright crops). Only the shown step's film plays.
+  steps of half a view each; each step crossing the middle of the view wipes its picture up over
+  the last. Pictures are the slots' upright crops, and their `sizes` follow the crop (a landscape
+  picture in an upright frame is drawn wider than the frame). Phones show each step's picture above
+  its words. Only the shown step's film plays.
 - **Product families:** mark, ink, field, swatch ring and hover light per family
   (`components/catalog/product-family.ts`); tea keeps its film and leaves.
 - **Motion vocabulary:** `--ease-out-expo` `cubic-bezier(0.16, 1, 0.3, 1)` for arrivals and
   wipes, `--ease-scene` for scrubbed scenes; arrivals 800–1100 ms (`arrive-line`, `arrive-rise`,
   `arrive-pack`, `arrive-settle`, staggered by `--i`), wipes 1000 ms (`.wipe-layer`), the card
-  light 1200 ms (`.card-sheen`). Scroll-scrubbed depth (GSAP + ScrollTrigger) only in the first
-  view and the signature stage. Nothing pins; reduced motion stills everything.
+  light 1200 ms (`.card-sheen`). Scroll-scrubbed depth (GSAP + ScrollTrigger, loaded on the first
+  scroll) only in the first view and the signature stage. Nothing pins; reduced motion stills
+  everything.
 
 ## Components
 

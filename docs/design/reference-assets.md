@@ -427,15 +427,16 @@ The home page's narrative (ADR-050) uses the pictures already imported; nothing 
 | --------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | `home.hero.1`   | The first view's film, the five pouches over it                                                               | Moc Chau tea hill film (9)                      |
 | `home.bento.1`  | The range's first tile (tea)                                                                                  | Water poured over leaves in a glass pitcher (9) |
-| `home.pair.2`   | Story step 1, "Grown in the mountains"                                                                        | Tea picker on a hillside garden (9)             |
-| `home.bento.2`  | Story step 3, "Brewed as it should be" (upright crop)                                                         | Glass teapot of brewed tea on a board (9)       |
-| `home.banner.3` | Story step 4, "Poured for every guest" (upright crop)                                                         | Tea poured from a celadon teapot (9)            |
-| `home.values`   | "What TERAN stands for"                                                                                       | Tea terraces with a tree (9)                    |
+| `home.values`   | Story step 1, "Grown in the mountains" (phone crop)                                                           | Longjing tea terraces, Hangzhou, China (9)      |
+| `home.feature`  | Story step 3, "Brewed as it should be" (phone crop)                                                           | Gongfu tea with a gaiwan, film (9)              |
+| `home.banner.3` | Story step 4, "Poured for every guest" (phone crop)                                                           | Tea poured from a celadon teapot, film (9)      |
 | `wholesale.*`   | The business index: hotels (card 2), cafés and restaurants (community), shops (card 3), distributors (card 1) | (4), (9)                                        |
 
-`home.banner.1`, `home.banner.2`, `home.feature`, `home.bento.3` and `home.bento.4` keep their
-stored pictures but are no longer shown or offered in Admin → Settings. Corporate gifts show the
-five pouches (`public/brand/packs`), not a photograph.
+`home.banner.1`, `home.banner.2`, `home.bento.2` … `home.bento.4` and `home.pair.2` keep their
+stored pictures but are no longer shown or offered in Admin → Settings; the values band left the
+home page (what TERAN stands for is in the footer). Corporate gifts show the five pouches
+(`public/brand/packs`), not a photograph. The first view's film shows a tea hill in Vietnam under
+"Premium Chinese Tea": the owner's choice of 2026-10-19, to review with ADR-050.
 
 ## Not copied
 

@@ -1,7 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import { ProductCardSkeleton, Skeleton } from '@/components/ui/skeleton';
-import { PREMIUM_COLLECTION_SLUG } from '@/content/brand';
+import { PREMIUM_COLLECTION_SLUG, teaCodeOf } from '@/content/brand';
 import { getCategories, getCollections, getProductList } from '@/lib/data/catalog';
 import { categoryTree } from '@/lib/navigation';
 import { ProductRail, type RailLabels, type RailTab } from './product-rail';
@@ -50,9 +50,10 @@ async function railLabels(): Promise<RailLabels> {
 }
 
 /**
- * Section 4: "new arrivals" and "our picks" (the admin's featured flag), across the whole range
- * (TERAN's own five teas have their own stage above, SignatureTeas). A tab that would show the
- * same products as the one before it is left out: a switch that changes nothing reads as broken.
+ * "New arrivals" and "our picks" (the admin's featured flag) beyond TERAN's own five teas, which
+ * have their own stage (SignatureTeas). A tab that would show the same products as the one before
+ * it is left out (a switch that changes nothing reads as broken), and so is the row when nothing
+ * but the five is stocked.
  */
 export async function NewArrivalsRail() {
   await connection();
@@ -78,17 +79,24 @@ export async function NewArrivalsRail() {
       cta: t('railFeaturedCta'),
     },
   ];
+  // TERAN's own five are on the stage above (signature-teas.tsx): the row shows the rest of the
+  // range, and with nothing else stocked (production today) it is left out.
+  const others = tabs.map((tab) => ({
+    ...tab,
+    products: tab.products.filter((product) => !teaCodeOf(product.slug)),
+  }));
   const shown = (tab: RailTab) =>
     tab.products
       .slice(0, 5)
       .map((product) => product.slug)
       .sort()
       .join(' ');
-  const distinct = tabs.filter(
+  const distinct = others.filter(
     (tab, index) =>
-      tab.products.length === 0 ||
-      tabs.slice(0, index).every((earlier) => shown(earlier) !== shown(tab)),
+      tab.products.length > 0 &&
+      others.slice(0, index).every((earlier) => shown(earlier) !== shown(tab)),
   );
+  if (distinct.length === 0) return null;
   return <ProductRail tabs={distinct} labels={await railLabels()} />;
 }
 

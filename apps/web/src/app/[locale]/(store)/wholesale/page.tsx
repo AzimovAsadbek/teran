@@ -261,9 +261,16 @@ export default async function WholesalePage() {
             className="min-[61.875rem]:object-right"
           />
         </Frame>
+        {/* Wide screens: the photograph's light ground continued under the words, so the heading
+            and the text stay legible where the cups reach towards them (WCAG AA). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 hidden w-[60%] bg-gradient-to-r from-[#f4f4f4] via-[#f4f4f4]/85 to-transparent min-[61.875rem]:block"
+        />
         {/* The words keep to the reference's 1440 px frame, the picture fills the width. */}
         <div className="relative z-10 order-1 mx-auto flex w-full max-w-[95rem] flex-col items-start gap-1 px-4 pt-4 min-[61.875rem]:px-10 min-[61.875rem]:pt-0">
-          <h1 id="wholesale-title" className="flex flex-col gap-1 text-[#107e84]">
+          {/* The deeper brand teal: 3:1 or more over the photograph for these large letters. */}
+          <h1 id="wholesale-title" className="flex flex-col gap-1 text-gold-800">
             <span className="font-headline text-[2rem] leading-[2.4rem] [--heading-case:none] [--headline-weight:800]">
               {landing.heroKicker}
             </span>

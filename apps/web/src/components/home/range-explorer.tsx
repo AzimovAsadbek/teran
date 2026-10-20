@@ -1,5 +1,5 @@
 import type { ImageDto, Locale, ProductSummaryDto, PublicVisualDto } from '@teran/contracts';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import type { CSSProperties } from 'react';
@@ -109,127 +109,133 @@ export async function RangeExplorer() {
   }));
 
   return (
-    <section aria-labelledby="range-title" className="container-page py-12 lg:py-20">
-      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
-        <div className="max-w-[40rem]">
-          <h2
-            id="range-title"
-            className="font-heading text-[2.25rem] leading-[1.1] text-fg min-[46.875rem]:text-[2.75rem]"
-          >
-            {t('rangeTitle')}
-          </h2>
-          <p className="mt-3 text-[1.0625rem] leading-relaxed text-fg-muted">{t('rangeText')}</p>
-        </div>
-        <Link
-          href="/catalog"
-          className="group inline-flex min-h-11 items-center gap-2 text-[1rem] font-semibold text-forest-900 underline decoration-forest-900/30 underline-offset-[6px] hover:decoration-forest-900"
-        >
-          {tn('shopAll')}
-          <ArrowRight
-            aria-hidden
-            className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-1"
-          />
-        </Link>
-      </div>
-
-      <ul className="mt-8 grid grid-cols-2 gap-3 min-[46.875rem]:gap-4 lg:mt-10 lg:auto-rows-[15.5rem] lg:grid-cols-4 min-[90rem]:auto-rows-[17.5rem]">
-        {tiles.map((tile, index) => {
-          const { family } = tile;
-          const field = (family.illustrationKey && FIELDS[family.illustrationKey]) || '#efece6';
-          return (
-            <li
-              key={family.slug}
-              className={cn(
-                'range-tile relative',
-                index === 0 || (lastAcross && index === families.length - 1)
-                  ? 'col-span-2 aspect-[4/3] min-[46.875rem]:aspect-[16/9] lg:aspect-auto'
-                  : 'aspect-[4/5] lg:aspect-auto',
-                places[index],
-              )}
-              style={{ '--i': index } as CSSProperties}
+    // On a light grey of its own, between the white of the five teas' stage and the business teal.
+    <section aria-labelledby="range-title" className="bg-surface-muted">
+      <div className="container-page py-12 lg:py-20">
+        <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+          <div className="max-w-[40rem]">
+            <h2
+              id="range-title"
+              className="font-heading text-[2.25rem] leading-[1.1] text-fg min-[46.875rem]:text-[2.75rem]"
             >
-              <Link
-                href={`/${family.path}`}
-                className="group/tile relative isolate block h-full overflow-hidden rounded-[1.5rem] focus-visible:outline-offset-4"
-                style={{ backgroundColor: field }}
+              {t('rangeTitle')}
+            </h2>
+            <p className="mt-3 text-[1.0625rem] leading-relaxed text-fg-muted">{t('rangeText')}</p>
+          </div>
+          <Link
+            href="/catalog"
+            className="group inline-flex min-h-11 items-center gap-2 text-[1rem] font-semibold text-gold-800 underline decoration-gold-800/30 underline-offset-[6px] hover:decoration-gold-800"
+          >
+            {tn('shopAll')}
+            <ArrowRight
+              aria-hidden
+              className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-1"
+            />
+          </Link>
+        </div>
+
+        <ul className="mt-8 grid grid-cols-2 gap-3 min-[46.875rem]:gap-4 lg:mt-10 lg:auto-rows-[15.5rem] lg:grid-cols-4 min-[90rem]:auto-rows-[17.5rem]">
+          {tiles.map((tile, index) => {
+            const { family } = tile;
+            const field = (family.illustrationKey && FIELDS[family.illustrationKey]) || '#efece6';
+            return (
+              <li
+                key={family.slug}
+                className={cn(
+                  'range-tile relative',
+                  index === 0 || (lastAcross && index === families.length - 1)
+                    ? 'col-span-2 aspect-[4/3] min-[46.875rem]:aspect-[16/9] lg:aspect-auto'
+                    : 'aspect-[4/5] lg:aspect-auto',
+                  places[index],
+                )}
+                style={{ '--i': index } as CSSProperties}
               >
-                <span
-                  aria-hidden
-                  className="absolute inset-0 -z-10 transition-transform duration-[1200ms] ease-[var(--ease-out-expo)] group-hover/tile:scale-[1.05]"
+                <Link
+                  href={`/${family.path}`}
+                  className="group/tile relative isolate block h-full overflow-hidden rounded-[1.5rem] focus-visible:outline-offset-4"
+                  style={{ backgroundColor: field }}
                 >
-                  {tile.visual ? (
-                    <>
-                      <span className="absolute inset-0 -z-30">
-                        <VisualPicture
-                          visual={tile.visual}
-                          sizes="(min-width: 1024px) 50vw, 100vw"
-                          position={filmPosition(tile.visual.video)}
-                        />
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 -z-10 transition-transform duration-[1200ms] ease-[var(--ease-out-expo)] group-hover/tile:scale-[1.05]"
+                  >
+                    {tile.visual ? (
+                      <>
+                        <span className="absolute inset-0 -z-30">
+                          <VisualPicture
+                            visual={tile.visual}
+                            sizes="(min-width: 1024px) 50vw, 100vw"
+                            position={filmPosition(tile.visual.video)}
+                          />
+                        </span>
+                        {tile.visual.video ? (
+                          <LoopingFilm
+                            film={tile.visual.video}
+                            phoneFilm={tile.visual.mobileVideo}
+                          />
+                        ) : null}
+                      </>
+                    ) : tile.image ? (
+                      <ProductImage
+                        image={tile.image}
+                        name={family.name}
+                        sizes={
+                          index === 0
+                            ? '(min-width: 1024px) 50vw, 100vw'
+                            : '(min-width: 1024px) 25vw, 50vw'
+                        }
+                        decorative
+                      />
+                    ) : null}
+                  </span>
+                  {/* The label plate: the family's name and count, its ranges when pointed at. */}
+                  <span className="absolute bottom-0 left-0 flex max-w-[calc(100%-1.5rem)] flex-col rounded-tr-[1.25rem] bg-ivory-50 px-4 pt-3 pb-3.5 min-[46.875rem]:px-5 min-[46.875rem]:pt-4">
+                    <span className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          'font-headline leading-none text-fg uppercase',
+                          index === 0
+                            ? 'text-[1.75rem] min-[46.875rem]:text-[2.25rem]'
+                            : 'text-[1.375rem] min-[46.875rem]:text-[1.625rem]',
+                        )}
+                      >
+                        {family.name}
                       </span>
-                      {tile.visual.video ? (
-                        <LoopingFilm film={tile.visual.video} phoneFilm={tile.visual.mobileVideo} />
-                      ) : null}
-                    </>
-                  ) : tile.image ? (
-                    <ProductImage
-                      image={tile.image}
-                      name={family.name}
-                      sizes={
-                        index === 0
-                          ? '(min-width: 1024px) 50vw, 100vw'
-                          : '(min-width: 1024px) 25vw, 50vw'
-                      }
-                      decorative
-                    />
-                  ) : null}
-                </span>
-                {/* The label plate: the family's name and count, its ranges when pointed at. */}
-                <span className="absolute bottom-0 left-0 flex max-w-[calc(100%-1.5rem)] flex-col rounded-tr-[1.25rem] bg-ivory-50 px-4 pt-3 pb-3.5 min-[46.875rem]:px-5 min-[46.875rem]:pt-4">
-                  <span className="flex items-center gap-3">
-                    <span
-                      className={cn(
-                        'font-headline leading-none text-fg uppercase',
-                        index === 0
-                          ? 'text-[1.75rem] min-[46.875rem]:text-[2.25rem]'
-                          : 'text-[1.375rem] min-[46.875rem]:text-[1.625rem]',
-                      )}
-                    >
-                      {family.name}
+                      <span
+                        aria-hidden
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forest-900 text-ivory-50"
+                      >
+                        <ArrowRight className="h-4 w-4 transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover/tile:translate-x-0.5" />
+                      </span>
                     </span>
-                    <span
-                      aria-hidden
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forest-900 text-ivory-50 transition-transform duration-500 ease-[var(--ease-out-expo)] group-hover/tile:rotate-45"
-                    >
-                      <ArrowUpRight className="h-4 w-4" />
+                    <span className="mt-1 text-[0.875rem] text-fg-muted">
+                      {tc('results', { count: family.productCount })}
                     </span>
-                  </span>
-                  <span className="mt-1 text-[0.875rem] text-fg-muted">
-                    {tc('results', { count: family.productCount })}
-                  </span>
-                  {family.children.length > 0 ? (
-                    // As wide as the plate already is (width 0, min-width 100%), so the ranges
-                    // never stretch the label.
-                    <span className="grid w-0 min-w-full grid-rows-[0fr] transition-[grid-template-rows] duration-500 ease-[var(--ease-out-expo)] group-hover/tile:grid-rows-[1fr] group-focus-visible/tile:grid-rows-[1fr] max-lg:hidden">
-                      <span className="overflow-hidden">
-                        <span className="flex flex-wrap gap-1.5 pt-2.5">
-                          {family.children.map((child) => (
-                            <span
-                              key={child.slug}
-                              className="rounded-full bg-jade-100 px-2.5 py-1 text-[0.8125rem] leading-none font-medium text-teal-ink"
-                            >
-                              {child.name}
-                            </span>
-                          ))}
+                    {family.children.length > 0 ? (
+                      // As wide as the plate already is (width 0, min-width 100%), so the ranges
+                      // never stretch the label.
+                      <span className="grid w-0 min-w-full grid-rows-[0fr] transition-[grid-template-rows] duration-500 ease-[var(--ease-out-expo)] group-hover/tile:grid-rows-[1fr] group-focus-visible/tile:grid-rows-[1fr] max-lg:hidden">
+                        <span className="overflow-hidden">
+                          <span className="flex flex-wrap gap-1.5 pt-2.5">
+                            {family.children.map((child) => (
+                              <span
+                                key={child.slug}
+                                className="rounded-full bg-jade-100 px-2.5 py-1 text-[0.8125rem] leading-none font-medium text-teal-ink"
+                              >
+                                {child.name}
+                              </span>
+                            ))}
+                          </span>
                         </span>
                       </span>
-                    </span>
-                  ) : null}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                    ) : null}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </section>
   );
 }

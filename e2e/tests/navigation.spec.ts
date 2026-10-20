@@ -60,7 +60,7 @@ test.describe('navigation', () => {
     page,
   }) => {
     await page.goto('/en');
-    const business = page.getByRole('region', { name: 'Grow with TERAN.' });
+    const business = page.getByRole('region', { name: 'TERAN for business' });
     const hotels = business.getByRole('link', { name: /^Hotels/ });
     await hotels.scrollIntoViewIfNeeded();
     await expect(hotels).toHaveAttribute('href', /\/wholesale\?type=HOTEL#request$/);

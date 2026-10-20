@@ -55,7 +55,7 @@ test.describe('phone', () => {
     page,
   }) => {
     await page.goto('/en');
-    // One page heading (for screen readers), the tagline in view and the pill to the teas.
+    // One page heading (for screen readers), the tagline in view and the pill to the five teas.
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
     await expect(page.getByText('Deep Taste.', { exact: true }).first()).toBeVisible();
     const pill = page.getByRole('link', { name: 'Shop teas', exact: true }).first();
@@ -64,8 +64,9 @@ test.describe('phone', () => {
     await expect(page.locator('[aria-roledescription="carousel"]')).toHaveCount(0);
     await expect(page.locator('[aria-roledescription="slide"]')).toHaveCount(0);
     await expectNoSidewaysScroll(page);
+    // The pill opens the five teas the view shows (the premium collection).
     await pill.click();
-    await expect(page).toHaveURL(/\/en\/catalog$/);
+    await expect(page).toHaveURL(/\/en\/collections\/teran-premium$/);
   });
 
   test('a category with a very long name fits the phone, on its page and in the menu @mobile', async ({

@@ -1165,12 +1165,14 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
 
 - **The home page is one narrative** (`app/[locale]/(store)/page.tsx`): promo strip · first view ·
   category ribbon · the five TERAN teas on one stage · the whole range at a glance · the cold drinks
-  (once stocked) · TERAN for business · new arrivals · the story from the garden to the cup · the
-  gift sets (once stocked) · what TERAN stands for · the journal · the slogan. The story and
-  brewing banners, category shortcuts, bento, gallery band, collage, media band and the
-  collections and categories rows leave the home page; their components stay in the code (unused).
+  (once stocked) · TERAN for business · the story from the garden to the cup · new arrivals beyond
+  the five teas · the gift sets (once stocked) · the journal · the request again · the slogan. The
+  story, brewing and values banners, category shortcuts, bento, gallery band, collage, media band
+  and the collections and categories rows leave the home page (what TERAN stands for stays in the
+  footer, on every page); their components stay in the code (unused).
 - **First view:** TERAN's words on the left over the film, the five pouches standing on its lower
-  edge, one primary action ("Shop teas") and one quiet second ("For business →"). As the page
+  edge, one primary action ("Shop teas", to the five teas: the premium collection) and one quiet
+  second ("For business →"). As the page
   scrolls the film, the words and the pouches move at different speeds (depth), and the pouches
   part as the view leaves.
 - **Signature stage:** the five teas as tabs on one stage tinted (16 %) in the chosen tea's pack
@@ -1178,12 +1180,16 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
 - **The range at a glance:** one tile per stocked family (tea first), each with its picture, name,
   count and ranges. **Family features** (cold drinks, gift sets) render only from three stocked
   products, from catalogue data alone.
-- **Business is central.** A home section names the partnership in the brand's words and indexes
-  the kinds of business TERAN serves (the for-business page's own lines), each leading to the
-  request form with its kind chosen (`/wholesale?type=HOTEL#request`; the form takes `type` from
-  the address without being rendered again). The header's text link becomes "For business" (the
+- **Business is central.** A home section, "TERAN for business", says what TERAN offers businesses,
+  indexes the kinds of business it serves, each leading to the request form with its kind chosen
+  (`/wholesale?type=HOTEL#request`; the form takes `type` from the address without being rendered
+  again), and gives its proof and process: five teas in one pack size straight from the importer,
+  and the four steps from request to supply. The page closes with the request again (the form,
+  phone and Telegram). Every word is the for-business page's own. The header's text link becomes "For business" (the
   store finder stays in the "About" menu, the drawer and the footer); the drawer has a "For
   business" row; product pages carry one line to the request form.
+- **New arrivals and picks** show the range beyond the five teas (the stage has them); with nothing
+  else stocked the row is left out.
 - **Product families** (`components/catalog/product-family.ts`): a card's category line takes its
   family's mark and ink, a cut-out stands on its family's field, the second-picture swatch is
   ringed in the family's colour, and cold drinks, water and gift sets catch a band of light while
@@ -1194,19 +1200,21 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
   scroll-linked rises (`animation-timeline: view()`, transform only); clip-path wipes for the
   framed pictures of the story and the business index; GSAP 3.15 with ScrollTrigger only for the
   first view's and the signature stage's scrubbed depth (`lib/scroll-scene.ts`: loaded on the
-  visitor's first scroll, touch or key, inside `gsap.matchMedia('(prefers-reduced-motion:
-no-preference)')`, reverted on unmount).
-  Nothing is pinned and scrolling is never taken over; with reduced motion nothing moves.
+  visitor's first scroll, touch or key, set up only without a reduced-motion preference, reverted
+  on unmount). Nothing is pinned and scrolling is never taken over; with reduced motion nothing
+  moves.
 - **Demonstration range:** 22 more demonstration products (matcha, infusions, cold drinks — iced
   tea, water, juice — teaware, a black tea and a gift set) with a flavour attribute and a caffeine
   filter, loaded only with `SEED_TEST_CATALOGUE=true` like the rest of the test range. In
   presentation mode (`DEMO_PHOTOS_DIR`) a product without a photograph is not created.
-- **Page pictures:** Admin → Settings offers the home places in use (first view, the range's first
-  tile, the story's three pictured steps, the values band); the earlier home slots keep their
-  stored pictures but are no longer offered.
+- **Page pictures:** Admin → Settings offers the home places in use: the first view, the range's
+  first tile and the story's three pictured steps (Chinese tea terraces `home.values`, the gongfu
+  tray `home.feature`, the celadon pour `home.banner.3`; the story shows their phone crops). The
+  earlier home slots keep their stored pictures but are no longer offered.
 
-**Consequences.** The story shows the pictures already set for `home.pair.2`, `home.bento.2` and
-`home.banner.3` (their admin labels now say so); the owner should review them before release.
+**Consequences.** The story shows the pictures already set for `home.values` (the Longjing
+terraces of Hangzhou the owner chose for the values band), `home.feature` and `home.banner.3`
+(their admin labels now say so); the owner should review them before release.
 GSAP loads only on a page with a scrubbed scene, once the visitor first scrolls it, so no first view
 waits for it (measured on a local production build, 2026-10-20: phone Lighthouse 74–76 against the
 original design's 73–76, total blocking time 140–200 ms against 220–260 ms; desktop 97 against 98;

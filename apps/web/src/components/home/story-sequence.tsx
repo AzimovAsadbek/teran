@@ -11,8 +11,9 @@ import { StorySequenceView, type StoryStep } from './story-sequence-view';
  * The story of the name, told from the garden to the cup (the home page's editorial moment): the
  * official heading and its first sentence, then four steps — the mountain gardens, the five teas'
  * own leaves (the owner's photographs), the brewing printed on the packs, and the guest it is
- * poured for (the brand's own line). Each step brings its picture or film from Admin → Settings
- * (`home.pair.2`, `home.bento.2`, `home.banner.3`); a step without one keeps its words only.
+ * poured for (the story's own second sentence). Each step brings its picture or film from
+ * Admin → Settings — Chinese tea terraces (`home.values`), the gongfu tray (`home.feature`) and
+ * the celadon pour (`home.banner.3`); a step without one keeps its words only.
  */
 export async function StorySequence() {
   await connection();
@@ -25,8 +26,8 @@ export async function StorySequence() {
     ),
     getPublicSettings(locale).catch(() => null),
   ]);
-  const garden = visualFor(settings, 'home.pair.2');
-  const brew = visualFor(settings, 'home.bento.2');
+  const garden = visualFor(settings, 'home.values');
+  const brew = visualFor(settings, 'home.feature');
   const guest = visualFor(settings, 'home.banner.3');
   const copy = brandCopy[locale];
   const leaves: { code: string; image: ImageDto }[] = (list?.items ?? [])
@@ -61,7 +62,8 @@ export async function StorySequence() {
     {
       key: 'guest',
       title: t('storySteps.guest.title'),
-      text: copy.description,
+      // The story's second sentence (the first opens the section; the tagline is the first view's).
+      text: copy.story.paragraphs[1] ?? copy.description,
       media: guest ? { kind: 'visual', visual: guest } : null,
     },
   ];

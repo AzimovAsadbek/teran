@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
-import { BRAND, brandCopy } from '@/content/brand';
+import { BRAND, brandCopy, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { getPublicSettings } from '@/lib/data/content';
 import { visualFor } from '@/lib/visuals';
 import lake from '../../../public/brand/art/lake.webp';
@@ -35,7 +35,8 @@ export async function Hero({ settings = null }: { settings?: PublicSettingsDto |
     eyebrow: `${BRAND.name}® · ${BRAND.descriptor}`,
     lines: sentences(copy.tagline),
     text: copy.description,
-    cta: { href: '/catalog', label: t('heroCta') },
+    // The five teas the view shows, not the whole catalogue (where other products may lead).
+    cta: { href: `/collections/${PREMIUM_COLLECTION_SLUG}`, label: t('heroCta') },
     business: { href: '/wholesale', label: tn('wholesale') },
   };
   const labels: HeroLabels = {

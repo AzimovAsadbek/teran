@@ -1,5 +1,5 @@
 import type { Locale, OrderDto } from '@teran/contracts';
-import { CircleCheck, SearchX } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -7,6 +7,7 @@ import { Suspense } from 'react';
 import { OrderStatusView } from '@/components/orders/order-view';
 import { ButtonLink } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StateMessage } from '@/components/ui/state-message';
 import { apiFindAsVisitor } from '@/lib/api/server';
 
 const ORDER_NUMBER = /^TRN-[0-9A-Z]{8}$/;
@@ -38,16 +39,19 @@ async function OrderView({
       : null;
 
   if (!order) {
+    const th = await getTranslations('Help');
     return (
-      <div className="flex flex-col items-center py-16 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-muted text-fg">
-          <SearchX aria-hidden className="h-7 w-7" />
-        </span>
-        <h1 className="mt-5 text-display-md text-fg">{t('orderNotFound')}</h1>
-        <ButtonLink href="/catalog" variant="secondary" className="mt-8">
-          {t('continueShopping')}
-        </ButtonLink>
-      </div>
+      <StateMessage
+        framed={false}
+        title={t('orderNotFound')}
+        text={
+          ORDER_NUMBER.test(number)
+            ? t('orderNotFoundHelp', { number })
+            : t('orderNotFoundHelpPlain')
+        }
+        primary={{ href: '/contact', label: th('contactTitle') }}
+        secondary={{ href: '/catalog', label: t('continueShopping') }}
+      />
     );
   }
 

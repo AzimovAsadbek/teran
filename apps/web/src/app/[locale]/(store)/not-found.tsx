@@ -3,10 +3,10 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { ProductRail } from '@/components/home/product-rail';
 import { RailFallback } from '@/components/home/rail-sections';
-import { Link } from '@/i18n/navigation';
+import { StateMessage } from '@/components/ui/state-message';
 import { getProductList } from '@/lib/data/catalog';
 
-/** The reference's "Discover something new" row under its missing page: TERAN's newest teas. */
+/** "Discover something new" under the missing page: TERAN's featured teas. */
 async function Suggestions() {
   await connection();
   const locale = await getLocale();
@@ -15,7 +15,9 @@ async function Suggestions() {
     getTranslations('Home'),
     getTranslations('Nav'),
   ]);
-  const list = await getProductList(locale, 'pageSize=8&sort=newest').catch(() => null);
+  const list = await getProductList(locale, 'featured=true&pageSize=8&sort=featured').catch(
+    () => null,
+  );
   if (!list || list.items.length === 0) return null;
   return (
     <ProductRail
@@ -40,27 +42,20 @@ async function Suggestions() {
 }
 
 /**
- * The reference's missing page: a condensed title, one line and the teal "continue shopping" pill,
- * centred in a 450 px band, then a row of products to discover, both in its 1440 px frame.
+ * The missing page on the one state pattern (components/ui/state-message.tsx): what happened, the
+ * way home and the way to the teas, then a row of TERAN's teas to discover.
  */
 export default async function NotFound() {
-  const [t, tc] = await Promise.all([getTranslations('Errors'), getTranslations('Cart')]);
+  const [t, tn] = await Promise.all([getTranslations('Errors'), getTranslations('Nav')]);
   return (
     <>
-      <div className="container-frame flex min-h-[28.125rem] flex-col items-center justify-center gap-5 py-[6.25rem] text-center">
-        <h1 className="max-w-[48.75rem] font-headline text-[1.5rem] leading-none text-fg [--heading-case:none] [--headline-weight:800]">
-          {t('notFoundTitle')}
-        </h1>
-        <p className="max-w-[32.5rem] text-[1rem] leading-[1.6rem] font-medium text-fg">
-          {t('notFoundText')}
-        </p>
-        <Link
-          href="/catalog"
-          className="pill-hover mt-[0.9375rem] inline-flex min-h-11 items-center rounded-full bg-forest-900 px-8 pt-[0.5625rem] pb-[0.4375rem] text-[1rem] leading-4 font-semibold text-white"
-        >
-          {tc('continueShopping')}
-        </Link>
-      </div>
+      <StateMessage
+        eyebrow="404"
+        title={t('notFoundTitle')}
+        text={t('notFoundText')}
+        primary={{ href: '/', label: t('backHome') }}
+        secondary={{ href: '/catalog', label: tn('allTeas') }}
+      />
       <Suspense fallback={<RailFallback />}>
         <Suggestions />
       </Suspense>

@@ -431,6 +431,7 @@
     "title": "Bag",
     "drawerTitle": "Your bag",
     "empty": "Your bag is empty",
+    "byRequestTitle": "Orders are taken by request",
     "emptyText": "Find something you like in our tea catalogue.",
     "startShopping": "Start shopping",
     "subtotal": "Subtotal",
@@ -626,6 +627,8 @@
       "PARTIALLY_REFUNDED": "Partly refunded"
     },
     "orderNotFound": "Order not found, or the link is incorrect.",
+    "orderNotFoundHelp": "Write to us with the order number {number}, and we will look it up.",
+    "orderNotFoundHelpPlain": "Write to us, and we will look your order up.",
     "continueShopping": "Continue shopping",
     "quantityShort": "{count, plural, one {# pc} other {# pcs}}",
     "quoteError": "The delivery cost could not be calculated. Please try again.",

@@ -431,6 +431,7 @@
     "title": "Savat",
     "drawerTitle": "Sizning savatingiz",
     "empty": "Savatingiz boʻsh",
+    "byRequestTitle": "Buyurtmalar soʻrov boʻyicha qabul qilinadi",
     "emptyText": "Choylar katalogidan oʻzingizga yoqqanini tanlang.",
     "startShopping": "Xaridni boshlash",
     "subtotal": "Oraliq summa",
@@ -626,6 +627,8 @@
       "PARTIALLY_REFUNDED": "Qisman qaytarildi"
     },
     "orderNotFound": "Buyurtma topilmadi yoki havola notoʻgʻri.",
+    "orderNotFoundHelp": "Bizga {number} buyurtma raqamini koʻrsatib yozing, biz uni topamiz.",
+    "orderNotFoundHelpPlain": "Bizga yozing, biz buyurtmangizni topamiz.",
     "continueShopping": "Xaridni davom ettirish",
     "quantityShort": "{count} dona",
     "quoteError": "Yetkazib berish narxini hisoblab boʻlmadi. Qayta urinib koʻring.",

@@ -5,6 +5,8 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
 import { ResetPasswordForm } from '@/components/account/auth-forms';
+import { ButtonLink } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
 import { Link } from '@/i18n/navigation';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,20 +30,28 @@ async function ResetPassword({
     <AuthCard
       title={t('resetTitle')}
       footer={
-        <p>
-          <Link
-            href="/account/forgot-password"
-            className="font-semibold text-fg underline-offset-4 hover:underline"
-          >
-            {t('forgotPassword')}
-          </Link>
-        </p>
+        token ? (
+          <p>
+            <Link
+              href="/account/forgot-password"
+              className="font-semibold text-fg underline-offset-4 hover:underline"
+            >
+              {t('forgotPassword')}
+            </Link>
+          </p>
+        ) : undefined
       }
     >
       {token ? (
         <ResetPasswordForm token={token} />
       ) : (
-        <p className="text-center text-fg-muted">{t('resetMissingToken')}</p>
+        // A link without its token: say so as a warning, and offer the way to a new one.
+        <div className="space-y-6">
+          <Notice tone="warning">{t('resetMissingToken')}</Notice>
+          <ButtonLink href="/account/forgot-password" size="lg" className="w-full">
+            {t('forgotPassword')}
+          </ButtonLink>
+        </div>
       )}
     </AuthCard>
   );

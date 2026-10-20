@@ -5,6 +5,8 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
 import { UnsubscribeForm } from '@/components/forms/unsubscribe-form';
+import { ButtonLink } from '@/components/ui/button';
+import { Notice } from '@/components/ui/notice';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -20,7 +22,11 @@ export async function generateMetadata(): Promise<Metadata> {
 async function Unsubscribe({
   searchParams,
 }: Pick<PageProps<'/[locale]/newsletter/unsubscribe'>, 'searchParams'>) {
-  const [query, t] = await Promise.all([searchParams, getTranslations('Newsletter')]);
+  const [query, t, th] = await Promise.all([
+    searchParams,
+    getTranslations('Newsletter'),
+    getTranslations('Help'),
+  ]);
   const id = typeof query.id === 'string' ? query.id : null;
   const token = typeof query.token === 'string' ? query.token : null;
   return (
@@ -28,7 +34,13 @@ async function Unsubscribe({
       {id && token ? (
         <UnsubscribeForm id={id} token={token} />
       ) : (
-        <p className="text-center text-fg-muted">{t('unsubscribeInvalid')}</p>
+        // A link without its id or token: say so as a warning, and offer the way to write.
+        <div className="space-y-6">
+          <Notice tone="warning">{t('unsubscribeInvalid')}</Notice>
+          <ButtonLink href="/contact" size="lg" className="w-full">
+            {th('contactTitle')}
+          </ButtonLink>
+        </div>
       )}
     </AuthCard>
   );

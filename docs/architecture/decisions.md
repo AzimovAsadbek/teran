@@ -1171,8 +1171,10 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
   and the collections and categories rows leave the home page (what TERAN stands for stays in the
   footer, on every page); their components stay in the code (unused).
 - **First view:** TERAN's words on the left over the film, the five pouches standing on its lower
-  edge, one primary action ("Shop teas", to the five teas: the premium collection) and one quiet
-  second ("For business →"). As the page
+  edge and one button, "Shop teas", to the five teas (the premium collection). The black strip
+  above it is the way in for businesses — "TERAN for business", the kinds of business and "Request
+  an offer" — and the header's "Register" is a plain link like "Sign in" (the owner's decisions of
+  2026-10-20, after the critique counted three filled buttons in one view). As the page
   scrolls the film, the words and the pouches move at different speeds (depth), and the pouches
   part as the view leaves.
 - **Signature stage:** the five teas as tabs on one stage tinted (16 %) in the chosen tea's pack
@@ -1206,7 +1208,10 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
 - **Demonstration range:** 22 more demonstration products (matcha, infusions, cold drinks — iced
   tea, water, juice — teaware, a black tea and a gift set) with a flavour attribute and a caffeine
   filter, loaded only with `SEED_TEST_CATALOGUE=true` like the rest of the test range. In
-  presentation mode (`DEMO_PHOTOS_DIR`) a product without a photograph is not created.
+  presentation mode (`DEMO_PHOTOS_DIR`) a product without a photograph is not created. Their
+  photographs are 21 Pexels and Unsplash pictures the owner approved on 2026-10-20 (two of them for
+  the earlier gift sets), cropped by `scripts/build-demo-photos.ts` (reference-assets, section 11);
+  the sparkling black tea has none yet.
 - **Page pictures:** Admin → Settings offers the home places in use: the first view, the range's
   first tile and the story's three pictured steps (Chinese tea terraces `home.values`, the gongfu
   tray `home.feature`, the celadon pour `home.banner.3`; the story shows their phone crops). The

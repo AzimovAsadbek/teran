@@ -1056,7 +1056,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 20,
     brewing: null,
     art: { style: 'gift', shape: 'gift' },
-    photo: 'dark-plates',
+    photo: 'gift-boxes-black',
     name: {
       uz: 'Sovgʻa toʻplami: uch xil choy',
       ru: 'Подарочный набор: три чая',
@@ -1123,7 +1123,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
     publishedDaysAgo: 2,
     brewing: null,
     art: { style: 'gift', shape: 'gift' },
-    photo: 'tasting-set',
+    photo: 'gift-box-white',
     name: {
       uz: 'TERAN premium: sovgʻa qutisi',
       ru: 'TERAN premium: подарочная коробка',

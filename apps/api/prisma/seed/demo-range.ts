@@ -952,9 +952,9 @@ export const DEMO_RANGE_PRODUCTS: DemoProduct[] = [
       en: 'Tea caddy, 150 g',
     },
     shortDescription: {
-      uz: 'Zich qopqoqli metall quti — choyni yorugʻlik va namlikdan saqlaydi.',
-      ru: 'Металлическая банка с плотной крышкой — бережёт чай от света и влаги.',
-      en: 'A metal caddy with a tight lid that keeps tea from light and moisture.',
+      uz: 'Zich qopqoqli bambuk quti — choyni yorugʻlik va namlikdan saqlaydi.',
+      ru: 'Бамбуковая банка с плотной крышкой — бережёт чай от света и влаги.',
+      en: 'A bamboo caddy with a tight lid that keeps tea from light and moisture.',
     },
     description: described({
       uz: 'Choyni salqin, quruq va qorongʻi joyda saqlang: ochilgan paketdagi choyni qutiga oʻtkazing.',
@@ -1066,7 +1066,7 @@ export const DEMO_RANGE_ATTRIBUTE_VALUES: Record<
   'cold-brew-green-tea': { flavour: ['fresh'], sparkling: false, volume: 1000 },
   'apricot-nectar': { flavour: ['fruity', 'sweet'], sparkling: false, volume: 1000 },
   'matcha-whisk': { material: 'bamboo' },
-  'tea-caddy': { material: 'metal' },
+  'tea-caddy': { material: 'bamboo' },
   'spiced-black-tea': { 'leaf-style': 'cut', flavoured: true, flavour: ['toasty', 'citrus'] },
   // Taste notes added to the generic tea range (typical of each style).
   'classic-black-tea': { flavour: ['toasty'] },

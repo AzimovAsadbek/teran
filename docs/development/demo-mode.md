@@ -53,9 +53,10 @@ filter and two collections. Every one is a demonstration product: its descriptio
 health, caffeine-content or sourcing claim is made.
 
 Its products are drawn in code unless the seed is given real photographs. To show the range with
-tea photography (a presentation database, not CI), build the photographs from the licensed
-pictures in `apps/api/storage/` (docs/design/reference-assets.md, sections 4 and 9) into a folder
-outside the repository, then seed with it:
+photography (a presentation database, not CI), build the photographs from the licensed pictures in
+`apps/api/storage/` (docs/design/reference-assets.md, sections 4, 9 and 11 — the wider range's
+photographs are in `storage/range-photos/`) into a folder outside the repository, then seed with
+it:
 
 ```bash
 corepack pnpm --filter @teran/api exec tsx scripts/build-demo-photos.ts --out ~/teran-demo-photos

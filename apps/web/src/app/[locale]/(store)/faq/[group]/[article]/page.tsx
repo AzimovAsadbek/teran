@@ -5,11 +5,9 @@ import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Blocks } from '@/components/content/long-form';
-import { ArticleRating } from '@/components/help/article-rating';
 import {
   articleHref,
   categoryHref,
-  HelpContact,
   HelpTopBar,
   helpCategories,
   navCategories,
@@ -17,6 +15,7 @@ import {
   searchEntries,
   searchProps,
   shellLabels,
+  SupportRow,
 } from '@/components/help/help-parts';
 import { HelpSearch } from '@/components/help/help-search';
 import { HelpShell } from '@/components/help/help-shell';
@@ -54,9 +53,9 @@ export async function generateMetadata({
 }
 
 /**
- * A help article as the reference's: the trail down to the question, then a white card with a
- * soft shadow (edge to edge on phones) holding the question in 44 px, the answer in a 680 px
- * column and the "Was this article helpful?" row.
+ * A help answer on its own page (for links and search): the trail down to the question, the
+ * question in TERAN's serif and the answer at a reading measure; under it, as under every help
+ * page, the row for writing or calling.
  */
 async function HelpArticleView({
   params,
@@ -101,23 +100,14 @@ async function HelpArticleView({
         current={articleHref(category.id, article.slug)}
         labels={labels}
       >
-        <article className="pt-14 min-[48rem]:rounded-[0.5rem] min-[48rem]:bg-white min-[48rem]:p-10 min-[48rem]:shadow-[0_2px_4px_rgb(22_22_22_/_16%)]">
-          <div className="mx-auto max-w-[42.5rem]">
-            <h1 className="mb-6 text-[2.75rem] leading-[3rem] font-semibold tracking-[-0.03em] text-black">
+        <article className="pt-6 min-[48rem]:pt-0">
+          <div className="max-w-[42.5rem]">
+            <h1 className="font-heading text-[2.25rem] leading-[1.1] text-balance text-fg sm:text-[2.75rem]">
               {article.question}
             </h1>
-            <div className="space-y-6 text-[1rem] leading-6 text-[#161616]">
+            <div className="mt-6 space-y-4 text-[1.0625rem] leading-relaxed text-fg">
               <Blocks blocks={article.answer} />
             </div>
-            <ArticleRating
-              labels={{
-                question: t('helpful'),
-                yes: t('yes'),
-                no: t('no'),
-                thanks: t('thanks'),
-                thanksNo: t('thanksNo'),
-              }}
-            />
           </div>
         </article>
       </HelpShell>
@@ -133,7 +123,9 @@ export default function HelpArticlePage({ params }: PageProps<'/[locale]/faq/[gr
       <Suspense fallback={<div className="min-h-[40rem]" />}>
         <HelpArticleView params={params} />
       </Suspense>
-      <HelpContact />
+      <Suspense fallback={null}>
+        <SupportRow />
+      </Suspense>
     </>
   );
 }

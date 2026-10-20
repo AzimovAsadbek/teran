@@ -5,21 +5,17 @@ import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import {
-  ArticleCards,
-  articleHref,
   categoryHref,
-  CategoryBanner,
-  HelpContact,
   HelpTopBar,
   helpCategories,
   navCategories,
-  plainText,
+  QuestionList,
   searchEntries,
   searchProps,
   shellLabels,
+  SupportRow,
 } from '@/components/help/help-parts';
 import { HelpSearch } from '@/components/help/help-search';
-import { HelpSection } from '@/components/help/help-section';
 import { HelpShell } from '@/components/help/help-shell';
 import { faqGroups } from '@/content/pages/faq';
 import { pageMetadata } from '@/lib/seo';
@@ -46,8 +42,8 @@ export async function generateMetadata({
 }
 
 /**
- * A help-centre category as the reference's: the trail, the title with the view switch over a
- * rule, then its articles as cards (the question over three lines of the answer).
+ * A help group's page: the trail, its name, then its questions, each opening on its full answer
+ * in place (as on the help centre's front page).
  */
 async function HelpCategoryView({ params }: Pick<PageProps<'/[locale]/faq/[group]'>, 'params'>) {
   const locale = (await rootParams.locale()) as Locale;
@@ -76,22 +72,12 @@ async function HelpCategoryView({ params }: Pick<PageProps<'/[locale]/faq/[group
         current={categoryHref(category.id)}
         labels={labels}
       >
-        <CategoryBanner id={category.id} />
-        <HelpSection
-          level={1}
-          heading={category.heading}
-          headingClassName="text-[1.5rem] leading-8 font-semibold tracking-[-0.015rem] text-[#161616]"
-          headerClassName="mb-10 border-b border-[#ddd] pt-6 pb-10 min-[48rem]:pt-0"
-          labels={{ toList: t('toList'), toGrid: t('toGrid') }}
-        >
-          <ArticleCards
-            articles={category.articles.map((article) => ({
-              href: articleHref(category.id, article.slug),
-              title: article.question,
-              text: plainText(article.answer),
-            }))}
-          />
-        </HelpSection>
+        <h1 className="pt-6 font-heading text-[2.25rem] leading-tight text-fg min-[48rem]:pt-0 sm:text-[2.75rem]">
+          {category.heading}
+        </h1>
+        <div className="mt-6">
+          <QuestionList group={category.id} articles={category.articles} headingLevel="h2" />
+        </div>
       </HelpShell>
     </>
   );
@@ -104,7 +90,9 @@ export default function HelpCategoryPage({ params }: PageProps<'/[locale]/faq/[g
       <Suspense fallback={<div className="min-h-[40rem]" />}>
         <HelpCategoryView params={params} />
       </Suspense>
-      <HelpContact />
+      <Suspense fallback={null}>
+        <SupportRow />
+      </Suspense>
     </>
   );
 }

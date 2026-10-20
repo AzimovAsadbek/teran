@@ -12,7 +12,6 @@ import * as rootParams from 'next/root-params';
 import { AnnouncementForm, ContactForm } from '@/components/admin/settings-forms';
 import { VisualsManager, type VisualPlace } from '@/components/admin/visuals-manager';
 import { AccessDenied, AdminPageHeader, Panel } from '@/components/admin/ui';
-import { helpCentre } from '@/content/pages/faq';
 import { adminGet } from '@/lib/admin/server';
 import { currentUser } from '@/lib/account';
 
@@ -72,12 +71,12 @@ export default async function AdminSettingsPage() {
       t('settings.visualSlots.contactPicture'),
       t('settings.visualSizePortrait'),
     ),
-    place('help.banner', t('settings.visualSlots.helpBanner'), banner),
     // The kinds of business (components/home/business-section.tsx, on the home page and the
     // for-business page): hotels and cafés show a picture when one is set; shops, distributors
-    // and gifts show TERAN's own pouches. About TERAN and Tea 101 (ADR-051) show the pouches and
-    // the rest of the earlier for-business pictures are no longer shown, so, as the home page's
-    // earlier places below, they keep their stored pictures but are not offered here.
+    // and gifts show TERAN's own pouches. About TERAN, Tea 101 and the help centre (ADR-051)
+    // show no page pictures and the rest of the earlier for-business pictures are no longer
+    // shown, so, as the home page's earlier places below, they keep their stored pictures but
+    // are not offered here.
     place(
       'wholesale.card.2',
       t('settings.visualSlots.businessRow', { name: tw('segments.HOTEL') }),
@@ -87,13 +86,6 @@ export default async function AdminSettingsPage() {
       'wholesale.community',
       t('settings.visualSlots.businessRow', { name: tw('segments.CAFE_RESTAURANT') }),
       t('settings.visualSizeTile'),
-    ),
-    ...helpCentre('uz', false).map((category) =>
-      place(
-        `help.${category.id}`,
-        t('settings.visualSlots.helpCategory', { name: category.heading }),
-        t('settings.visualSizeTile'),
-      ),
     ),
     // The home page's pictured places, in its order (components/home): the first view, the range's
     // first family and the story's three pictured steps. The other `home.*` slots (the banners,

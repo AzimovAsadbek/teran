@@ -1,35 +1,19 @@
 import type { Locale } from '@teran/contracts';
-import { ChevronRight, House, Phone } from 'lucide-react';
-import Image, { type StaticImageData } from 'next/image';
+import { ArrowRight, ChevronRight, House, Phone, Send } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
-import { Fragment, Suspense, type ReactNode } from 'react';
-import { LinkCard, OPTION_SMALL } from '@/components/content/contact-options';
-import { VisualPicture } from '@/components/content/visual-picture';
+import type { ReactNode } from 'react';
+import { Disclosure } from '@/components/content/disclosure';
+import { Blocks } from '@/components/content/long-form';
 import type { Block } from '@/content/types';
-import { helpCentre, type HelpCategory } from '@/content/pages/faq';
+import { helpCentre, type HelpArticle, type HelpCategory } from '@/content/pages/faq';
 import { getPathname, Link } from '@/i18n/navigation';
-import { phoneLinks } from '@/lib/contact';
+import { phoneLinks, socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
 import { showPrices } from '@/lib/site';
-import { visualFor } from '@/lib/visuals';
-import lake from '../../../public/brand/art/lake.webp';
-import sprig from '../../../public/brand/art/sprig-1.webp';
-import terraces from '../../../public/brand/art/terraces.webp';
-import pack8830 from '../../../public/brand/packs/8830.webp';
-import packXc2025 from '../../../public/brand/packs/xc2025.webp';
 import type { HelpSearchLabels } from './help-search';
 import type { HelpSearchEntry } from './match';
 import type { HelpNavCategory } from './help-shell';
-
-/** TERAN's artwork for each category until a picture is set in Admin → Settings. */
-const CATEGORY_ART: Record<string, { art: StaticImageData; contain?: boolean }> = {
-  ordering: { art: packXc2025, contain: true },
-  payment: { art: lake },
-  delivery: { art: terraces },
-  tea: { art: sprig },
-  returns: { art: pack8830, contain: true },
-};
 
 /** The help centre in the reader's language (the answers as they apply now: see faqFor). */
 export function helpCategories(locale: Locale): readonly HelpCategory[] {
@@ -96,122 +80,58 @@ export async function shellLabels() {
   };
 }
 
-/** A help-centre picture: the one set in Admin → Settings for `slot`, or TERAN's artwork. */
-export async function HelpPicture({
-  slot,
-  art,
-  contain = false,
-  sizes,
-  priority = false,
-}: {
-  slot: string;
-  art: StaticImageData;
-  contain?: boolean;
-  sizes: string;
-  priority?: boolean;
-}) {
-  await connection();
-  const locale = await getLocale();
-  const visual = visualFor(await getPublicSettings(locale).catch(() => null), slot);
-  if (visual) {
-    return (
-      <div className="absolute inset-0">
-        <VisualPicture visual={visual} sizes={sizes} priority={priority} />
-      </div>
-    );
-  }
-  return (
-    <Image
-      src={art}
-      alt=""
-      fill
-      sizes={sizes}
-      quality={60}
-      priority={priority}
-      className={contain ? 'bg-[#f2f1e9] object-contain p-3' : 'object-cover'}
-    />
-  );
-}
-
 /**
- * A help category's picture at the top of its own page: the same one its card shows (its place in
- * Admin → Settings, or TERAN's artwork), so the card's picture is where it leads.
+ * A help group's questions, each opening on its full answer in place (ADR-051, UNFURL): the help
+ * centre's front page and each group's page. The answer's own page stays one link away.
  */
-export function CategoryBanner({ id }: { id: string }) {
-  const art = CATEGORY_ART[id] ?? { art: terraces };
+export async function QuestionList({
+  group,
+  articles,
+  headingLevel = 'h3',
+}: {
+  group: string;
+  articles: readonly HelpArticle[];
+  headingLevel?: 'h2' | 'h3';
+}) {
+  const t = await getTranslations('Help');
   return (
-    <div className="relative mb-8 aspect-[954/300] overflow-hidden rounded-[0.5rem] border border-[#ddd] bg-white min-[48rem]:aspect-[5/1]">
-      <Suspense fallback={null}>
-        <HelpPicture
-          slot={`help.${id}`}
-          art={art.art}
-          contain={art.contain}
-          sizes="(min-width: 78rem) 52rem, 100vw"
-        />
-      </Suspense>
+    <div className="border-t border-line">
+      {articles.map((article) => (
+        <Disclosure key={article.slug} question={article.question} headingLevel={headingLevel}>
+          <Blocks blocks={article.answer} />
+          <p>
+            <Link
+              href={articleHref(group, article.slug)}
+              className="inline-flex items-center gap-1.5 text-[0.9375rem] font-semibold text-forest-900 underline-offset-4 hover:underline"
+            >
+              {t('openAnswer')}
+              <ArrowRight aria-hidden className="h-4 w-4" />
+            </Link>
+          </p>
+        </Disclosure>
+      ))}
     </div>
   );
 }
 
-/** The reference's category cards: three to a row with the picture on top, or one row each. */
-export async function CategoryCards({ categories }: { categories: readonly HelpCategory[] }) {
-  const t = await getTranslations('Help');
-  return (
-    <ul className="grid grid-cols-2 gap-4 min-[48rem]:grid-cols-3 min-[48rem]:gap-6 min-[48rem]:group-data-[mode=list]/mode:grid-cols-1">
-      {categories.map((category) => {
-        const art = CATEGORY_ART[category.id] ?? { art: terraces };
-        return (
-          <li key={category.id}>
-            <Link
-              href={categoryHref(category.id)}
-              className="flex h-full flex-col overflow-hidden rounded-[0.5rem] border border-[#ddd] bg-white transition-[border-color,box-shadow] duration-200 hover:border-[#02b1af] hover:shadow-[inset_0_1px_2px_rgb(22_22_22_/_16%)] min-[48rem]:group-data-[mode=list]/mode:h-[10.25rem] min-[48rem]:group-data-[mode=list]/mode:flex-row"
-            >
-              <span className="relative block aspect-[954/450] w-full shrink-0 min-[48rem]:aspect-auto min-[48rem]:h-40 min-[48rem]:group-data-[mode=list]/mode:h-full min-[48rem]:group-data-[mode=list]/mode:w-[19.8125rem]">
-                <Suspense fallback={null}>
-                  <HelpPicture
-                    slot={`help.${category.id}`}
-                    art={art.art}
-                    contain={art.contain}
-                    sizes="(min-width: 48rem) 23rem, 50vw"
-                  />
-                </Suspense>
-              </span>
-              <span className="flex min-h-[5.125rem] flex-col justify-center px-4 py-3 min-[48rem]:min-h-0 min-[48rem]:justify-start min-[48rem]:group-data-[mode=list]/mode:justify-center">
-                <span className="text-[1rem] leading-6 font-semibold text-black">
-                  {category.heading}
-                </span>
-                <span className="hidden text-[0.75rem] leading-5 text-[#6a6a6a] min-[48rem]:block min-[48rem]:group-data-[mode=list]/mode:mt-3.5">
-                  {t('articleCount', { count: category.articles.length })}
-                </span>
-              </span>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-/** The reference's article cards: the question over three lines of the answer, two to a row. */
+/** Search results: the question over three lines of the answer, two to a row. */
 export function ArticleCards({
   articles,
 }: {
   articles: readonly { href: string; title: string; text: string }[];
 }) {
   return (
-    <ul className="grid grid-cols-1 gap-4 min-[48rem]:grid-cols-2 min-[48rem]:gap-6 min-[48rem]:group-data-[mode=list]/mode:grid-cols-1">
+    <ul className="grid grid-cols-1 gap-4 min-[48rem]:grid-cols-2 min-[48rem]:gap-6">
       {articles.map((article) => (
         <li key={article.href}>
           <Link
             href={article.href}
-            className="block h-full min-h-[9.375rem] rounded-[0.5rem] border border-[#ddd] bg-white p-6 transition-[border-color,box-shadow] duration-200 hover:border-[#02b1af] hover:shadow-[inset_0_1px_2px_rgb(22_22_22_/_16%)]"
+            className="block h-full min-h-[9.375rem] rounded-[1.25rem] border border-line bg-surface p-6 transition-colors duration-200 hover:border-forest-900"
           >
-            <span className="mb-1 block text-[1rem] leading-6 font-semibold text-black">
+            <span className="mb-1.5 block font-heading text-[1.1875rem] leading-snug text-fg">
               {article.title}
             </span>
-            <span className="line-clamp-3 text-[1rem] leading-6 text-[#6a6a6a]">
-              {article.text}
-            </span>
+            <span className="line-clamp-3 text-[1rem] leading-6 text-fg-muted">{article.text}</span>
           </Link>
         </li>
       ))}
@@ -219,83 +139,67 @@ export function ArticleCards({
   );
 }
 
-/** The reference's support cards: write (to the contact page) and call (TERAN's phones). */
-export async function SupportCards() {
+/**
+ * Under every help page: one row for what the answers did not settle — write to TERAN (the
+ * contact page), call or message it on Telegram (from Admin → Settings; left out when not set).
+ */
+export async function SupportRow() {
   await connection();
   const locale = (await getLocale()) as Locale;
   const [t, tp] = await Promise.all([getTranslations('Help'), getTranslations('Pages')]);
   const contact = (await getPublicSettings(locale).catch(() => null))?.contact;
   const phones = phoneLinks(contact);
-  const TITLE = 'ml-4 text-[1rem] leading-6 font-semibold text-[#161616]';
-  const BODY = 'p-4 text-[0.875rem] leading-6 text-[#6a6a6a]';
+  const telegram = socialLinks(contact).find((link) => link.network === 'telegram');
+  const quiet =
+    'inline-flex min-h-11 items-center gap-2 text-[1rem] font-semibold underline decoration-ivory-50/35 underline-offset-[6px] hover:decoration-ivory-50 focus-visible:outline-sun';
   return (
-    <ul className="grid grid-cols-1 gap-4 min-[48rem]:grid-cols-2 min-[48rem]:gap-6">
-      <li className="rounded-[0.5rem] border border-[#ddd] bg-white">
-        <Link
-          href="/contact"
-          className="flex h-[3.5625rem] items-center border-b border-[#ddd] px-4"
-        >
-          {/* The reference's envelope: a teal card with a white flap. */}
-          <svg aria-hidden viewBox="0 0 24 24" className="h-6 w-6 shrink-0">
-            <rect x="1.5" y="4.5" width="21" height="15" rx="1.8" fill="#02b1af" />
-            <path
-              d="m5.5 8.5 6.5 4.2 6.5-4.2"
-              fill="none"
-              stroke="#fff"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span className={TITLE}>{t('contactTitle')}</span>
-          <ChevronRight
-            aria-hidden
-            className="ml-auto h-6 w-6 shrink-0 text-[#afafaf]"
-            strokeWidth={2}
-          />
-        </Link>
-        <p className={BODY}>{t('contactText')}</p>
-      </li>
-      <li className="rounded-[0.5rem] border border-[#ddd] bg-white">
-        <div className="flex h-[3.5625rem] items-center border-b border-[#ddd] px-4">
-          <Phone
-            aria-hidden
-            className="h-6 w-6 shrink-0 fill-[#02b1af] text-[#02b1af]"
-            strokeWidth={1}
-          />
-          <h3 className={TITLE}>{t('callTitle')}</h3>
-        </div>
-        <div className={BODY}>
-          <p>{tp('callCardText')}</p>
+    <section aria-labelledby="help-support" className="container-page pb-16 lg:pb-24">
+      <div className="flex flex-col gap-6 rounded-[1.5rem] bg-teal-ink px-6 py-8 text-ivory-50 sm:px-10 lg:flex-row lg:items-center lg:justify-between lg:gap-12 lg:py-10">
+        <div className="max-w-[36rem]">
+          <h2
+            id="help-support"
+            className="font-heading text-[1.75rem] leading-tight sm:text-[2rem]"
+          >
+            {tp('helpCardTitle')}
+          </h2>
+          <p className="mt-2 text-[1.0625rem] leading-relaxed text-pretty text-ivory-50/85">
+            {tp('helpCardText')}
+          </p>
           {contact?.workingHours ? (
-            <p className="whitespace-pre-line">{contact.workingHours}</p>
-          ) : null}
-          {phones.length > 0 ? (
-            <p className="my-3.5 font-semibold">
-              {tp('callCardPhones')}{' '}
-              {phones.map((phone, index) => (
-                <Fragment key={phone.href}>
-                  {index > 0 ? ', ' : null}
-                  <a
-                    href={phone.href}
-                    className="text-[#107e84] underline underline-offset-2 hover:decoration-2"
-                  >
-                    {phone.label}
-                  </a>
-                </Fragment>
-              ))}
+            <p className="mt-2 text-[0.9375rem] whitespace-pre-line text-ivory-50/85">
+              {contact.workingHours}
             </p>
           ) : null}
         </div>
-      </li>
-    </ul>
+        <div className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-3">
+          <Link
+            href="/contact"
+            className="pill-hover inline-flex h-12 items-center gap-2 rounded-full bg-sun px-7 text-[1rem] font-semibold text-ink-900 focus-visible:outline-sun"
+          >
+            <Send aria-hidden className="h-4 w-4" />
+            {t('contactTitle')}
+          </Link>
+          {phones.map((phone) => (
+            <a key={phone.href} href={phone.href} className={quiet}>
+              <Phone aria-hidden className="h-4 w-4 text-sun" />
+              {phone.label}
+            </a>
+          ))}
+          {telegram ? (
+            <a href={telegram.href} target="_blank" rel="noopener noreferrer" className={quiet}>
+              {telegram.label}
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }
 
 /**
- * The top of the help centre's inner pages, as the reference's: the breadcrumbs (a house for the
- * help centre's home, then the trail, the page itself in grey) and the small search at the right
- * (under the trail on phones).
+ * The top of the help centre's inner pages: the breadcrumbs (a house for the help centre's home,
+ * then the trail, the page itself in grey) and the small search at the right (under the trail on
+ * phones).
  */
 export async function HelpTopBar({
   trail,
@@ -313,7 +217,7 @@ export async function HelpTopBar({
             <Link
               href="/faq"
               aria-label={t('home')}
-              className="-m-2.5 flex h-11 w-11 items-center justify-center text-[#161616]"
+              className="-m-2.5 flex h-11 w-11 items-center justify-center text-fg"
             >
               <House aria-hidden className="h-6 w-6" strokeWidth={2} />
             </Link>
@@ -322,18 +226,18 @@ export async function HelpTopBar({
             <li key={`${item.label}-${index}`} className="flex items-center">
               <ChevronRight
                 aria-hidden
-                className="mx-4 h-6 w-6 shrink-0 text-[#afafaf]"
+                className="mx-3 h-5 w-5 shrink-0 text-fg-subtle"
                 strokeWidth={2}
               />
               {item.href ? (
                 <Link
                   href={item.href}
-                  className="text-[1rem] leading-6 text-[#161616] hover:underline"
+                  className="text-[1rem] leading-6 text-fg underline-offset-4 hover:underline"
                 >
                   {item.label}
                 </Link>
               ) : (
-                <span aria-current="page" className="text-[1rem] leading-6 text-[#6a6a6a]">
+                <span aria-current="page" className="text-[1rem] leading-6 text-fg-subtle">
                   {item.label}
                 </span>
               )}
@@ -342,24 +246,6 @@ export async function HelpTopBar({
         </ol>
       </nav>
       {search}
-    </div>
-  );
-}
-
-/**
- * Under the help centre's categories, articles and search (where the reference has its chat card):
- * a card leading to the contact page, 1152 px wide. The help centre's front page has its support
- * cards instead.
- */
-export async function HelpContact() {
-  const t = await getTranslations('Pages');
-  return (
-    <div className="container-frame pt-[0.3125rem] pb-[2.625rem] min-[61.875rem]:pb-[3.75rem]">
-      <div className="mx-auto max-w-[72rem]">
-        <LinkCard title={t('helpCardTitle')} href="/contact">
-          <p className={OPTION_SMALL}>{t('helpCardText')}</p>
-        </LinkCard>
-      </div>
     </div>
   );
 }

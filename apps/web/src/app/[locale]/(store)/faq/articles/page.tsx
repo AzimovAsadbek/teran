@@ -2,19 +2,21 @@ import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
+import { Suspense } from 'react';
 import {
-  CategoryCards,
-  HelpContact,
+  articleHref,
+  categoryHref,
   HelpTopBar,
   helpCategories,
   navCategories,
   searchEntries,
   searchProps,
   shellLabels,
+  SupportRow,
 } from '@/components/help/help-parts';
 import { HelpSearch } from '@/components/help/help-search';
-import { HelpSection } from '@/components/help/help-section';
 import { HelpShell } from '@/components/help/help-shell';
+import { Link } from '@/i18n/navigation';
 import { pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-/** The reference's "All articles": the trail, the title with the view switch, then the categories. */
+/** "All articles": every question of the help centre, by group, each leading to its answer. */
 export default async function HelpArticlesPage() {
   const locale = (await rootParams.locale()) as Locale;
   const t = await getTranslations('Help');
@@ -52,20 +54,42 @@ export default async function HelpArticlesPage() {
         }
       />
       <HelpShell categories={navCategories(categories)} current="/faq/articles" labels={labels}>
-        <HelpSection
-          level={1}
-          heading={t('allArticles')}
-          headingClassName="text-[1.5rem] leading-8 font-semibold tracking-[-0.015rem] text-[#161616]"
-          headerClassName="mb-10 pt-6 min-[48rem]:pt-0"
-          labels={{ toList: t('toList'), toGrid: t('toGrid') }}
-        >
-          <h2 className="mb-4 text-[1.25rem] leading-7 font-semibold text-[#161616]">
-            {t('categories')}
-          </h2>
-          <CategoryCards categories={categories} />
-        </HelpSection>
+        <h1 className="pt-6 font-heading text-[2.25rem] leading-tight text-fg min-[48rem]:pt-0 sm:text-[2.75rem]">
+          {t('allArticles')}
+        </h1>
+        <div className="mt-8 grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
+          {categories.map((category) => (
+            <section key={category.id} aria-labelledby={`all-${category.id}`}>
+              <h2
+                id={`all-${category.id}`}
+                className="border-b border-line pb-3 font-heading text-[1.375rem] leading-tight text-fg"
+              >
+                <Link
+                  href={categoryHref(category.id)}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {category.heading}
+                </Link>
+              </h2>
+              <ul className="mt-3 space-y-1">
+                {category.articles.map((article) => (
+                  <li key={article.slug}>
+                    <Link
+                      href={articleHref(category.id, article.slug)}
+                      className="block py-1.5 text-[1rem] leading-snug text-fg underline-offset-4 hover:text-forest-900 hover:underline"
+                    >
+                      {article.question}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       </HelpShell>
-      <HelpContact />
+      <Suspense fallback={null}>
+        <SupportRow />
+      </Suspense>
     </>
   );
 }

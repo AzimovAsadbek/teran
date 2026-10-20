@@ -12,7 +12,7 @@ export interface HelpNavCategory {
   articles: readonly { href: string; title: string }[];
 }
 
-/** The reference's teal "list" mark that opens the help centre's article list. */
+/** The teal "list" mark that opens the help centre's article list. */
 function ListMark({ className }: { className?: string }) {
   return (
     <svg aria-hidden viewBox="0 0 16 10" className={className} fill="currentColor">
@@ -41,10 +41,10 @@ function Caret({ open }: { open: boolean }) {
 }
 
 /**
- * The frame of the help centre's inner pages (all articles, a category, an article, search), in
- * the reference's 1200 px column: from 768 px a teal list mark at the left opens the article list
- * (308 px: "All articles" with a button to fold it away, then each category, the current one open
- * on its articles and lit in pale teal, under a teal rule); the page sits to its right.
+ * The frame of the help centre's inner pages (all articles, a group, an answer, search), in a
+ * 1200 px column: from 768 px a teal list mark at the left opens the list of questions (308 px:
+ * "All articles" with a button to fold it away, then each group, the current one open on its
+ * questions and lit in pale teal, under a teal rule); the page sits to its right.
  */
 export function HelpShell({
   categories,
@@ -73,20 +73,18 @@ export function HelpShell({
         {open ? (
           <nav aria-label={labels.sidebar} className="w-[19.25rem] pt-6 pr-2">
             <div className="flex items-center justify-between pl-0">
-              <p className="text-[1.25rem] leading-7 font-semibold text-[#161616]">
-                {labels.allArticles}
-              </p>
+              <p className="font-heading text-[1.25rem] leading-7 text-fg">{labels.allArticles}</p>
               <button
                 type="button"
                 aria-label={labels.close}
                 aria-expanded
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center text-[#02b1af]"
+                className="flex h-8 w-8 items-center justify-center text-forest-900"
               >
                 <ChevronsLeft aria-hidden className="h-5 w-5" strokeWidth={2} />
               </button>
             </div>
-            <ul className="mt-6 border-l-2 border-[#02b1af] pl-[0.5625rem]">
+            <ul className="mt-6 border-l-2 border-forest-900 pl-[0.5625rem]">
               {categories.map((category) => {
                 const isOpen = expanded.has(category.id);
                 const here = category.id === currentCategory?.id;
@@ -105,7 +103,7 @@ export function HelpShell({
                             return next;
                           })
                         }
-                        className="flex h-10 w-4 shrink-0 items-center justify-center text-[#6a6a6a]"
+                        className="flex h-10 w-4 shrink-0 items-center justify-center text-fg-subtle"
                       >
                         <Caret open={isOpen} />
                       </button>
@@ -113,8 +111,8 @@ export function HelpShell({
                         href={category.href}
                         aria-current={category.href === current ? 'page' : undefined}
                         className={cn(
-                          'flex-1 rounded-[0.25rem] px-2 py-2 text-[1rem] leading-6 font-semibold text-[#161616] hover:underline',
-                          here && 'bg-[#02b1af]/10',
+                          'flex-1 rounded-[0.25rem] px-2 py-2 text-[1rem] leading-6 font-semibold text-fg hover:underline',
+                          here && 'bg-jade-100',
                         )}
                       >
                         {category.heading}
@@ -128,8 +126,8 @@ export function HelpShell({
                               href={article.href}
                               aria-current={article.href === current ? 'page' : undefined}
                               className={cn(
-                                'block rounded-[0.25rem] px-2 py-2 text-[1rem] leading-6 text-[#161616] hover:underline',
-                                article.href === current && 'bg-[#02b1af]/10 font-semibold',
+                                'block rounded-[0.25rem] px-2 py-2 text-[1rem] leading-6 text-fg hover:underline',
+                                article.href === current && 'bg-jade-100 font-semibold',
                               )}
                             >
                               {article.title}
@@ -149,7 +147,7 @@ export function HelpShell({
             aria-label={labels.open}
             aria-expanded={false}
             onClick={() => setOpen(true)}
-            className="mx-1 mt-6 flex h-11 w-11 items-center justify-center text-[#02b1af]"
+            className="mx-1 mt-6 flex h-11 w-11 items-center justify-center text-forest-900"
           >
             <ListMark className="h-[0.625rem] w-4" />
           </button>

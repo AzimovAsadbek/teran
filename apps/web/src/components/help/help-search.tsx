@@ -46,11 +46,11 @@ function Highlighted({ text, query }: { text: string; query: string }) {
 }
 
 /**
- * The help centre's search as the reference's: a white box (`hero`: 520 by 52 px with a soft
- * shadow, over the banner; `bar`: 240 by 32 px with a light edge, beside the breadcrumbs) that
- * outlines in teal while in use and opens its first four matching articles underneath, then a
- * link to all the results; Enter goes to the results page. Arrow keys move through the results
- * and Escape closes them.
+ * The help centre's search: a white box (`hero`: 640 by 56 px with a soft shadow, in the help
+ * centre's opening; `bar`: 256 by 36 px with a light edge, beside the breadcrumbs) that outlines
+ * in teal while in use and opens its first four matching questions underneath, then a link to
+ * all the results; Enter goes to the results page. Arrow keys move through the results and
+ * Escape closes them.
  */
 export function HelpSearch({
   entries,
@@ -103,20 +103,17 @@ export function HelpSearch({
 
   return (
     <div
-      className={cn(
-        'relative w-full',
-        hero ? 'h-[3.25rem] max-w-[32.5rem]' : 'h-8 min-[48rem]:w-60',
-      )}
+      className={cn('relative w-full', hero ? 'h-[3.5rem] max-w-[40rem]' : 'h-9 min-[48rem]:w-64')}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
       }}
     >
       <div
         className={cn(
-          'absolute inset-x-0 top-0 z-20 rounded-[0.25rem] bg-white',
+          'absolute inset-x-0 top-0 z-20 overflow-hidden rounded-[1rem] bg-surface',
           hero
-            ? 'shadow-[0_2px_4px_rgb(22_22_22_/_16%)] focus-within:ring-2 focus-within:ring-[#02b1af]'
-            : 'border border-[#ddd] focus-within:border-[#02b1af]',
+            ? 'shadow-[0_2px_4px_rgb(22_22_22_/_16%)] focus-within:ring-2 focus-within:ring-focus'
+            : 'border border-line-strong/45 focus-within:border-forest-900',
           !hero && showing && 'w-[min(25rem,calc(100vw-2rem))] min-[48rem]:left-auto',
         )}
       >
@@ -128,11 +125,11 @@ export function HelpSearch({
             event.preventDefault();
             if (query.trim()) router.push({ pathname: '/faq/search', query: { q: query.trim() } });
           }}
-          className={cn('flex items-center', hero ? 'h-[3.25rem] px-4' : 'h-[1.875rem] px-2')}
+          className={cn('flex items-center', hero ? 'h-[3.5rem] px-5' : 'h-[2.125rem] px-3')}
         >
           <Search
             aria-hidden
-            className={cn('shrink-0 text-[#6a6a6a]', hero ? 'h-6 w-6' : 'h-5 w-5')}
+            className={cn('shrink-0 text-fg-subtle', hero ? 'h-6 w-6' : 'h-5 w-5')}
             strokeWidth={1.75}
           />
           <label htmlFor={`${id}-input`} className="sr-only">
@@ -154,7 +151,7 @@ export function HelpSearch({
             onFocus={() => setOpen(true)}
             onKeyDown={onInputKey}
             className={cn(
-              'mx-2 min-w-0 flex-1 bg-transparent text-black outline-none placeholder:text-[#6a6a6a] [&::-webkit-search-cancel-button]:hidden',
+              'mx-2 min-w-0 flex-1 bg-transparent text-fg outline-none placeholder:text-fg-subtle [&::-webkit-search-cancel-button]:hidden',
               hero ? 'text-[1rem] leading-6' : 'text-[0.875rem] leading-5',
             )}
           />
@@ -166,7 +163,7 @@ export function HelpSearch({
                 setQuery('');
                 inputRef.current?.focus();
               }}
-              className="-m-1 flex shrink-0 items-center justify-center p-1 text-black"
+              className="-m-1 flex shrink-0 items-center justify-center p-1 text-fg"
             >
               <X aria-hidden className={hero ? 'h-6 w-6' : 'h-4 w-4'} strokeWidth={2} />
             </button>
@@ -180,7 +177,7 @@ export function HelpSearch({
                 : labels.count.replace('{count}', String(results.length))}
             </p>
             {results.length === 0 ? (
-              <p className="px-6 py-4 text-[0.875rem] leading-5 text-[#6a6a6a]">
+              <p className="px-6 py-4 text-[0.875rem] leading-5 text-fg-subtle">
                 {fill(labels.none)}
               </p>
             ) : (
@@ -190,18 +187,18 @@ export function HelpSearch({
                     <Link
                       href={entry.href}
                       onClick={() => setOpen(false)}
-                      className="flex gap-3 px-6 py-3 outline-offset-[-2px] transition-colors duration-150 hover:bg-[#f9f9f9] focus-visible:bg-[#f9f9f9]"
+                      className="flex gap-3 px-6 py-3 outline-offset-[-2px] transition-colors duration-150 hover:bg-surface-muted focus-visible:bg-surface-muted"
                     >
                       <FileText
                         aria-hidden
-                        className="mt-0.5 h-5 w-5 shrink-0 text-[#6a6a6a]"
+                        className="mt-0.5 h-5 w-5 shrink-0 text-fg-subtle"
                         strokeWidth={1.5}
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-[1rem] leading-6 text-[#161616]">
+                        <span className="block truncate text-[1rem] leading-6 text-fg">
                           <Highlighted text={entry.title} query={query} />
                         </span>
-                        <span className="block text-[0.8125rem] leading-5 text-[#6a6a6a]">
+                        <span className="block text-[0.8125rem] leading-5 text-fg-subtle">
                           {entry.trail}
                         </span>
                       </span>
@@ -212,7 +209,7 @@ export function HelpSearch({
                   <Link
                     href={{ pathname: '/faq/search', query: { q: query.trim() } }}
                     onClick={() => setOpen(false)}
-                    className="block px-6 pt-4 pb-3 text-center text-[1rem] leading-6 text-[#107e84] outline-offset-[-2px] hover:underline"
+                    className="block px-6 pt-4 pb-3 text-center text-[1rem] leading-6 text-forest-900 outline-offset-[-2px] hover:underline"
                   >
                     {fill(labels.more)}
                   </Link>

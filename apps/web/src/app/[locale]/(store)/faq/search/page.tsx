@@ -5,13 +5,13 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import {
   ArticleCards,
-  HelpContact,
   HelpTopBar,
   helpCategories,
   navCategories,
   searchEntries,
   searchProps,
   shellLabels,
+  SupportRow,
 } from '@/components/help/help-parts';
 import { HelpSearch } from '@/components/help/help-search';
 import { HelpShell } from '@/components/help/help-shell';
@@ -35,21 +35,21 @@ async function Results({ searchParams }: Pick<PageProps<'/[locale]/faq/search'>,
   const found = matchArticles(entries, query);
   return (
     <>
-      <h1 className="mb-10 border-b border-[#ddd] pt-6 pb-10 text-[1.5rem] leading-8 font-semibold tracking-[-0.015rem] text-[#161616] min-[48rem]:pt-0">
+      <h1 className="mb-8 pt-6 font-heading text-[2rem] leading-tight text-balance text-fg min-[48rem]:pt-0 sm:text-[2.5rem]">
         {query ? t('searchTitle', { query }) : t('searchEmpty')}
       </h1>
       {query && found.length === 0 ? (
-        <p className="text-[1rem] leading-6 text-[#6a6a6a]">{t('noResults', { query })}</p>
+        <p className="text-[1.0625rem] leading-relaxed text-fg-muted">
+          {t('noResults', { query })}
+        </p>
       ) : (
-        <div className="group/mode" data-mode="grid">
-          <ArticleCards
-            articles={found.map((entry) => ({
-              href: entry.href,
-              title: entry.title,
-              text: entry.text,
-            }))}
-          />
-        </div>
+        <ArticleCards
+          articles={found.map((entry) => ({
+            href: entry.href,
+            title: entry.title,
+            text: entry.text,
+          }))}
+        />
       )}
     </>
   );
@@ -80,7 +80,9 @@ export default async function HelpSearchPage({ searchParams }: PageProps<'/[loca
           <Results searchParams={searchParams} />
         </Suspense>
       </HelpShell>
-      <HelpContact />
+      <Suspense fallback={null}>
+        <SupportRow />
+      </Suspense>
     </>
   );
 }

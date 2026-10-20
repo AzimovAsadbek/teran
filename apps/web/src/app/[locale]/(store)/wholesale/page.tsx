@@ -1,5 +1,5 @@
 import type { Locale } from '@teran/contracts';
-import { Check, Leaf, Mail, Phone } from 'lucide-react';
+import { Check, Mail, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image, { type StaticImageData } from 'next/image';
 import { getLocale } from 'next-intl/server';
@@ -7,6 +7,7 @@ import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense, type CSSProperties } from 'react';
 import { teaTint } from '@/components/brand/tea-stage';
+import { Disclosure } from '@/components/content/disclosure';
 import { Blocks } from '@/components/content/long-form';
 import { BusinessTypeFromLink } from '@/components/forms/business-type-link';
 import { WholesaleForm } from '@/components/forms/wholesale-form';
@@ -381,17 +382,9 @@ export default async function WholesalePage() {
             </h3>
             <div className="mt-3 border-t border-line">
               {page.faq.items.map((item) => (
-                <details key={item.question} className="unfurl-details group border-b border-line">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 [&::-webkit-details-marker]:hidden">
-                    <span className="font-heading text-[1.1875rem] leading-snug text-fg">
-                      {item.question}
-                    </span>
-                    <Leaf aria-hidden className="unfurl-mark h-5 w-5 shrink-0 text-forest-900" />
-                  </summary>
-                  <div className="space-y-2 pb-5 text-[1rem] leading-relaxed text-fg-muted">
-                    <Blocks blocks={item.answer} />
-                  </div>
-                </details>
+                <Disclosure key={item.question} question={item.question}>
+                  <Blocks blocks={item.answer} />
+                </Disclosure>
               ))}
             </div>
             <Suspense fallback={null}>

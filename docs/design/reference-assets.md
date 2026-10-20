@@ -29,8 +29,8 @@ tea cover, the contact, help, flavour and Tea 101 pictures):
 | `home.values`                                  | desktop + phone crop | Home: the values band (the globe)                                |
 | `menu.collections`, `menu.learn`, `menu.about` | 1 each               | Desktop menus' cards (where the item has no picture of its own)  |
 | `cover:category:black-tea`                     | 1                    | Black tea: menus and category tiles                              |
-| `contact.picture`, `help.returns` (one file)   | 1                    | Contact page; the help centre's returns card                     |
-| `help.banner`, `help.tea`, `help.payment`      | 1 each               | Help centre: its banner and two category cards                   |
+| `contact.picture`, `help.returns` (one file)   | 1                    | Contact page (the help centre shows no pictures since round 4)   |
+| `help.banner`, `help.tea`, `help.payment`      | 1 each               | Not shown since round 4 (the help centre shows its answers)      |
 | `wholesale.flavour`                            | desktop + phone crop | Not shown since round 4 (the for-business page was rebuilt)      |
 | `tea101.amount`                                | 1                    | Not shown since round 4 (the pouch and its cups stand there)     |
 
@@ -75,7 +75,7 @@ show TERAN's own pictures (its pouches, the pack paintings) until TERAN uploads 
 | `product:<slug>` (the five TERAN teas)                                                                             | 2 each                              | Product cards and galleries (live: TERAN's own pouch photographs)                                                                             |
 | `cover:category:<slug>` (tea, green tea, gift sets)                                                                | 1 each                              | Category covers (live: the category illustrations)                                                                                            |
 | `cover:collection:teran-premium`                                                                                   | 1                                   | The premium collection's cover (live: its illustration)                                                                                       |
-| `help.ordering`, `help.delivery`                                                                                   | 1 each                              | Help centre: two category cards (live: TERAN artwork)                                                                                         |
+| `help.ordering`, `help.delivery`                                                                                   | 1 each                              | Not shown since round 4 (the help centre shows its answers)                                                                                   |
 | `wholesale.hero`, `wholesale.card.1` … `wholesale.card.3`, `wholesale.why`, `wholesale.community`, `wholesale.map` | desktop + phone crop (hero), 1 each | For business (live: TERAN's pouches and paintings)                                                                                            |
 
 ```bash

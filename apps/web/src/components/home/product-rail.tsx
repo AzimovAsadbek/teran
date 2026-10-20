@@ -36,8 +36,9 @@ const CARD_SIZES = '(min-width: 1024px) 22vw, (min-width: 768px) 30vw, calc(50vw
 const GRID_SIZES = '(min-width: 1920px) 440px, (min-width: 1200px) 23vw, 48vw';
 const GRID_ITEMS = 4;
 /**
- * A row that holds exactly five products (TERAN's five teas, as on the live shop) shows all five,
- * five across from 1200 px, rather than leaving one out of a row of four.
+ * A row that holds exactly five products shows all five, five across from 1200 px, rather than
+ * leaving one out of a row of four; below 1200 px it stays two by two (the fifth is behind the
+ * pill), so no card stands alone on the last line.
  */
 const WHOLE_RANGE = 5;
 const WHOLE_SIZES = '(min-width: 1920px) 352px, (min-width: 1200px) 18vw, 48vw';
@@ -291,6 +292,7 @@ export function ProductRail({
                   !grid &&
                     'md:w-[calc((100%-2rem)/3)] md:shrink-0 md:snap-start lg:w-[calc((100%-3rem)/4)]',
                   !grid && index >= 4 && 'max-md:hidden',
+                  whole && index === WHOLE_RANGE - 1 && 'max-[75rem]:hidden',
                 )}
               >
                 <ProductCard

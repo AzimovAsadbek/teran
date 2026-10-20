@@ -436,6 +436,35 @@ export function StoreLocator({ stores }: { stores: PublicStoreDto[] | null }) {
   if (stores === null) status = t('unavailable');
   else status = t('found', { count: shown.length });
 
+  // No stores entered yet: no search, radius or map with nothing on them — a calm card with the
+  // ways to ask where to buy, as the bag's state while ordering goes by request.
+  if (stores !== null && all.length === 0) {
+    return (
+      <div className="rounded-[1.5rem] border border-line px-6 py-10 sm:px-10 sm:py-12">
+        <h2 className="font-heading text-[1.75rem] leading-tight text-balance text-fg sm:text-[2.25rem]">
+          {t('emptyTitle')}
+        </h2>
+        <p className="mt-3 max-w-[36rem] text-[1.0625rem] leading-relaxed text-pretty text-fg-muted">
+          {t('emptyText')}
+        </p>
+        <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-4">
+          <Link
+            href="/contact"
+            className="pill-hover inline-flex h-12 items-center rounded-full bg-forest-900 px-7 text-[1rem] font-semibold text-ivory-50"
+          >
+            {t('emptyContact')}
+          </Link>
+          <Link
+            href="/wholesale"
+            className="inline-flex min-h-11 items-center text-[1rem] font-semibold text-forest-900 underline decoration-forest-900/35 underline-offset-[6px] hover:decoration-forest-900"
+          >
+            {t('emptyWholesale')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -601,26 +630,6 @@ export function StoreLocator({ stores }: { stores: PublicStoreDto[] | null }) {
       >
         {stores === null ? (
           <div className="p-5 text-[0.9375rem]">{t('unavailable')}</div>
-        ) : all.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 p-5">
-            <h2 className="text-[1.125rem] leading-6 font-semibold">{t('emptyTitle')}</h2>
-            <p className="text-[0.9375rem] leading-[1.4rem] text-[#444]">{t('emptyText')}</p>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pt-1">
-              <Link
-                href="/contact"
-                className="rounded-[3.125rem] px-5 pt-2.5 pb-1.5 text-[1rem] leading-[1.05rem] font-medium text-white transition-shadow hover:shadow-[inset_0_0_50px_rgb(0_0_0_/_20%)]"
-                style={{ backgroundColor: TEAL }}
-              >
-                {t('emptyContact')}
-              </Link>
-              <Link
-                href="/wholesale"
-                className="text-[0.9375rem] font-medium text-[#107e84] underline underline-offset-4"
-              >
-                {t('emptyWholesale')}
-              </Link>
-            </div>
-          </div>
         ) : shown.length === 0 ? (
           <div className="flex flex-col items-start gap-3 p-5">
             <p className="text-[0.9375rem] leading-[1.4rem]">

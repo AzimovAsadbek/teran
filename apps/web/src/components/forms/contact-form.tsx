@@ -10,6 +10,7 @@ import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { cn } from '@/lib/cn';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
+import { useOrderLine } from './order-line';
 
 const EMPTY = { name: '', phone: '', email: '', subject: '', message: '' };
 
@@ -39,21 +40,31 @@ const LINE = 'mb-1 block text-[0.75rem] leading-5 text-[#121212]';
  * list, the message box and the light "Send message" button whose edge darkens while pointed at
  * (the whole width while the panel is 768 px or narrower; it sits in the contact page's container).
  * One of phone or e-mail is needed (TERAN answers by either); errors are named under each field.
- * Reached from a tea's "Order" (`/contact?tea=…`), it opens on "Place an order" with that tea's
- * name and pack already in the message, and it comes back to that state after a reset.
+ * Reached from a tea's "Order" (`/contact?tea=…`), it takes "Place an order" and the tea's name and
+ * pack from the order summary above it (order-line.ts) while those fields are still untouched, and
+ * comes back to that state after a reset.
  */
-export function ContactForm({ orderLine }: { orderLine?: string }) {
+export function ContactForm() {
   const t = useTranslations('Forms');
   const tc = useTranslations('Common');
   const locale = useLocale() as Locale;
   const message = useValidationMessage();
   const formRef = useRef<HTMLFormElement>(null);
   const form = useFormSubmission(formRef);
-  const initial = orderLine
-    ? { ...EMPTY, subject: t('subjects.newOrder'), message: `${orderLine}\n` }
-    : EMPTY;
-  const [values, setValues] = useState(initial);
+  const orderLine = useOrderLine();
+  const ordering = (line: string | null) =>
+    line ? { subject: t('subjects.newOrder'), message: `${line}\n` } : null;
+  const [values, setValues] = useState(EMPTY);
   const id = useId();
+
+  // The summary streams in after the form: the subject and message are filled once when it arrives,
+  // unless the visitor has already chosen or written something there.
+  const [appliedLine, setAppliedLine] = useState<string | null>(null);
+  if (orderLine && orderLine !== appliedLine) {
+    setAppliedLine(orderLine);
+    const prefill = ordering(orderLine);
+    if (prefill && !values.subject && !values.message) setValues({ ...values, ...prefill });
+  }
 
   const set =
     (key: keyof typeof EMPTY) =>
@@ -84,7 +95,7 @@ export function ContactForm({ orderLine }: { orderLine?: string }) {
     return (
       <FormSuccess
         onReset={() => {
-          setValues(initial);
+          setValues({ ...EMPTY, ...ordering(orderLine) });
           form.reset();
         }}
       />

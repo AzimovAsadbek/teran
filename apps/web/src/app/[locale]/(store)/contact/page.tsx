@@ -17,6 +17,7 @@ import {
 import { VisualPicture } from '@/components/content/visual-picture';
 import { ProductImage } from '@/components/catalog/product-image';
 import { ContactForm } from '@/components/forms/contact-form';
+import { OrderLine } from '@/components/forms/order-line';
 import { brandCopy } from '@/content/brand';
 import { emailLinks, phoneLinks, socialLinks } from '@/lib/contact';
 import { getProduct } from '@/lib/data/catalog';
@@ -149,26 +150,27 @@ async function ContactOptions() {
 const TEA_SLUG = /^[a-z0-9-]{1,120}$/;
 
 /**
- * The form, and when the visitor came from a tea's "Order" (`/contact?tea=<slug>`) that tea above
- * it: its own picture (the dry leaf for TERAN's teas), name and pack, the delivery promise the
- * product page makes, and a way down to the messengers and phones; the form opens on "Place an
- * order" with the tea already written in. An unknown or missing tea leaves the plain form.
+ * When the visitor came from a tea's "Order" (`/contact?tea=<slug>`), that tea above the form: its
+ * own picture (the dry leaf for TERAN's teas), name and pack, the delivery promise the product page
+ * makes, and a way down to the messengers and phones; it hands the tea to the form (order-line.ts),
+ * which opens on "Place an order" with the tea written in. An unknown or missing tea shows nothing.
+ * It streams in on its own, so the form above which it appears is never rendered again.
  */
-async function ContactFormWithOrder({
+async function OrderSummary({
   searchParams,
 }: {
   searchParams: PageProps<'/[locale]/contact'>['searchParams'];
 }) {
   const query = await searchParams;
   const slug = typeof query.tea === 'string' && TEA_SLUG.test(query.tea) ? query.tea : null;
-  if (!slug) return <ContactForm />;
+  if (!slug) return null;
   const locale = (await getLocale()) as Locale;
   const [t, tp, product] = await Promise.all([
     getTranslations('Pages'),
     getTranslations('Product'),
     getProduct(locale, slug).catch(() => null),
   ]);
-  if (!product) return <ContactForm />;
+  if (!product) return null;
   const variant = product.defaultVariant ?? product.variants[0] ?? null;
   const pack = variant
     ? packLabel(variant, product.format, locale, (key, values) => tp(`units.${key}`, values))
@@ -176,32 +178,30 @@ async function ContactFormWithOrder({
   // TERAN's teas open on the same steaming cup; their second picture is their own leaf.
   const picture = product.images[1] ?? product.images[0] ?? null;
   return (
-    <>
-      <section
-        aria-labelledby="order-summary"
-        className="mb-6 flex gap-4 rounded-[0.5rem] bg-[#f3fafb] p-4 text-[#121212]"
-      >
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[0.375rem] bg-white">
-          <ProductImage image={picture} name={product.name} sizes="64px" decorative />
-        </div>
-        <div className="min-w-0">
-          <h2 id="order-summary" className="text-[0.75rem] leading-5 font-semibold text-[#0c504e]">
-            {t('orderSummaryTitle')}
-          </h2>
-          <p className="text-[1.0625rem] leading-6 font-bold">{product.name}</p>
-          {pack ? <p className="text-[0.9375rem] leading-5 text-[#3d4a47]">{pack}</p> : null}
-          <p className="mt-1 text-[0.875rem] leading-5">{tp('deliveryTextByContact')}</p>
-          <a
-            href="#contact-options"
-            className="mt-2 inline-flex min-h-6 items-center gap-1 text-[0.875rem] leading-5 font-semibold text-[#0c504e] underline underline-offset-2 hover:no-underline"
-          >
-            {t('orderOtherChannels')}
-            <ArrowDown aria-hidden className="h-3.5 w-3.5 shrink-0" />
-          </a>
-        </div>
-      </section>
-      <ContactForm orderLine={[product.name, pack].filter(Boolean).join(' · ')} />
-    </>
+    <section
+      aria-labelledby="order-summary"
+      className="mb-6 flex gap-4 rounded-[0.5rem] bg-[#f3fafb] p-4 text-[#121212]"
+    >
+      <OrderLine value={[product.name, pack].filter(Boolean).join(' · ')} />
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[0.375rem] bg-white">
+        <ProductImage image={picture} name={product.name} sizes="64px" decorative />
+      </div>
+      <div className="min-w-0">
+        <h2 id="order-summary" className="text-[0.75rem] leading-5 font-semibold text-[#0c504e]">
+          {t('orderSummaryTitle')}
+        </h2>
+        <p className="text-[1.0625rem] leading-6 font-bold">{product.name}</p>
+        {pack ? <p className="text-[0.9375rem] leading-5 text-[#3d4a47]">{pack}</p> : null}
+        <p className="mt-1 text-[0.875rem] leading-5">{tp('deliveryTextByContact')}</p>
+        <a
+          href="#contact-options"
+          className="mt-2 inline-flex min-h-6 items-center gap-1 text-[0.875rem] leading-5 font-semibold text-[#0c504e] underline underline-offset-2 hover:no-underline"
+        >
+          {t('orderOtherChannels')}
+          <ArrowDown aria-hidden className="h-3.5 w-3.5 shrink-0" />
+        </a>
+      </div>
+    </section>
   );
 }
 
@@ -211,7 +211,7 @@ async function ContactFormWithOrder({
  * the picture sits on top, edge to edge, and the corners go square. The panel's inner layout
  * follows its own width (container queries), as the reference's embedded form follows its frame.
  * Under it, the two option cards. A tea's "Order" brings the visitor here with that tea named
- * above the form (ContactFormWithOrder).
+ * above the form (OrderSummary).
  */
 export default async function ContactPage({ searchParams }: PageProps<'/[locale]/contact'>) {
   const t = await getTranslations('Pages');
@@ -234,9 +234,10 @@ export default async function ContactPage({ searchParams }: PageProps<'/[locale]
                     {t('contactTitle')}
                   </h1>
                   <div className="px-4 py-6 @min-[35.5rem]:px-6">
-                    <Suspense fallback={<ContactForm />}>
-                      <ContactFormWithOrder searchParams={searchParams} />
+                    <Suspense fallback={null}>
+                      <OrderSummary searchParams={searchParams} />
                     </Suspense>
+                    <ContactForm />
                   </div>
                 </div>
               </div>

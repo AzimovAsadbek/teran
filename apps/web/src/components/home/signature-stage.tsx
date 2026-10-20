@@ -77,6 +77,11 @@ export function SignatureStage({
   const baseId = useId();
   const locale = useLocale();
   const [active, setActive] = useState(0);
+  // A tea's leaf, cup and cup film load once it is shown or its tab is pointed at or focused, not
+  // all five with the page (the packs, light and always there, carry the change between teas).
+  const [seen, setSeen] = useState<ReadonlySet<number>>(() => new Set([0]));
+  const reveal = (index: number) =>
+    setSeen((current) => (current.has(index) ? current : new Set(current).add(index)));
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
   const tea = teas[active]!;
@@ -107,6 +112,7 @@ export function SignatureStage({
   });
 
   function choose(index: number, focus = false) {
+    reveal(index);
     setActive(index);
     if (focus) tabRefs.current[index]?.focus();
   }
@@ -167,7 +173,7 @@ export function SignatureStage({
                   className="group/tea absolute inset-0"
                 >
                   {/* The dry leaf, poured in front (its white ground drops into the field). */}
-                  {entry.leaves ? (
+                  {entry.leaves && seen.has(index) ? (
                     <div className="absolute bottom-[-7%] left-[-6%] w-[72%] mix-blend-multiply transition-[opacity,translate,scale] [mask-image:radial-gradient(closest-side,#000_72%,transparent)] min-[30rem]:w-[66%] duration-700 ease-[var(--ease-out-expo)] group-data-[state=after]/tea:translate-x-[8%] group-data-[state=after]/tea:scale-95 group-data-[state=after]/tea:opacity-0 group-data-[state=before]/tea:-translate-x-[8%] group-data-[state=before]/tea:scale-95 group-data-[state=before]/tea:opacity-0">
                       {/* The photograph's near-white ground lifted to white, so the multiply
                           leaves no edge. */}
@@ -206,7 +212,7 @@ export function SignatureStage({
             </div>
             {/* The brewed cup, on a saucer-white ring. */}
             {teas.map((entry, index) =>
-              entry.cup ? (
+              entry.cup && seen.has(index) ? (
                 <div
                   key={entry.code}
                   aria-hidden={index !== active}
@@ -259,6 +265,8 @@ export function SignatureStage({
                   aria-controls={`${baseId}-panel`}
                   tabIndex={on ? 0 : -1}
                   onClick={() => choose(index)}
+                  onPointerEnter={() => reveal(index)}
+                  onFocus={() => reveal(index)}
                   className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border-[1.5px] px-4 font-headline text-[1.0625rem] tracking-[0.02em] transition-[background-color,color,border-color] duration-300 ease-[var(--ease-out-expo)]"
                   style={
                     on

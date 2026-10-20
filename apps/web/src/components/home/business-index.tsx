@@ -3,6 +3,7 @@
 import { ArrowRight } from 'lucide-react';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
+import { useMatches } from '@/lib/motion';
 
 export interface BusinessCase {
   type: string;
@@ -24,6 +25,9 @@ export interface BusinessCase {
  */
 export function BusinessIndex({ title, cases }: { title: string; cases: BusinessCase[] }) {
   const [active, setActive] = useState(0);
+  // The framed window shows from 1024 px, the small pictures below it: each renders (and loads)
+  // only on the screens that show it, once the screen is known.
+  const wide = useMatches('(min-width: 1024px)');
 
   return (
     <div className="grid grid-cols-1 gap-x-16 lg:grid-cols-12 lg:items-center">
@@ -38,7 +42,7 @@ export function BusinessIndex({ title, cases }: { title: string; cases: Business
             className="wipe-layer absolute inset-0 isolate overflow-hidden"
             style={{ zIndex: index + 1 } as CSSProperties}
           >
-            <div className="wipe-layer-media absolute inset-0">{item.picture}</div>
+            <div className="wipe-layer-media absolute inset-0">{wide ? item.picture : null}</div>
           </div>
         ))}
       </div>
@@ -59,7 +63,7 @@ export function BusinessIndex({ title, cases }: { title: string; cases: Business
                   aria-hidden
                   className="relative isolate size-[4.5rem] shrink-0 overflow-hidden rounded-[1rem] bg-[#022f2f] min-[46.875rem]:size-24 lg:hidden"
                 >
-                  {item.thumb}
+                  {wide === false ? item.thumb : null}
                 </span>
                 <span
                   aria-hidden

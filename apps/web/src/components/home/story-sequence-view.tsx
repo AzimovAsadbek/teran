@@ -9,6 +9,7 @@ import { VisualPicture } from '@/components/content/visual-picture';
 import { PACK_COLOURS, type TeaCode } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
+import { useMatches } from '@/lib/motion';
 import { filmPosition } from '@/lib/visuals';
 
 type StoryMedia =
@@ -125,6 +126,9 @@ export function StorySequenceView({
 }) {
   const baseId = useId();
   const [active, setActive] = useState(0);
+  // The window shows from 1024 px, each step's own picture below it: each renders (and loads)
+  // only on the screens that show it, once the screen is known.
+  const wide = useMatches('(min-width: 1024px)');
   const stepRefs = useRef<(HTMLLIElement | null)[]>([]);
   const withMedia = steps.map((step, index) => ({ step, index })).filter(({ step }) => step.media);
 
@@ -170,7 +174,9 @@ export function StorySequenceView({
                   style={{ zIndex: index + 1 } as CSSProperties}
                 >
                   <div className="wipe-layer-media absolute inset-0">
-                    <Media media={step.media!} playing={state === 'shown'} frame="window" />
+                    {wide ? (
+                      <Media media={step.media!} playing={state === 'shown'} frame="window" />
+                    ) : null}
                   </div>
                 </div>
               );
@@ -205,7 +211,7 @@ export function StorySequenceView({
                     aria-hidden
                     className="relative isolate mb-6 aspect-[4/5] w-full max-w-[28rem] overflow-hidden rounded-[1.5rem] bg-forest-950 lg:hidden"
                   >
-                    <Media media={step.media} playing frame="step" />
+                    {wide === false ? <Media media={step.media} playing frame="step" /> : null}
                   </div>
                 ) : null}
                 <p className="flex items-center gap-3 font-headline text-[1rem] tracking-[0.08em] text-wine">

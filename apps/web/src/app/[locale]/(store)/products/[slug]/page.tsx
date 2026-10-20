@@ -293,22 +293,26 @@ async function ProductView({
                 {product.name}
               </h1>
             )}
-            {/* The customers' stars, leading to the reviews further down (ADR-042); none before
-                the first rating, so the page does not open on an absence. */}
-            {rating && rating.count > 0 ? (
-              <a
-                href="#reviews"
-                className="mt-3 inline-flex flex-wrap items-center gap-2 text-body-sm hover:underline hover:underline-offset-2"
-              >
-                <Stars value={rating.average} className="text-[1.125rem]" />
-                <span className="font-semibold text-fg">
-                  {formatAverage(rating.average, locale)}
-                </span>
-                <span className="text-fg-subtle">
-                  {t('reviews.count', { count: rating.count })}
-                </span>
-              </a>
-            ) : null}
+            {/* The customers' stars, leading to the reviews further down (ADR-042): empty, with
+                "No ratings yet", until customers rate — the owner's decision. */}
+            <a
+              href="#reviews"
+              className="mt-3 inline-flex flex-wrap items-center gap-2 text-body-sm hover:underline hover:underline-offset-2"
+            >
+              <Stars value={rating?.average ?? 0} className="text-[1.125rem]" />
+              {rating ? (
+                <>
+                  <span className="font-semibold text-fg">
+                    {formatAverage(rating.average, locale)}
+                  </span>
+                  <span className="text-fg-subtle">
+                    {t('reviews.count', { count: rating.count })}
+                  </span>
+                </>
+              ) : (
+                <span className="text-fg-subtle">{t('reviews.none')}</span>
+              )}
+            </a>
             <div className="mt-5">
               {showPrices ? (
                 <>

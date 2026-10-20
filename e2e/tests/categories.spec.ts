@@ -235,6 +235,43 @@ test.describe('multi-category catalogue', () => {
       ],
     });
 
+    // A second honey from the other flower: a filter is offered only when one of its choices
+    // narrows the listing (ADR-051), and with one product holding the only value it would not.
+    await publishProduct(request, {
+      slug: `${slug}-cotton`,
+      categoryId,
+      productTypeId: honey.id,
+      attributes: [
+        {
+          attributeId: flower.id,
+          optionIds: [flower.options.find((option) => option.key === 'cotton')!.id],
+        },
+      ],
+      format: 'OTHER',
+      isFeatured: false,
+      caffeineLevel: null,
+      brewTempCelsius: null,
+      brewTimeMinSeconds: null,
+      brewTimeMaxSeconds: null,
+      brewAmountGrams: null,
+      illustrationKey: null,
+      collectionIds: [],
+      translations: { uz: { name: 'Paxta asali' }, ru: null, en: { name: 'Cotton honey' } },
+      variants: [
+        {
+          sku: `${slug.toUpperCase()}-COTTON-500`,
+          weightGrams: 500,
+          unitCount: null,
+          price: '110000',
+          compareAtPrice: null,
+          lowStockThreshold: 2,
+          barcode: null,
+          isActive: true,
+          initialStock: 5,
+        },
+      ],
+    });
+
     // The category page filters by the new characteristic and offers no tea formats.
     await expect.poll(() => shopMenuLinks(page)).toContain(`/en/${slug}`);
     await page.goto(`/en/${slug}`);

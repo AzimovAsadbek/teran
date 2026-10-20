@@ -478,6 +478,13 @@ test.describe('admin changes reach the storefront', () => {
       }),
       PICTURES.terraces,
     );
+    // A second sweet without a filling: a filter is offered only when one of its choices narrows
+    // the listing (ADR-051), and with one product holding the only value it would not.
+    await publishProduct(
+      request,
+      product(`e2e-sweet-plain-${id}`, sweetsId, { format: 'OTHER', productTypeId: type.id }),
+      PICTURES.terraces,
+    );
     await eventually(store, `/en/e2e-sweets-${id}`, () =>
       expect(visible(store.getByRole('group', { name: 'Filling' }))).toBeVisible({
         timeout: 1_000,

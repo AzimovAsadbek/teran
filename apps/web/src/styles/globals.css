@@ -747,6 +747,21 @@
      into a ringed circle of its dry leaf beside the steaming cup — the card's leaf and cup in one
      picture, as on the five-tea stage — and shrinks back to the swatch when left (faster). The
      ring is the circle behind, 4 px wider; both circles move as one. */
+  /* The card's leaf swatch (catalog/product-card.tsx): 48 px, 64 px from 750 px, and on a touch
+     screen, where no lens opens, over a third of the picture's width. */
+  .leaf-swatch {
+    width: 3rem;
+  }
+  @media (width >= 46.875rem) {
+    .leaf-swatch {
+      width: 4rem;
+    }
+  }
+  @media (pointer: coarse) {
+    .leaf-swatch {
+      width: 38%;
+    }
+  }
   .leaf-lens {
     --lens-x: 2rem;
     --lens-y: calc(100% - 2rem);

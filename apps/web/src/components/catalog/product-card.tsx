@@ -204,13 +204,14 @@ export function ProductCard({
           // The second picture (for TERAN's teas, their own dry leaf) as a swatch on every device,
           // ringed in the pack's colour: what tells cards with the same first picture apart. It
           // steps aside while the card is pointed at (the full second picture, or the quick add,
-          // takes the picture's foot then).
+          // takes the picture's foot then); on a touch screen, where nothing is pointed at, it
+          // is larger (styles/globals.css, `.leaf-swatch`).
           <span
             aria-hidden
-            className="pointer-events-none absolute bottom-2 left-2 z-[2] block h-12 w-12 overflow-hidden rounded-full border-4 bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 min-[46.875rem]:h-16 min-[46.875rem]:w-16 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0"
+            className="leaf-swatch pointer-events-none absolute bottom-2 left-2 z-[2] block aspect-square overflow-hidden rounded-full border-4 bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0"
             style={{ borderColor: packColour ?? family.ring }}
           >
-            <ProductImage image={hoverImage} name={product.name} sizes="64px" decorative />
+            <ProductImage image={hoverImage} name={product.name} sizes="96px" decorative />
           </span>
         ) : null}
         <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 z-[1]" />

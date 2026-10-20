@@ -19,9 +19,8 @@
  * Non-destructive: a place that already has a picture (or an article, category or collection that
  * already has a cover) is left alone, unless it is the same source again or --force is passed; a
  * product keeps its own photographs. Pictures go where the API keeps them (Cloudflare R2 when R2_*
- * is set, Vercel Blob with BLOB_READ_WRITE_TOKEN, else the uploads folder). A manifest marked
- * `localOnly` (presentation material) is refused unless the database and the files stay on this
- * machine.
+ * is set, else the uploads folder). A manifest marked `localOnly` (presentation material) is
+ * refused unless the database and the files stay on this machine.
  *
  * --remove takes out what the folder put in: its page pictures (recognised by their source), its
  * product photographs (by their content) and the covers recorded in <dir>/applied.json, unless an
@@ -62,7 +61,7 @@ import { assertLocalOnly, databaseTarget, describeTarget } from '../prisma/seed/
 import { refreshStorefrontCache } from '../prisma/seed/storefront.js';
 
 const manifestSchema = z.object({
-  /** Presentation material: loaded only into a database on this machine, never into Blob. */
+  /** Presentation material: loaded only into a database on this machine, never into R2. */
   localOnly: z.boolean().default(false),
   assets: z.array(
     z.object({

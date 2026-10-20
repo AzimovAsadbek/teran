@@ -17,19 +17,16 @@ import { ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagg
 import {
   adminMediaListQuerySchema,
   idSchema,
-  mediaDirectUploadCompleteSchema,
-  mediaDirectUploadSchema,
+  MAX_VIDEO_UPLOAD_BYTES,
   mediaReorderSchema,
   mediaUpsertSchema,
-  type AdminDirectUpload,
   type AdminMediaItem,
-  type AdminMediaUploadLimits,
 } from '@teran/contracts';
 import type { z } from 'zod';
 import { RequireStaff } from '../auth/auth.guard.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { CurrentActor, type Actor } from './admin-support.js';
-import { AdminMediaService, MAX_VIDEO_UPLOAD_BYTES } from './media.service.js';
+import { AdminMediaService } from './media.service.js';
 
 type MediaPayload = z.output<typeof mediaUpsertSchema>;
 
@@ -46,16 +43,6 @@ export class AdminMediaController {
     @Query({ schema: adminMediaListQuerySchema }) query: z.output<typeof adminMediaListQuerySchema>,
   ): Promise<AdminMediaItem[]> {
     return this.media.list(query.kind);
-  }
-
-  @Get('upload-limits')
-  @Header('Cache-Control', 'private, no-store')
-  @ApiOperation({
-    summary: 'How large a film can be uploaded, through the API or straight to storage',
-  })
-  @ApiOkResponse({ description: 'AdminMediaUploadLimits' })
-  uploadLimits(): AdminMediaUploadLimits {
-    return this.media.uploadLimits();
   }
 
   @Put('order')
@@ -139,35 +126,6 @@ export class AdminMediaController {
   ): Promise<AdminMediaItem> {
     if (!file) throw ApiException.badRequest('BAD_REQUEST', 'Attach a video in the "file" field');
     return this.media.setVideo(id, file.buffer, actor);
-  }
-
-  @Post(':id/video/direct')
-  @HttpCode(200)
-  @ApiOperation({
-    summary: 'Permission to upload the video file straight to object storage',
-    description:
-      'Returns a short-lived token for one file of the stated type and size; 409 with reason ' +
-      'direct_upload_unavailable when no object storage is configured.',
-  })
-  @ApiOkResponse({ description: 'AdminDirectUpload' })
-  startDirectVideo(
-    @Param('id', { schema: idSchema }) id: string,
-    @Body({ schema: mediaDirectUploadSchema }) body: z.output<typeof mediaDirectUploadSchema>,
-  ): Promise<AdminDirectUpload> {
-    return this.media.startDirectVideo(id, body);
-  }
-
-  @Post(':id/video/direct/complete')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Check and record a video file uploaded straight to storage' })
-  @ApiOkResponse({ description: 'AdminMediaItem' })
-  completeDirectVideo(
-    @Param('id', { schema: idSchema }) id: string,
-    @Body({ schema: mediaDirectUploadCompleteSchema })
-    body: z.output<typeof mediaDirectUploadCompleteSchema>,
-    @CurrentActor() actor: Actor,
-  ): Promise<AdminMediaItem> {
-    return this.media.completeDirectVideo(id, body.pathname, actor);
   }
 
   @Post(':id/captions')

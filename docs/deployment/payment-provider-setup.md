@@ -44,8 +44,8 @@ Prerequisites: a contract with Payme and a web cashbox ("касса") in the mer
    # PAYME_CHECK_IP=true            # only accept Payme's addresses 185.234.113.1–15
    ```
    With `PAYME_CHECK_IP=true` (default) the API must see the real client address: keep
-   `TRUST_PROXY_HOPS` equal to the number of proxies in front of the API (1 with the bundled
-   Caddy).
+   `TRUST_PROXY_HOPS` equal to the number of proxies in front of the API (1 with the server's
+   Nginx, which replaces `X-Forwarded-For` with the client's address).
 5. Restart the API and add `PAYME` to `PAYMENT_METHODS_ENABLED`.
 6. **Sandbox test** before taking real payments: in the Payme sandbox (https://test.paycom.uz) with
    the cashbox ID and `TEST_KEY`, run both scenarios (create and cancel an unconfirmed transaction

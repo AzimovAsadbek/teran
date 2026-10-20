@@ -17,6 +17,8 @@ import { providerBodyReader } from './payments/provider-body.middleware.js';
 export const API_PREFIX = 'api';
 const DOCS_PATH = `${API_PREFIX}/docs`;
 const JSON_BODY_LIMIT = '100kb';
+/** A stored file's address below /uploads: key segments, then `name.ext` (never `..`). */
+const UPLOAD_PATH = /^(?:\/[A-Za-z0-9_-]+)+\/[A-Za-z0-9_-]+\.[a-z0-9]+$/;
 
 /**
  * Applies HTTP-level configuration shared by the real server and integration tests,
@@ -88,6 +90,19 @@ export function configureApp(app: NestExpressApplication): void {
     setHeaders: (response: ServerResponse) =>
       response.setHeader('X-Content-Type-Options', 'nosniff'),
   });
+  // With the files in Cloudflare R2 (ADR-043) the API hands out the bucket's addresses; an
+  // /uploads address the volume does not hold (an admin preview, a link from before the move) is
+  // sent to the same key in the bucket.
+  const bucket = config.get('R2_PUBLIC_URL', { infer: true })?.replace(/\/$/, '');
+  if (bucket) {
+    app.use('/uploads', (request: Request, response: Response, next: NextFunction) => {
+      if (!['GET', 'HEAD'].includes(request.method) || !UPLOAD_PATH.test(request.path)) {
+        next();
+        return;
+      }
+      response.redirect(301, `${bucket}${request.path}`);
+    });
+  }
 
   app.setGlobalPrefix(API_PREFIX);
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });

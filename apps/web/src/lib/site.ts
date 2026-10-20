@@ -12,11 +12,6 @@ export function absoluteUrl(path: string): string {
   return /^https?:\/\//.test(path) ? path : `${siteUrl}${path}`;
 }
 
-// A production build without its address would publish localhost in every canonical URL.
-if (process.env.VERCEL_ENV === 'production' && !process.env.NEXT_PUBLIC_SITE_URL) {
-  throw new Error('NEXT_PUBLIC_SITE_URL must be set for a production deployment');
-}
-
 /**
  * When true the storefront shows a notice that products, prices, images and draft texts are
  * placeholders. Set NEXT_PUBLIC_DEMO_CONTENT=false only once real content has been loaded.
@@ -26,20 +21,12 @@ export const isDemoContent = process.env.NEXT_PUBLIC_DEMO_CONTENT !== 'false';
 /**
  * Prices and online ordering. Off by default since the owner asked (2026-10-17) to show no price
  * until TERAN confirms them: the storefront then shows no price anywhere (cards, product pages,
- * search, the advisor, delivery fees, structured data), has no bag, and asks visitors to order
+ * search, delivery fees, structured data), has no bag, and asks visitors to order
  * through TERAN's contact channels. Prices stay in the admin area and can be edited there at any
  * time. NEXT_PUBLIC_SHOW_PRICES=true (a build-time switch) turns both back on; the end-to-end stack
  * builds with it.
  */
 export const showPrices = process.env.NEXT_PUBLIC_SHOW_PRICES === 'true';
-
-/**
- * Whether the storefront links to the product advisor (/assistant). Off since 2026-10-17 at the
- * owner's request: the page and its code stay (reachable by its address), but no menu, footer,
- * banner or tile leads to it. NEXT_PUBLIC_SHOW_ADVISOR=true (build time) shows the links again;
- * the end-to-end stack builds with it.
- */
-export const showAdvisor = process.env.NEXT_PUBLIC_SHOW_ADVISOR === 'true';
 
 /**
  * Whether the storefront links to the photo and film gallery (/media). Off since 2026-10-17: the

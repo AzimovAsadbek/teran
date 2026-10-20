@@ -1,11 +1,10 @@
 import { ApiError, readErrorBody } from '@/lib/api/errors';
 
 /**
- * Largest file the admin area sends. The API accepts 5 MB, but a serverless deployment refuses
- * request bodies above 4.5 MB before they reach it (docs/deployment/vercel.md), so the editor
- * checks the lower limit and says so before uploading.
+ * Largest picture the admin area sends: the API's default limit (UPLOAD_MAX_BYTES, 5 MB). The
+ * editor checks it before uploading; the API checks it again.
  */
-export const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 /** Smallest side of an accepted picture (the API's own rule). */
 export const MIN_IMAGE_SIDE = 200;
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';

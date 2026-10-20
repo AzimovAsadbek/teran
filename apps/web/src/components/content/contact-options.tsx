@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { OpenChatButton } from '@/components/chat/open-chat-button';
+import { Link } from '@/i18n/navigation';
 
 /** The header row of an option card: a 20 px teal icon, the title, 16 px of room. */
 export const OPTION_HEADER = 'flex w-full items-center gap-[0.7rem] p-4 text-left text-[#121212]';
@@ -23,16 +23,24 @@ export function OptionCard({ header, children }: { header: ReactNode; children: 
 }
 
 /**
- * The reference's "Hey! Chat with us!" card (on the contact page and under the help centre): its
- * header is a button that opens the chat in the lower right corner, greying slightly while
- * pointed at, with a chevron at the end.
+ * An option card whose header row leads to another page (the help centre's card leads to the
+ * contact page): it greys slightly while pointed at, with a chevron at the end.
  */
-export function ChatCard({ title, children }: { title: string; children: ReactNode }) {
+export function LinkCard({
+  title,
+  href,
+  children,
+}: {
+  title: string;
+  href: string;
+  children: ReactNode;
+}) {
   return (
     <OptionCard
       header={
         <h2>
-          <OpenChatButton
+          <Link
+            href={href}
             className={`${OPTION_HEADER} rounded-t-[0.75rem] transition-[background-color] duration-150 ease-[ease] hover:bg-[#121212]/5`}
           >
             <MessageSquare aria-hidden className={OPTION_ICON} strokeWidth={1.5} />
@@ -51,7 +59,7 @@ export function ChatCard({ title, children }: { title: string; children: ReactNo
                 strokeLinejoin="round"
               />
             </svg>
-          </OpenChatButton>
+          </Link>
         </h2>
       }
     >

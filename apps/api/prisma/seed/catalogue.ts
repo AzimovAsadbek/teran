@@ -48,8 +48,8 @@ import {
 export const DAY_MS = 86_400_000;
 
 /**
- * Seeds may run against a remote database (Neon from a developer machine, for example), where a
- * transaction of a few dozen statements outlasts Prisma's 5-second default.
+ * Seeds may run against a remote database (a server's PostgreSQL from a developer machine, for
+ * example), where a transaction of a few dozen statements outlasts Prisma's 5-second default.
  */
 export const SEED_TRANSACTION = { maxWait: 30_000, timeout: 120_000 } as const;
 
@@ -60,13 +60,9 @@ export function uploadsDirectory(): string {
   return resolve(process.env.UPLOADS_DIR ?? './storage/uploads');
 }
 
-/** Images go where the API keeps them: R2 when R2_* is set, Vercel Blob with BLOB_READ_WRITE_TOKEN, else the directory. */
+/** Images go where the API keeps them: R2 when R2_* is set, else the directory. */
 export function seedImageStore(uploadsDir: string): ImageStore {
-  return imageStore({
-    uploadsDir,
-    blobToken: process.env.BLOB_READ_WRITE_TOKEN,
-    r2: r2ConfigFrom(process.env),
-  });
+  return imageStore({ uploadsDir, r2: r2ConfigFrom(process.env) });
 }
 
 /** The real TERAN emblem, composited onto the demo packshots. */

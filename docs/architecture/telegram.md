@@ -52,9 +52,7 @@ demonstrations: the admin area shows exactly what would have been posted.
 4. Outcome: `SENT` (with the message ids), or `FAILED` with a reason code. Rate limits
    (`retry_after`) and network failures go back to `PENDING` with a next attempt time, up to three
    attempts; a refusal (e.g. "chat not found") waits for an administrator.
-5. Pending posts are processed every minute in long-running API processes
-   (`TelegramProcessor`), and by the scheduled-jobs endpoint on serverless hosts (Vercel Cron:
-   once a day on the Hobby plan).
+5. Pending posts are processed every minute by the API process itself (`TelegramProcessor`).
 6. A claim that expired without an answer becomes `FAILED` with `unknown_outcome`: the post may or
    may not be on the channel, so it is never retried automatically — the administrator checks the
    channel and decides.
@@ -75,15 +73,14 @@ Reason codes (shown translated): `unknown_outcome`, `not_published`, `not_enable
 1. Create a bot with [@BotFather](https://t.me/BotFather) (`/newbot`) and keep its token secret.
 2. Add the bot to the channel as an **administrator** with the **"Post messages"** permission
    (nothing else is needed: it does not read, edit or delete messages).
-3. Set on the API (secret store or Vercel project settings, never in the repository):
+3. Set on the API (`.env.production` on the server, never in the repository):
    `TELEGRAM_MODE=live`, `TELEGRAM_BOT_TOKEN=<token>`, `TELEGRAM_CHANNEL_ID=@channel` (or the
    numeric id `-100…` of a private channel), optionally `TELEGRAM_POST_LOCALE` (`uz` by default).
-4. Redeploy the API. Existing products are not announced; the next item published with the switch
-   on is.
+4. Restart the API (`teran up -d`). Existing products are not announced; the next item published
+   with the switch on is.
 5. Before the first real post, try `dry-run` on the same deployment and compare the previews.
 
 ## Limits
 
 - One post per item: a changed price after the announcement is not re-announced.
 - A post deleted from the channel by hand is still recorded as sent.
-- On Vercel Hobby, a post that was rate limited waits for the daily cron (or the next save).

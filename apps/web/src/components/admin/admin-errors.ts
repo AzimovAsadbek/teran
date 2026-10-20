@@ -17,8 +17,6 @@ const REASONS = [
   'last_image_of_active_product',
   'cover_of_published_article',
   'kind_fixed',
-  'direct_upload_unavailable',
-  'upload_missing',
   'unknown_media',
 ] as const;
 type Reason = (typeof REASONS)[number];

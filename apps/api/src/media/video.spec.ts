@@ -1,6 +1,5 @@
 import {
   CaptionsRejectedError,
-  inspectStoredVideo,
   mediaPrefix,
   storeCaptions,
   storeVideo,
@@ -19,27 +18,9 @@ function memoryStore() {
       return Promise.resolve();
     },
     read: () => Promise.resolve(null),
-    size: () => Promise.resolve(null),
-    readRange: () => Promise.resolve(null),
     remove: () => Promise.resolve(),
   };
   return { store, files };
-}
-
-/** A store holding one file that was uploaded straight to it; counts the bytes read back. */
-function uploadedFile(data: Buffer | null) {
-  let bytesRead = 0;
-  const store: ImageStore = {
-    ...memoryStore().store,
-    size: () => Promise.resolve(data ? data.length : null),
-    readRange: (_key, _name, start, end) => {
-      if (!data) return Promise.resolve(null);
-      const part = data.subarray(start, end + 1);
-      bytesRead += part.length;
-      return Promise.resolve(part);
-    },
-  };
-  return { store, bytesRead: () => bytesRead };
 }
 
 const header = (...parts: (string | number[])[]) =>
@@ -132,42 +113,6 @@ describe('video running time', () => {
 
   it('answers null when the file does not record it', () => {
     expect(videoDurationSeconds(box('ftyp', Buffer.alloc(16)), 'video/mp4')).toBeNull();
-  });
-});
-
-describe('a video uploaded straight to the store', () => {
-  const mvhd = (seconds: number) => {
-    const content = Buffer.alloc(100);
-    content.writeUInt32BE(1000, 12); // timescale
-    content.writeUInt32BE(seconds * 1000, 16); // duration
-    return box('mvhd', content);
-  };
-  const ftyp = () => box('ftyp', Buffer.from('isom\0\0\x02\0isomiso2', 'latin1'));
-
-  it('finds an MP4’s running time after the media data without reading the media data', async () => {
-    const media = Buffer.alloc(3 * 1024 * 1024); // 3 MB of "frames"
-    const file = Buffer.concat([ftyp(), box('mdat', media), box('moov', mvhd(95))]);
-    const { store, bytesRead } = uploadedFile(file);
-    await expect(inspectStoredVideo(store, 'media/x', 'video.mp4')).resolves.toEqual({
-      type: 'video/mp4',
-      bytes: file.length,
-      durationSeconds: 95,
-    });
-    expect(bytesRead()).toBeLessThan(128 * 1024);
-  });
-
-  it('reads a WebM’s type from its first bytes and refuses other files', async () => {
-    const webm = uploadedFile(ebml('webm'));
-    await expect(inspectStoredVideo(webm.store, 'media/x', 'video.webm')).resolves.toMatchObject({
-      type: 'video/webm',
-    });
-    const page = uploadedFile(Buffer.from('<html><body>not a film</body></html>'));
-    await expect(inspectStoredVideo(page.store, 'media/x', 'video.mp4')).rejects.toBeInstanceOf(
-      VideoRejectedError,
-    );
-    await expect(
-      inspectStoredVideo(uploadedFile(null).store, 'media/x', 'video.mp4'),
-    ).resolves.toBeNull();
   });
 });
 

@@ -1,8 +1,15 @@
-# Production stack: PostgreSQL, a one-off migration job, the API, the storefront and Caddy.
-# Only Caddy publishes ports; the database is on an internal network without internet access.
+# Production stack: PostgreSQL, a one-off migration job, the API and the storefront. The server's
+# own Nginx (configured by its administrator, never by this repository) terminates HTTPS and
+# proxies to the storefront and the API, which are published on the loopback interface only, at
+# the host ports deploy.sh saves in .deploy.env. The database is on an internal network without
+# internet access and is never published.
 #
 #   cp docker/production.env.example .env.production   # fill in, then chmod 600
-#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#   ./deploy.sh                                        # first installation, then every update
+#
+# Manual commands need both env files:
+#   docker compose -p teran-production -f docker-compose.prod.yml \
+#     --env-file .env.production --env-file .deploy.env ps
 #
 # Read docs/deployment/production.md before the first deployment.
 name: teran-production
@@ -20,6 +27,15 @@ x-hardening: &hardening
     - ALL
 
 x-database-url: &database-url postgresql://${POSTGRES_USER:-teran}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-teran}?schema=public
+
+# Cloudflare R2 (ADR-043): set all five in .env.production to keep pictures and films in the bucket,
+# or none to keep them in the `uploads` volume.
+x-object-storage: &object-storage
+  R2_ENDPOINT: ${R2_ENDPOINT:-}
+  R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+  R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+  R2_BUCKET: ${R2_BUCKET:-}
+  R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
 
 services:
   postgres:
@@ -40,7 +56,9 @@ services:
     networks: [data]
     logging: *logging
 
-  # Applies pending migrations, then exits. Every `up` runs it again before the API starts.
+  # Applies pending migrations, then exits. Every `up` runs it again before the API starts. The
+  # same image runs the one-off scripts (demo seed on a staging copy, large gallery films), which
+  # write to the store the API uses and so reach R2 through the `app` network.
   migrate:
     build:
       context: .
@@ -50,13 +68,16 @@ services:
     restart: 'no'
     environment:
       DATABASE_URL: *database-url
+      <<: *object-storage
+      # The seed refreshes the storefront's cache afterwards, as the API does after a change.
+      WEB_REVALIDATE_URL: http://web:3000/api/revalidate
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:?Set REVALIDATE_SECRET}
     volumes:
-      # Only used when loading the demonstration catalogue (see the deployment guide).
       - uploads:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
-    networks: [data]
+    networks: [data, app]
     logging: *logging
     <<: *hardening
 
@@ -71,7 +92,12 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    # For the server's Nginx only: loopback, never the public interface. The host port is chosen
+    # once by deploy.sh and kept in .deploy.env; the API listens on 4000 inside the container.
+    ports:
+      - '127.0.0.1:${TERAN_API_HOST_PORT:?Set TERAN_API_HOST_PORT (deploy.sh keeps it in .deploy.env)}:4000'
     environment:
+      <<: *object-storage
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: *database-url
       DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
@@ -92,13 +118,17 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
+      # Online ordering; must match SHOW_PRICES (a storefront without prices takes no orders).
+      CHECKOUT_ENABLED: ${CHECKOUT_ENABLED:-false}
       PAYMENT_METHODS_ENABLED: ${PAYMENT_METHODS_ENABLED:-CASH_ON_DELIVERY}
       PAYMENT_PROVIDER_MODE: ${PAYMENT_PROVIDER_MODE:-live}
       ALLOW_DEMO_PAYMENTS: ${ALLOW_DEMO_PAYMENTS:-false}
       ONLINE_PAYMENT_WINDOW_MINUTES: ${ONLINE_PAYMENT_WINDOW_MINUTES:-30}
       PAYME_MERCHANT_ID: ${PAYME_MERCHANT_ID:-}
       PAYME_KEY: ${PAYME_KEY:-}
+      PAYME_LOGIN: ${PAYME_LOGIN:-Paycom}
       PAYME_CHECKOUT_URL: ${PAYME_CHECKOUT_URL:-https://checkout.paycom.uz}
+      PAYME_CHECK_IP: ${PAYME_CHECK_IP:-true}
       CLICK_SERVICE_ID: ${CLICK_SERVICE_ID:-}
       CLICK_MERCHANT_ID: ${CLICK_MERCHANT_ID:-}
       CLICK_SECRET_KEY: ${CLICK_SECRET_KEY:-}
@@ -106,8 +136,6 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID:-}
       TELEGRAM_POST_LOCALE: ${TELEGRAM_POST_LOCALE:-uz}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-claude-opus-5-5}
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -128,9 +156,17 @@ services:
         NEXT_PUBLIC_SITE_URL: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN, e.g. https://teran.example}
         NEXT_PUBLIC_ENABLED_LOCALES: ${ENABLED_LOCALES:-uz,ru,en}
         NEXT_PUBLIC_DEMO_CONTENT: ${DEMO_CONTENT:-true}
+        NEXT_PUBLIC_SHOW_PRICES: ${SHOW_PRICES:-false}
+        NEXT_PUBLIC_SHOW_GALLERY: ${SHOW_GALLERY:-false}
+        # The bucket's public address, allowed in the content security policy for pictures and films.
+        UPLOADS_ORIGIN: ${R2_PUBLIC_URL:-}
     image: teran-web:${TERAN_VERSION:-latest}
     restart: unless-stopped
     init: true
+    # For the server's Nginx only: loopback, never the public interface. The host port is chosen
+    # once by deploy.sh and kept in .deploy.env; Next.js listens on 3000 inside the container.
+    ports:
+      - '127.0.0.1:${TERAN_WEB_HOST_PORT:?Set TERAN_WEB_HOST_PORT (deploy.sh keeps it in .deploy.env)}:3000'
     environment:
       API_INTERNAL_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY}
       REVALIDATE_SECRET: ${REVALIDATE_SECRET:?Set REVALIDATE_SECRET}
@@ -141,40 +177,13 @@ services:
     logging: *logging
     <<: *hardening
 
-  caddy:
-    image: caddy:2.11.7-alpine
-    restart: unless-stopped
-    ports:
-      - '${HTTP_PORT:-80}:80'
-      - '${HTTPS_PORT:-443}:443'
-      - '${HTTPS_PORT:-443}:443/udp'
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:?Set SITE_ADDRESS, e.g. teran.example}
-    volumes:
-      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      web:
-        condition: service_healthy
-    networks: [app]
-    logging: *logging
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
-
 networks:
   # PostgreSQL, the migration job and the API. Internal: no route to or from the internet.
   data:
     internal: true
-  # Caddy, the storefront and the API.
+  # The storefront, the API and the migration job; the published loopback ports are on it.
   app: {}
 
 volumes:
   postgres-data:
   uploads:
-  caddy-data:
-  caddy-config:

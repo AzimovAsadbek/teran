@@ -5,7 +5,7 @@ import { helpCentre } from '@/content/pages/faq';
 import { routing } from '@/i18n/routing';
 import { getSitemapEntries } from '@/lib/data/catalog';
 import { localizedUrl } from '@/lib/seo';
-import { showAdvisor, showGallery } from '@/lib/site';
+import { showGallery } from '@/lib/site';
 
 const STATIC_PAGES = [
   '/',
@@ -16,8 +16,6 @@ const STATIC_PAGES = [
   '/tea-101',
   // The gallery only while the storefront links to it (lib/site showGallery).
   ...(showGallery ? (['/media', '/media/photos', '/media/videos'] as const) : []),
-  // The advisor is listed only while the storefront links to it (lib/site showAdvisor).
-  ...(showAdvisor ? (['/assistant'] as const) : []),
   '/contact',
   '/stores',
   '/faq',

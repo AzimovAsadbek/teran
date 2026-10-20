@@ -12,5 +12,4 @@ export * from './content.js';
 export * from './admin.js';
 export * from './account.js';
 export * from './publishing.js';
-export * from './assistant.js';
 export * from './reviews.js';

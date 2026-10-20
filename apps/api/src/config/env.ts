@@ -47,25 +47,16 @@ const envObjectSchema = z.object({
 
   UPLOADS_DIR: z.string().min(1).default('./storage/uploads'),
   UPLOAD_MAX_BYTES: z.coerce.number().int().min(100_000).max(20_000_000).default(5_242_880),
-  /** Vercel Blob read-write token: image renditions go to Blob instead of UPLOADS_DIR. */
-  BLOB_READ_WRITE_TOKEN: z.string().min(20).optional(),
   /**
-   * Cloudflare R2 through its S3 API (ADR-043): when all four are set, pictures and films go there
-   * instead of Blob or UPLOADS_DIR, and R2_PUBLIC_URL (the bucket's public address) is where the
-   * storefront reads them.
+   * Cloudflare R2 through its S3 API (ADR-043): set all five or none. With them, pictures and films
+   * go to the bucket instead of UPLOADS_DIR, and R2_PUBLIC_URL (the bucket's public address) is
+   * where the storefront reads them.
    */
   R2_ENDPOINT: z.url().optional(),
   R2_ACCESS_KEY_ID: z.string().min(16).optional(),
   R2_SECRET_ACCESS_KEY: z.string().min(32).optional(),
   R2_BUCKET: z.string().min(3).max(63).optional(),
   R2_PUBLIC_URL: z.url().optional(),
-  /** Set by Vercel on its own builds and functions ("1"). */
-  VERCEL: z.string().optional(),
-  /**
-   * Secret for the scheduled-jobs endpoint (GET /api/v1/internal/jobs/run, Bearer token), used where
-   * the API cannot run its own timers (Vercel Cron sends it). Unset: the endpoint does not exist.
-   */
-  CRON_SECRET: z.string().min(32).optional(),
 
   WEB_REVALIDATE_URL: z.url().optional(),
   REVALIDATE_SECRET: z.string().min(32).optional(),
@@ -164,16 +155,6 @@ const envObjectSchema = z.object({
   TELEGRAM_API_BASE: z.url({ protocol: /^https?$/ }).default('https://api.telegram.org'),
   /** Language of the channel's posts. */
   TELEGRAM_POST_LOCALE: z.enum(['uz', 'ru', 'en']).default('uz'),
-
-  /**
-   * Product advisor (docs/architecture/product-advisor.md). With a key, an AI model reads the
-   * visitor's request and searches the catalogue through the advisor's tools; without one, the
-   * advisor answers with rule-based matching ("basic" mode). Server-side only.
-   */
-  ANTHROPIC_API_KEY: z.string().min(20).optional(),
-  ASSISTANT_MODEL: z.string().trim().min(3).max(100).default('claude-opus-5-5'),
-  /** Messages API address; integration tests point it at a local mock server. */
-  ASSISTANT_API_BASE: z.url({ protocol: /^https?$/ }).default('https://api.anthropic.com'),
 });
 
 export const envSchema = z
@@ -193,14 +174,6 @@ export const envSchema = z
         path: ['R2_ENDPOINT'],
         message:
           'R2 needs R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET and R2_PUBLIC_URL together',
-      });
-    }
-    if (env.VERCEL && !env.BLOB_READ_WRITE_TOKEN && !r2.every(Boolean)) {
-      // Vercel functions have no lasting disk: uploads written to UPLOADS_DIR would vanish.
-      ctx.addIssue({
-        code: 'custom',
-        path: ['BLOB_READ_WRITE_TOKEN'],
-        message: 'is required on Vercel unless R2 is configured (connect a Blob store or set R2_*)',
       });
     }
     if (env.NODE_ENV === 'production') {
@@ -237,11 +210,11 @@ export const envSchema = z
         'APP_SECRET',
         'REVALIDATE_SECRET',
         'INTERNAL_API_KEY',
-        'CRON_SECRET',
+        'R2_ACCESS_KEY_ID',
+        'R2_SECRET_ACCESS_KEY',
         'PAYME_KEY',
         'CLICK_SECRET_KEY',
         'TELEGRAM_BOT_TOKEN',
-        'ANTHROPIC_API_KEY',
       ] as const) {
         if (env[key]?.includes('replace-with')) {
           ctx.addIssue({
@@ -262,6 +235,14 @@ export const envSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['CORS_EXTRA_ORIGINS'],
+          message: 'must use https in production',
+        });
+      }
+      // Browsers refuse http pictures and films on an https page.
+      if (env.R2_PUBLIC_URL && !env.R2_PUBLIC_URL.startsWith('https://')) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['R2_PUBLIC_URL'],
           message: 'must use https in production',
         });
       }

@@ -9,7 +9,7 @@ import { ArticleRating } from '@/components/help/article-rating';
 import {
   articleHref,
   categoryHref,
-  HelpChat,
+  HelpContact,
   HelpTopBar,
   helpCategories,
   navCategories,
@@ -133,7 +133,7 @@ export default function HelpArticlePage({ params }: PageProps<'/[locale]/faq/[gr
       <Suspense fallback={<div className="min-h-[40rem]" />}>
         <HelpArticleView params={params} />
       </Suspense>
-      <HelpChat />
+      <HelpContact />
     </>
   );
 }

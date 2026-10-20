@@ -1,5 +1,4 @@
 import type { Locale } from '@teran/contracts';
-import { ArrowRight, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -14,10 +13,9 @@ import {
 } from '@/components/catalog/listing-header';
 import { PremiumCollectionBand } from '@/components/catalog/premium-collection-band';
 import { hasRefinements, parseCatalogFilters } from '@/features/catalog/query';
-import { Link } from '@/i18n/navigation';
 import { getPublicSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import { showAdvisor, showPrices } from '@/lib/site';
+import { showPrices } from '@/lib/site';
 import { visualFor } from '@/lib/visuals';
 
 export async function generateMetadata({
@@ -62,19 +60,6 @@ async function CatalogHeader({ withBanner = false }: { withBanner?: boolean }) {
       <Suspense fallback={<CategoryChipsFallback />}>
         <CategoryChipsLoader />
       </Suspense>
-      {showAdvisor ? (
-        <Link
-          href="/assistant"
-          className="group mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-gold-300/70 bg-gold-50 px-4 text-body-sm font-semibold text-fg transition-colors hover:border-gold-400"
-        >
-          <Sparkles aria-hidden className="h-4 w-4 text-accent-fg" />
-          {t('askAssistant')}
-          <ArrowRight
-            aria-hidden
-            className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5"
-          />
-        </Link>
-      ) : null}
     </ListingHeader>
   );
 }

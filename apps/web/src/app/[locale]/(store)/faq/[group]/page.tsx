@@ -9,7 +9,7 @@ import {
   articleHref,
   categoryHref,
   CategoryBanner,
-  HelpChat,
+  HelpContact,
   HelpTopBar,
   helpCategories,
   navCategories,
@@ -104,7 +104,7 @@ export default function HelpCategoryPage({ params }: PageProps<'/[locale]/faq/[g
       <Suspense fallback={<div className="min-h-[40rem]" />}>
         <HelpCategoryView params={params} />
       </Suspense>
-      <HelpChat />
+      <HelpContact />
     </>
   );
 }

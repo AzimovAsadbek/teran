@@ -17,13 +17,16 @@ apps/api/src/generated/
 .env
 .env.*
 !.env.example
+# deploy.sh: saved ports and deployment state (no secrets), its lock and temporary files
+.deploy.env
+.deploy.env.*
+.deploy.lock/
 *.pem
 *.key
 
-# Runtime data
+# Runtime data (backups/: manual database dumps, docs/deployment/production.md)
 apps/api/storage/
-# Created by the API's Vercel build (an empty static output next to the function)
-apps/api/public/
+backups/
 uploads/
 *.log
 logs/
@@ -42,7 +45,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
-# Vercel / misc
+# Tool state (.vercel: a Vercel CLI link, e.g. while moving off the old hosting)
 .vercel
 .turbo
 .nest-dev/

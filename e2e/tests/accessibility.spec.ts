@@ -26,7 +26,7 @@ async function visit(page: Page, path: string): Promise<void> {
 
 test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
   test('storefront pages', async ({ page }) => {
-    // Thirty-three pages, each loaded and analysed in turn: well over a minute on a busy machine.
+    // Thirty-two pages, each loaded and analysed in turn: well over a minute on a busy machine.
     test.setTimeout(180_000);
     const paths = [
       '/',
@@ -46,7 +46,6 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
       '/en/media',
       '/en/media/photos',
       '/en/media/videos',
-      '/en/assistant',
       '/en/contact',
       '/en/stores',
       '/en/tea-101',

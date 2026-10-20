@@ -5,7 +5,6 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { CategoryCollage, CategoryCollageFallback } from '@/components/home/category-collage';
 import {
-  AdvisorBanner,
   BentoSection,
   BrewingBanner,
   CategoryMarquee,
@@ -30,7 +29,6 @@ import { brandCopy } from '@/content/brand';
 import { StoreStructuredData } from '@/components/seo/store-structured-data';
 import { getPrerenderSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import { showAdvisor } from '@/lib/site';
 import { visualFor } from '@/lib/visuals';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -60,11 +58,11 @@ function BannerFallback({ tall = false }: { tall?: boolean }) {
 /**
  * The home page in the reference's section order (docs/design/reference-map.md), with TERAN's
  * content: promo strip (a real collection) · hero · category ribbon · new arrivals / our picks ·
- * story banner · category shortcuts · gallery banner · collections row · advisor banner ·
- * categories row · bento · brewing band · category collage · values band · gallery band · journal
- * and business pair · slogan ribbon · footer (layout). Catalogue sections stream at request time,
- * each in its own Suspense boundary; anything without real content is left out. The first view's
- * and the banners' pictures are prerendered with the page when the API answers (ADR-039).
+ * story banner · category shortcuts · gallery banner · collections row · categories row · bento ·
+ * brewing band · category collage · values band · gallery band · journal and business pair ·
+ * slogan ribbon · footer (layout). Catalogue sections stream at request time, each in its own
+ * Suspense boundary; anything without real content is left out. The first view's and the banners'
+ * pictures are prerendered with the page when the API answers (ADR-039).
  */
 export default async function HomePage() {
   const locale = (await rootParams.locale()) as Locale;
@@ -107,9 +105,6 @@ export default async function HomePage() {
       <Suspense fallback={<RailFallback compact cta={false} />}>
         <CollectionsRail />
       </Suspense>
-      {/* The advisor's banner while the advisor is shown. How to order is said where an order is
-          made (each tea's page, the bag), not on the home page (ADR-045). */}
-      {showAdvisor ? <AdvisorBanner /> : null}
       <Suspense fallback={<RailFallback compact />}>
         <CategoriesRail />
       </Suspense>

@@ -14,25 +14,26 @@ wording (in Uzbek, and Russian and English if available) for a developer to plac
 
 Used in the privacy policy, terms of use and returns page (`/privacy`, `/terms`, `/returns`) and
 the footer. Already in the texts (2026-10-18): TERAN TRADE MChJ (ООО «TERAN TRADE»), Namangan, the
-two phones, the e-mail, the website, the hosting (Vercel and Neon, Frankfurt), the legal bases and
-retention described generally, and the competent court of the Republic of Uzbekistan. Still to
-supply for a complete text:
+two phones, the e-mail, the website, the hosting (Vercel and Neon, Frankfurt: true until the move
+to the own server, then outdated), the legal bases and retention described generally, and the
+competent court of the Republic of Uzbekistan. Still to supply for a complete text:
 
-| Item                                                                                                                                                                                     | Where it appears        | How             |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------- |
-| Company legal name and legal form (supplied as "TERAN TRADE MChJ", Namangan — shown in the footer, contact and wholesale pages; still to be placed in the legal texts)                   | Privacy, terms          | Text            |
-| State registration details (registration number, date, authority)                                                                                                                        | Terms                   | Text            |
-| Legal address (the packs print the importer's address: Namangan viloyati, Namangan shahri, Dashtbogʻ MFY, Toʻraqoʻrgʻon koʻchasi, 200-uy — confirm it is the legal address)              | Privacy, terms          | Text            |
-| Whether prices include VAT                                                                                                                                                               | Terms                   | Text            |
-| Trademark: confirm "TERAN®" is a registered trademark, the rights holder and registration details — or the ® mark and the footer sentence "TERAN® is a registered trademark" are removed | Footer, terms, logo     | Text            |
-| Competent court for disputes, liability wording                                                                                                                                          | Terms                   | Text (lawyer)   |
-| Legal basis for each purpose of processing personal data                                                                                                                                 | Privacy                 | Text (lawyer)   |
-| Authorised state body for personal-data protection                                                                                                                                       | Privacy                 | Text (lawyer)   |
-| E-mail address for privacy requests, and the response period                                                                                                                             | Privacy                 | Text            |
-| Retention periods: enquiries, server logs, accounting records                                                                                                                            | Privacy                 | Text            |
-| Hosting provider and e-mail provider; country and data centre of the servers (must satisfy Uzbek data-localisation requirements)                                                         | Privacy, deployment     | Text + decision |
-| Names of delivery partners that receive customer data                                                                                                                                    | Privacy                 | Text            |
-| Date of publication of each legal document                                                                                                                                               | Privacy, terms, returns | Text            |
+| Item                                                                                                                                                                                                 | Where it appears        | How             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------- |
+| Company legal name and legal form (supplied as "TERAN TRADE MChJ", Namangan — shown in the footer, contact and wholesale pages; still to be placed in the legal texts)                               | Privacy, terms          | Text            |
+| State registration details (registration number, date, authority)                                                                                                                                    | Terms                   | Text            |
+| Legal address (the packs print the importer's address: Namangan viloyati, Namangan shahri, Dashtbogʻ MFY, Toʻraqoʻrgʻon koʻchasi, 200-uy — confirm it is the legal address)                          | Privacy, terms          | Text            |
+| Hosting of the own server: the provider's name and the country and city of the server and its backups (replaces "Vercel and Neon, Frankfurt" in the privacy policy; needed before the move, ADR-046) | Privacy                 | Text            |
+| Whether prices include VAT                                                                                                                                                                           | Terms                   | Text            |
+| Trademark: confirm "TERAN®" is a registered trademark, the rights holder and registration details — or the ® mark and the footer sentence "TERAN® is a registered trademark" are removed             | Footer, terms, logo     | Text            |
+| Competent court for disputes, liability wording                                                                                                                                                      | Terms                   | Text (lawyer)   |
+| Legal basis for each purpose of processing personal data                                                                                                                                             | Privacy                 | Text (lawyer)   |
+| Authorised state body for personal-data protection                                                                                                                                                   | Privacy                 | Text (lawyer)   |
+| E-mail address for privacy requests, and the response period                                                                                                                                         | Privacy                 | Text            |
+| Retention periods: enquiries, server logs, accounting records                                                                                                                                        | Privacy                 | Text            |
+| Hosting provider and e-mail provider; country and data centre of the servers (must satisfy Uzbek data-localisation requirements)                                                                     | Privacy, deployment     | Text + decision |
+| Names of delivery partners that receive customer data                                                                                                                                                | Privacy                 | Text            |
+| Date of publication of each legal document                                                                                                                                                           | Privacy, terms, returns | Text            |
 
 ## 2. Returns and refunds (launch blocker)
 

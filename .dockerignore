@@ -5,6 +5,9 @@
 **/.env
 **/.env.*
 !**/.env.example
+.deploy.env
+.deploy.env.*
+.deploy.lock
 
 # Dependencies and build output
 **/node_modules
@@ -17,6 +20,7 @@ apps/web/next-env.d.ts
 
 # Runtime data and test output
 apps/api/storage
+backups
 **/coverage
 e2e/test-results
 e2e/playwright-report

@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import {
   CategoryCards,
-  HelpChat,
+  HelpContact,
   HelpTopBar,
   helpCategories,
   navCategories,
@@ -65,7 +65,7 @@ export default async function HelpArticlesPage() {
           <CategoryCards categories={categories} />
         </HelpSection>
       </HelpShell>
-      <HelpChat />
+      <HelpContact />
     </>
   );
 }

@@ -58,11 +58,6 @@ export function canTransitionPayment(from: PaymentStatus, to: PaymentStatus): bo
   return PAYMENT_STATUS_TRANSITIONS[from].includes(to);
 }
 
-/** A payment attempt that has ended without money being taken. */
-export function isClosedUnpaid(status: PaymentStatus): boolean {
-  return status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED';
-}
-
 /**
  * Payment methods the platform knows about. Which are offered at checkout is configured by the
  * API (PAYMENT_METHODS_ENABLED); online methods additionally need a configured provider, or the

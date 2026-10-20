@@ -8,18 +8,23 @@ Russian and English.
 
 ```mermaid
 flowchart LR
-    browser[Browser] -->|HTTPS| caddy[Caddy<br/>TLS, routing]
-    caddy -->|"/api/v1/*, /uploads/*"| api[API<br/>NestJS]
-    caddy -->|everything else| web[Storefront and admin UI<br/>Next.js]
+    browser[Browser] -->|HTTPS| nginx[Nginx on the server<br/>TLS, routing]
+    nginx -->|"/api/v1/*, /uploads/*"| api[API<br/>NestJS]
+    nginx -->|everything else| web[Storefront and admin UI<br/>Next.js]
+    browser -->|pictures and films| r2[(Cloudflare R2)]
     web -->|"server-side data<br/>(X-Internal-Key or visitor cookies)"| api
     api -->|"POST /api/revalidate<br/>(shared secret)"| web
     api --> db[(PostgreSQL)]
     api -->|password reset, order confirmation| smtp[SMTP server]
-    api --> uploads[(Uploads volume<br/>WebP renditions)]
+    api -->|WebP renditions, films| r2
+    api -.->|without R2| uploads[(Uploads volume)]
+    api -->|channel posts| telegram[Telegram Bot API]
 ```
 
-In development there is no Caddy: the browser talks to Next.js, which rewrites `/api/v1/*` and
-`/uploads/*` to the API, so cookies stay first-party either way.
+In development there is no Nginx: the browser talks to Next.js, which rewrites `/api/v1/*` and
+`/uploads/*` to the API, so cookies stay first-party either way. Production runs the containers of
+`docker-compose.prod.yml` behind the server's own Nginx, installed and updated by `deploy.sh`
+([production deployment](../deployment/production.md), ADR-046, ADR-048).
 
 ## Repository layout
 
@@ -30,10 +35,11 @@ apps/
 packages/
   contracts/      Zod schemas and types shared by API and web (requests, responses, errors, rules)
 e2e/              Playwright end-to-end suite and the scripts that build and seed its stack
-docker/           Caddyfile, production env example, Postgres init script
+docker/           Production env example, Postgres init script, row counts
 docs/             Architecture, design, development, deployment and testing documentation
 docker-compose.yml        Local PostgreSQL
 docker-compose.prod.yml   Production stack
+deploy.sh                 Installs and updates the production stack
 .github/workflows/ci.yml  Continuous integration (never deploys)
 ```
 

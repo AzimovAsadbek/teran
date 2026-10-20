@@ -1,6 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import request from 'supertest';
 import {
   articleDetailSchema,
@@ -20,7 +18,6 @@ import {
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { TEST_PASSWORD, createUser, resetDatabase } from './helpers/fixtures.js';
 import { testImage } from './helpers/publishing.js';
-import { TEST_ENV } from './test-env.js';
 
 const API = '/api/v1';
 
@@ -532,7 +529,7 @@ describe('publishing workflow', () => {
     });
   });
 
-  describe('films uploaded straight to storage', () => {
+  describe('films uploaded through the API', () => {
     /** An MP4 whose movie box (95 s) follows the media data, as many cameras write it. */
     function mp4(seconds: number): Buffer {
       const box = (type: string, content: Buffer) => {
@@ -551,13 +548,8 @@ describe('publishing workflow', () => {
       ]);
     }
 
-    it('are offered only with object storage, and checked before they are recorded', async () => {
+    it('takes a film through the API, reads its running time and refuses customers', async () => {
       const admin = await signedIn();
-      // Without object storage (this environment) films go through the API.
-      expect((await admin.get(`${API}/admin/media/upload-limits`).expect(200)).body).toEqual({
-        multipartVideoBytes: 64 * 1024 * 1024,
-        directVideoBytes: null,
-      });
       const film = (
         await admin
           .post(`${API}/admin/media`)
@@ -570,50 +562,22 @@ describe('publishing workflow', () => {
           })
           .expect(201)
       ).body as AdminMediaItem;
-      const start = await admin
-        .post(`${API}/admin/media/${film.id}/video/direct`)
-        .send({ type: 'video/mp4', bytes: 1000 })
-        .expect(409);
-      expect(start.body.details).toEqual({ reason: 'direct_upload_unavailable' });
-
-      // What a direct upload leaves in the store: the file under a new key of this item.
-      const key = `media/${film.id}/AbCdEfGhIjKl`;
-      const file = join(TEST_ENV.UPLOADS_DIR!, key, 'video.mp4');
-      const place = (data: Buffer) => {
-        mkdirSync(join(TEST_ENV.UPLOADS_DIR!, key), { recursive: true });
-        writeFileSync(file, data);
-      };
-      const complete = (pathname: string, status: number) =>
-        admin
-          .post(`${API}/admin/media/${film.id}/video/direct/complete`)
-          .send({ pathname })
-          .expect(status);
-
-      expect((await complete(`${key}/video.mp4`, 409)).body.details).toEqual({
-        reason: 'upload_missing',
-      });
-      await complete(`media/${randomUUID()}/AbCdEfGhIjKl/video.mp4`, 400);
-      await complete(`${key}/../../video.mp4`, 400);
-      place(Buffer.from('<html>not a film</html>'.padEnd(64)));
-      expect((await complete(`${key}/video.mp4`, 415)).body.details.reason).toBe(
-        'unsupported_video',
-      );
-      expect(existsSync(file)).toBe(false);
 
       const real = mp4(95);
-      place(real);
-      const done = (await complete(`${key}/video.mp4`, 200)).body as AdminMediaItem;
+      const done = (
+        await admin
+          .post(`${API}/admin/media/${film.id}/video`)
+          .attach('file', real, { filename: 'film.mp4', contentType: 'video/mp4' })
+          .expect(201)
+      ).body as AdminMediaItem;
       expect(done.video).toMatchObject({ type: 'video/mp4', bytes: real.length });
-      expect(done.video?.src).toBe(`/uploads/${key}/video.mp4`);
+      expect(done.video?.src).toMatch(
+        new RegExp(`^/uploads/media/${film.id}/[A-Za-z0-9_-]{12}/video\\.mp4$`),
+      );
       expect(done.videoDurationSeconds).toBe(95);
-      // Confirming again (a retried request) changes nothing.
-      expect((await complete(`${key}/video.mp4`, 200)).body.video).toEqual(done.video);
 
       const customer = await signedIn('CUSTOMER');
-      await customer
-        .post(`${API}/admin/media/${film.id}/video/direct`)
-        .send({ type: 'video/mp4', bytes: 1000 })
-        .expect(403);
+      await customer.post(`${API}/admin/media/${film.id}/video`).expect(403);
     });
   });
 });

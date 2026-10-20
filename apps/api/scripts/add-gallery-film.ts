@@ -1,8 +1,7 @@
 /**
  * Adds a film to the gallery ("Lavhalar") from local files, published, at the front of the films:
- * for films larger than the admin area can take on a serverless host (its uploads stop at 4.5 MB
- * without object storage's direct uploads). Files go to the store the environment names (R2, Vercel
- * Blob or UPLOADS_DIR), as the admin area stores them.
+ * for films larger than the admin area takes (MAX_VIDEO_UPLOAD_BYTES, 64 MB). Files go to the
+ * store the environment names (R2 or UPLOADS_DIR), as the admin area stores them.
  *
  *   pnpm --filter @teran/api exec tsx scripts/add-gallery-film.ts --film f.mp4 --poster p.jpg \
  *     --title-uz "…" --title-ru "…" --title-en "…" [--caption-uz "…" --caption-ru "…" --caption-en "…"]
@@ -164,7 +163,6 @@ async function main() {
   }
   const store = imageStore({
     uploadsDir: process.env.UPLOADS_DIR ?? './storage/uploads',
-    blobToken: process.env.BLOB_READ_WRITE_TOKEN,
     r2: r2ConfigFrom(process.env),
   });
   const prisma = new PrismaClient({

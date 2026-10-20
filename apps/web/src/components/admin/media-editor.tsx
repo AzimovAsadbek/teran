@@ -2,10 +2,9 @@
 
 import {
   ARTICLE_STATUSES,
+  MAX_VIDEO_UPLOAD_BYTES,
   mediaUpsertSchema,
-  type AdminDirectUpload,
   type AdminMediaItem,
-  type AdminMediaUploadLimits,
   type ArticleStatus,
   type MediaKind,
 } from '@teran/contracts';
@@ -48,16 +47,7 @@ function duration(seconds: number | null): string | null {
  * file is previewed before it is sent, the checklist says what publishing still needs, and the
  * API checks the same rules.
  */
-export function MediaEditor({
-  item,
-  kind,
-  uploadLimits,
-}: {
-  item: AdminMediaItem | null;
-  kind: MediaKind;
-  /** How large a film this deployment can receive, and how (see lib/admin/server.ts). */
-  uploadLimits: AdminMediaUploadLimits;
-}) {
+export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind: MediaKind }) {
   const t = useTranslations('Admin');
   const router = useRouter();
   const message = useValidationMessage();
@@ -135,7 +125,7 @@ export function MediaEditor({
             </h2>
             {video ? (
               <>
-                <VideoSlot item={item} limits={uploadLimits} />
+                <VideoSlot item={item} />
                 <div className="space-y-2">
                   <h3 className="text-label text-fg">{t('media.poster')}</h3>
                   <ImageUploader
@@ -354,21 +344,12 @@ function ItemActions({ item }: { item: AdminMediaItem }) {
 
 type VideoProblem = 'unsupported_video' | 'too_large';
 
-/** The declared type of a chosen film (the API checks the real one from its first bytes). */
-function videoTypeOf(file: File): 'video/mp4' | 'video/webm' {
-  return file.type === 'video/webm' || /\.webm$/i.test(file.name) ? 'video/webm' : 'video/mp4';
-}
-
-/** Above this, the store receives the file in parts (each retried on its own on a weak network). */
-const MULTIPART_FROM_BYTES = 32 * 1024 * 1024;
-
 /**
  * The film's file: what is there now (playable here, never automatically), a chosen file played
- * locally before it is sent, and the upload — straight to object storage when it is configured
- * (large films never pass through the API), otherwise through the API. Either way the API checks
- * the real content and reads the running time from it.
+ * locally before it is sent, and the upload through the API, which checks the real content and
+ * reads the running time from it.
  */
-function VideoSlot({ item, limits }: { item: AdminMediaItem; limits: AdminMediaUploadLimits }) {
+function VideoSlot({ item }: { item: AdminMediaItem }) {
   const t = useTranslations('Admin');
   const locale = useLocale();
   const router = useRouter();
@@ -379,12 +360,9 @@ function VideoSlot({ item, limits }: { item: AdminMediaItem; limits: AdminMediaU
     problem: VideoProblem | null;
   } | null>(null);
   const [pending, setPending] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
   const [failure, setFailure] = useState<ApiError | null>(null);
   const failureMessage = useAdminOrApiMessage(failure);
-  const direct = limits.directVideoBytes;
-  const maxBytes = direct ?? limits.multipartVideoBytes;
-  const limit = formatBytes(maxBytes, locale);
+  const limit = formatBytes(MAX_VIDEO_UPLOAD_BYTES, locale);
 
   useEffect(() => () => (chosen ? URL.revokeObjectURL(chosen.url) : undefined), [chosen]);
 
@@ -394,7 +372,7 @@ function VideoSlot({ item, limits }: { item: AdminMediaItem; limits: AdminMediaU
     const typeOk = VIDEO_TYPES.has(file.type) || /\.(mp4|webm)$/i.test(file.name);
     const problem: VideoProblem | null = !typeOk
       ? 'unsupported_video'
-      : file.size > maxBytes
+      : file.size > MAX_VIDEO_UPLOAD_BYTES
         ? 'too_large'
         : null;
     setChosen({ file, url: URL.createObjectURL(file), problem });
@@ -405,29 +383,7 @@ function VideoSlot({ item, limits }: { item: AdminMediaItem; limits: AdminMediaU
     setPending(true);
     setFailure(null);
     try {
-      if (direct !== null) {
-        const type = videoTypeOf(chosen.file);
-        const grant = await apiRequest<AdminDirectUpload>(`/admin/media/${item.id}/video/direct`, {
-          method: 'POST',
-          body: { type, bytes: chosen.file.size },
-        });
-        // Loaded only when a film is sent this way.
-        const { put } = await import('@vercel/blob/client');
-        setProgress(0);
-        await put(grant.pathname, chosen.file, {
-          access: 'public',
-          token: grant.clientToken,
-          contentType: type,
-          multipart: chosen.file.size > MULTIPART_FROM_BYTES,
-          onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
-        });
-        await apiRequest(`/admin/media/${item.id}/video/direct/complete`, {
-          method: 'POST',
-          body: { pathname: grant.pathname },
-        });
-      } else {
-        await uploadFile(`/admin/media/${item.id}/video`, chosen.file);
-      }
+      await uploadFile(`/admin/media/${item.id}/video`, chosen.file);
       setChosen(null);
       notify(t('common.saved'));
       router.refresh();
@@ -435,7 +391,6 @@ function VideoSlot({ item, limits }: { item: AdminMediaItem; limits: AdminMediaU
       setFailure(caught instanceof ApiError ? caught : new ApiError(0, null));
     } finally {
       setPending(false);
-      setProgress(null);
     }
   }
 
@@ -522,9 +477,7 @@ function VideoSlot({ item, limits }: { item: AdminMediaItem; limits: AdminMediaU
           </div>
           {pending ? (
             <p className="text-caption text-fg-subtle" aria-live="polite">
-              {progress !== null
-                ? t('media.uploadingVideoProgress', { percent: progress })
-                : t('media.uploadingVideo')}
+              {t('media.uploadingVideo')}
             </p>
           ) : null}
         </div>

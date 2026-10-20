@@ -34,6 +34,8 @@ RUN --mount=type=cache,id=teran-pnpm-store,target=/pnpm/store \
 COPY tsconfig.base.json ./
 COPY packages/contracts packages/contracts
 COPY apps/api apps/api
+# The demo seed's gallery shows the storefront's packaging artwork (prisma/seed/media.ts).
+COPY apps/web/public/brand/art apps/web/public/brand/art
 RUN pnpm --filter @teran/contracts build && pnpm --filter @teran/api build
 
 # ── Production dependencies only ──────────────────────────────────────────────────────────────

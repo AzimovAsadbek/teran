@@ -1,5 +1,5 @@
 import type { Locale } from '@teran/contracts';
-import { Phone } from 'lucide-react';
+import { MessageSquare, Phone } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -7,7 +7,6 @@ import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 import {
-  ChatCard,
   OPTION_HEADER,
   OPTION_HEADING,
   OPTION_ICON,
@@ -65,9 +64,9 @@ async function ContactPicture() {
 }
 
 /**
- * Under the panel, the reference's two cards: the chat (its header opens the chat window; TERAN
- * adds its messengers and e-mails) and the phones, with the opening hours and the address from
- * Admin → Settings. Only what TERAN has entered is listed.
+ * Under the panel, the reference's two cards: writing to TERAN (its messengers and e-mails) and
+ * the phones, with the opening hours and the address from Admin → Settings. Only what TERAN has
+ * entered is listed.
  */
 async function ContactOptions() {
   await connection();
@@ -83,11 +82,18 @@ async function ContactOptions() {
 
   return (
     <div className="grid grid-cols-1 gap-5 min-[46.875rem]:grid-cols-2">
-      <ChatCard title={t('chatCardTitle')}>
-        <p className={OPTION_SMALL}>{t('chatCardText')}</p>
+      <OptionCard
+        header={
+          <div className={OPTION_HEADER}>
+            <MessageSquare aria-hidden className={OPTION_ICON} strokeWidth={1.5} />
+            <h2 className={`${OPTION_HEADING} leading-[1.6rem]`}>{t('writeCardTitle')}</h2>
+          </div>
+        }
+      >
+        <p className={OPTION_SMALL}>{t('writeCardText')}</p>
         {messengers.length + emails.length > 0 ? (
           <>
-            <p className={`${OPTION_SMALL} mt-1.5`}>{t('writeUs')}</p>
+            <p className={`${OPTION_SMALL} mt-1.5`}>{t('writeCardChannels')}</p>
             {messengers.map((link) => (
               <a
                 key={link.href}
@@ -107,7 +113,7 @@ async function ContactOptions() {
             ))}
           </>
         ) : null}
-      </ChatCard>
+      </OptionCard>
       <OptionCard
         header={
           <div className={OPTION_HEADER}>

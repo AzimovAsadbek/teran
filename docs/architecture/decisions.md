@@ -145,6 +145,8 @@ at the cost of an extra lookup per request.
 
 ## ADR-011: Trusted server-to-server calls and the client IP
 
+**Status.** Accepted; since [ADR-046](#adr-046-teran-on-its-own-server-docker-compose-behind-the-servers-nginx) the server's Nginx plays Caddy's part described here.
+
 **Context.** The API rate-limits per client IP. The storefront renders on the server and would
 otherwise look like one very busy visitor.
 
@@ -213,6 +215,8 @@ DAVIDsTEA copy, imagery, illustration style or palette is reused. See the
 [reference audit](../design/reference-audit.md) and the [design system](../design/design-system.md).
 
 ## ADR-016: Single-host Docker Compose behind Caddy, deployed by hand
+
+**Status.** Superseded in part by [ADR-046](#adr-046-teran-on-its-own-server-docker-compose-behind-the-servers-nginx): the server's own Nginx replaces Caddy; the rest stands.
 
 **Context.** A first production deployment for a single store, without an authorised deployment
 pipeline.
@@ -303,19 +307,24 @@ history is auditable. One post per item: later edits are not re-announced.
 
 ## ADR-023: Product advisor grounded in catalogue tools
 
+**Status.** Superseded by [ADR-047](#adr-047-the-ai-product-advisor-removed): the advisor was removed.
+
 **Context.** A shopping assistant must not invent products, prices, links or qualities, and model
 output must never become a database query.
 
 **Decision.** The advisor finds products only through a validated search over the catalogue
 (category, type, formats, price range, attribute options, a text word, stock). With an AI provider,
 the model can only call that search and name products it returned; anything else is dropped.
-Without a provider, or when it fails, a rule-based reader of the request does the same. Details:
-[product-advisor](./product-advisor.md).
+Without a provider, or when it fails, a rule-based reader of the request does the same. Details
+were in `docs/architecture/product-advisor.md`, removed with the advisor (ADR-047).
 
 **Consequences.** Every recommendation is a real, purchasable product with real facts, in every
 mode. Qualities the catalogue does not record are named as such instead of being guessed.
 
 ## ADR-024: Films uploaded straight to object storage
+
+**Status.** Superseded by [ADR-046](#adr-046-teran-on-its-own-server-docker-compose-behind-the-servers-nginx): Vercel Blob and direct uploads were removed; films go through the
+API (64 MB).
 
 **Context.** On Vercel a function accepts request bodies of at most 4.5 MB, far below a short film;
 routing films through the API there would simply fail.
@@ -407,6 +416,8 @@ launch; until then the local database differs from the live one.
 
 ## ADR-029: The reference's palette; the advisor hidden behind a build flag
 
+**Status.** The palette stands; the advisor and its flag are superseded by [ADR-047](#adr-047-the-ai-product-advisor-removed).
+
 **Context.** The owner asked for the reference's colours as well as its layouts, and for the
 product advisor to be left out of the storefront for now (its code kept).
 
@@ -427,6 +438,8 @@ accessibility suite. TERAN's own brand colours return by changing the token valu
 advisor's links back.
 
 ## ADR-030: The reference's widgets and interaction tokens
+
+**Status.** Accepted, except the chat: it hosted the advisor and was removed with it ([ADR-047](#adr-047-the-ai-product-advisor-removed)).
 
 **Context.** On 2026-10-17 the owner asked for the storefront to behave as well as look like the
 reference: the same clickable parts and links, the same changes under the pointer, its chat in
@@ -887,6 +900,9 @@ in, so the demo reset never leaves rating totals behind.
 
 ## ADR-043: Pictures and films in Cloudflare R2, read straight from it
 
+**Status.** Accepted; the Vercel parts (Blob, the storefront's rewrite on Vercel, the 4.5 MB
+limit) are superseded by [ADR-046](#adr-046-teran-on-its-own-server-docker-compose-behind-the-servers-nginx).
+
 **Context.** Pictures and films lived in Vercel Blob behind the storefront's `/uploads` rewrite. On
 2026-10-19 the Hobby plan's included Blob usage ran out (4K films of tens of megabytes, repeated
 imports, checks) and Vercel suspended the store: every picture and film answered 403, the files
@@ -965,6 +981,9 @@ town, and the exact house is clicked on the map (house 200 is in OpenStreetMap a
 
 ## ADR-045: Contact channels only where they serve
 
+**Status.** Accepted; the chat panel and the advisor named here were removed
+([ADR-047](#adr-047-the-ai-product-advisor-removed)).
+
 **Context.** With prices hidden (ADR-027) orders go through TERAN's phones and messengers, and the
 "To order, get in touch" panel with every channel had spread: under each tea, in the bag, as a large
 banner on the home page, and (for a few hours) as a band under the stores. On 2026-10-19 the owner
@@ -988,3 +1007,111 @@ then for it to leave the product and bag pages too.
 **Consequences.** The `ContactToOrder` component and its texts are gone. One fewer full-width
 banner on the home page; a buyer finds how to order in the footer, through the floating button or
 on the contact page, where a card's "Order" button also leads.
+
+## ADR-046: TERAN on its own server: Docker Compose behind the server's Nginx
+
+**Context.** On 2026-10-20 the owner decided to run TERAN on its own server, which already runs
+Nginx, instead of Vercel (projects `teran-web` and `teran-api`, deployed from `main`), Neon (the
+database) and Vercel Blob (suspended on 2026-10-19, ADR-043). Vercel-specific code had accumulated
+around the application: a serverless entry and its bundle, an endpoint for Vercel Cron, Blob
+storage with direct browser uploads, 4.5 MB request caps, Vercel-only headers and build branches,
+and Neon's swap to its unpooled address.
+
+**Decision.**
+
+- Production is `docker-compose.prod.yml` on one host (ADR-016 otherwise unchanged): PostgreSQL
+  on an internal network and never published, the migration job, the API and the storefront. The
+  API and the storefront are published on 127.0.0.1 only (at host ports chosen by `deploy.sh`,
+  ADR-048), for the server's own Nginx, which terminates HTTPS and does what Caddy did:
+  `/api/v1/*` and `/uploads/*` to the API, `/api/revalidate` refused, `X-Internal-Key` removed,
+  `X-Forwarded-For` replaced by the client's address (one hop, ADR-011), an access log without
+  query strings or Referer. Pages pass through unbuffered (they stream); films (64 MB) have a
+  route of their own with a larger body limit, everything else 12 MB. These are requirements for
+  the server's configuration (production deployment §7): the Nginx template first kept in
+  `docker/nginx/` was removed again (ADR-048).
+- Removed: the serverless entry (`src/serverless.ts`, `api/index.js`,
+  `scripts/bundle-serverless.ts`, the `vercel-build` script, both `vercel.json`, `.vercelignore`), the
+  scheduled-jobs endpoint and `CRON_SECRET` (the API's own timers run the jobs: payment expiry and
+  Telegram posts every minute, clean-up hourly), Vercel Blob (the store, `@vercel/blob`,
+  `BLOB_READ_WRITE_TOKEN`, direct film uploads: supersedes ADR-024), the `VERCEL` and `VERCEL_ENV`
+  branches with their 4.5 MB caps (admin pictures now stop at the API's 5 MB, films at 64 MB
+  through the API, `MAX_VIDEO_UPLOAD_BYTES` shared in the contracts), the Next.js output switch
+  (always `standalone`), and Caddy with its Caddyfile.
+- Pictures and films stay in Cloudflare R2 (ADR-043), an external service the shop keeps, or in
+  the `uploads` volume without `R2_*`. With R2, an `/uploads` address the volume does not hold (an
+  admin preview, an old link) is redirected by the API to the same key in the bucket, so Nginx
+  routes `/uploads` the same way in both cases. The seed's local-only guard now refuses R2 (it
+  only knew Blob).
+- The database is PostgreSQL through Prisma 7 and `@prisma/adapter-pg` with direct connections
+  (the statement timeout is a start-up parameter, which transaction poolers refuse); one
+  `DATABASE_URL`. Moving the data off Neon is a separate, controlled step
+  ([migration from Vercel and Neon](../deployment/migration-from-vercel.md)); no migration was
+  added or changed.
+- The storefront's build flags reach the image (`SHOW_PRICES`, `SHOW_GALLERY`, `UPLOADS_ORIGIN`
+  from `R2_PUBLIC_URL`) and `CHECKOUT_ENABLED` reaches the API, so the Compose stack can match the
+  live configuration.
+
+**Consequences.** One deployment path, no platform request caps, no Vercel or Neon dependency in
+the code. Until their Git connection is removed, the Vercel projects keep deploying `main` on every
+push, so this work is pushed only after the cut-over. The privacy policy still names Vercel, Neon
+and Frankfurt as the hosting: it must name the new server's provider and location before the
+cut-over. More than one API container would run the timers in each (the jobs are idempotent) and
+needs shared storage (R2); more than one web container needs a shared cache handler.
+
+## ADR-047: The AI product advisor removed
+
+**Context.** The product advisor (ADR-023) had been hidden from the storefront since 2026-10-17
+(ADR-029). On 2026-10-20 the owner decided it is not needed.
+
+**Decision.** Removed: the API's advisor module (`/api/v1/assistant/status` and `/recommend`, its
+Anthropic Messages client over `fetch`, `ANTHROPIC_API_KEY`, `ASSISTANT_MODEL`,
+`ASSISTANT_API_BASE`), its contracts, the `/assistant` page, the chat window (which hosted the advisor
+and a delivery answer the delivery page also gives), `NEXT_PUBLIC_SHOW_ADVISOR` with every link,
+banner and sitemap entry, and their tests and texts. TERAN's networks button stays (ADR-045), now
+alone in the corner. The contact page's chat card became "Write to us" (messengers and e-mails),
+and the help centre's card leads to the contact page. Catalogue search, filters and related
+products are separate code and stay.
+
+**Consequences.** No AI provider, key or SDK remains; `/assistant` is an unknown page (404 for
+crawlers, the not-found page with `noindex` for visitors, ADR-010) and the API's `/assistant`
+routes answer 404. Supersedes ADR-023 and the advisor parts of ADR-029, ADR-030 and ADR-045.
+
+## ADR-048: One script installs and updates the deployment: `deploy.sh`
+
+**Context.** The owner's server already runs Nginx with its own layout (`/etc/nginx/projects`,
+`projects-enabled`, `snippets`), managed outside this repository; a deployment must never touch
+it. Deploying by hand meant remembering the host ports, the env files, a backup before the
+migrations and the order of the services, and a mistake could move the site to other ports or
+migrate without a backup.
+
+**Decision.**
+
+- `deploy.sh` at the repository root installs the stack on its first run and updates it on every
+  later run. The first run asks for the storefront and API host ports (1024–65535, different, not
+  used by a host process or another container; suggested from the server's Nginx configuration
+  when it can be read, never written) and keeps them, with the Compose project, the backup folder,
+  the branch, the media storage and the deployed image tags, in `.deploy.env` (no secrets, mode
+  600, git-ignored). Later runs ask nothing.
+- The Compose file's host ports are required variables (`TERAN_WEB_HOST_PORT`,
+  `TERAN_API_HOST_PORT`) without defaults, bound to 127.0.0.1, so a manual command without
+  `.deploy.env` fails instead of moving the site; the containers keep their own ports (3000, 4000).
+- Every run validates `.env.production` (without printing a value) and the Compose configuration,
+  builds images tagged with the Git commit, waits for PostgreSQL, backs the database up when it
+  holds data (checked readable; no backup, no migration), runs `prisma migrate deploy` as its own
+  step, then recreates the API and the storefront one after the other, each only once the previous
+  step is healthy, and checks them over HTTP on the local ports. An update first fast-forwards the
+  saved branch from its upstream (it never switches branches or merges, and stops on uncommitted
+  changes to tracked files), and continues with the new script when the update changed it.
+- It never writes Nginx, TLS, DNS or firewall settings, never removes volumes, other containers or
+  images, never stops or kills anything to free a port, never seeds, resets or restores the
+  database, and refuses an empty database (unless `--fresh-database`) and a silent switch between
+  R2 and the uploads volume. `--status` changes nothing; `--reconfigure-ports` is the only way to
+  change the ports.
+- The Nginx template added with ADR-046 (`docker/nginx/teran.conf`) was removed: production
+  deployment §7 lists what the server's configuration must do, and no Nginx configuration lives
+  in the repository.
+
+**Consequences.** One command for the first installation and every update; the last good release
+stays on the server for a rollback (`.deploy.env` names it). Backups and old images accumulate on
+the server until the operator moves or removes them. The script needs Docker access (the `docker`
+group), not root.

@@ -19,7 +19,6 @@ import { CategoryArt } from '@/components/catalog/category-art';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { showAdvisor } from '@/lib/site';
 import {
   ABOUT_LINKS,
   EMPTY_NAVIGATION,
@@ -480,13 +479,6 @@ function CategoryColumns({
               {t('shopAll')}
             </Link>
           </li>
-          {showAdvisor ? (
-            <li>
-              <Link href="/assistant" className={COLUMN_LINK}>
-                {t('assistant')}
-              </Link>
-            </li>
-          ) : null}
         </ul>
       </div>
     </div>

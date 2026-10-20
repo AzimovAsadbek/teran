@@ -13,7 +13,7 @@ import {
   type ImageDto,
 } from './catalog.js';
 import type { Locale, ProductFormat } from './constants.js';
-import { MEDIA_VIDEO_TYPES, mediaKindSchema, type MediaKind } from './content.js';
+import { mediaKindSchema, type MediaKind } from './content.js';
 import type { AdminTelegramStatus, Readiness, ReadinessCode } from './publishing.js';
 import { inquiryStatusSchema, type BusinessType, type InquiryStatus } from './inquiries.js';
 import {
@@ -460,32 +460,12 @@ export const mediaReorderSchema = z.object({
 export const adminMediaListQuerySchema = z.object({ kind: mediaKindSchema.optional() });
 
 /**
- * A film uploaded straight from the browser to the file store (object storage only), so a large
- * file never passes through the API: the API grants a short-lived permission for one file, then
- * checks what arrived.
+ * Largest film the admin area uploads. Films go through the API, which keeps one in memory while
+ * it checks and stores it; the reverse proxy in front of the API must accept request bodies a
+ * little larger than this (docs/deployment/production.md). Larger films are added with the API's
+ * scripts/add-gallery-film.ts.
  */
-export const mediaDirectUploadSchema = z.object({
-  type: z.enum(MEDIA_VIDEO_TYPES),
-  bytes: z.number().int().positive(),
-});
-export const mediaDirectUploadCompleteSchema = z.object({
-  pathname: z.string().min(1).max(200),
-});
-
-/** How large a film the admin area may upload, and how. */
-export interface AdminMediaUploadLimits {
-  /** Through the API in one request (a serverless deployment caps request bodies at 4.5 MB). */
-  multipartVideoBytes: number;
-  /** Straight to the file store; null when no object storage is configured. */
-  directVideoBytes: number | null;
-}
-
-export interface AdminDirectUpload {
-  /** Where the file goes in the store: `<key>/video.mp4` or `<key>/video.webm`. */
-  pathname: string;
-  /** Allows exactly this upload (type, size, place) for a short time. */
-  clientToken: string;
-}
+export const MAX_VIDEO_UPLOAD_BYTES = 64 * 1024 * 1024;
 
 // ─── Staff accounts ─────────────────────────────────────────────────────────
 

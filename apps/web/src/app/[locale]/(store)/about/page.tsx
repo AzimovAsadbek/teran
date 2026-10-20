@@ -31,7 +31,7 @@ import { socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
 import { categoryTree, coverSizes } from '@/lib/navigation';
 import { pageMetadata } from '@/lib/seo';
-import { showAdvisor, showGallery } from '@/lib/site';
+import { showGallery } from '@/lib/site';
 import { visualFor } from '@/lib/visuals';
 import lake from '../../../../../public/brand/art/lake.webp';
 import sprig from '../../../../../public/brand/art/sprig-1.webp';
@@ -361,18 +361,13 @@ export default async function AboutPage() {
           <ul
             className={cn(
               'mx-auto mt-8 grid gap-3',
-              showAdvisor || showGallery
-                ? 'max-w-[53.5rem] sm:grid-cols-3'
-                : 'max-w-[36rem] sm:grid-cols-2',
+              showGallery ? 'max-w-[53.5rem] sm:grid-cols-3' : 'max-w-[36rem] sm:grid-cols-2',
             )}
           >
             {[
               { href: '/journal', label: tn('journal'), image: terraces },
               { href: '/tea-101', label: tn('tea101'), image: lake },
               ...(showGallery ? [{ href: '/media', label: tn('media'), image: lake }] : []),
-              ...(showAdvisor
-                ? [{ href: '/assistant', label: tn('assistant'), image: sprig }]
-                : []),
             ].map((tile) => (
               <li key={tile.href}>
                 <Link

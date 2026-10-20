@@ -5,7 +5,6 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import {
   CategoryCards,
-  HelpChat,
   HelpPicture,
   helpCategories,
   searchEntries,
@@ -32,8 +31,9 @@ const H2 = 'text-[1.5rem] leading-8 font-semibold tracking-[-0.015rem] text-blac
 
 /**
  * The help centre on the reference's: a 316 px banner (picture, a line in the soft serif, the
- * search box over it), "Get more information" with the five categories (grid or list), "Get
- * support" with the contact and phone cards, and the chat card under it all.
+ * search box over it), "Get more information" with the five categories (grid or list), and "Get
+ * support" with the contact and phone cards. The reference's chat card under it all is left out:
+ * the support cards already lead to the contact page (ADR-045, ADR-047).
  */
 export default async function HelpCentrePage() {
   const locale = (await rootParams.locale()) as Locale;
@@ -87,7 +87,6 @@ export default async function HelpCentrePage() {
           </section>
         </div>
       </div>
-      <HelpChat />
     </>
   );
 }

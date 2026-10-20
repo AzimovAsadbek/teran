@@ -5,9 +5,10 @@
 #   docker build -f apps/web/Dockerfile -t teran-web \
 #     --build-arg NEXT_PUBLIC_SITE_URL=https://teran.example .
 #
-# NEXT_PUBLIC_* values and the API rewrites (API_INTERNAL_URL) are compiled into the build, so
-# changing them requires a rebuild. Secrets (API_INTERNAL_KEY, REVALIDATE_SECRET) are runtime
-# environment variables and never enter the image.
+# NEXT_PUBLIC_* values, the API rewrites (API_INTERNAL_URL) and the media origin allowed by the
+# content security policy (UPLOADS_ORIGIN) are compiled into the build, so changing them requires a
+# rebuild. Secrets (API_INTERNAL_KEY, REVALIDATE_SECRET) are runtime environment variables and
+# never enter the image.
 
 ARG NODE_IMAGE=node:24.21.0-alpine3.24
 
@@ -35,11 +36,18 @@ ARG API_INTERNAL_URL=http://api:4000
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_ENABLED_LOCALES=uz,ru,en
 ARG NEXT_PUBLIC_DEMO_CONTENT=true
+ARG NEXT_PUBLIC_SHOW_PRICES=false
+ARG NEXT_PUBLIC_SHOW_GALLERY=false
+# Public address of the object storage (R2_PUBLIC_URL); empty when files stay in the API's volume.
+ARG UPLOADS_ORIGIN=
 RUN test -n "$NEXT_PUBLIC_SITE_URL" || { echo "Build argument NEXT_PUBLIC_SITE_URL is required." >&2; exit 1; }
 ENV API_INTERNAL_URL=$API_INTERNAL_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_ENABLED_LOCALES=$NEXT_PUBLIC_ENABLED_LOCALES \
-    NEXT_PUBLIC_DEMO_CONTENT=$NEXT_PUBLIC_DEMO_CONTENT
+    NEXT_PUBLIC_DEMO_CONTENT=$NEXT_PUBLIC_DEMO_CONTENT \
+    NEXT_PUBLIC_SHOW_PRICES=$NEXT_PUBLIC_SHOW_PRICES \
+    NEXT_PUBLIC_SHOW_GALLERY=$NEXT_PUBLIC_SHOW_GALLERY \
+    UPLOADS_ORIGIN=$UPLOADS_ORIGIN
 RUN pnpm --filter @teran/contracts build && pnpm --filter @teran/web build
 
 # ── Server ────────────────────────────────────────────────────────────────────────────────────

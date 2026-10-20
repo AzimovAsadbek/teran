@@ -42,7 +42,7 @@ describe('demo seed guards', () => {
     expect(() => assertSeedAllowed({ NODE_ENV: 'development' })).toThrow(/DATABASE_URL/);
   });
 
-  it('keeps local-only material on this machine: no production, remote database or Blob', () => {
+  it('keeps local-only material on this machine: no production, remote database or R2', () => {
     expect(assertLocalOnly({ NODE_ENV: 'development', DATABASE_URL: LOCAL_URL }).host).toBe(
       '127.0.0.1',
     );
@@ -56,9 +56,9 @@ describe('demo seed guards', () => {
       assertLocalOnly({
         NODE_ENV: 'development',
         DATABASE_URL: LOCAL_URL,
-        BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_not_a_real_token',
+        R2_BUCKET: 'teran-media',
       }),
-    ).toThrow(/Vercel Blob/);
+    ).toThrow(/R2_BUCKET set; local-only material is never uploaded to object storage/);
   });
 
   it('describes the target without credentials', () => {

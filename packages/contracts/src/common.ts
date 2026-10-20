@@ -3,9 +3,6 @@ import { LOCALES } from './constants.js';
 
 export const localeSchema = z.enum(LOCALES);
 
-/** ISO-4217 code of the only currency sold in at launch. */
-export const DEFAULT_CURRENCY = 'UZS';
-
 /**
  * Monetary amounts travel as exact decimal strings ("85000.00"), never as floating-point numbers.
  * The API produces them from PostgreSQL NUMERIC values.

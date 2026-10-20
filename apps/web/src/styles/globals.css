@@ -605,14 +605,11 @@
   }
 
   /* The corner widgets come up as the reference's: fading in while rising into place. */
-  .chat-window:not([hidden]) {
-    animation: widget-in 0.28s var(--panel-ease) both;
-  }
   .promo-popup {
     animation: widget-in var(--panel-duration) var(--panel-ease) both;
   }
-  /* TERAN's networks above the chat (components/social/social-launcher.tsx) rise one after
-     another, the nearest to the disc first. */
+  /* TERAN's networks (components/social/social-launcher.tsx) rise one after another, the nearest
+     to the disc first. */
   .social-launcher-item {
     animation: widget-in var(--panel-duration) var(--panel-ease) both;
     animation-delay: calc(40ms * var(--i, 0));

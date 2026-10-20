@@ -38,8 +38,8 @@ tea cover, the contact, help, flavour and Tea 101 pictures):
 corepack pnpm --filter @teran/api visuals:import --dir storage/reference-assets
 ```
 
-On the live site this runs against the production database with the Blob token (the same way as
-the production seed, docs/deployment/vercel.md), only when the owner asks for a deploy. Done on
+On the live site this runs against the production database with the production store's settings
+(R2 since ADR-043; at the time, Vercel Blob), only when the owner asks for a deploy. Done on
 2026-10-18 with the release: 23 places filled from the 27 files (four are phone crops).
 
 ## 2. `storage/reference-mockup/` — the reference's campaign and product pictures (11 entries)
@@ -61,8 +61,8 @@ merchandise, staff and shops, other teas as TERAN's five teas, or its store map.
 presentation of the look on this machine only: shown on TERAN's pages they would present another
 company's brand and products as TERAN's, so they never go to the live site, where those places
 show TERAN's own pictures (its pouches, the pack paintings) until TERAN uploads photographs. The manifest is marked `"localOnly": true`, and the import refuses to load it unless
-`NODE_ENV` is not `production`, the database runs on this machine and `BLOB_READ_WRITE_TOKEN` is
-not set.
+`NODE_ENV` is not `production`, the database runs on this machine and no `R2_*` setting is set
+(before ADR-046: no `BLOB_READ_WRITE_TOKEN`).
 
 | Place                                                                                                              | Files                               | Shown on (and what the live site shows there instead)                                                                                         |
 | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -32,7 +32,6 @@ export const TEST_ENV: Record<string, string> = {
   THROTTLE_DISABLED: 'true',
   WEB_REVALIDATE_URL: '',
   REVALIDATE_SECRET: '',
-  CRON_SECRET: 'test-cron-secret-0123456789-abcdefghijkl',
   // Online ordering is on in tests (it is off unless set, see CHECKOUT_ENABLED).
   CHECKOUT_ENABLED: 'true',
   // Payments: live mode without provider credentials (cash only) unless a suite overrides it.

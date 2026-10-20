@@ -1,14 +1,6 @@
-import { randomBytes } from 'node:crypto';
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type {
-  AdminDirectUpload,
-  AdminMediaItem,
-  AdminMediaUploadLimits,
-  MediaKind,
-  mediaDirectUploadSchema,
-  mediaUpsertSchema,
-} from '@teran/contracts';
+import type { AdminMediaItem, MediaKind, mediaUpsertSchema } from '@teran/contracts';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { ApiException } from '../common/errors/api-exception.js';
@@ -17,14 +9,11 @@ import { mediaCaptionsSrc, mediaImage, mediaVideoSrc } from '../content/media.se
 import type { Prisma } from '../generated/prisma/client.js';
 import {
   deleteStoredImage,
-  inspectStoredVideo,
   mediaPrefix,
   storeCaptions,
   storeImage,
   storeVideo,
   videoDurationSeconds,
-  videoFileName,
-  VideoRejectedError,
   type ImageStore,
 } from '../media/image-processing.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -35,16 +24,6 @@ import { uploadError } from './uploads.js';
 import { configuredImageStore } from '../media/configured-store.js';
 
 type MediaPayload = z.output<typeof mediaUpsertSchema>;
-type DirectUploadPayload = z.output<typeof mediaDirectUploadSchema>;
-
-/** Largest film sent through the API (kept in memory while it is checked and stored). */
-export const MAX_VIDEO_UPLOAD_BYTES = 64 * 1024 * 1024;
-/** A serverless host refuses larger request bodies before they reach the API. */
-const SERVERLESS_BODY_BYTES = 4.5 * 1024 * 1024;
-/** Largest film uploaded straight to object storage. */
-export const MAX_DIRECT_VIDEO_BYTES = 512 * 1024 * 1024;
-/** How long the browser has to start a direct upload. */
-const DIRECT_UPLOAD_VALID_MS = 30 * 60 * 1000;
 type MediaRow = Prisma.MediaItemGetPayload<{ include: { translations: true } }>;
 
 const include = { translations: true } satisfies Prisma.MediaItemInclude;
@@ -59,7 +38,6 @@ const include = { translations: true } satisfies Prisma.MediaItemInclude;
 @Injectable()
 export class AdminMediaService {
   private readonly files: ImageStore;
-  private readonly serverless: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -68,113 +46,6 @@ export class AdminMediaService {
     config: ConfigService<Env, true>,
   ) {
     this.files = configuredImageStore(config);
-    this.serverless = Boolean(config.get('VERCEL', { infer: true }));
-  }
-
-  /**
-   * How a film can be uploaded here: through the API (64 MB, or 4.5 MB on a serverless host), and
-   * straight to object storage when it is configured (Vercel Blob).
-   */
-  uploadLimits(): AdminMediaUploadLimits {
-    return {
-      multipartVideoBytes: this.serverless ? SERVERLESS_BODY_BYTES : MAX_VIDEO_UPLOAD_BYTES,
-      directVideoBytes: this.files.directUploadToken ? MAX_DIRECT_VIDEO_BYTES : null,
-    };
-  }
-
-  /**
-   * Grants the browser a short-lived permission to upload one film of the stated type and size
-   * straight to the store, under a new random key of this item. Nothing is recorded until the
-   * upload is confirmed (completeDirectVideo checks what arrived).
-   */
-  async startDirectVideo(id: string, input: DirectUploadPayload): Promise<AdminDirectUpload> {
-    const item = await this.find(id);
-    if (item.kind !== 'VIDEO') {
-      throw ApiException.badRequest('BAD_REQUEST', 'Only video items have a video file');
-    }
-    if (!this.files.directUploadToken) {
-      throw ApiException.conflict('CONFLICT', 'Direct uploads need object storage', {
-        reason: 'direct_upload_unavailable',
-      });
-    }
-    if (input.bytes > MAX_DIRECT_VIDEO_BYTES) {
-      throw new ApiException(
-        HttpStatus.PAYLOAD_TOO_LARGE,
-        'PAYLOAD_TOO_LARGE',
-        'The film is too large',
-        {
-          details: { maxBytes: MAX_DIRECT_VIDEO_BYTES },
-        },
-      );
-    }
-    const storageKey = `${mediaPrefix(id)}/${randomBytes(9).toString('base64url')}`;
-    const fileName = videoFileName(input.type);
-    const clientToken = await this.files.directUploadToken(storageKey, fileName, {
-      contentType: input.type,
-      maxBytes: MAX_DIRECT_VIDEO_BYTES,
-      validForMs: DIRECT_UPLOAD_VALID_MS,
-    });
-    return { pathname: `${storageKey}/${fileName}`, clientToken };
-  }
-
-  /**
-   * Records a film uploaded straight to the store after checking it like any upload: it must be
-   * at a place granted to this item, be a real MP4 or WebM (by its first bytes, matching its
-   * name), and its running time is read from it. A refused file is deleted.
-   */
-  async completeDirectVideo(id: string, pathname: string, actor: Actor): Promise<AdminMediaItem> {
-    const existing = await this.find(id);
-    if (existing.kind !== 'VIDEO') {
-      throw ApiException.badRequest('BAD_REQUEST', 'Only video items have a video file');
-    }
-    const match = /^(media\/[0-9a-f-]{36}\/[A-Za-z0-9_-]{12})\/(video\.(?:mp4|webm))$/.exec(
-      pathname,
-    );
-    const storageKey = match?.[1];
-    const fileName = match?.[2];
-    if (!storageKey || !fileName || !storageKey.startsWith(`${mediaPrefix(id)}/`)) {
-      throw ApiException.badRequest('BAD_REQUEST', 'This upload does not belong to the item');
-    }
-    // Confirming twice (a retried request) changes nothing.
-    if (storageKey === existing.videoKey) return this.toAdmin(existing);
-    let video;
-    try {
-      video = await inspectStoredVideo(this.files, storageKey, fileName);
-    } catch (error) {
-      await deleteStoredImage(this.files, storageKey);
-      uploadError(error);
-    }
-    if (!video) {
-      throw ApiException.conflict('CONFLICT', 'The uploaded file was not found', {
-        reason: 'upload_missing',
-      });
-    }
-    if (videoFileName(video.type) !== fileName || video.bytes > MAX_DIRECT_VIDEO_BYTES) {
-      await deleteStoredImage(this.files, storageKey);
-      uploadError(new VideoRejectedError());
-    }
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.mediaItem.update({
-          where: { id },
-          data: {
-            videoKey: storageKey,
-            videoType: video.type,
-            videoBytes: video.bytes,
-            ...(video.durationSeconds !== null
-              ? { videoDurationSeconds: video.durationSeconds }
-              : {}),
-          },
-        });
-        await this.record(tx, actor, 'media.video', id, { bytes: video.bytes, direct: true });
-      });
-    } catch (error) {
-      await deleteStoredImage(this.files, storageKey);
-      throw error;
-    }
-    if (existing.videoKey) await deleteStoredImage(this.files, existing.videoKey);
-    this.revalidation.notify('content');
-    return this.get(id);
   }
 
   async list(kind?: MediaKind): Promise<AdminMediaItem[]> {

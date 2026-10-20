@@ -43,10 +43,18 @@ export function assertSeedAllowed(env: Env): DatabaseTarget {
   return databaseTarget(env.DATABASE_URL);
 }
 
+/** Object storage settings: with any of them set, pictures could leave this machine. */
+const OBJECT_STORAGE_KEYS = [
+  'R2_ENDPOINT',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET',
+];
+
 /**
  * Material for a presentation on this machine only (a picture manifest marked `localOnly`):
  * refused unless NODE_ENV is not "production", the database runs here and the pictures stay in
- * the local uploads folder (no BLOB_READ_WRITE_TOKEN). There is no override.
+ * the local uploads folder (no R2_* setting). There is no override.
  */
 export function assertLocalOnly(env: Env): DatabaseTarget {
   if (env.NODE_ENV === 'production') {
@@ -58,9 +66,10 @@ export function assertLocalOnly(env: Env): DatabaseTarget {
       `${describeTarget(target)} is not on this machine; local-only material is never loaded there.`,
     );
   }
-  if (env.BLOB_READ_WRITE_TOKEN) {
+  const storage = OBJECT_STORAGE_KEYS.filter((key) => env[key]);
+  if (storage.length > 0) {
     throw new Error(
-      'BLOB_READ_WRITE_TOKEN is set; local-only material is never uploaded to Vercel Blob.',
+      `${storage.join(', ')} set; local-only material is never uploaded to object storage.`,
     );
   }
   return target;

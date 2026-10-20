@@ -4,7 +4,7 @@ import Image, { type StaticImageData } from 'next/image';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import { Fragment, Suspense, type ReactNode } from 'react';
-import { ChatCard, OPTION_SMALL } from '@/components/content/contact-options';
+import { LinkCard, OPTION_SMALL } from '@/components/content/contact-options';
 import { VisualPicture } from '@/components/content/visual-picture';
 import type { Block } from '@/content/types';
 import { helpCentre, type HelpCategory } from '@/content/pages/faq';
@@ -346,15 +346,19 @@ export async function HelpTopBar({
   );
 }
 
-/** Under every help-centre page, as under the reference's: the chat card, 1152 px wide. */
-export async function HelpChat() {
+/**
+ * Under the help centre's categories, articles and search (where the reference has its chat card):
+ * a card leading to the contact page, 1152 px wide. The help centre's front page has its support
+ * cards instead.
+ */
+export async function HelpContact() {
   const t = await getTranslations('Pages');
   return (
     <div className="container-frame pt-[0.3125rem] pb-[2.625rem] min-[61.875rem]:pb-[3.75rem]">
       <div className="mx-auto max-w-[72rem]">
-        <ChatCard title={t('chatCardTitle')}>
-          <p className={OPTION_SMALL}>{t('chatCardText')}</p>
-        </ChatCard>
+        <LinkCard title={t('helpCardTitle')} href="/contact">
+          <p className={OPTION_SMALL}>{t('helpCardText')}</p>
+        </LinkCard>
       </div>
     </div>
   );

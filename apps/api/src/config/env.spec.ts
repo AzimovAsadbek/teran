@@ -109,18 +109,26 @@ describe('validateEnv', () => {
     expect(live.TELEGRAM_CHANNEL_ID).toBe('@teran_uz');
   });
 
-  it('runs the advisor without a provider unless a key is set, and refuses placeholders', () => {
-    expect(validateEnv({ ...valid, ANTHROPIC_API_KEY: '' }).ANTHROPIC_API_KEY).toBeUndefined();
-    expect(validateEnv(valid).ASSISTANT_MODEL).toBe('claude-opus-5-5');
+  it('takes R2 only complete, with its public address over https in production', () => {
+    const r2 = {
+      R2_ENDPOINT: 'https://account.r2.cloudflarestorage.com',
+      R2_ACCESS_KEY_ID: 'a'.repeat(32),
+      R2_SECRET_ACCESS_KEY: 's'.repeat(64),
+      R2_BUCKET: 'teran-media',
+      R2_PUBLIC_URL: 'https://media.teran.example',
+    };
+    expect(validateEnv({ ...valid, ...r2 }).R2_BUCKET).toBe('teran-media');
+    expect(() => validateEnv({ ...valid, ...r2, R2_PUBLIC_URL: '' })).toThrow(/R2_ENDPOINT/);
     expect(() =>
       validateEnv({
         ...valid,
+        ...r2,
         NODE_ENV: 'production',
         COOKIE_SECURE: 'true',
         WEB_ORIGIN: 'https://teran.example',
         INTERNAL_API_KEY: 'k'.repeat(40),
-        ANTHROPIC_API_KEY: 'replace-with-your-provider-key',
+        R2_PUBLIC_URL: 'http://media.teran.example',
       }),
-    ).toThrow(/ANTHROPIC_API_KEY/);
+    ).toThrow(/R2_PUBLIC_URL/);
   });
 });

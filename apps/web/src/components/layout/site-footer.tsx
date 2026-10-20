@@ -13,7 +13,7 @@ import { BRAND, BRAND_VALUES, brandCopy, brandValueLabels } from '@/content/bran
 import { Link } from '@/i18n/navigation';
 import { emailLinks, phoneLinks, socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
-import { showAdvisor, showGallery } from '@/lib/site';
+import { showGallery } from '@/lib/site';
 import { FooterColumn } from './footer-column';
 import { FooterNavSwitch } from './footer-nav';
 import { LanguageSwitcherSlot } from './language-switcher';
@@ -116,7 +116,6 @@ async function FooterColumns() {
         <Item href="/journal">{tn('journal')}</Item>
         <Item href="/wholesale">{tn('wholesale')}</Item>
         {showGallery ? <Item href="/media">{tn('media')}</Item> : null}
-        {showAdvisor ? <Item href="/assistant">{tn('assistant')}</Item> : null}
       </FooterColumn>
       <FooterColumn title={t('contactUs')} headingClassName={HEADING} className={contact}>
         <Item href="/contact">{tn('contact')}</Item>

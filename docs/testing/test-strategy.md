@@ -7,16 +7,16 @@ checks catch the rest before any test runs.
 | Layer                | Tool                                                      | Runs against                                               | Tests | Command                                                 |
 | -------------------- | --------------------------------------------------------- | ---------------------------------------------------------- | ----- | ------------------------------------------------------- |
 | Static checks        | TypeScript (strict), ESLint, Prettier, translation parity | Source                                                     | —     | `pnpm typecheck`, `pnpm lint`, `pnpm format:check`      |
-| Contracts unit       | Vitest                                                    | Shared schemas and rules                                   | 24    | `pnpm test`                                             |
-| API unit             | Vitest                                                    | Pure API logic and the demo seed's fixtures, no database   | 78    | `pnpm test`                                             |
-| Web unit             | Vitest, Testing Library, jsdom                            | Formatting, URL state, content, components                 | 31    | `pnpm test`                                             |
-| API integration      | Vitest, Supertest                                         | The real Nest application and PostgreSQL (`teran_test`)    | 100   | `pnpm test:integration`                                 |
-| End to end           | Playwright (Chromium), axe-core                           | Production builds of API and web, PostgreSQL (`teran_e2e`) | 26    | `pnpm --filter @teran/e2e build:stack && pnpm test:e2e` |
-| Production rehearsal | Docker Compose, curl, Playwright                          | The production images behind Caddy over HTTPS              | —     | See [below](#rehearsing-the-production-stack)           |
+| Contracts unit       | Vitest                                                    | Shared schemas and rules                                   | 34    | `pnpm test`                                             |
+| API unit             | Vitest                                                    | Pure API logic and the demo seed's fixtures, no database   | 101   | `pnpm test`                                             |
+| Web unit             | Vitest, Testing Library, jsdom                            | Formatting, URL state, content, components                 | 70    | `pnpm test`                                             |
+| API integration      | Vitest, Supertest                                         | The real Nest application and PostgreSQL (`teran_test`)    | 130   | `pnpm test:integration`                                 |
+| End to end           | Playwright (Chromium), axe-core                           | Production builds of API and web, PostgreSQL (`teran_e2e`) | 51    | `pnpm --filter @teran/e2e build:stack && pnpm test:e2e` |
+| Production rehearsal | Docker Compose, Nginx, curl, Playwright                   | The production images behind Nginx over HTTPS              | —     | See [below](#rehearsing-the-production-stack)           |
 
 All of them except the production rehearsal run in CI on every push and pull request
 ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)), together with production image
-builds, Compose and Caddyfile validation, and a dependency audit.
+builds, Compose and Nginx template validation (`nginx -t`), and a dependency audit.
 
 ## Safety rules
 
@@ -107,27 +107,45 @@ Notes for writing tests:
 
 ## Rehearsing the production stack
 
-Before a release, or after changing anything in `docker/`, the Dockerfiles or the Compose file:
+Before a release, or after changing anything in `docker/`, the Dockerfiles, the Compose file or
+`deploy.sh`. The stack runs from a separate checkout (a clone outside this one) under its own
+Compose project (`teran-smoke`) on free loopback ports, with a TLS proxy standing in for the
+server's Nginx:
 
-1. Create a throwaway env file outside the repository with random secrets,
-   `SITE_ADDRESS=localhost`, `PUBLIC_ORIGIN=https://localhost:8443`, `HTTP_PORT=8080` and
-   `HTTPS_PORT=8443`.
-2. `docker compose -p teran-smoke -f docker-compose.prod.yml --env-file <file> up -d --build`
-3. Load the demo catalogue (`run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed`) and create
-   the end-to-end administrator with `exec … api node dist/cli/create-admin.js`.
-4. Run the browser suite through Caddy:
+1. In the clone, create `.env.production` from `docker/production.env.example` with random
+   secrets, `PUBLIC_ORIGIN=https://localhost:8443`, and the end-to-end stack's ordering settings:
+   `DEMO_CONTENT=true`, `SHOW_PRICES=true`, `CHECKOUT_ENABLED=true`, `PAYMENT_PROVIDER_MODE=demo`,
+   `ALLOW_DEMO_PAYMENTS=true`, `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY,CLICK,PAYME,CARD`,
+   `TELEGRAM_MODE=dry-run`.
+2. `TERAN_COMPOSE_PROJECT=teran-smoke TERAN_BACKUP_DIR=<scratch folder> ./deploy.sh --web-port 3300 --api-port 4300 --fresh-database`
+3. Load the test catalogue and create the end-to-end administrator (`e2e/scripts/e2e-env.ts`) with
+   `docker compose -p teran-smoke -f docker-compose.prod.yml --env-file .env.production --env-file .deploy.env`:
+   `run --rm -e ALLOW_DEMO_SEED=true -e SEED_TEST_CATALOGUE=true migrate prisma db seed`, then
+   `exec -e ADMIN_EMAIL -e ADMIN_PASSWORD api node dist/cli/create-admin.js --first-name E2E`.
+4. Put a TLS proxy on `https://localhost:8443` in front of ports 3300 and 4300 that meets the
+   requirements of [production deployment §7](../deployment/production.md#7-nginx) (for example
+   an Nginx container whose configuration, like the server's, lives outside the repository).
+5. Run the browser suite through it:
    `E2E_BASE_URL=https://localhost:8443 E2E_IGNORE_HTTPS_ERRORS=true pnpm --filter @teran/e2e exec playwright test`
-5. Spot-check headers (`curl -skI https://localhost:8443/en`), the blocked revalidation route,
-   access-log token redaction and the backup and restore commands from the deployment guide.
-6. `docker compose -p teran-smoke … down -v` removes everything.
+6. Spot-check the headers (`curl -skI https://localhost:8443/en`), the blocked revalidation route,
+   a forged `X-Forwarded-For` and `X-Internal-Key`, the access log (no query strings),
+   `prisma migrate status`, and the backup, verification and restore commands from the deployment
+   guide.
+7. `docker compose -p teran-smoke … down -v` (only this throwaway project), removing the proxy and
+   the clone leaves nothing behind.
 
-Production rate limits stay on during the rehearsal. Registration allows 5 per hour per IP and a
-full run registers three accounts, so a second run within the hour needs
-`docker compose -p teran-smoke … restart api` first (the counters live in memory).
+Production rate limits stay on during the rehearsal, and every browser shares one address:
+sign-in allows 10 a minute and registration 5 an hour, which the whole suite exceeds. Run the
+failed tests again after `docker compose -p teran-smoke … restart api` (the counters live in
+memory): `playwright test --last-failed`.
 
-This rehearsal has been run for the current release: all browser journeys passed over HTTPS with
-secure cookies, forged `X-Forwarded-For` headers could not bypass rate limits, and the documented
-backup and restore commands worked.
+Last run, 2026-10-20 (Nginx 1.27.5 meeting §7 in front of the images built from this tree): all 51 browser
+tests passed over HTTPS, in three batches separated by API restarts (44, then 5 of the 7 refused
+with "Too many requests", then the last 2 with `TELEGRAM_MODE=dry-run`, which the first env file
+lacked). Forged `X-Forwarded-For` headers shared one rate-limit bucket, `X-Internal-Key` sent
+through Nginx was removed, `/api/revalidate` answered 404, the access log kept no query strings,
+pictures over 12 MB and films over 70 MB were refused by Nginx, and the backup, verification and
+restore commands of the deployment guide brought the data back after a simulated loss.
 
 ## Manual checks before a release
 

@@ -1,7 +1,6 @@
 import 'server-only';
 import type {
   ArticleDetailDto,
-  AssistantMode,
   AuthFeaturesDto,
   ArticleSummaryDto,
   CheckoutOptionsDto,
@@ -96,13 +95,6 @@ export async function getCheckoutOptions(locale: Locale): Promise<CheckoutOption
   cacheLife('minutes');
   cacheTag('settings');
   return apiGet<CheckoutOptionsDto>(`/checkout/options?locale=${locale}`);
-}
-
-/** Whether the product advisor answers with an AI model or with rule-based matching. */
-export async function getAssistantStatus(): Promise<{ mode: AssistantMode }> {
-  'use cache';
-  cacheLife('minutes');
-  return apiGet<{ mode: AssistantMode }>('/assistant/status');
 }
 
 /** Which account features the API can offer (password reset needs outgoing e-mail). */

@@ -238,31 +238,28 @@ export async function CategoryMarquee() {
   );
 }
 
-/* ── 5, 7, 9. Campaign banners ───────────────────────────────────────────────────────────── */
+/* ── 5, 7. Campaign banners ──────────────────────────────────────────────────────────────── */
 
 /**
  * The frame of the reference's campaign banners: inset between the page's gutters with a rounded
  * edge, apart from each other (as on wide screens; phones too since the owner's wish of
  * 2026-10-19); 448 px high on phones (taller where its packs need the room), 380 px from 640 px,
- * 438 px from 1440 px, or `tall` (500 px). The whole surface leads to `href`.
+ * 438 px from 1440 px. The whole surface leads to `href`.
  */
 function BannerFrame({
   className,
   href,
-  tall = false,
   children,
 }: {
   className: string;
   href: string;
-  tall?: boolean;
   children: ReactNode;
 }) {
   return (
     <section className="container-page py-3 sm:py-6">
       <div
         className={cn(
-          'relative isolate flex min-h-[28rem] overflow-hidden rounded-[1.25rem] sm:min-h-[23.75rem] sm:rounded-banner',
-          tall ? 'min-[90rem]:min-h-[31.25rem]' : 'min-[90rem]:min-h-[27.375rem]',
+          'relative isolate flex min-h-[28rem] overflow-hidden rounded-[1.25rem] sm:min-h-[23.75rem] sm:rounded-banner min-[90rem]:min-h-[27.375rem]',
           className,
         )}
       >
@@ -479,68 +476,6 @@ export async function GalleryBanner() {
       cta={t('featuredCta')}
       href={premium ? `/collections/${PREMIUM_COLLECTION_SLUG}` : '/catalog'}
     />
-  );
-}
-
-const PACKS = [packXc2025, packG8810, pack8830, pack8009];
-
-/** Sparkles around the packs, as the reference's beside its products. */
-const ADVISOR_SPARKLES: SparklePoint[] = [
-  { x: '52%', y: '20%', size: 34 },
-  { x: '55.5%', y: '30%', size: 20 },
-  { x: '95%', y: '14%', size: 26 },
-];
-
-/**
- * Section 9, the reference's colour campaign banner: saturated capitals on a pastel field, the
- * products standing on the right (below the words on phones). Here the advisor, with TERAN's packs.
- */
-export async function AdvisorBanner() {
-  const t = await getTranslations('Home');
-  return (
-    <BannerFrame
-      href="/assistant"
-      tall
-      className="flex-col bg-gold-100 text-jade-700 lg:flex-row lg:items-center"
-    >
-      <Sparkles points={ADVISOR_SPARKLES} className="-z-10 hidden text-jade-600 lg:block" />
-      <div className="flex flex-col items-center px-6 pt-10 text-center lg:w-[46%] lg:items-start lg:py-12 lg:pr-0 lg:pl-16 lg:text-left">
-        <h2 className={cn('font-headline text-balance', bannerHeadline(t('advisorTitle')))}>
-          <TitleLink href="/assistant">{t('advisorTitle')}</TitleLink>
-        </h2>
-        <p className="mt-5 max-w-[22rem] text-[0.9375rem] leading-[1.4] lg:mt-8 lg:text-[1.125rem] lg:leading-normal">
-          {t('advisorText')}
-        </p>
-        <Link href="/assistant" className={cn(PILL, 'mt-6 bg-ivory-50 text-jade-700 lg:mt-9')}>
-          {t('advisorCta')}
-        </Link>
-      </div>
-      <PackRow />
-    </BannerFrame>
-  );
-}
-
-/** The four packs side by side on a soft light, the banner's right half (its bottom on phones). */
-function PackRow() {
-  return (
-    <div
-      aria-hidden
-      className="relative mt-auto flex h-64 items-end justify-center px-4 sm:h-72 lg:mt-0 lg:h-[27rem] lg:flex-1 lg:pr-12"
-    >
-      <span className="absolute inset-x-[10%] bottom-0 h-[55%] rounded-[50%] bg-ivory-50/70 blur-3xl" />
-      {PACKS.map((pack, index) => (
-        <Image
-          key={pack.src}
-          src={pack}
-          alt=""
-          sizes="(min-width: 1024px) 14vw, 28vw"
-          className={cn(
-            'relative h-auto w-[25%] max-w-[11.5rem] drop-shadow-[0_24px_24px_rgb(0_0_0_/_0.25)]',
-            index % 2 === 1 ? '-mx-[2%] mb-0' : 'mb-[7%]',
-          )}
-        />
-      ))}
-    </div>
   );
 }
 

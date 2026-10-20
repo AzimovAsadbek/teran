@@ -3,9 +3,9 @@ import type { ImageStore } from './image-processing.js';
 
 /**
  * Cloudflare R2 (or any S3-compatible object storage) through its S3 API, signed with AWS
- * Signature Version 4 by hand, so no SDK is needed: the operations used are PUT, GET (with a
- * range), HEAD, DELETE and a prefix listing. Files are public through the bucket's public address
- * (R2_PUBLIC_URL), which the storefront and the API's picture addresses point at (ADR-043).
+ * Signature Version 4 by hand, so no SDK is needed: the operations used are PUT, GET, DELETE and
+ * a prefix listing. Files are public through the bucket's public address (R2_PUBLIC_URL), which
+ * the storefront and the API's picture addresses point at (ADR-043).
  */
 export interface S3Config {
   /** The account's S3 endpoint, e.g. https://<account id>.r2.cloudflarestorage.com */
@@ -113,7 +113,7 @@ export function signS3Request(
 async function send(
   config: S3Config,
   request: {
-    method: 'GET' | 'PUT' | 'HEAD' | 'DELETE';
+    method: 'GET' | 'PUT' | 'DELETE';
     key?: string;
     query?: Record<string, string>;
     headers?: Record<string, string>;
@@ -206,27 +206,6 @@ export function r2Store(config: S3Config): ImageStore {
       if (response.status === 404) return null;
       await check(response, 'read');
       return Buffer.from(await response.arrayBuffer());
-    },
-    async size(storageKey, fileName) {
-      if (!valid(storageKey, fileName)) return null;
-      const response = await send(config, { method: 'HEAD', key: keyOf(storageKey, fileName) });
-      if (response.status === 404) return null;
-      await check(response, 'head');
-      const length = Number(response.headers.get('content-length'));
-      return Number.isFinite(length) ? length : null;
-    },
-    async readRange(storageKey, fileName, start, end) {
-      if (!valid(storageKey, fileName)) return null;
-      if (start < 0 || end < start) return Buffer.alloc(0);
-      const response = await send(config, {
-        method: 'GET',
-        key: keyOf(storageKey, fileName),
-        headers: { range: `bytes=${start}-${end}` },
-      });
-      if (response.status === 404) return null;
-      await check(response, 'read range');
-      const data = Buffer.from(await response.arrayBuffer());
-      return response.status === 206 ? data : data.subarray(start, end + 1);
     },
     async remove(storageKey) {
       if (!KEY_PATTERN.test(storageKey)) return;

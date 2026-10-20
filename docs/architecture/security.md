@@ -95,18 +95,20 @@ or deletes it, but it shares the database role with the API.
   visitor's cookies.
 - Combined with `SameSite=Lax` cookies, no CSRF tokens are needed.
 - **CORS** allows only the configured origins with credentials. In production the browser calls
-  the API on the same origin through Caddy, so CORS is not exercised at all.
+  the API on the same origin through Nginx, so CORS is not exercised at all.
 
 ## Rate limiting and abuse
 
 - `@nestjs/throttler`: 120 requests per minute per IP and route by default; stricter limits on
   authentication, checkout (10/min), order lookup (30/min), cart (60/min), saving or deleting a
   product review (10/min) and the enquiry and newsletter forms (5 per 10 minutes). Responses carry `Retry-After` / `X-RateLimit-*`.
-- The client IP comes from `X-Forwarded-For` after `TRUST_PROXY_HOPS` trusted proxies (1 = Caddy).
-  Caddy replaces any client-supplied `X-Forwarded-For`, so the header cannot be spoofed; this was
-  verified on the production stack (forged headers shared one bucket, a second client had its own).
+- The client IP comes from `X-Forwarded-For` after `TRUST_PROXY_HOPS` trusted proxies (1 = the
+  server's Nginx). Nginx replaces any client-supplied `X-Forwarded-For` with the client's address
+  (a requirement for the server's configuration, production deployment §7), so the header cannot
+  be spoofed (verified on the production stack with Caddy, which behaved the same, and again behind
+  Nginx on 2026-10-20).
 - The storefront's cached server-side requests carry `X-Internal-Key` (compared in constant time)
-  and are exempt; without that, every visitor would share the web server's limit. Caddy strips the
+  and are exempt; without that, every visitor would share the web server's limit. Nginx strips the
   header from internet requests.
 - Forms have a hidden honeypot field; filled-in submissions are acknowledged and discarded.
 
@@ -150,8 +152,9 @@ plus `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
 `Referrer-Policy: strict-origin-when-cross-origin`, `Cross-Origin-Opener-Policy: same-origin`
 and a `Permissions-Policy` that disables camera, microphone, payment and USB and allows
 geolocation to this origin only (`geolocation=(self)`), for the store locator's "use my
-location" button; the browser still asks the visitor. Caddy adds
-`Strict-Transport-Security: max-age=31536000` and removes the `Server` header.
+location" button; the browser still asks the visitor. With Cloudflare R2 the bucket's public
+address (`UPLOADS_ORIGIN`) is added to `img-src`, `media-src` and `connect-src`. Nginx adds
+`Strict-Transport-Security: max-age=31536000` and hides its version (`server_tokens off`).
 
 **The one third-party origin.** The store locator (`/stores`) draws its map from OpenStreetMap's
 tiles, so `img-src` allows `https://tile.openstreetmap.org` (images only: no script, style or
@@ -179,13 +182,15 @@ are ever required.
 **API** (`apps/api/src/configure-app.ts`, helmet): `default-src 'none'` CSP with
 `frame-ancestors 'none'`, `Cross-Origin-Resource-Policy: same-site`, `Referrer-Policy:
 no-referrer`, HSTS and helmet's other defaults. Swagger UI, when enabled, gets its own policy; it
-is disabled in the production Compose file and Caddy does not route it.
+is disabled in the production Compose file and Nginx does not route it (only `/api/v1/` and
+`/uploads/` reach the API).
 
 ## Secrets and configuration
 
 - The API validates its environment at start-up and refuses to run in production with insecure
-  cookies, the `log` mail transport, a missing `INTERNAL_API_KEY`, an `http` `WEB_ORIGIN` or
-  extra origin, or a secret that still contains the `.env.example` placeholder
+  cookies, the `log` mail transport, a missing `INTERNAL_API_KEY`, an `http` `WEB_ORIGIN`, extra
+  origin or `R2_PUBLIC_URL`, half of the R2 settings, or a secret (including the R2 keys) that
+  still contains the `.env.example` placeholder
   (`apps/api/src/config/env.ts`). `THROTTLE_DISABLED` is accepted only with `NODE_ENV=test`.
 - Secrets live only in git-ignored env files (`.env`, `.env.local`, `.env.production`); the
   repository contains placeholders. `.dockerignore` keeps env files out of image builds, and no
@@ -200,7 +205,8 @@ is disabled in the production Compose file and Caddy does not route it.
 - API access logs contain only request id, method, URL and status. `token` / `accessToken` query
   values are replaced with `[redacted]` (also in server-error logs); cookies, `Authorization` and
   `Set-Cookie` are removed; no IP addresses or bodies are logged; health checks are not logged.
-- Caddy's access log deletes the `token` query parameter and the `Referer` header.
+- Nginx's access log (`teran_access` format) records the path without its query string and no
+  `Referer`, so tokens in links never reach the disk.
 - Pages whose URL carries a token (order status, password reset, newsletter unsubscribe) are
   `noindex, nofollow` and send no referrer; account, cart, checkout, search and admin pages are
   `noindex` and disallowed in `robots.txt`.
@@ -246,11 +252,12 @@ is disabled in the production Compose file and Caddy does not route it.
 
 ## Infrastructure
 
-See [production deployment](../deployment/production.md). In short: only Caddy is published;
-PostgreSQL sits on an internal network; API and web run as the unprivileged `node` user without
+See [production deployment](../deployment/production.md). In short: only the server's Nginx faces
+the internet; the API and the storefront are published on 127.0.0.1 for it, and PostgreSQL sits on
+an internal network, never published; API and web run as the unprivileged `node` user without
 package managers, with all capabilities dropped and `no-new-privileges`; the API filesystem is
 read-only apart from the uploads volume; the revalidation webhook is unreachable from the internet;
-HTTPS certificates are automatic.
+certificates come from Let's Encrypt through the server's certbot.
 
 ## Supply chain
 

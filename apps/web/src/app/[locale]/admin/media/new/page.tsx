@@ -6,7 +6,6 @@ import * as rootParams from 'next/root-params';
 import { MediaEditor } from '@/components/admin/media-editor';
 import { AdminPageHeader } from '@/components/admin/ui';
 import { Link } from '@/i18n/navigation';
-import { getMediaUploadLimits } from '@/lib/admin/server';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -18,11 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function NewMediaPage({
   searchParams,
 }: PageProps<'/[locale]/admin/media/new'>) {
-  const [params, t, limits] = await Promise.all([
-    searchParams,
-    getTranslations('Admin'),
-    getMediaUploadLimits(),
-  ]);
+  const [params, t] = await Promise.all([searchParams, getTranslations('Admin')]);
   const video = params.kind === 'videos';
   return (
     <>
@@ -34,7 +29,7 @@ export default async function NewMediaPage({
         {video ? t('media.kinds.VIDEO_PLURAL') : t('media.kinds.PHOTO_PLURAL')}
       </Link>
       <AdminPageHeader title={video ? t('media.newVideo') : t('media.newPhoto')} />
-      <MediaEditor item={null} kind={video ? 'VIDEO' : 'PHOTO'} uploadLimits={limits} />
+      <MediaEditor item={null} kind={video ? 'VIDEO' : 'PHOTO'} />
     </>
   );
 }

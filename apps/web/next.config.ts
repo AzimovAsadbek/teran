@@ -7,10 +7,10 @@ const isDev = process.env.NODE_ENV === 'development';
 const apiInternalUrl = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
 
 /**
- * Where product images are served from: the API's /uploads by default, or the Vercel Blob store
- * when the API keeps its images there. Either way the browser sees same-origin /uploads URLs.
+ * Where /uploads addresses are read from: the API's /uploads by default, or the public address of
+ * the object storage (Cloudflare R2) when the API keeps its files there. Build time only.
  */
-const uploadsOrigin = (process.env.UPLOADS_ORIGIN ?? `${apiInternalUrl}/uploads`).replace(
+const uploadsOrigin = (process.env.UPLOADS_ORIGIN || `${apiInternalUrl}/uploads`).replace(
   /\/$/,
   '',
 );
@@ -48,15 +48,6 @@ const contentSecurityPolicy = [
   ...(isDev ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
 
-/**
- * On Vercel the admin area uploads films straight to Vercel Blob (its upload API is on
- * vercel.com), so large files never pass through a function; only admin pages may connect there.
- */
-const adminContentSecurityPolicy = contentSecurityPolicy.replace(
-  `connect-src 'self'${media}`,
-  `connect-src 'self'${media} https://vercel.com https://*.blob.vercel-storage.com`,
-);
-
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: contentSecurityPolicy },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -84,8 +75,8 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   htmlLimitedBots: HTML_LIMITED_BOTS,
-  // Self-hosted images run the standalone server; Vercel builds its own output.
-  output: process.env.VERCEL ? undefined : 'standalone',
+  // The production image runs the standalone server (apps/web/Dockerfile).
+  output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ['@teran/contracts'],
@@ -114,27 +105,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
   async headers() {
-    const adminHeaders = [{ key: 'Content-Security-Policy', value: adminContentSecurityPolicy }];
-    return [
-      { source: '/:path*', headers: securityHeaders },
-      // Later rules override earlier ones for the same header.
-      ...(process.env.VERCEL
-        ? [
-            { source: '/admin/:path*', headers: adminHeaders },
-            { source: '/:locale(ru|en)/admin/:path*', headers: adminHeaders },
-            // Vercel's CDN keeps what /uploads answers (Blob's one-year Cache-Control) under the
-            // file's address alone, so a part of a film asked for by a player (Safari first asks
-            // for two bytes) was answered to every later request and the film would not play.
-            // Answers to range requests are not kept: Blob serves each range itself. Whole files
-            // (pictures, the films fetched whole) are still kept.
-            {
-              source: '/uploads/:path*',
-              has: [{ type: 'header' as const, key: 'range' }],
-              headers: [{ key: 'x-vercel-enable-rewrite-caching', value: '0' }],
-            },
-          ]
-        : []),
-    ];
+    return [{ source: '/:path*', headers: securityHeaders }];
   },
   async redirects() {
     // The two TERAN codes renamed to what their packs say (2026-10-17). The page itself also
@@ -154,8 +125,9 @@ const nextConfig: NextConfig = {
     ]);
   },
   async rewrites() {
-    // Browser requests stay same-origin (first-party cookies, no CORS). In production a reverse
-    // proxy can route these paths straight to the API instead.
+    // Browser requests stay same-origin (first-party cookies, no CORS). In production the server's
+    // Nginx routes /api/v1 and /uploads straight to the API (docs/deployment/production.md, §7);
+    // these rewrites serve development and the end-to-end stack.
     return [
       { source: '/api/v1/:path*', destination: `${apiInternalUrl}/api/v1/:path*` },
       { source: '/uploads/:path*', destination: `${uploadsOrigin}/:path*` },

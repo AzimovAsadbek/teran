@@ -27,5 +27,5 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   // Everything except API/upload proxies, Next.js internals and files with an extension.
-  matcher: '/((?!api|uploads|_next|_vercel|.*\\..*).*)',
+  matcher: '/((?!api|uploads|_next|.*\\..*).*)',
 };

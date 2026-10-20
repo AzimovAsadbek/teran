@@ -1,8 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
-import { BlobNotFoundError, del, head, list, put } from '@vercel/blob';
-import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 import sharp, { type Metadata } from 'sharp';
 import { r2Store, type S3Config } from './r2-store.js';
 
@@ -52,53 +50,25 @@ export interface StoredImage {
 
 /**
  * Where renditions are kept: `<key>/<width>.webp` in the uploads directory (served by the API under
- * /uploads), or in Vercel Blob when a token is configured (a serverless deployment has no lasting
- * disk; the storefront then proxies /uploads to the Blob store). The keys are the same either way.
+ * /uploads), or in Cloudflare R2 when it is configured (ADR-043; the storefront then reads the
+ * bucket's public address). The keys are the same either way.
  */
-export interface DirectUploadOptions {
-  contentType: string;
-  maxBytes: number;
-  /** How long the permission lasts. */
-  validForMs: number;
-}
-
 export interface ImageStore {
   save(storageKey: string, width: number, data: Buffer): Promise<void>;
   /** Stores a file as it is (a video) under the key, e.g. `<key>/video.mp4`. */
   saveFile(storageKey: string, fileName: string, data: Buffer, contentType: string): Promise<void>;
   /** Reads a stored file back (e.g. a rendition to attach to a Telegram post); null if missing. */
   read(storageKey: string, fileName: string): Promise<Buffer | null>;
-  /** A stored file's size in bytes; null if missing. */
-  size(storageKey: string, fileName: string): Promise<number | null>;
-  /** Bytes `start` to `end` (inclusive) of a stored file, without reading the rest; null if missing. */
-  readRange(
-    storageKey: string,
-    fileName: string,
-    start: number,
-    end: number,
-  ): Promise<Buffer | null>;
   /** Removes every rendition under the key. Unknown or malformed keys are ignored. */
   remove(storageKey: string): Promise<void>;
-  /**
-   * Object storage only: a short-lived token that lets the browser upload exactly one file, of
-   * one type and size, to `<storageKey>/<fileName>` itself (large films never pass through the
-   * API, whose request bodies a serverless host caps at 4.5 MB).
-   */
-  directUploadToken?(
-    storageKey: string,
-    fileName: string,
-    options: DirectUploadOptions,
-  ): Promise<string>;
 }
 
 export function imageStore(options: {
   uploadsDir: string;
-  blobToken?: string;
-  /** Cloudflare R2 (S3 API), preferred to Vercel Blob when configured (ADR-043). */
+  /** Cloudflare R2 (S3 API), used instead of the directory when configured (ADR-043). */
   r2?: S3Config | null;
 }): ImageStore {
-  if (options.r2) return r2Store(options.r2);
-  return options.blobToken ? blobStore(options.blobToken) : directoryStore(options.uploadsDir);
+  return options.r2 ? r2Store(options.r2) : directoryStore(options.uploadsDir);
 }
 
 /** The R2 settings from the environment, or null unless all four are set. */
@@ -139,29 +109,6 @@ function directoryStore(uploadsDir: string): ImageStore {
         return null;
       }
     },
-    async size(storageKey, fileName) {
-      if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) return null;
-      try {
-        return (await stat(join(storageDirectory(uploadsDir, storageKey), fileName))).size;
-      } catch {
-        return null;
-      }
-    },
-    async readRange(storageKey, fileName, start, end) {
-      if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) return null;
-      if (start < 0 || end < start) return Buffer.alloc(0);
-      let file;
-      try {
-        file = await open(join(storageDirectory(uploadsDir, storageKey), fileName), 'r');
-        const buffer = Buffer.alloc(end - start + 1);
-        const { bytesRead } = await file.read(buffer, 0, buffer.length, start);
-        return buffer.subarray(0, bytesRead);
-      } catch {
-        return null;
-      } finally {
-        await file?.close();
-      }
-    },
     async remove(storageKey) {
       if (!STORAGE_KEY_PATTERN.test(storageKey)) return;
       await rm(storageDirectory(uploadsDir, storageKey), { recursive: true, force: true });
@@ -170,93 +117,6 @@ function directoryStore(uploadsDir: string): ImageStore {
 }
 
 const SAFE_FILE_NAME = /^[a-z0-9]+\.[a-z0-9]+$/;
-
-function blobStore(token: string): ImageStore {
-  return {
-    async save(storageKey, width, data) {
-      await put(`${storageKey}/${width}.webp`, data, {
-        access: 'public',
-        token,
-        contentType: 'image/webp',
-        addRandomSuffix: false,
-        allowOverwrite: false,
-        // Keys are random and never reused, so the files can be cached for a year.
-        cacheControlMaxAge: 31_536_000,
-      });
-    },
-    async saveFile(storageKey, fileName, data, contentType) {
-      await put(`${storageKey}/${fileName}`, data, {
-        access: 'public',
-        token,
-        contentType,
-        addRandomSuffix: false,
-        allowOverwrite: false,
-        cacheControlMaxAge: 31_536_000,
-      });
-    },
-    async read(storageKey, fileName) {
-      if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) return null;
-      const { blobs } = await list({ prefix: `${storageKey}/${fileName}`, token, limit: 1 });
-      const blob = blobs[0];
-      if (!blob) return null;
-      const response = await fetch(blob.url, { signal: AbortSignal.timeout(10_000) });
-      return response.ok ? Buffer.from(await response.arrayBuffer()) : null;
-    },
-    async size(storageKey, fileName) {
-      if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) return null;
-      return (await blobHead(`${storageKey}/${fileName}`, token))?.size ?? null;
-    },
-    async readRange(storageKey, fileName, start, end) {
-      if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) return null;
-      if (start < 0 || end < start) return Buffer.alloc(0);
-      const blob = await blobHead(`${storageKey}/${fileName}`, token);
-      if (!blob) return null;
-      const response = await fetch(blob.url, {
-        headers: { Range: `bytes=${start}-${end}` },
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!response.ok) return null;
-      const data = Buffer.from(await response.arrayBuffer());
-      // A server that ignores Range answers 200 with the whole file: keep the part asked for.
-      return response.status === 206 ? data : data.subarray(start, end + 1);
-    },
-    directUploadToken(storageKey, fileName, options) {
-      return generateClientTokenFromReadWriteToken({
-        token,
-        pathname: `${storageKey}/${fileName}`,
-        allowedContentTypes: [options.contentType],
-        maximumSizeInBytes: options.maxBytes,
-        validUntil: Date.now() + options.validForMs,
-        addRandomSuffix: false,
-        allowOverwrite: false,
-        cacheControlMaxAge: 31_536_000,
-      });
-    },
-    async remove(storageKey) {
-      if (!STORAGE_KEY_PATTERN.test(storageKey)) return;
-      const { blobs } = await list({ prefix: `${storageKey}/`, token });
-      if (blobs.length > 0)
-        await del(
-          blobs.map((blob) => blob.url),
-          { token },
-        );
-    },
-  };
-}
-
-/** A blob's size and address, or null when there is none at the path. */
-async function blobHead(
-  pathname: string,
-  token: string,
-): Promise<{ size: number; url: string } | null> {
-  try {
-    const blob = await head(pathname, { token });
-    return { size: blob.size, url: blob.url };
-  } catch (error) {
-    if (error instanceof BlobNotFoundError) return null;
-    throw error;
-  }
-}
 
 /**
  * Validates and re-encodes an uploaded image.
@@ -482,69 +342,6 @@ export function videoDurationSeconds(input: Buffer, type: VideoType): number | n
 function wholeSeconds(seconds: number | null): number | null {
   if (seconds === null || !Number.isFinite(seconds) || seconds <= 0) return null;
   return Math.max(1, Math.round(seconds));
-}
-
-/** The first bytes of a video, enough for its type and a WebM's header. */
-const VIDEO_HEAD_BYTES = 64 * 1024;
-/** An MP4's movie box is read whole up to this size (it holds the running time near its start). */
-const MAX_MOOV_BYTES = 4 * 1024 * 1024;
-
-export interface InspectedVideo {
-  type: VideoType;
-  bytes: number;
-  durationSeconds: number | null;
-}
-
-/**
- * Checks a video that was uploaded straight to the store, without reading all of it: its type
- * from its first bytes (as for an upload through the API), and its running time — a WebM's from
- * its header, an MP4's from the movie box, found by walking the top-level boxes with ranged reads
- * (the box can follow the media data at the end of the file). Null when the file is not there.
- */
-export async function inspectStoredVideo(
-  store: ImageStore,
-  storageKey: string,
-  fileName: string,
-): Promise<InspectedVideo | null> {
-  const bytes = await store.size(storageKey, fileName);
-  if (bytes === null) return null;
-  const read = (start: number, end: number) =>
-    store.readRange(storageKey, fileName, start, Math.min(end, bytes - 1));
-  const head = await read(0, VIDEO_HEAD_BYTES - 1);
-  if (!head) return null;
-  const type = videoType(head);
-  if (!type) throw new VideoRejectedError();
-  const seconds =
-    type === 'video/webm' ? webmDuration(head) : await mp4DurationByRanges(read, bytes);
-  return { type, bytes, durationSeconds: wholeSeconds(seconds) };
-}
-
-async function mp4DurationByRanges(
-  read: (start: number, end: number) => Promise<Buffer | null>,
-  size: number,
-): Promise<number | null> {
-  let offset = 0;
-  // A playable file has a handful of top-level boxes; the bound only stops a malformed one.
-  for (let boxes = 0; boxes < 64 && offset + 8 <= size; boxes += 1) {
-    const header = await read(offset, offset + 15);
-    if (!header || header.length < 8) return null;
-    let boxSize = header.readUInt32BE(0);
-    let headerSize = 8;
-    if (boxSize === 1) {
-      if (header.length < 16) return null;
-      boxSize = Number(header.readBigUInt64BE(8));
-      headerSize = 16;
-    } else if (boxSize === 0) {
-      boxSize = size - offset;
-    }
-    if (boxSize < headerSize) return null;
-    if (header.toString('latin1', 4, 8) === 'moov') {
-      const moov = await read(offset, offset + Math.min(boxSize, MAX_MOOV_BYTES) - 1);
-      return moov ? mp4Duration(moov) : null;
-    }
-    offset += boxSize;
-  }
-  return null;
 }
 
 function mp4Duration(input: Buffer): number | null {

@@ -7,7 +7,7 @@ import * as rootParams from 'next/root-params';
 import { MediaEditor } from '@/components/admin/media-editor';
 import { AdminPageHeader, ArticleStatusPill } from '@/components/admin/ui';
 import { Link } from '@/i18n/navigation';
-import { adminGet, getMediaUploadLimits } from '@/lib/admin/server';
+import { adminGet } from '@/lib/admin/server';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -20,10 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function EditMediaPage({ params }: PageProps<'/[locale]/admin/media/[id]'>) {
   const [{ id }, t] = await Promise.all([params, getTranslations('Admin')]);
   if (!UUID.test(id)) notFound();
-  const [item, limits] = await Promise.all([
-    adminGet<AdminMediaItem>(`/media/${id}`).catch(() => null),
-    getMediaUploadLimits(),
-  ]);
+  const item = await adminGet<AdminMediaItem>(`/media/${id}`).catch(() => null);
   if (!item) notFound();
   const video = item.kind === 'VIDEO';
   return (
@@ -45,7 +42,7 @@ export default async function EditMediaPage({ params }: PageProps<'/[locale]/adm
         }
       />
       {/* Keyed by item, not by version: uploading a file refreshes the page without wiping edits. */}
-      <MediaEditor key={item.id} item={item} kind={item.kind} uploadLimits={limits} />
+      <MediaEditor key={item.id} item={item} kind={item.kind} />
     </>
   );
 }

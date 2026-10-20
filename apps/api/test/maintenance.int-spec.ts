@@ -1,9 +1,7 @@
-import request from 'supertest';
 import { sha256 } from '../src/common/crypto.js';
 import { MaintenanceService } from '../src/maintenance/maintenance.service.js';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { createUser, resetDatabase } from './helpers/fixtures.js';
-import { TEST_ENV } from './test-env.js';
 
 describe('maintenance', () => {
   let ctx: TestApp;
@@ -63,34 +61,5 @@ describe('maintenance', () => {
       carts: 0,
       resetTokens: 0,
     });
-  });
-
-  it('runs the scheduled jobs on request, only with the cron secret', async () => {
-    const user = await createUser(ctx.prisma, 'CUSTOMER', 'cron@example.com');
-    await ctx.prisma.session.create({
-      data: {
-        userId: user.id,
-        tokenHash: sha256('session-old'),
-        expiresAt: new Date(Date.now() - 60_000),
-      },
-    });
-    const server = ctx.app.getHttpServer();
-    const path = '/api/v1/internal/jobs/run';
-
-    // Without the secret the route does not exist.
-    await request(server).get(path).expect(404);
-    await request(server).get(path).set('Authorization', 'Bearer not-the-secret').expect(404);
-    expect(await ctx.prisma.session.count()).toBe(1);
-
-    const ran = await request(server)
-      .get(path)
-      .set('Authorization', `Bearer ${TEST_ENV.CRON_SECRET}`)
-      .expect(200);
-    expect(ran.body).toEqual({
-      payments: { expired: 0, cancelledOrders: 0 },
-      purged: { sessions: 1, carts: 0, resetTokens: 0 },
-      telegram: { sent: 0, failed: 0 },
-    });
-    expect(await ctx.prisma.session.count()).toBe(0);
   });
 });

@@ -5,7 +5,7 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import {
   ArticleCards,
-  HelpChat,
+  HelpContact,
   HelpTopBar,
   helpCategories,
   navCategories,
@@ -80,7 +80,7 @@ export default async function HelpSearchPage({ searchParams }: PageProps<'/[loca
           <Results searchParams={searchParams} />
         </Suspense>
       </HelpShell>
-      <HelpChat />
+      <HelpContact />
     </>
   );
 }

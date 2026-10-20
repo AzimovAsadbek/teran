@@ -1,10 +1,5 @@
 import 'server-only';
-import type {
-  AdminBadges,
-  AdminMediaUploadLimits,
-  AdminTelegramPostList,
-  TelegramMode,
-} from '@teran/contracts';
+import type { AdminBadges, AdminTelegramPostList, TelegramMode } from '@teran/contracts';
 import { cache } from 'react';
 import { apiGetAsVisitor } from '@/lib/api/server';
 
@@ -30,24 +25,6 @@ export const getTelegramSettings = cache(
     return { mode: list?.mode ?? 'disabled', channel: list?.channel ?? null };
   },
 );
-
-/** A serverless host refuses request bodies above this before they reach the server. */
-const SERVERLESS_BODY_BYTES = 4.5 * 1024 * 1024;
-
-/**
- * How large a film the admin area may upload, and whether it goes straight to object storage
- * (the API decides from its configuration; on Vercel this server also passes at most 4.5 MB on).
- */
-export async function getMediaUploadLimits(): Promise<AdminMediaUploadLimits> {
-  const limits = await adminGet<AdminMediaUploadLimits>('/media/upload-limits').catch(() => null);
-  const multipart = limits?.multipartVideoBytes ?? SERVERLESS_BODY_BYTES;
-  return {
-    multipartVideoBytes: process.env.VERCEL
-      ? Math.min(multipart, SERVERLESS_BODY_BYTES)
-      : multipart,
-    directVideoBytes: limits?.directVideoBytes ?? null,
-  };
-}
 
 type Params = Record<string, string | string[] | undefined>;
 

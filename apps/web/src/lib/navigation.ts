@@ -6,7 +6,7 @@ import type {
   ImageDto,
   PublicVisualDto,
 } from '@teran/contracts';
-import { showAdvisor, showGallery } from './site';
+import { showGallery } from './site';
 
 /*
  * The catalogue as the menus and category cards show it, built from the API's category and
@@ -83,8 +83,7 @@ export function navArticles(articles: ArticleSummaryDto[]): NavArticle[] {
 export const LEARN_LINKS = [
   { href: '/journal', label: 'journal' },
   { href: '/tea-101', label: 'tea101' },
-  // The advisor and the gallery only while they are shown (lib/site showAdvisor, showGallery).
-  ...(showAdvisor ? ([{ href: '/assistant', label: 'assistant' }] as const) : []),
+  // The gallery only while it is shown (lib/site showGallery).
   ...(showGallery
     ? ([
         { href: '/media/photos', label: 'photos' },

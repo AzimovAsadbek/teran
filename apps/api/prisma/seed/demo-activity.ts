@@ -11,7 +11,6 @@
  */
 import type { Locale } from '@teran/contracts';
 
-export const DEMO_EMAIL_DOMAIN = 'example.com';
 export const DEMO_ORDER_PREFIX = 'TRN-DEMO';
 export const DEMO_SOURCE = 'demo';
 

@@ -346,7 +346,7 @@ accessibility behaviour. In short:
 | Product    | gallery, purchase panel with pack-size cards and sticky bar, brewing facts, delivery facts, information disclosures                                                                                                                                                                                                      |
 | Commerce   | bag drawer and page, quantity stepper, checkout with numbered sections, choice cards, order summary, order progress and details                                                                                                                                                                                          |
 | Content    | page header, long-form pages, article card and body, help footer, contact and wholesale forms                                                                                                                                                                                                                            |
-| Brand      | logo set (`Wordmark`, `Emblem`), the pack's value icons (`BrandValues`, `ValueIcon`, `ValueMark`), tea-type medallions                                                                                                                                                                                                   |
+| Brand      | logo set (`Wordmark`, `Emblem`), the pack's value icons (`ValueIcon`), tea-type medallions                                                                                                                                                                                                                               |
 | Admin      | shell with grouped menu and work counts (drawer on phones), page header, panels, tables that become cards below 768 px, status tabs, status pills, filter forms that apply on change, confirm dialog, top-of-screen confirmation, sticky save bar, editors                                                               |
 
 ### Navigation pattern
@@ -465,9 +465,8 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   social image (1200×630) from the logo set. The logo set
   is PNG (the artwork WebP); the web app imports them through `next/image`, which serves modern
   formats.
-- **Ornaments** (`components/brand/ornaments.tsx`): the pack's four ringed icons, alone
-  (`ValueIcon`, `ValueMark`) and with their labels (`BrandValues`). Decorative; the text beside
-  them is real text.
+- **Ornaments** (`components/brand/ornaments.tsx`): the pack's four ringed icons (`ValueIcon`).
+  Decorative; the text beside them is real text.
 - **Product photos** are uploaded in the admin and served as WebP renditions with `srcset`
   ([ADR-009](../architecture/decisions.md)). XC2025, G8810, 8830 and 8009 have pack shots made
   from their print files (front and back); the other demonstration products keep pack shots and

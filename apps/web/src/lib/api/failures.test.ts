@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { apiFailureLine, resetApiFailures } from './failures';
+import { ApiError, ApiUnavailableError } from './errors';
+import { apiFailureLine, describeApiFailure, resetApiFailures } from './failures';
 
 const options = (now: number) => ({ apiUrl: 'http://api:4000', timeoutMs: 8_000, now });
 
@@ -75,5 +76,24 @@ describe('API failure lines', () => {
     expect(apiFailureLine(down, options(61_000))).toMatch(
       /; 2 more like this since the last report$/,
     );
+  });
+
+  it('describes a call that got no answer in one line, for the error thrown to the caller', () => {
+    const description = describeApiFailure(
+      {
+        method: 'GET',
+        path: '/orders/TRN-1?token=secret',
+        error: unreachable('ECONNREFUSED'),
+        ms: 3,
+      },
+      { apiUrl: 'http://api:4000', timeoutMs: 8_000 },
+    );
+    expect(description).toBe(
+      'GET /orders/TRN-1?token=[redacted]: the API at http://api:4000 is unreachable (ECONNREFUSED)',
+    );
+    const error = new ApiUnavailableError(description);
+    // Not an answer with a status: callers that handle ApiError (404, 401) must not take it for one.
+    expect(error).not.toBeInstanceOf(ApiError);
+    expect(error.stack).toBe(`ApiUnavailableError: ${description}`);
   });
 });

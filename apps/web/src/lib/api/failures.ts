@@ -43,6 +43,19 @@ function reasonOf(failure: ApiFailure, apiUrl: string, timeoutMs: number): strin
   return `the API at ${apiUrl} is unreachable${code ? ` (${code})` : ''}`;
 }
 
+/** The call, tokens in its address redacted: `GET /orders/TRN-1?token=[redacted]`. */
+function callOf(failure: ApiFailure): string {
+  return `${failure.method} ${failure.path.replace(SECRET_QUERY_PARAMS, '$1[redacted]')}`;
+}
+
+/** `GET /content/settings?locale=en: the API at http://api:4000 is unreachable (ECONNREFUSED)`. */
+export function describeApiFailure(
+  failure: ApiFailure,
+  { apiUrl, timeoutMs }: { apiUrl: string; timeoutMs: number },
+): string {
+  return `${callOf(failure)}: ${reasonOf(failure, apiUrl, timeoutMs)}`;
+}
+
 /**
  * One line for the storefront server's log (`docker compose logs web`), e.g.
  *
@@ -64,10 +77,10 @@ export function apiFailureLine(
     return null;
   }
   recent.set(kind, { at: now, leftOut: 0 });
-  const path = failure.path.replace(SECRET_QUERY_PARAMS, '$1[redacted]');
+  const reason = reasonOf(failure, apiUrl, timeoutMs);
   const requestId = failure.body?.requestId ? ` (API request ${failure.body.requestId})` : '';
   const leftOut = last?.leftOut ? `; ${last.leftOut} more like this since the last report` : '';
-  return `[api] ${failure.method} ${path} failed: ${reasonOf(failure, apiUrl, timeoutMs)} after ${Math.round(failure.ms)} ms${requestId}${leftOut}`;
+  return `[api] ${callOf(failure)} failed: ${reason} after ${Math.round(failure.ms)} ms${requestId}${leftOut}`;
 }
 
 /** Forgets what was reported (tests). */

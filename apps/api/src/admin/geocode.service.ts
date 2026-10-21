@@ -98,11 +98,11 @@ export class GeocodeService {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (error) {
-      this.logger.warn(`Map search unreachable: ${(error as Error).name}`);
+      this.logger.warn({ error: (error as Error).name }, 'Map search (Nominatim) unreachable');
       throw unavailable();
     }
     if (!response.ok) {
-      this.logger.warn(`Map search answered HTTP ${response.status}`);
+      this.logger.warn({ status: response.status }, 'Map search (Nominatim) refused the request');
       throw unavailable();
     }
     const places: unknown = await response.json().catch(() => []);

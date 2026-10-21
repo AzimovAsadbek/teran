@@ -259,8 +259,10 @@ Each application validates its own environment; examples with placeholders only 
 
 ## Observability
 
-- Structured JSON logs (pino) with a request id that is also returned in `X-Request-Id` and in
-  error bodies, so a customer-visible error can be traced to its log line.
+- Structured JSON logs (pino), one line per request with a request id that is also returned in
+  `X-Request-Id` and in error bodies, so a customer-visible error can be traced to its log line
+  (`apps/api/src/common/logging`; how to read them: [production deployment](../deployment/production.md#reading-the-logs)).
+  The storefront's server logs the API calls that fail, with the API's request id.
 - Health endpoints for liveness and database readiness; container health checks use them.
 - Audit log of every staff action, readable by administrators in the admin area.
 

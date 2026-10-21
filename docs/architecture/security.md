@@ -202,9 +202,11 @@ is disabled in the production Compose file and Nginx does not route it (only `/a
 
 ## Logging and privacy
 
-- API access logs contain only request id, method, URL and status. `token` / `accessToken` query
-  values are replaced with `[redacted]` (also in server-error logs); cookies, `Authorization` and
-  `Set-Cookie` are removed; no IP addresses or bodies are logged; health checks are not logged.
+- API access logs contain only request id, method, URL, status, duration and the error code of a
+  failed request. `token` / `accessToken` query values are replaced with `[redacted]` (also in
+  server-error logs and the storefront's API-failure lines); cookies, `Authorization`,
+  `Set-Cookie` and `password` fields are removed; no IP addresses or bodies are logged; health
+  checks, stored files and CORS preflights are logged only when they fail.
 - Nginx's access log (`teran_access` format) records the path without its query string and no
   `Referer`, so tokens in links never reach the disk.
 - Pages whose URL carries a token (order status, password reset, newsletter unsubscribe) are

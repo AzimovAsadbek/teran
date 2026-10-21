@@ -1,10 +1,25 @@
 import 'server-only';
 import { cookies, headers } from 'next/headers';
 import { ApiError, readErrorBody } from './errors';
+import { apiFailureLine, type ApiFailure } from './failures';
 
 const API_URL = (process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000').replace(/\/$/, '');
 const INTERNAL_KEY = process.env.API_INTERNAL_KEY;
 const TIMEOUT_MS = 8_000;
+
+/**
+ * Writes a failed call to the server's log (failures.ts). Not while `next build` prerenders: the
+ * API may well be absent then (ADR-008), and those pages render at request time instead.
+ */
+function reportFailure(failure: ApiFailure): void {
+  if (process.env.NEXT_PHASE === 'phase-production-build') return;
+  const line = apiFailureLine(failure, {
+    apiUrl: API_URL,
+    timeoutMs: TIMEOUT_MS,
+    now: performance.now(),
+  });
+  if (line) console.error(line);
+}
 
 /** The visitor a server-side request is made for: their cookies and their client IP. */
 interface VisitorContext {
@@ -32,13 +47,27 @@ export async function apiGet<T>(path: string, visitor?: VisitorContext): Promise
     requestHeaders['X-Internal-Key'] = INTERNAL_KEY;
   }
 
-  const response = await fetch(`${API_URL}/api/v1${path}`, {
-    headers: requestHeaders,
-    cache: 'no-store',
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
+  // performance.now() is for timing only, so Next.js allows it while prerendering.
+  const started = performance.now();
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/v1${path}`, {
+      headers: requestHeaders,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (error) {
+    reportFailure({ method: 'GET', path, error, ms: performance.now() - started });
+    throw error;
+  }
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorBody(response));
+    const body = await readErrorBody(response);
+    // Client errors (404, 401, 400) are answers the callers expect; the API logs them too.
+    if (response.status >= 500) {
+      const ms = performance.now() - started;
+      reportFailure({ method: 'GET', path, status: response.status, body, ms });
+    }
+    throw new ApiError(response.status, body);
   }
   return (await response.json()) as T;
 }

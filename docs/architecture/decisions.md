@@ -1297,3 +1297,39 @@ the five pack colours) had to stay, and nothing may be invented.
 copy, apart from interface strings added in all three languages (labels such as "On this page",
 "Read next", "Orders are taken by request"). The owner should review the About and help centre
 pages without their earlier pictures, and the cup colours of Tea 101.
+
+## ADR-052: Logs written for the person who reads them later
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-21). The self-hosted setup (ADR-046) still logs to stdout, rotated by Docker, under the
+privacy rules in `security.md`.
+
+**Context.** On the self-hosted server the logs are read by a person, with `docker compose logs`,
+usually after something went wrong. The API's lines were pino's defaults: a numeric level, the
+time in epoch milliseconds, process id and host name, and "request completed" for every request
+without saying why one failed. Requests answered before Nest's own middleware (a refused origin,
+a body too large or malformed, a missing file) were not logged at all, and a start wrote some 190
+lines listing modules and routes. The storefront's server swallowed failed API calls without a
+trace, so a section that vanished from a page left nothing to find.
+
+**Decision.**
+
+- One JSON object per line with the time in ISO 8601 (UTC) and the level as a word; no process id
+  or host name (`apps/api/src/common/logging/logger-params.ts`). Development pretty-prints them.
+- One line per request, written by the first middleware, so every request is seen
+  (`request-log.ts`): `msg` reads `METHOD url status ms CODE`, the fields repeat it for searching.
+  `error` for 5xx, `warn` for `429` and `INVALID_ORIGIN`, `info` for the rest; health checks,
+  stored files and CORS preflights only when they fail.
+- A request's id (reused from a well-formed `X-Request-Id`) is on its line, on every log made
+  while handling it, in the `X-Request-Id` answer header and in error bodies. A server error
+  writes `Unexpected error in METHOD url` with its stack before the request's own line.
+- Nest's module and route listing at start goes to `debug`; `Bootstrap` writes one line saying
+  where the API listens and how it is set up.
+- The storefront's server logs an API call that failed (unreachable, no answer in 8 s, a 5xx),
+  once a minute per kind, with the API's request id (`apps/web/src/lib/api/failures.ts`); not
+  while `next build` prerenders.
+
+**Consequences.** No API contract changed apart from two error answers gaining fields they lacked:
+a refused origin now carries `requestId`, and a missing file under `/uploads` answers the API's
+JSON error instead of Express's HTML page. Reading and searching the logs:
+[production deployment](../deployment/production.md#reading-the-logs).

@@ -27,13 +27,13 @@ export function createOriginCheckMiddleware(allowedOrigins: readonly string[]) {
         next();
         return;
       }
-      reject(response);
+      reject(request, response);
       return;
     }
 
     const fetchSite = request.headers['sec-fetch-site'];
     if (typeof fetchSite === 'string' && !TRUSTED_FETCH_SITES.has(fetchSite)) {
-      reject(response);
+      reject(request, response);
       return;
     }
 
@@ -41,10 +41,13 @@ export function createOriginCheckMiddleware(allowedOrigins: readonly string[]) {
   };
 }
 
-function reject(response: Response): void {
+function reject(request: Request, response: Response): void {
+  // Logged at warn by the request log: an attack, or WEB_ORIGIN no longer matching the site.
+  response.locals.errorCode = 'INVALID_ORIGIN';
   response.status(403).json({
     statusCode: 403,
     code: 'INVALID_ORIGIN',
     message: 'Cross-site request rejected',
+    requestId: request.id,
   });
 }

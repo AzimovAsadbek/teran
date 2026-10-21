@@ -55,11 +55,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = http.getResponse<Response>();
     const body = this.toBody(exception);
     body.requestId = typeof request.id === 'string' ? request.id : undefined;
+    // The request log (common/logging/request-log.ts) adds the code to the request's line.
+    response.locals.errorCode = body.code;
 
     if (body.statusCode >= 500) {
+      // Logged with the request's id (reqId), so its line and this stack read together.
       this.logger.error(
-        { err: exception, requestId: body.requestId, path: redactUrl(request.originalUrl) },
-        'Unhandled error while processing request',
+        { err: exception },
+        `Unexpected error in ${request.method} ${redactUrl(request.originalUrl)}`,
       );
     }
 

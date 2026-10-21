@@ -8,8 +8,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
-import { Logger } from 'nestjs-pino';
+import { Logger, PinoLogger } from 'nestjs-pino';
 import type { Env } from './config/env.js';
+import { requestLog } from './common/logging/request-log.js';
+import { withQuietStartUp } from './common/logging/startup-logs.js';
 import { createOriginCheckMiddleware } from './common/security/origin-check.middleware.js';
 import { createValidationPipe } from './common/validation/validation-pipe.js';
 import { providerBodyReader } from './payments/provider-body.middleware.js';
@@ -31,8 +33,10 @@ export function configureApp(app: NestExpressApplication): void {
     ...config.get('CORS_EXTRA_ORIGINS', { infer: true }),
   ];
 
-  app.useLogger(app.get(Logger));
+  app.useLogger(withQuietStartUp(app.get(Logger)));
   app.set('trust proxy', config.get('TRUST_PROXY_HOPS', { infer: true }));
+  // First, so the request log also sees what the middleware below answers on its own.
+  app.use(requestLog(() => PinoLogger.root));
 
   // JSON API responses never need to load anything; Swagger UI needs its own scripts and styles.
   const apiHelmet = helmet({
@@ -103,6 +107,16 @@ export function configureApp(app: NestExpressApplication): void {
       response.redirect(301, `${bucket}${request.path}`);
     });
   }
+  // A file that is not there gets the API's error answer, not Express's HTML page.
+  app.use('/uploads', (request: Request, response: Response) => {
+    response.locals.errorCode = 'NOT_FOUND';
+    response.status(404).json({
+      statusCode: 404,
+      code: 'NOT_FOUND',
+      message: 'File not found',
+      requestId: request.id,
+    });
+  });
 
   app.setGlobalPrefix(API_PREFIX);
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });

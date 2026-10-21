@@ -327,9 +327,52 @@ rehearsed with Nginx 1.27 in front of the production images (docs/testing/test-s
   Point an external uptime monitor at the readiness URL and the home page.
 - Errors: the API answers server errors with a generic message and a request id; stack traces,
   SQL and file paths go to its log only.
-- Logs: `teran logs api` is structured JSON (pino) with request ids and `token` query parameters
-  redacted; `teran logs web`, `teran logs migrate`. Nginx's logs are wherever the server keeps them.
+- Logs: `teran logs api`, `teran logs web`, `teran logs migrate` (add `-f` to follow, `--since 1h`
+  to start an hour back); see [Reading the logs](#reading-the-logs). Nginx's logs are wherever the
+  server keeps them.
 - Watch disk usage of the Docker volumes, the images kept for rollbacks and the backup folder.
+
+### Reading the logs
+
+The API writes one JSON object per line: `time` (UTC), `level`, `msg` (the line in words) and the
+facts behind it. Every request gets one line when its answer is complete:
+
+```json
+{"level":"info","time":"2026-10-21T05:55:05.164Z","reqId":"1d449ca0-…","method":"GET","url":"/api/v1/catalog/categories","status":200,"ms":99,"msg":"GET /api/v1/catalog/categories 200 99ms"}
+{"level":"info","time":"2026-10-21T05:55:05.344Z","reqId":"c93e60ee-…","method":"POST","url":"/api/v1/auth/login","status":400,"ms":16,"code":"VALIDATION_FAILED","msg":"POST /api/v1/auth/login 400 16ms VALIDATION_FAILED"}
+```
+
+- **Levels.** `error`: the API failed (status 5xx); look at these first. `warn`: refused for a
+  reason worth a look (`429 RATE_LIMITED`; `403 INVALID_ORIGIN`, an attack or a `WEB_ORIGIN` that
+  no longer matches the site's address), or a background task or outside service failed (e-mail,
+  Telegram, cache refresh, map search, payment expiry, clean-up). `info`: everything else, client
+  errors included; their `code` says why.
+- **A server error** writes two lines with the same `reqId`: first `Unexpected error in GET …`
+  from `ExceptionFilter` with the error (`err`: type, message, Prisma `code`, `stack`), then the
+  request's own line at `error`.
+- **One request, end to end.** Every answer carries its id in `X-Request-Id`, and error answers
+  in `requestId`: a customer's or the storefront's report leads to the lines with
+  `teran logs api | grep <id>`. With `proxy_set_header X-Request-Id $request_id;` the API uses
+  Nginx's id, so its access log matches too.
+- **Other lines** have a `context`: the part of the API that wrote them (`OrdersService` "Order
+  placed", `PaymentConfig` the payment mode at start, `Bootstrap` "TERAN API listening on …" with
+  the media store, mail transport, Telegram mode and checkout switch).
+- **Left out:** health checks, stored files and CORS preflights that worked, and Nest's list of
+  modules and routes at start (`LOG_LEVEL=debug` shows it). Never logged: cookies, passwords,
+  request bodies, IP addresses, and the `token` / `accessToken` values in addresses (`[redacted]`).
+- **The storefront** (`teran logs web`) writes a line when it cannot get an answer from the API,
+  once a minute per kind of failure, with the API's request id when there is one:
+  `[api] GET /catalog/products?pageSize=8 failed: 500 INTERNAL_ERROR after 45 ms (API request 7bce04be-…)`
+  or `… failed: the API at http://api:4000 is unreachable (ECONNREFUSED) after 3 ms`.
+
+```bash
+teran logs --since 1h api | grep -E '"level":"(warn|error)"'   # the last hour's problems
+teran logs api | grep 1d449ca0                                  # everything about one request
+teran logs --no-log-prefix api | jq -r '"\(.time) \(.level) \(.msg)"'   # plain lines, if jq is installed
+```
+
+`LOG_LEVEL` (`.env.production`, default `info`) sets how much is written: `warn` keeps only the
+problems, `debug` adds detail.
 
 ## 10. Backups and restore
 

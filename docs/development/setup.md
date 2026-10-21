@@ -50,8 +50,9 @@ If you prefer not to enable it globally, prefix every command with `corepack`, f
 
    Both `.env` files are git-ignored. Never commit them.
 
-3. Start PostgreSQL (bound to `127.0.0.1:5434` only). On first start the container also creates
-   the `teran_test` and `teran_e2e` databases used by the automated tests.
+3. Start PostgreSQL (bound to `127.0.0.1:5434` only). On first start the container creates the
+   application's database, `teran_refinement` (the one `DATABASE_URL` names), and the `teran_test`
+   and `teran_e2e` databases used by the automated tests.
 
    ```bash
    pnpm db:up

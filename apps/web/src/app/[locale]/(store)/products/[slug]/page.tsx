@@ -208,10 +208,12 @@ async function ProductView({
             { label: product.name },
           ]}
         />
-        {/* The reference's two halves: gallery left, the product's column right. */}
-        <div className="mt-6 grid grid-cols-1 gap-8 sm:mt-8 min-[46.875rem]:grid-cols-2 min-[46.875rem]:gap-10">
+        {/* Two halves from 1024 px, gallery left and the product's column right; on a tablet held
+            upright one column, the picture and then its words at a comfortable width, so the
+            picture is never smaller than on a phone and no half stands empty. */}
+        <div className="mt-6 grid grid-cols-1 gap-8 sm:mt-8 lg:grid-cols-2 lg:gap-10">
           {/* Edge to edge on phones, as the reference's gallery. */}
-          <div className="-mx-4 min-[46.875rem]:mx-0">
+          <div className="-mx-4 min-[46.875rem]:mx-auto min-[46.875rem]:w-full min-[46.875rem]:max-w-[36rem] lg:mx-0 lg:max-w-none">
             <ProductGallery
               images={product.images}
               name={product.name}
@@ -228,7 +230,7 @@ async function ProductView({
                           cup={product.image}
                           entering
                           priority
-                          packSizes="(min-width: 95rem) 340px, (min-width: 46.875rem) calc(24vw - 2rem), 48vw"
+                          packSizes="(min-width: 95rem) 340px, (min-width: 64rem) calc(24vw - 2rem), (min-width: 46.875rem) 17rem, 48vw"
                         />
                       ),
                       thumb: (
@@ -250,7 +252,7 @@ async function ProductView({
               }
             />
           </div>
-          <div className="lg:pt-8">
+          <div className="min-[46.875rem]:mx-auto min-[46.875rem]:w-full min-[46.875rem]:max-w-[36rem] lg:mx-0 lg:max-w-none lg:pt-8">
             <p className="flex flex-wrap items-center gap-2.5">
               {/* The type as a coloured label (not a link; the breadcrumbs are): TERAN's teas keep
                   the brand's teal, every other family its own ink and mark (product-family.ts). */}
@@ -506,7 +508,7 @@ async function RelatedProducts({ product }: { product: ProductDetailDto }) {
 function ProductSkeleton() {
   return (
     <div
-      className="mt-9 grid gap-8 sm:mt-11 min-[46.875rem]:grid-cols-2 min-[46.875rem]:gap-10"
+      className="mt-9 grid gap-8 sm:mt-11 lg:grid-cols-2 lg:gap-10 [&>*]:min-[46.875rem]:mx-auto [&>*]:min-[46.875rem]:w-full [&>*]:min-[46.875rem]:max-w-[36rem] [&>*]:lg:mx-0 [&>*]:lg:max-w-none"
       aria-hidden
     >
       <Skeleton className="aspect-square" />

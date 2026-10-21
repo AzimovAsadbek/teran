@@ -121,7 +121,7 @@ export function TeaRulers({
                     <dt className="text-[0.6875rem] font-semibold tracking-[0.08em] text-fg-muted uppercase md:sr-only">
                       {column.label}
                     </dt>
-                    <dd className="mt-1 md:mt-0">
+                    <dd className="mt-1 md:mt-0 [&>.brew-draw]:mt-2">
                       <span className="block font-headline text-[0.9375rem] leading-tight whitespace-nowrap text-fg [--heading-case:none] sm:text-[1.125rem]">
                         {measure?.value ?? '—'}
                       </span>

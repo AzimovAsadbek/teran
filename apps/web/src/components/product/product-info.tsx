@@ -252,7 +252,7 @@ function DifferenceNote({
     <div
       className={cn(
         'flex flex-col items-center gap-3 text-center',
-        side === 'left' ? 'lg:items-end' : 'lg:items-start',
+        side === 'left' ? 'min-[46.875rem]:items-end' : 'min-[46.875rem]:items-start',
       )}
     >
       {low ? <NoteArrow side={side} low /> : null}
@@ -291,12 +291,13 @@ export async function DifferenceSection({ product }: { product: ProductDetailDto
       >
         {t('differenceTitle')}
       </h2>
-      <div className="mt-10 grid grid-cols-2 items-center gap-x-6 gap-y-10 lg:grid-cols-[1fr_minmax(0,34rem)_1fr] lg:gap-10">
-        <div className="order-2 space-y-16 lg:order-1">
+      {/* The circle between its four notes from 750 px (smaller on a tablet), above them on a phone. */}
+      <div className="mt-10 grid grid-cols-2 items-center gap-x-6 gap-y-10 min-[46.875rem]:grid-cols-[1fr_minmax(0,20rem)_1fr] min-[46.875rem]:gap-8 lg:grid-cols-[1fr_minmax(0,34rem)_1fr] lg:gap-10">
+        <div className="order-2 space-y-16 min-[46.875rem]:order-1">
           <DifferenceNote note={notes[0]!} side="left" low={false} />
           <DifferenceNote note={notes[2]!} side="left" low />
         </div>
-        <div className="order-1 col-span-2 mx-auto w-full max-w-[34rem] lg:order-2 lg:col-span-1">
+        <div className="order-1 col-span-2 mx-auto w-full max-w-[34rem] min-[46.875rem]:order-2 min-[46.875rem]:col-span-1">
           <div className="relative aspect-square rounded-full bg-ivory-200 p-[7%]">
             <div
               className="relative h-full w-full overflow-hidden rounded-full bg-jade-700"
@@ -309,8 +310,8 @@ export async function DifferenceSection({ product }: { product: ProductDetailDto
                   srcSet={sources.srcSet}
                   sizes={
                     image.transparent
-                      ? '(min-width: 640px) 21rem, calc(62vw - 1.9rem)'
-                      : '(min-width: 640px) 29.25rem, calc(86vw - 2.6rem)'
+                      ? '(min-width: 1024px) 21rem, (min-width: 750px) 12.5rem, (min-width: 640px) 21rem, calc(62vw - 1.9rem)'
+                      : '(min-width: 1024px) 29.25rem, (min-width: 750px) 17.25rem, (min-width: 640px) 29.25rem, calc(86vw - 2.6rem)'
                   }
                   alt=""
                   loading="lazy"

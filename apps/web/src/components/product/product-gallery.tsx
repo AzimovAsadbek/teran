@@ -21,7 +21,9 @@ const ProductZoom = dynamic(() => loadZoom().then((module) => module.ProductZoom
  * two columns 40 px apart between 40 px margins (700 px at most), so each screen loads the file it
  * needs.
  */
-const MAIN_SIZES = '(min-width: 95rem) 700px, (min-width: 46.875rem) calc(50vw - 3.75rem), 100vw';
+// Half the page from 1024 px; on a tablet held upright, one 36 rem column; edge to edge on phones.
+const MAIN_SIZES =
+  '(min-width: 95rem) 700px, (min-width: 64rem) calc(50vw - 3.75rem), (min-width: 46.875rem) 36rem, 100vw';
 
 /** Whether the page has finished loading, its first picture included (never on the server). */
 function subscribeToLoad(onChange: () => void) {
@@ -224,9 +226,9 @@ export function ProductGallery({
           {index + 1} / {count}
         </p>
       </div>
-      {/* Under the picture: one row that scrolls on phones (from the gutter), centred and wrapping
-          in a wider column. */}
-      <ul className="mt-3 flex gap-2 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] sm:mt-4 min-[46.875rem]:flex-wrap min-[46.875rem]:justify-center min-[46.875rem]:overflow-visible min-[46.875rem]:px-0 [&::-webkit-scrollbar]:hidden">
+      {/* Under the picture: one row at every width, centred while it fits and scrolling once it
+          does not (from the gutter on phones) — never wrapping into a second row. */}
+      <ul className="mx-auto mt-3 flex w-fit max-w-full gap-2 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] sm:mt-4 min-[46.875rem]:px-0.5 [&::-webkit-scrollbar]:hidden">
         {stage ? (
           <li>
             <button

@@ -1327,7 +1327,9 @@ trace, so a section that vanished from a page left nothing to find.
   where the API listens and how it is set up.
 - The storefront's server logs an API call that failed (unreachable, no answer in 8 s, a 5xx),
   once a minute per kind, with the API's request id (`apps/web/src/lib/api/failures.ts`); not
-  while `next build` prerenders.
+  while `next build` prerenders. A call that got no answer throws `ApiUnavailableError` (not an
+  `ApiError`), whose one-line message names the call and the reason: Next.js prints errors from
+  cached loaders even when the caller catches them, and fetch's own error took ten lines each.
 
 **Consequences.** No API contract changed apart from two error answers gaining fields they lacked:
 a refused origin now carries `requestId`, and a missing file under `/uploads` answers the API's

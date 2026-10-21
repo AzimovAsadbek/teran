@@ -363,7 +363,10 @@ facts behind it. Every request gets one line when its answer is complete:
 - **The storefront** (`teran logs web`) writes a line when it cannot get an answer from the API,
   once a minute per kind of failure, with the API's request id when there is one:
   `[api] GET /catalog/products?pageSize=8 failed: 500 INTERNAL_ERROR after 45 ms (API request 7bce04be-…)`
-  or `… failed: the API at http://api:4000 is unreachable (ECONNREFUSED) after 3 ms`.
+  or `… failed: the API at http://api:4000 is unreachable (ECONNREFUSED) after 3 ms`. Next.js
+  adds its own entry for each part of a page whose cached load failed,
+  `⨯ [Error [ApiUnavailableError]: GET /catalog/categories?locale=en: the API at http://api:4000 is unreachable (ECONNREFUSED)] { digest: '…' }`;
+  the pages still answer, without the parts the API could not give.
 
 ```bash
 teran logs --since 1h api | grep -E '"level":"(warn|error)"'   # the last hour's problems

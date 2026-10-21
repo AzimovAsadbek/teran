@@ -24,7 +24,18 @@ function networkCode(error: unknown): string | undefined {
 }
 
 function isTimeout(error: unknown): boolean {
-  return error instanceof Error && error.name === 'TimeoutError';
+  return (error as { name?: unknown } | null)?.name === 'TimeoutError';
+}
+
+/**
+ * The call itself failed: no connection (fetch's "fetch failed"), or no answer in time. Anything
+ * else fetch rejects with must pass through untouched: Next.js, for one, rejects the fetches still
+ * pending when it ends a prerender (HANGING_PROMISE_REJECTION), and has to recognise its own error.
+ */
+export function isNetworkFailure(error: unknown): boolean {
+  if (isTimeout(error)) return true;
+  const { name, message } = (error ?? {}) as { name?: unknown; message?: unknown };
+  return name === 'TypeError' && message === 'fetch failed';
 }
 
 function kindOf(failure: ApiFailure): string {

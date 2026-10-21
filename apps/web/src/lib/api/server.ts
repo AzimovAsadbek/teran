@@ -1,7 +1,7 @@
 import 'server-only';
 import { cookies, headers } from 'next/headers';
 import { ApiError, ApiUnavailableError, readErrorBody } from './errors';
-import { apiFailureLine, describeApiFailure, type ApiFailure } from './failures';
+import { apiFailureLine, describeApiFailure, isNetworkFailure, type ApiFailure } from './failures';
 
 const API_URL = (process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000').replace(/\/$/, '');
 const INTERNAL_KEY = process.env.API_INTERNAL_KEY;
@@ -57,6 +57,7 @@ export async function apiGet<T>(path: string, visitor?: VisitorContext): Promise
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (error) {
+    if (!isNetworkFailure(error)) throw error;
     const failure: ApiFailure = { method: 'GET', path, error, ms: performance.now() - started };
     reportFailure(failure);
     throw new ApiUnavailableError(

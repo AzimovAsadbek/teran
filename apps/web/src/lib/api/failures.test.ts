@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ApiError, ApiUnavailableError } from './errors';
-import { apiFailureLine, describeApiFailure, resetApiFailures } from './failures';
+import { apiFailureLine, describeApiFailure, isNetworkFailure, resetApiFailures } from './failures';
 
 const options = (now: number) => ({ apiUrl: 'http://api:4000', timeoutMs: 8_000, now });
 
@@ -95,5 +95,20 @@ describe('API failure lines', () => {
     // Not an answer with a status: callers that handle ApiError (404, 401) must not take it for one.
     expect(error).not.toBeInstanceOf(ApiError);
     expect(error.stack).toBe(`ApiUnavailableError: ${description}`);
+  });
+
+  it('takes only a failed connection or no answer for the API being down', () => {
+    expect(isNetworkFailure(unreachable('ECONNREFUSED'))).toBe(true);
+    expect(isNetworkFailure(new DOMException('The operation timed out.', 'TimeoutError'))).toBe(
+      true,
+    );
+    // Next.js ends a prerender by rejecting the fetches still pending: its error must pass through.
+    const prerenderEnded = Object.assign(
+      new Error('During prerendering, fetch() rejects when the prerender is complete.'),
+      { digest: 'HANGING_PROMISE_REJECTION' },
+    );
+    expect(isNetworkFailure(prerenderEnded)).toBe(false);
+    expect(isNetworkFailure(new TypeError('Failed to parse URL'))).toBe(false);
+    expect(isNetworkFailure(undefined)).toBe(false);
   });
 });

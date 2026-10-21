@@ -196,9 +196,14 @@ test.describe('publishing workflow', () => {
     const shop = page.locator('[id$="-shop"]');
     await shop.getByRole('link', { name: /Tea/ }).first().hover();
     await expect(shop.locator('img[src*="/uploads/categories/"]').first()).toBeVisible();
-    // A category without a cover keeps the neutral mark: no product picture is borrowed.
+    // A category without a cover borrows no picture, neither a product's nor another category's
+    // cover; a kind of tea shows its own dry leaf instead (ADR-051).
     await page.goto('/en/tea/black-tea');
-    await expect(page.getByRole('main').locator('header img')).toHaveCount(0);
+    const header = page.getByRole('main').locator('header');
+    await expect(
+      visible(header.getByRole('heading', { level: 1, name: 'Black tea' })),
+    ).toBeVisible();
+    await expect(header.locator('img[src*="uploads"]')).toHaveCount(0);
   });
 
   test('an article goes from draft to published, with a preview and a Telegram dry run', async ({

@@ -18,6 +18,7 @@ import {
   adminSimpleListQuerySchema,
   announcementSettingSchema,
   articleUpsertSchema,
+  assistantSettingSchema,
   contactSettingSchema,
   deliveryMethodUpsertSchema,
   idSchema,
@@ -29,6 +30,7 @@ import {
   type ArticleDetailDto,
   type AdminDeliveryMethod,
   type AnnouncementSetting,
+  type AssistantSetting,
   type ContactSetting,
   type LocaleQuery,
   type Paginated,
@@ -43,7 +45,7 @@ import { ApiException } from '../common/errors/api-exception.js';
 import { ArticlesService } from '../content/articles.service.js';
 import type { SettingValues } from '../content/settings.service.js';
 import { CurrentActor, type Actor } from './admin-support.js';
-import { AdminContentService } from './content.service.js';
+import { AdminContentService, type AdminSettings } from './content.service.js';
 import { GeocodeService } from './geocode.service.js';
 
 type DeliveryPayload = z.output<typeof deliveryMethodUpsertSchema>;
@@ -61,8 +63,10 @@ export class AdminContentController {
 
   @Get('settings')
   @Header('Cache-Control', 'private, no-store')
-  @ApiOkResponse({ description: '{ announcement, contact, visuals }' })
-  settings(): Promise<SettingValues> {
+  @ApiOkResponse({
+    description: '{ announcement, contact, stores, visuals, assistant, assistantModel }',
+  })
+  settings(): Promise<AdminSettings> {
     return this.content.getSettings();
   }
 
@@ -98,6 +102,19 @@ export class AdminContentController {
     @CurrentActor() actor: Actor,
   ): Promise<SettingValues> {
     return this.content.updateSetting('stores', body, actor);
+  }
+
+  @Put('settings/assistant')
+  @RequireStaff(['ADMIN'])
+  @ApiOperation({
+    summary:
+      'The chat’s AI assistant: on or off, and what TERAN wrote for it (administrators only)',
+  })
+  updateAssistant(
+    @Body({ schema: assistantSettingSchema }) body: AssistantSetting,
+    @CurrentActor() actor: Actor,
+  ): Promise<SettingValues> {
+    return this.content.updateSetting('assistant', body, actor);
   }
 
   @Get('settings/stores/geocode')

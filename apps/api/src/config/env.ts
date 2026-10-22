@@ -155,6 +155,27 @@ const envObjectSchema = z.object({
   TELEGRAM_API_BASE: z.url({ protocol: /^https?$/ }).default('https://api.telegram.org'),
   /** Language of the channel's posts. */
   TELEGRAM_POST_LOCALE: z.enum(['uz', 'ru', 'en']).default('uz'),
+
+  /**
+   * The chat's AI assistant (ADR-055): a Gemini API key from Google AI Studio. Server-side only,
+   * never logged or sent to browsers. Without it the chat offers its quick answers and TERAN's
+   * messengers and phones, as before.
+   */
+  GEMINI_API_KEY: z.string().min(20).max(200).optional(),
+  /** The Gemini model that answers (a cost-effective Flash-Lite by default). */
+  GEMINI_MODEL: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9.-]{2,63}$/)
+    .default('gemini-3.5-flash-lite'),
+  /** Gemini API address; tests point it at a local mock server. */
+  GEMINI_API_BASE: z
+    .url({ protocol: /^https?$/ })
+    .default('https://generativelanguage.googleapis.com'),
+  /**
+   * Answers the assistant may give in a day, all visitors together: a ceiling on what the key can
+   * cost if the chat is abused from many addresses. Past it the chat offers TERAN's channels.
+   */
+  ASSISTANT_DAILY_LIMIT: z.coerce.number().int().min(1).max(100_000).default(2_000),
 });
 
 export const envSchema = z
@@ -215,6 +236,7 @@ export const envSchema = z
         'PAYME_KEY',
         'CLICK_SECRET_KEY',
         'TELEGRAM_BOT_TOKEN',
+        'GEMINI_API_KEY',
       ] as const) {
         if (env[key]?.includes('replace-with')) {
           ctx.addIssue({

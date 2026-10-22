@@ -136,6 +136,10 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID:-}
       TELEGRAM_POST_LOCALE: ${TELEGRAM_POST_LOCALE:-uz}
+      # The chat's AI assistant (ADR-055): no key, no assistant.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      ASSISTANT_DAILY_LIMIT: ${ASSISTANT_DAILY_LIMIT:-2000}
     volumes:
       - uploads:/data/uploads
     depends_on:

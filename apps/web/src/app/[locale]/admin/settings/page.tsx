@@ -1,6 +1,8 @@
 import {
+  LOCALES,
   type AdminTaxonomy,
   type AnnouncementSetting,
+  type AssistantSetting,
   type ContactSetting,
   type ImageDto,
   type Locale,
@@ -9,11 +11,13 @@ import {
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
-import { AnnouncementForm, ContactForm } from '@/components/admin/settings-forms';
+import { AnnouncementForm, AssistantForm, ContactForm } from '@/components/admin/settings-forms';
 import { VisualsManager, type VisualPlace } from '@/components/admin/visuals-manager';
 import { AccessDenied, AdminPageHeader, Panel } from '@/components/admin/ui';
+import { siteKnowledge } from '@/content/assistant-knowledge';
 import { adminGet } from '@/lib/admin/server';
 import { currentUser } from '@/lib/account';
+import { showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -31,6 +35,8 @@ export default async function AdminSettingsPage() {
       announcement: AnnouncementSetting | null;
       contact: ContactSetting;
       visuals?: VisualsSetting;
+      assistant?: AssistantSetting;
+      assistantModel?: string | null;
     }>('/settings'),
     adminGet<AdminTaxonomy[]>('/categories').catch(() => null),
     adminGet<AdminTaxonomy[]>('/collections').catch(() => null),
@@ -129,6 +135,20 @@ export default async function AdminSettingsPage() {
         <Panel title={t('settings.contact')}>
           <p className="mb-4 text-body-sm text-fg-subtle">{t('settings.contactHint')}</p>
           <ContactForm value={settings.contact} />
+        </Panel>
+        <Panel title={t('settings.assistant')}>
+          <p className="mb-4 max-w-prose text-body-sm text-fg-subtle">
+            {t('settings.assistantHint')}
+          </p>
+          <AssistantForm
+            value={settings.assistant ?? { enabled: false, knowledge: { uz: '', ru: '', en: '' } }}
+            model={settings.assistantModel ?? null}
+            siteTexts={
+              Object.fromEntries(
+                LOCALES.map((locale) => [locale, siteKnowledge(locale, !showPrices)]),
+              ) as Record<Locale, string>
+            }
+          />
         </Panel>
         <Panel title={t('settings.visuals')}>
           <p className="mb-4 text-body-sm text-fg-subtle">{t('settings.visualsHint')}</p>

@@ -12,7 +12,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'How TERAN collects, uses and protects personal data when you shop, create an account or contact us.',
     intro:
-      'This policy explains which personal data the TERAN online store processes, why, for how long and what your rights are. Last updated: 18 October 2026.',
+      'This policy explains which personal data the TERAN online store processes, why, for how long and what your rights are. Last updated: 23 October 2026.',
     sections: [
       {
         id: 'controller',
@@ -65,6 +65,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
             list: [
               'with the courier or delivery service that brings your order (name, phone number and address);',
               'with the companies that host this website, its database and its files (Vercel Inc. and Neon) and, if enabled, send our e-mails, under confidentiality obligations;',
+              'with Google (the Gemini API) when you ask the chat’s AI assistant a question: the question and the conversation so far, without phone numbers or e-mail addresses, so that it can answer. We do not keep the conversation;',
               'with public authorities when the law requires it.',
             ],
           },
@@ -129,7 +130,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'Как TERAN собирает, использует и защищает персональные данные при покупках, регистрации и обращениях.',
     intro:
-      'Эта политика объясняет, какие персональные данные обрабатывает интернет-магазин TERAN, зачем, как долго и какие у вас права. Дата последнего обновления: 18.10.2026.',
+      'Эта политика объясняет, какие персональные данные обрабатывает интернет-магазин TERAN, зачем, как долго и какие у вас права. Дата последнего обновления: 23.10.2026.',
     sections: [
       {
         id: 'controller',
@@ -182,6 +183,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
             list: [
               'курьеру или службе доставки, которая привозит заказ (имя, телефон и адрес);',
               'компаниям, которые размещают сайт, его базу данных и файлы (Vercel Inc. и Neon) и, если это включено, отправляют наши письма, — на условиях конфиденциальности;',
+              'компании Google (Gemini API), когда вы задаёте вопрос AI-помощнику в чате: вопрос и предыдущие сообщения беседы, без номеров телефонов и адресов электронной почты, чтобы он мог ответить. Мы не храним переписку;',
               'государственным органам, когда этого требует закон.',
             ],
           },
@@ -246,7 +248,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'TERAN xarid qilish, roʻyxatdan oʻtish va murojaat qilishda shaxsiy maʼlumotlarni qanday toʻplashi, ishlatishi va himoya qilishi haqida.',
     intro:
-      'Ushbu siyosat TERAN internet-doʻkoni qaysi shaxsiy maʼlumotlarga ishlov berishi, nima uchun va qancha muddat saqlashi hamda sizning huquqlaringiz haqida tushuntiradi. Oxirgi yangilanish sanasi: 18.10.2026.',
+      'Ushbu siyosat TERAN internet-doʻkoni qaysi shaxsiy maʼlumotlarga ishlov berishi, nima uchun va qancha muddat saqlashi hamda sizning huquqlaringiz haqida tushuntiradi. Oxirgi yangilanish sanasi: 23.10.2026.',
     sections: [
       {
         id: 'controller',
@@ -299,6 +301,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
             list: [
               'buyurtmani olib keladigan kuryer yoki yetkazib berish xizmatiga (ism, telefon va manzil);',
               'saytni, uning maʼlumotlar bazasi va fayllarini joylashtiradigan (Vercel Inc. va Neon) hamda, agar yoqilgan boʻlsa, xatlarimizni yuboradigan kompaniyalarga — maxfiylik shartlari asosida;',
+              'chatdagi AI yordamchiga savol berganingizda Google kompaniyasiga (Gemini API): javob bera olishi uchun savol va suhbatning oldingi xabarlari — telefon raqamlari va elektron pochta manzillarisiz. Biz suhbatni saqlamaymiz;',
               'qonun talab qilganda davlat organlariga.',
             ],
           },

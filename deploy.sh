@@ -452,7 +452,7 @@ is_placeholder() {
 }
 
 validate_env() {
-  local problems=0 key value mode origin count r2_set name secret other flag
+  local problems=0 key value mode origin count r2_set name secret other flag gemini
   STAGE="env"
   step "Production sozlamalari tekshirilmoqda (.env.production; qiymatlar ko'rsatilmaydi)"
   mode="$(file_mode "$ENV_FILE")"
@@ -598,6 +598,12 @@ validate_env() {
       problems=$((problems + 1))
       ;;
   esac
+
+  gemini="$(env_value GEMINI_API_KEY)"
+  if [ -n "$gemini" ] && { is_placeholder "$gemini" || [ "${#gemini}" -lt 20 ]; }; then
+    fail "GEMINI_API_KEY namunaga o'xshaydi yoki juda qisqa (Google AI Studio kalitini kiriting yoki bo'sh qoldiring)."
+    problems=$((problems + 1))
+  fi
 
   for flag in DEMO_CONTENT SHOW_PRICES CHECKOUT_ENABLED SHOW_GALLERY; do
     case "$(env_value "$flag")" in

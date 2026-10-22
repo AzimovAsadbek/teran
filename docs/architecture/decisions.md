@@ -1405,3 +1405,50 @@ window is the whole screen and modal. Texts in uz, ru and en (`Chat` namespace).
 **Consequences.** No API, contract or schema changed and no AI provider returns. A chat message
 appears in Admin with the contact page's messages, told apart by its subject. Nothing is kept in
 the browser between visits.
+
+## ADR-055: The chat's AI assistant, on Gemini, with what the site knows
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-23), on the owner's request of 2026-10-23. Amends ADR-047 and ADR-054.
+
+**Context.** The owner asked for AI in the chat that ADR-054 brought back: Gemini, answering from
+everything on the site and full information about the company, which TERAN enters itself, and
+showing the site's products and the information needed in the chat. ADR-047 had removed an
+earlier advisor (Anthropic, product search only) as unnecessary; this one is broader (any question
+about TERAN, its products, ordering, delivery, business) and costs little (a Flash-Lite model, a
+daily ceiling).
+
+**Decision.**
+
+- **The API answers** (`apps/api/src/assistant`, `POST /assistant/chat`): each question goes to
+  Gemini (`GEMINI_API_KEY`, `GEMINI_MODEL`, default `gemini-3.5-flash-lite`) with standing rules
+  and the knowledge in the visitor's language: TERAN's text from Admin → Settings, the contacts,
+  stores, delivery methods, categories, collections and every visible product with its facts.
+  Gemini answers in JSON: the reply and the products, categories and pages it names; only
+  visible products, existing categories and known pages come back, as cards and links, and only
+  where the answer is about them (the owner's word of 2026-10-23): a card for a product the reply
+  names, a category beside its cards, at most two pages, none of it beside a greeting, a refusal
+  or a question about delivery or the company.
+- **TERAN writes what it knows**: the `assistant` setting (on/off and a text per language, up to
+  30 000 characters) in Admin → Settings → AI assistant, which shows whether the server has a key.
+  Empty languages can be filled with the site's own texts (`siteKnowledge()`: brand copy, About,
+  delivery, help centre, returns, for business). The development database was filled so.
+- **The chat opens on the assistant** when it is on and a key is set (`assistant.enabled` in the
+  public settings): a question box, chips that ask the usual questions (on one sideways-scrolling
+  row), answers with product cards and page links, and a typing indicator that says so when Gemini
+  is slow. A chip and any failed answer give TERAN's messengers, phones and contact page.
+- **No name or phone in the chat** (the owner's word of 2026-10-23): the message form of ADR-054
+  leaves the window. Without the assistant the chat offers its quick answers and, at its foot,
+  TERAN's messengers, phones and contact page; the contact page keeps its own form.
+- **Safeguards:** 10 questions a minute per visitor and `ASSISTANT_DAILY_LIMIT` a day for all
+  (default 2 000); up to 45 s for an answer and one more try when Google is busy (it answered in 2
+  to 35 s on the evening it was connected; the storefront's dev proxy waits 50 s, Nginx 60 s); phone numbers and e-mail addresses removed before a question leaves; nothing of
+  the conversation stored or logged; the key server-side only, in a header; rules against guessing,
+  health claims, prices while none are shown and requests for personal data; the knowledge marked
+  as data, never instructions. The privacy policy names Google as a recipient.
+
+**Consequences.** The API calls Google's Gemini API when a key is set (production: `.env.production`,
+`deploy.sh` refuses a placeholder). Google's unpaid tier may use questions to improve its products;
+a key from a project with billing does not, which the owner should choose for the live shop.
+Answers can still be wrong, and the chat says so. The assistant knows what the database and TERAN's
+text say: keeping that text current is TERAN's part. See `docs/architecture/assistant.md`.

@@ -88,6 +88,9 @@ const nextConfig: NextConfig = {
     // it while hydrating. Visited pages stay mounted and links prefetch their App Shell anyway, so
     // the copy only cost bytes, server time and main-thread work on phones.
     cachedNavigations: false,
+    // The rewrites below give up on the API after 30 s by default; the chat's AI assistant waits
+    // up to 45 s for Gemini at busy times (ADR-055).
+    proxyTimeout: 50_000,
   },
   turbopack: {
     rules: {

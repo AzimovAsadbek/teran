@@ -1,11 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   announcementSettingSchema,
+  assistantSettingSchema,
   contactSettingSchema,
   storePictureSlot,
   storesSettingSchema,
   visualsSettingSchema,
   type AnnouncementSetting,
+  type AssistantSetting,
   type ContactSetting,
   type ImageDto,
   type Locale,
@@ -16,6 +19,7 @@ import {
   type VisualsSetting,
 } from '@teran/contracts';
 import { PUBLIC_UPLOADS_PATH } from '../catalog/catalog.mapper.js';
+import type { Env } from '../config/env.js';
 import {
   filmCopyFileName,
   PRODUCT_FILM_MASK_FILE,
@@ -37,8 +41,14 @@ const EMPTY_CONTACT: ContactSetting = {
   workingHours: null,
 };
 
+const NO_ASSISTANT: AssistantSetting = {
+  enabled: false,
+  knowledge: { uz: '', ru: '', en: '' },
+};
+
 const SCHEMAS = {
   announcement: announcementSettingSchema,
+  assistant: assistantSettingSchema,
   contact: contactSettingSchema,
   stores: storesSettingSchema,
   visuals: visualsSettingSchema,
@@ -51,6 +61,8 @@ export interface SettingValues {
   stores: StoresSetting;
   /** Page pictures by place (Admin → Settings → Page pictures). */
   visuals: VisualsSetting;
+  /** The chat's AI assistant: on or off, and what TERAN wrote for it (ADR-055). */
+  assistant: AssistantSetting;
 }
 
 /**
@@ -103,11 +115,21 @@ export function whatsappLink(value: string | null): string | null {
 export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  /** The Gemini model the assistant answers with; null without a key (it cannot answer). */
+  readonly assistantModel: string | null;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    config: ConfigService<Env, true>,
+  ) {
+    this.assistantModel = config.get('GEMINI_API_KEY', { infer: true })
+      ? config.get('GEMINI_MODEL', { infer: true })
+      : null;
+  }
 
   async getAll(): Promise<SettingValues> {
     const rows = await this.prisma.siteSetting.findMany({
-      where: { key: { in: ['announcement', 'contact', 'stores', 'visuals'] } },
+      where: { key: { in: ['announcement', 'contact', 'stores', 'visuals', 'assistant'] } },
     });
     const read = <K extends keyof typeof SCHEMAS>(key: K) => {
       const row = rows.find((candidate) => candidate.key === key);
@@ -125,6 +147,7 @@ export class SettingsService {
       contact: (read('contact') as ContactSetting | null) ?? EMPTY_CONTACT,
       stores: (read('stores') as StoresSetting | null) ?? [],
       visuals: this.readVisuals(rows.find((row) => row.key === 'visuals')?.value),
+      assistant: (read('assistant') as AssistantSetting | null) ?? NO_ASSISTANT,
     };
   }
 
@@ -144,7 +167,7 @@ export class SettingsService {
   }
 
   async getPublic(locale: Locale): Promise<PublicSettingsDto> {
-    const { announcement, contact, stores, visuals } = await this.getAll();
+    const { announcement, contact, stores, visuals, assistant } = await this.getAll();
     const localized = (value: Record<Locale, string> | null) => {
       const text = value?.[locale]?.trim() || value?.uz?.trim();
       return text ? text : null;
@@ -193,12 +216,13 @@ export class SettingsService {
             image: picture ? visualImage(picture.image) : null,
           };
         }),
+      assistant: { enabled: assistant.enabled && this.assistantModel !== null },
     };
   }
 
   async update(
     key: SettingKey | 'visuals',
-    value: AnnouncementSetting | ContactSetting | StoresSetting | VisualsSetting,
+    value: AnnouncementSetting | ContactSetting | StoresSetting | VisualsSetting | AssistantSetting,
     actorUserId: string,
   ): Promise<void> {
     const json = value as unknown as Prisma.InputJsonValue;

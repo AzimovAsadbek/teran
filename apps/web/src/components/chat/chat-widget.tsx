@@ -15,8 +15,8 @@ const ChatPanel = lazy(() => import('./chat-panel'));
 /**
  * The chat in the lower right corner, back as it was before the advisor left (ADR-054): a light
  * disc with a teal speech bubble that opens TERAN's chat window in its place — a greeting, quick
- * answers (delivery, ordering, business) and a message to TERAN, which arrives with the contact
- * page's messages. TERAN's networks have their own disc above it (SocialLauncher), which steps
+ * answers (delivery, ordering, business) and TERAN's messengers and phones; where TERAN has
+ * switched it on, its AI assistant answers there (ADR-055). It asks for no name or phone number. TERAN's networks have their own disc above it (SocialLauncher), which steps
  * aside while the window is open. Closing the window, with its button or Escape, brings the disc
  * back with focus on it. Like the networks' disc, it makes way for an action or a form in its
  * corner and rises above a sticky bar (lib/floating).
@@ -24,9 +24,12 @@ const ChatPanel = lazy(() => import('./chat-panel'));
 export function ChatWidget({
   channels,
   socials,
+  assistant,
 }: {
   channels: ChatChannel[];
   socials: SocialLink[];
+  /** TERAN's AI assistant answers in the window (ADR-055). */
+  assistant: boolean;
 }) {
   const t = useTranslations('Chat');
   const [open, setOpen] = useState(false);
@@ -71,7 +74,12 @@ export function ChatWidget({
       </button>
       {wanted ? (
         <Suspense fallback={null}>
-          <ChatPanel open={open} channels={channels} onClose={() => setOpen(false)} />
+          <ChatPanel
+            open={open}
+            channels={channels}
+            assistant={assistant}
+            onClose={() => setOpen(false)}
+          />
         </Suspense>
       ) : null}
     </>

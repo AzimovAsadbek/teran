@@ -101,7 +101,11 @@ or deletes it, but it shares the database role with the API.
 
 - `@nestjs/throttler`: 120 requests per minute per IP and route by default; stricter limits on
   authentication, checkout (10/min), order lookup (30/min), cart (60/min), saving or deleting a
-  product review (10/min) and the enquiry and newsletter forms (5 per 10 minutes). Responses carry `Retry-After` / `X-RateLimit-*`.
+  product review (10/min), the chat's AI assistant (10/min) and the enquiry and newsletter forms
+  (5 per 10 minutes). Responses carry `Retry-After` / `X-RateLimit-*`.
+- The AI assistant also answers at most `ASSISTANT_DAILY_LIMIT` questions a day for all visitors
+  together (default 2000), so abuse from many addresses cannot run up the Gemini bill; past it the
+  chat offers TERAN's messengers, phones and contact page.
 - The client IP comes from `X-Forwarded-For` after `TRUST_PROXY_HOPS` trusted proxies (1 = the
   server's Nginx). Nginx replaces any client-supplied `X-Forwarded-For` with the client's address
   (a requirement for the server's configuration, production deployment §7), so the header cannot
@@ -190,7 +194,7 @@ is disabled in the production Compose file and Nginx does not route it (only `/a
 - The API validates its environment at start-up and refuses to run in production with insecure
   cookies, the `log` mail transport, a missing `INTERNAL_API_KEY`, an `http` `WEB_ORIGIN`, extra
   origin or `R2_PUBLIC_URL`, half of the R2 settings, or a secret (including the R2 keys) that
-  still contains the `.env.example` placeholder
+  still contains the `.env.example` placeholder (the Gemini key included)
   (`apps/api/src/config/env.ts`). `THROTTLE_DISABLED` is accepted only with `NODE_ENV=test`.
 - Secrets live only in git-ignored env files (`.env`, `.env.local`, `.env.production`); the
   repository contains placeholders. `.dockerignore` keeps env files out of image builds, and no
@@ -216,6 +220,15 @@ is disabled in the production Compose file and Nginx does not route it (only `/a
 - CSV exports prefix cells starting with `=`, `+`, `-`, `@`, tab or carriage return so spreadsheets
   do not execute them (`apps/api/src/admin/admin-support.ts`).
 - No analytics, tracking pixels or third-party embeds are loaded.
+- The chat's AI assistant (ADR-055) sends a visitor's question and the conversation so far to
+  Google's Gemini API, from the server (the key, `GEMINI_API_KEY`, never reaches a browser; it goes
+  in a header, never in an address). Phone numbers and e-mail addresses are removed from questions
+  before they leave; nothing of the conversation is stored or logged (only a failure's reason, such
+  as `Gemini answered HTTP 429 RESOURCE_EXHAUSTED`). What the assistant is told is public data only:
+  the catalogue, contacts, stores, delivery methods and TERAN's text from Admin → Settings, which
+  the form says may be told to visitors. Its answers are plain text, and only products and
+  categories that are visible become cards and links. Google's unpaid tier may use questions to
+  improve its products; a key on a paid (billing) project does not.
 
 ## Accounts, orders and payments
 

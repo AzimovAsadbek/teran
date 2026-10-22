@@ -51,9 +51,9 @@ ports the server's Nginx already uses for the site) and kept in `.deploy.env`.
   API; `deploy.sh` checks them. Nothing else is published.
 - **Firewall.** Inbound TCP 80 and 443 plus SSH only. Docker publishes on 127.0.0.1, so the
   application ports are not reachable from outside even where Docker bypasses the host firewall.
-- **Outbound access** from the API: Cloudflare R2 (when used), SMTP, the Telegram Bot API and
-  OpenStreetMap's geocoder (the admin's store addresses). Payme and Click call the API; it never
-  calls them.
+- **Outbound access** from the API: Cloudflare R2 (when used), SMTP, the Telegram Bot API,
+  Google's Gemini API (the chat's AI assistant, when a key is set) and OpenStreetMap's geocoder
+  (the admin's store addresses). Payme and Click call the API; it never calls them.
 
 ## 2. Configuration
 
@@ -84,6 +84,7 @@ openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n'; echo
 | `MAIL_TRANSPORT`, `SMTP_*`, `MAIL_FROM`                                                 | no            | `disabled` (default) or `smtp`. Without SMTP, customers cannot reset forgotten passwords                                                       |
 | `PAYMENT_*`, `PAYME_*`, `CLICK_*`, `ALLOW_DEMO_PAYMENTS`                                | with checkout | See [payment provider setup](payment-provider-setup.md)                                                                                        |
 | `TELEGRAM_MODE`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`, `TELEGRAM_POST_LOCALE`    | no            | Channel announcements ([telegram](../architecture/telegram.md)); `disabled` by default                                                         |
+| `GEMINI_API_KEY`, `GEMINI_MODEL`, `ASSISTANT_DAILY_LIMIT`                               | no            | The chat's AI assistant ([assistant](../architecture/assistant.md)); without a key the chat offers TERAN's channels                            |
 | `CORS_EXTRA_ORIGINS`, `TRUST_PROXY_HOPS`                                                | no            | Default empty and `1` (Nginx). See [Behind a CDN](#behind-a-cdn)                                                                               |
 | `POSTGRES_USER`, `POSTGRES_DB`, `LOG_LEVEL`, `DATABASE_POOL_MAX`, `UPLOAD_MAX_BYTES`    | no            | See the example file                                                                                                                           |
 
@@ -293,18 +294,19 @@ teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed
 The server's Nginx is configured by its administrator; nothing in this repository writes it. For
 the site to work, its server block for the domain must:
 
-| Requirement                                                               | Why                                                                                                           |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `/api/v1/` and `/uploads/` → `http://127.0.0.1:<API port>`                | API calls, and files kept in the volume (or redirected to R2)                                                 |
-| everything else → `http://127.0.0.1:<web port>`                           | Pages, the admin area and `/_next/static`                                                                     |
-| `/api/revalidate` answers 404                                             | The cache webhook is called by the API over Docker's network only                                             |
-| `X-Forwarded-For` set to the client's address (`$remote_addr`)            | The API's rate limits read it after one trusted hop (`TRUST_PROXY_HOPS=1`); a forwarded value could be forged |
-| the `X-Internal-Key` request header removed                               | It exempts the storefront's own requests from rate limits; it must never come from the internet               |
-| `Host` and `X-Forwarded-Proto` passed on                                  | Redirects and absolute addresses are built from them                                                          |
-| request bodies up to 12 MB, and 70 MB on `/api/v1/admin/media/<id>/video` | Two pictures of 5 MB in one request; films up to 64 MB (with longer read timeouts there)                      |
-| responses of the storefront not buffered                                  | Pages stream as they render                                                                                   |
-| `http://` and `www.` redirected to `PUBLIC_ORIGIN`, HSTS added            | Cookies are `Secure` and `__Host-` prefixed: the site works over HTTPS only                                   |
-| access log without query strings and without `Referer`                    | Order-status, password-reset and unsubscribe links carry tokens there                                         |
+| Requirement                                                                | Why                                                                                                           |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/api/v1/` and `/uploads/` → `http://127.0.0.1:<API port>`                 | API calls, and files kept in the volume (or redirected to R2)                                                 |
+| everything else → `http://127.0.0.1:<web port>`                            | Pages, the admin area and `/_next/static`                                                                     |
+| `/api/revalidate` answers 404                                              | The cache webhook is called by the API over Docker's network only                                             |
+| `X-Forwarded-For` set to the client's address (`$remote_addr`)             | The API's rate limits read it after one trusted hop (`TRUST_PROXY_HOPS=1`); a forwarded value could be forged |
+| the `X-Internal-Key` request header removed                                | It exempts the storefront's own requests from rate limits; it must never come from the internet               |
+| `Host` and `X-Forwarded-Proto` passed on                                   | Redirects and absolute addresses are built from them                                                          |
+| request bodies up to 12 MB, and 70 MB on `/api/v1/admin/media/<id>/video`  | Two pictures of 5 MB in one request; films up to 64 MB (with longer read timeouts there)                      |
+| `proxy_read_timeout` of at least 50 s on `/api/v1/` (Nginx's default 60 s) | The chat's AI assistant waits up to 45 s for Gemini at busy times (ADR-055)                                   |
+| responses of the storefront not buffered                                   | Pages stream as they render                                                                                   |
+| `http://` and `www.` redirected to `PUBLIC_ORIGIN`, HSTS added             | Cookies are `Secure` and `__Host-` prefixed: the site works over HTTPS only                                   |
+| access log without query strings and without `Referer`                     | Order-status, password-reset and unsubscribe links carry tokens there                                         |
 
 `deploy.sh` reads the Nginx configuration where it can (never writes it) to suggest the ports and
 to warn when the site is sent to other ports than the deployment uses. These requirements were
@@ -455,6 +457,7 @@ Old images stay on the server for rollbacks; remove the ones no longer needed yo
 | Cloudflare R2                    | Pictures and films (ADR-043)                                | Yes for the live shop (its media are there); optional for a new install |
 | SMTP server                      | Password-reset e-mails                                      | Optional (`MAIL_TRANSPORT=disabled`)                                    |
 | Telegram Bot API                 | Channel announcements                                       | Optional (`TELEGRAM_MODE`)                                              |
+| Google Gemini API                | The chat's AI assistant (ADR-055)                           | Optional (`GEMINI_API_KEY`, then Admin → Settings)                      |
 | Payme, Click                     | Online payments (they call the API)                         | Only with `CHECKOUT_ENABLED=true` and an online method                  |
 | OpenStreetMap (Nominatim, tiles) | Store address search in the admin area; the store map       | Yes for those features; no account                                      |
 | Google Fonts                     | Fonts, downloaded once at build time and served by the site | At build time only                                                      |

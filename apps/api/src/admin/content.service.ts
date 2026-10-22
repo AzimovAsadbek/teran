@@ -7,6 +7,7 @@ import {
   type AdminDeliveryMethod,
   type AnnouncementSetting,
   type articleUpsertSchema,
+  type AssistantSetting,
   type ContactSetting,
   type deliveryMethodUpsertSchema,
   type Paginated,
@@ -61,6 +62,9 @@ const articleInclude = {
 } satisfies Prisma.ArticleInclude;
 type ArticleRow = Prisma.ArticleGetPayload<{ include: typeof articleInclude }>;
 
+/** The settings as Admin → Settings shows them, with the model the AI assistant answers with. */
+export type AdminSettings = SettingValues & { assistantModel: string | null };
+
 @Injectable()
 export class AdminContentService {
   private readonly images: ImageStore;
@@ -78,13 +82,13 @@ export class AdminContentService {
 
   // ─── Site settings ─────────────────────────────────────────────────────────
 
-  getSettings(): Promise<SettingValues> {
-    return this.settings.getAll();
+  async getSettings(): Promise<AdminSettings> {
+    return { ...(await this.settings.getAll()), assistantModel: this.settings.assistantModel };
   }
 
   async updateSetting(
     key: SettingKey,
-    value: AnnouncementSetting | ContactSetting | StoresSetting,
+    value: AnnouncementSetting | ContactSetting | StoresSetting | AssistantSetting,
     actor: Actor,
   ): Promise<SettingValues> {
     await this.settings.update(key, value, actor.userId);

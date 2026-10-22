@@ -2,16 +2,21 @@
 
 import {
   announcementSettingSchema,
+  ASSISTANT_KNOWLEDGE_MAX,
+  assistantSettingSchema,
   contactSettingSchema,
   LOCALES,
   type AnnouncementSetting,
+  type AssistantSetting,
   type ContactSetting,
   type Locale,
 } from '@teran/contracts';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { ApiAlert, SubmitButton, SuccessMessage } from '@/components/account/auth-forms';
+import { Button } from '@/components/ui/button';
 import { CheckboxField, FormErrorSummary, TextAreaField, TextField } from '@/components/ui/field';
+import { Notice } from '@/components/ui/notice';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { useRouter } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
@@ -231,6 +236,105 @@ export function ContactForm({ value }: { value: ContactSetting }) {
           />
         ))}
       </div>
+      <ApiAlert message={form.apiErrorMessage} />
+      {form.status === 'sent' ? <SuccessMessage>{t('common.saved')}</SuccessMessage> : null}
+      <SubmitButton
+        sending={form.status === 'sending'}
+        label={t('common.save')}
+        sendingLabel={t('common.saving')}
+        className=""
+      />
+    </form>
+  );
+}
+
+/**
+ * The chat's AI assistant (ADR-055): whether it answers, and what TERAN wants it to know in each
+ * language. Whether the server has a Gemini key, and so whether it can answer at all, is shown
+ * first. Empty languages can be filled with the site's own texts (content/assistant-knowledge),
+ * to edit before saving.
+ */
+export function AssistantForm({
+  value,
+  model,
+  siteTexts,
+}: {
+  value: AssistantSetting;
+  /** The Gemini model the server answers with; null without a key. */
+  model: string | null;
+  /** The site's texts in each language, offered for the empty fields. */
+  siteTexts: LocalizedText;
+}) {
+  const t = useTranslations('Admin');
+  const router = useRouter();
+  const message = useValidationMessage();
+  const formRef = useRef<HTMLFormElement>(null);
+  const form = useFormSubmission(formRef);
+  const [enabled, setEnabled] = useState(value.enabled);
+  const [knowledge, setKnowledge] = useState<LocalizedText>(value.knowledge);
+  const fillable = LOCALES.filter(
+    (locale) => knowledge[locale].trim() === '' && siteTexts[locale].trim() !== '',
+  );
+
+  const payload = { enabled, knowledge };
+  const visible = form.errorsFor(payload);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const saved = await form.submit(assistantSettingSchema, payload, (data) =>
+      apiRequest('/admin/settings/assistant', { method: 'PUT', body: data }),
+    );
+    if (saved) router.refresh();
+  }
+
+  return (
+    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-4">
+      <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
+      <Notice tone={model ? 'success' : 'warning'} compact>
+        {model ? t('settings.assistantModel', { model }) : t('settings.assistantNoKey')}
+      </Notice>
+      <CheckboxField
+        label={t('settings.assistantEnabled')}
+        name="enabled"
+        checked={enabled}
+        onChange={(event) => setEnabled(event.target.checked)}
+      />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={fillable.length === 0}
+          onClick={() =>
+            setKnowledge((current) => {
+              const next = { ...current };
+              for (const locale of fillable) next[locale] = siteTexts[locale];
+              return next;
+            })
+          }
+        >
+          {t('settings.assistantFill')}
+        </Button>
+        <p className="max-w-prose text-body-sm text-fg-subtle">{t('settings.assistantFillHint')}</p>
+      </div>
+      {LOCALES.map((locale) => (
+        <TextAreaField
+          key={locale}
+          label={`${t('settings.assistantKnowledge')} · ${t(`common.locales.${locale}`)}`}
+          name={`knowledge-${locale}`}
+          rows={12}
+          maxLength={ASSISTANT_KNOWLEDGE_MAX}
+          lang={locale === 'uz' ? 'uz-Latn' : locale}
+          value={knowledge[locale]}
+          onChange={(event) =>
+            setKnowledge((current) => ({ ...current, [locale]: event.target.value }))
+          }
+          hint={t('settings.assistantKnowledgeHint', {
+            count: knowledge[locale].length,
+            max: ASSISTANT_KNOWLEDGE_MAX,
+          })}
+          error={message(visible[`knowledge.${locale}`], knowledge[locale])}
+        />
+      ))}
       <ApiAlert message={form.apiErrorMessage} />
       {form.status === 'sent' ? <SuccessMessage>{t('common.saved')}</SuccessMessage> : null}
       <SubmitButton

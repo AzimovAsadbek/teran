@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import type { IncomingMessage } from 'node:http';
 import { AccountModule } from './account/account.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { AssistantModule } from './assistant/assistant.module.js';
 import { validateEnv, type Env } from './config/env.js';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter.js';
 import { loggerParams } from './common/logging/logger-params.js';
@@ -51,6 +52,7 @@ import { ReviewsModule } from './reviews/reviews.module.js';
     AuthModule,
     AccountModule,
     InquiriesModule,
+    AssistantModule,
     AdminModule,
     MaintenanceModule,
   ],

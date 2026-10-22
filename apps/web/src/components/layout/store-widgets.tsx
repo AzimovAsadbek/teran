@@ -12,12 +12,13 @@ import { PromoPopup } from './promo-popup';
 
 /**
  * The chat in the lower right corner, with TERAN's networks above it and its messengers and phones
- * inside, as entered in Admin → Settings.
+ * inside, as entered in Admin → Settings, and the AI assistant where TERAN has switched it on.
  */
 export async function ChatSlot() {
   await connection();
   const locale = await getLocale();
-  const contact = (await getPublicSettings(locale).catch(() => null))?.contact;
+  const settings = await getPublicSettings(locale).catch(() => null);
+  const contact = settings?.contact;
   const socials = socialLinks(contact);
   const channels: ChatChannel[] = [
     ...socials
@@ -29,7 +30,13 @@ export async function ChatSlot() {
       external: false,
     })),
   ];
-  return <ChatWidget channels={channels} socials={socials} />;
+  return (
+    <ChatWidget
+      channels={channels}
+      socials={socials}
+      assistant={settings?.assistant?.enabled ?? false}
+    />
+  );
 }
 
 /** The offer card in the lower left corner: TERAN's premium collection, as the promo strip. */

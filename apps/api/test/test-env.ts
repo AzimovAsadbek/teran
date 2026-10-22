@@ -45,4 +45,6 @@ export const TEST_ENV: Record<string, string> = {
   CLICK_SERVICE_ID: '',
   CLICK_MERCHANT_ID: '',
   CLICK_SECRET_KEY: '',
+  // Never the developer's own key from apps/api/.env: suites that need Gemini point it at a mock.
+  GEMINI_API_KEY: '',
 };

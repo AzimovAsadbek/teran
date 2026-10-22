@@ -122,7 +122,20 @@ export const storeGeocodeSchema = z.object({
 });
 export type StoreGeocodeDto = z.infer<typeof storeGeocodeSchema>;
 
-export const SETTING_KEYS = ['announcement', 'contact', 'stores'] as const;
+/**
+ * The AI assistant in the chat (Admin → Settings → AI assistant, ADR-055): on or off, and what
+ * TERAN wants it to know beyond the site's own data — the company, its story and terms, answers
+ * to common questions — in each language (an empty language falls back to Uzbek). The catalogue,
+ * contacts, stores and delivery methods it reads live. Everything here may be told to visitors.
+ */
+export const ASSISTANT_KNOWLEDGE_MAX = 30_000;
+export const assistantSettingSchema = z.object({
+  enabled: z.boolean(),
+  knowledge: localizedText(ASSISTANT_KNOWLEDGE_MAX),
+});
+export type AssistantSetting = z.infer<typeof assistantSettingSchema>;
+
+export const SETTING_KEYS = ['announcement', 'contact', 'stores', 'assistant'] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
 // ─── Page pictures ──────────────────────────────────────────────────────────
@@ -307,6 +320,11 @@ export const publicSettingsSchema = z.object({
   }),
   /** Page pictures by place; places without one are absent (older answers have none). */
   visuals: z.record(z.string(), publicVisualSchema).default({}),
+  /**
+   * The AI assistant answers in the chat: switched on in Admin → Settings and a Gemini key
+   * configured on the server (older answers have no such field).
+   */
+  assistant: z.object({ enabled: z.boolean() }).default({ enabled: false }),
   /** The active points of sale, in the admin's order, in the reader's language. */
   stores: z
     .array(

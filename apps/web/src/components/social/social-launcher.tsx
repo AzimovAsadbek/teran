@@ -8,14 +8,15 @@ import { useFloatingPlace } from '@/lib/floating';
 import { NETWORK_NAMES, SocialIcon } from './social-icon';
 
 /**
- * TERAN's networks in the lower right corner: a teal disc showing four small marks — Instagram, a
- * play button, a paper plane and a phone (the owner's "social mix") — that opens the networks
- * entered in the admin area (Telegram, WhatsApp, Instagram, YouTube) as a column of their own
- * marks and names rising from it, each opening the network in a new tab. The marks give way to a
- * cross while it is open; Escape, a click elsewhere or following a link closes it, and Escape
- * gives focus back to the disc.
+ * TERAN's networks in the lower right corner, above the chat (components/chat/chat-widget.tsx):
+ * a teal disc showing four small marks — Instagram, a play button, a paper plane and a phone (the
+ * owner's "social mix") — that opens the networks entered in the admin area (Telegram, WhatsApp,
+ * Instagram, YouTube) as a column of their own marks and names rising from it, each opening the
+ * network in a new tab. The marks give way to a cross while it is open; Escape, a click elsewhere
+ * or following a link closes it, and Escape gives focus back to the disc. It steps aside while the
+ * chat window is open (the window covers the corner).
  */
-export function SocialLauncher({ links }: { links: SocialLink[] }) {
+export function SocialLauncher({ links, hidden }: { links: SocialLink[]; hidden: boolean }) {
   const t = useTranslations('Social');
   const tc = useTranslations('Common');
   const [open, setOpen] = useState(false);
@@ -24,9 +25,10 @@ export function SocialLauncher({ links }: { links: SocialLink[] }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   // It steps aside for an action or a form in its corner, and rises above a sticky bar.
   const place = useFloatingPlace();
+  const shown = open && !hidden;
 
   useEffect(() => {
-    if (!open) return;
+    if (!shown) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setOpen(false);
@@ -41,20 +43,21 @@ export function SocialLauncher({ links }: { links: SocialLink[] }) {
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onPointer);
     };
-  }, [open]);
+  }, [shown]);
 
   if (links.length === 0) return null;
   return (
-    // The floating button's corner: 20 px in on phones, 30 px from 640 px.
+    // Centred over the chat's disc (50 px on phones, 60 px from 640 px), 16 px / 14 px above it.
     <div
       ref={rootRef}
+      hidden={hidden}
       className={cn(
-        'fixed right-5 bottom-5 z-[60] transition-[opacity,translate] duration-300 ease-[var(--ease-standard)] sm:right-[1.875rem] sm:bottom-[1.875rem] print:hidden',
-        place === 'yield' && !open && 'pointer-events-none translate-y-2 opacity-0',
+        'fixed right-5 bottom-[5.375rem] z-[60] transition-[opacity,translate] duration-300 ease-[var(--ease-standard)] sm:right-[2.125rem] sm:bottom-[6.25rem] print:hidden',
+        place === 'yield' && !shown && 'pointer-events-none translate-y-2 opacity-0',
         place === 'raised' && '-translate-y-[4.75rem]',
       )}
     >
-      {open ? (
+      {shown ? (
         <ul
           id={listId}
           aria-label={t('title')}
@@ -92,13 +95,13 @@ export function SocialLauncher({ links }: { links: SocialLink[] }) {
       <button
         ref={buttonRef}
         type="button"
-        aria-expanded={open}
-        aria-controls={open ? listId : undefined}
-        aria-label={open ? t('close') : t('open')}
+        aria-expanded={shown}
+        aria-controls={shown ? listId : undefined}
+        aria-label={shown ? t('close') : t('open')}
         onClick={() => setOpen((current) => !current)}
         className="flex h-[3.125rem] w-[3.125rem] items-center justify-center rounded-full bg-[#107e84] text-white shadow-[0_2px_4px_rgb(22_22_22_/_16%)] transition-[transform,background-color] duration-200 ease-[ease] hover:scale-105 hover:bg-[#0b5a5e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#107e84] focus-visible:outline-solid sm:h-[3.25rem] sm:w-[3.25rem]"
       >
-        <SocialMix open={open} />
+        <SocialMix open={shown} />
       </button>
     </div>
   );

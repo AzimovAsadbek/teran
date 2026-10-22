@@ -427,6 +427,22 @@ serif, a line under it, the form, and anything secondary under a rule.
   subject; a stepper counts the packs and the message is an optional note; it sends "TERAN 8830 ·
   400 g × 2" and the note.
 
+### The chat and the networks in the corner (ADR-054)
+
+Two discs in the lower right corner (`chat/chat-widget.tsx`): the chat's light disc with a teal
+speech bubble at the corner (50 px, 60 px from 640 px) and TERAN's networks' teal disc above it
+(`social/social-launcher.tsx`). Both make way for an action or a form in their corner and rise
+above a sticky bar (`lib/floating.ts`); the networks step aside while the chat is open.
+
+- **The window** (`chat/chat-panel.tsx`, loaded when first wanted): the whole screen on phones,
+  where it is modal and the page behind is inert; a 384 px window with 2 rem corners from 640 px.
+  On the brand's teals: close, TERAN's white wordmark, the conversation opening on a greeting
+  (TERAN's white bubbles on the left, the visitor's deep teal ones on the right), chips for three
+  quick answers in TERAN's own words with the way on (delivery with the messengers and phones,
+  ordering, business), and a message to TERAN (name, phone, question; Enter sends) that arrives
+  with the contact page's messages under the subject "Saytdagi chat". No AI; nothing is kept
+  beyond the page.
+
 ### Category cards
 
 The home page's "Turkum boʻyicha" shows the categories shoppers browse (subcategories, and

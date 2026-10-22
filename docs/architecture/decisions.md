@@ -1381,3 +1381,25 @@ the same contact inquiry (subject "Place an order", the message led by "TERAN 88
 The films, the chocolates' photographs and the categories' order are in the presentation
 database and its local uploads only: staging and production need the database moved and the new
 files uploaded to R2. The end-to-end database gets the chocolates with drawn art (no photographs).
+
+## ADR-054: The chat in the corner returns, without the advisor
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-23), on the owner's request of 2026-10-22. Amends ADR-047.
+
+**Context.** ADR-047 removed the AI product advisor and, with it, the chat it lived in: the light
+disc with a teal speech bubble in the lower right corner and its window. The owner asked for that
+disc back. The advisor itself stays removed: it needs a paid AI provider and its key, and the
+owner had found it unnecessary.
+
+**Decision.** The chat returns (`components/chat/`) with the look it had: the light disc at the
+corner, TERAN's networks' disc above it again (it steps aside while the window is open), both
+making way for actions and forms in their corner as before (`lib/floating.ts`). Its window holds a
+greeting, three quick answers in TERAN's own words (delivery with the messengers and phones,
+ordering, business) and a message to TERAN: name, phone and question, sent as a contact enquiry
+(`POST /inquiries/contact`, subject "Saytdagi chat") that TERAN answers in person. On phones the
+window is the whole screen and modal. Texts in uz, ru and en (`Chat` namespace).
+
+**Consequences.** No API, contract or schema changed and no AI provider returns. A chat message
+appears in Admin with the contact page's messages, told apart by its subject. Nothing is kept in
+the browser between visits.

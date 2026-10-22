@@ -1,10 +1,11 @@
 import { useEffect, useSyncExternalStore, type RefObject } from 'react';
 
 /*
- * What the floating contact disc (components/social/social-launcher.tsx) must make way for. A
- * primary action or a form that reaches the lower part of the screen, where the disc floats,
- * sends it aside (it fades out and lets clicks through), so it never covers "Order" or a field on
- * a phone; a sticky bar at the bottom (the product page's Order or purchase bar) lifts it above
+ * What the floating discs in the lower right corner (the chat, components/chat/chat-widget.tsx,
+ * and TERAN's networks above it, components/social/social-launcher.tsx) must make way for. A
+ * primary action or a form that reaches the lower part of the screen, where they float, sends
+ * them aside (they fade out and let clicks through), so they never cover "Order" or a field on a
+ * phone; a sticky bar at the bottom (the product page's Order or purchase bar) lifts them above
  * the bar.
  */
 

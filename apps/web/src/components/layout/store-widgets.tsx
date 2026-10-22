@@ -1,19 +1,35 @@
 import type { Locale } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
-import { SocialLauncher } from '@/components/social/social-launcher';
+import type { ChatChannel } from '@/components/chat/chat-types';
+import { ChatWidget } from '@/components/chat/chat-widget';
+import { NETWORK_NAMES } from '@/components/social/social-icon';
 import { brandCopy, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
-import { socialLinks } from '@/lib/contact';
+import { phoneLinks, socialLinks } from '@/lib/contact';
 import { getCollections } from '@/lib/data/catalog';
 import { getPublicSettings } from '@/lib/data/content';
 import { PromoPopup } from './promo-popup';
 
-/** TERAN's networks in the lower right corner, as entered in Admin → Settings. */
-export async function SocialSlot() {
+/**
+ * The chat in the lower right corner, with TERAN's networks above it and its messengers and phones
+ * inside, as entered in Admin → Settings.
+ */
+export async function ChatSlot() {
   await connection();
   const locale = await getLocale();
   const contact = (await getPublicSettings(locale).catch(() => null))?.contact;
-  return <SocialLauncher links={socialLinks(contact)} />;
+  const socials = socialLinks(contact);
+  const channels: ChatChannel[] = [
+    ...socials
+      .filter((link) => link.network === 'telegram' || link.network === 'whatsapp')
+      .map((link) => ({ href: link.href, label: NETWORK_NAMES[link.network], external: true })),
+    ...phoneLinks(contact).map((phone) => ({
+      href: phone.href,
+      label: phone.label,
+      external: false,
+    })),
+  ];
+  return <ChatWidget channels={channels} socials={socials} />;
 }
 
 /** The offer card in the lower left corner: TERAN's premium collection, as the promo strip. */

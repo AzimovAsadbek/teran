@@ -203,7 +203,7 @@ export function ProductGallery({
           })}
         </div>
         {/* The reference's teal arrows, 22 px with a heavy stroke, on a soft light disc so they
-            read on dark photographs too (the steaming cups). */}
+            read on dark photographs and films too (the teas' own). */}
         <IconButton
           label={t('previousImage')}
           icon={<ArrowLeft strokeWidth={2.5} className="h-[1.375rem]! w-[1.375rem]!" />}

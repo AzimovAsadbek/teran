@@ -41,10 +41,10 @@ function minutes(seconds: number): string {
  * Product card: a white card with 16 px corners on a soft shadow; "new" and "few left" pills
  * top-left, the discount top-right; a first picture with a film comes alive (product-film.tsx).
  * The second picture (for TERAN's teas, their own dry leaf) stands as a small round swatch in the
- * lower left on every device, ringed in the pack's colour, so cards that open on the same cup
- * still differ at a glance. Pointed at, a card answers in its family's own way (ADR-051), never
- * by lifting or zooming: the swatch grows into a ringed lens of the dry leaf beside the steaming
- * cup (`.leaf-lens`); cold drinks, water and gift sets catch a band of light (`.card-sheen`); the
+ * lower left on every device, ringed in the pack's colour, so each tea is told by its leaf at a
+ * glance too. Pointed at, a card answers in its family's own way (ADR-051), never by lifting or
+ * zooming: the swatch grows into a ringed lens of the dry leaf beside the tea's own film
+ * (`.leaf-lens`); cold drinks, water and gift sets catch a band of light (`.card-sheen`); the
  * family's mark turns a little. The family (product-family.ts) also sets the mark and ink of the
  * category line and the field behind a cut-out. Under the picture, from the product's own data and nothing
  * invented: the tea type, the name, the customers' stars and their number (before the first
@@ -174,7 +174,7 @@ export function ProductCard({
         </div>
         {hoverImage ? (
           // The leaf lens: pointed at, the swatch grows into a ringed circle of the dry leaf beside
-          // the steaming cup, and shrinks back when left (styles/globals.css, `.leaf-lens`). Not
+          // the tea's film, and shrinks back when left (styles/globals.css, `.leaf-lens`). Not
           // displayed on touch screens, so it is never downloaded there.
           <span
             aria-hidden
@@ -202,7 +202,7 @@ export function ProductCard({
         ) : null}
         {hoverImage ? (
           // The second picture (for TERAN's teas, their own dry leaf) as a swatch on every device,
-          // ringed in the pack's colour: what tells cards with the same first picture apart. It
+          // ringed in the pack's colour: each tea's leaf, told apart at a glance. It
           // steps aside while the card is pointed at (the full second picture, or the quick add,
           // takes the picture's foot then); on a touch screen, where nothing is pointed at, it
           // is larger (styles/globals.css, `.leaf-swatch`).

@@ -6,16 +6,17 @@ import { cn } from '@/lib/cn';
 import { useFilmsAllowed, useMotionPaused, usePageLoaded } from '@/lib/motion';
 
 /**
- * The width of the cards' copy (storage/tea-films: 512 px). A card drawn wider than that on the
- * screen (a large card on a 2× display) plays the film itself, so its moving part is as sharp as
- * the picture around it.
+ * The width of the cards' copy (storage/tea-films-3: 720 px, a four-column card on a 2× display).
+ * A card drawn wider than that on the screen plays the film itself, so it is as sharp as the
+ * picture under it.
  */
-const CARD_COPY_WIDTH = 512;
+const CARD_COPY_WIDTH = 720;
 
 /**
- * A product picture's living film over the picture itself (its first frame): steam rising from a
- * cup, the tea stirring. Only where it moves does the film show (its mask; elsewhere the picture
- * underneath, so the still parts stay sharp and never flicker as the loop starts over). It loads
+ * A product picture's living film over the picture itself (its first frame): tea poured, a
+ * gaiwan's lid lifted, leaves drifting. With a mask the film shows only where it moves (elsewhere
+ * the picture underneath, so the still parts stay sharp and never flicker as the loop starts
+ * over); without one it covers the whole picture, its loop seamless by itself (ADR-053). It loads
  * once the page has and the picture comes near, plays while on screen (and, in a gallery, while
  * its slide is the one shown), fades in over the picture, and keeps still with reduced motion, on
  * a data-saving connection or while the visitor has paused the films (lib/motion). Decorative:

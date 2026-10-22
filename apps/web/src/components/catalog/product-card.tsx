@@ -66,14 +66,13 @@ export function ProductCard({
   headingLevel?: 'h2' | 'h3';
   sizes?: string;
   /**
-   * How it sits in a listing (catalog-results.tsx): a `card`; a horizontal `feature` (a listing
-   * of one or two); `feature-phone`, horizontal across a phone's two columns only (an odd last
-   * card); `lead`, two columns by two rows from 1024 px, so a last row is never one card alone.
+   * How it sits in a listing (catalog-results.tsx): a `card`; `feature`, lying down from 768 px
+   * (a listing of one or two; on a phone a card like the others); `lead`, two columns by two rows
+   * from 1024 px, so a last row is never one card alone.
    */
-  layout?: 'card' | 'feature' | 'feature-phone' | 'lead';
+  layout?: 'card' | 'feature' | 'lead';
 }) {
   const feature = layout === 'feature';
-  const featurePhone = layout === 'feature-phone';
   const lead = layout === 'lead';
   const t = useTranslations('Product');
   const tb = useTranslations('Brewing');
@@ -145,15 +144,13 @@ export function ProductCard({
     <article
       className={cn(
         'group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-shadow duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)]',
-        feature && 'flex-row',
-        featurePhone && 'max-md:flex-row',
+        feature && 'md:flex-row',
       )}
     >
       <div
         className={cn(
           'group/gallery relative aspect-square overflow-hidden bg-surface',
-          feature && 'w-[42%] shrink-0 self-start sm:w-[46%]',
-          featurePhone && 'max-md:w-[42%] max-md:shrink-0 max-md:self-start',
+          feature && 'md:w-[46%] md:shrink-0 md:self-start',
           lead && 'lg:aspect-auto lg:min-h-0 lg:flex-1',
         )}
         // A cut-out stands on its family's field; a photograph covers it.
@@ -252,8 +249,7 @@ export function ProductCard({
         className={cn(
           'flex flex-col px-3 pt-3 pb-3 min-[46.875rem]:px-4 min-[46.875rem]:pt-3.5 min-[46.875rem]:pb-4',
           lead ? 'lg:flex-none' : 'flex-1',
-          feature && 'min-w-0 justify-center sm:px-7 sm:py-6',
-          featurePhone && 'max-md:min-w-0 max-md:justify-center',
+          feature && 'md:min-w-0 md:justify-center md:px-7 md:py-6',
         )}
       >
         <p
@@ -271,7 +267,7 @@ export function ProductCard({
             'mt-1 line-clamp-2 text-fg',
             // Larger, in the soft serif, where the card has the room.
             feature
-              ? 'text-[1rem] leading-5 font-bold min-[46.875rem]:font-heading min-[46.875rem]:text-[1.75rem] min-[46.875rem]:leading-tight min-[46.875rem]:font-normal'
+              ? 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6 md:font-heading md:text-[1.75rem] md:leading-tight md:font-normal'
               : lead
                 ? 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6 lg:font-heading lg:text-[1.75rem] lg:leading-tight lg:font-normal'
                 : 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6',
@@ -305,11 +301,11 @@ export function ProductCard({
             <span className="text-fg-subtle">{t('rateFirst')}</span>
           )}
         </Link>
-        {(feature || featurePhone || lead) && product.shortDescription ? (
+        {(feature || lead) && product.shortDescription ? (
           <p
             className={cn(
               'mt-2 line-clamp-3 text-[0.875rem] leading-snug text-pretty text-fg-muted sm:text-[0.9375rem]',
-              featurePhone && 'md:hidden',
+              feature && 'max-md:hidden',
               lead && 'max-lg:hidden',
             )}
           >
@@ -352,14 +348,14 @@ export function ProductCard({
         ) : soldOut ? null : (
           // Without prices there is no bag: the button leads to the contact page, where every
           // channel to order by is (ADR-045), with this tea named in the message.
-          <div className={cn('mt-auto pt-3.5', feature && 'sm:mt-5')}>
+          <div className={cn('mt-auto pt-3.5', feature && 'md:mt-5')}>
             <Link
               href={`/contact?tea=${encodeURIComponent(product.slug)}`}
               aria-label={t('orderAction', { name: product.name })}
               // A phone's half-width card keeps the whole word: smaller type, no arrow.
               className={cn(
                 'relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50',
-                feature && 'sm:w-auto sm:px-7',
+                feature && 'md:w-auto md:px-7',
               )}
             >
               <span className="truncate">{t('orderNow')}</span>

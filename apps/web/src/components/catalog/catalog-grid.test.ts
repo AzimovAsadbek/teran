@@ -32,10 +32,26 @@ describe('shelfGridFor', () => {
     }
   });
 
-  it('lays an odd last card across a phone', () => {
+  it('keeps an odd last card the size of the others on a phone', () => {
     const grid = shelfGridFor(7);
-    expect(grid.layout(6)).toBe('feature-phone');
-    expect(grid.item(6)).toBe('max-md:col-span-2');
-    expect(grid.layout(5)).toBe('card');
+    expect(grid.layout(6)).toBe('card');
+    expect(grid.item(6)).toBeUndefined();
+  });
+});
+
+describe('gridFor', () => {
+  it('keeps every card the size of the others on a phone, an odd last one too', () => {
+    for (const count of [3, 5, 7, 9, 11]) {
+      const grid = gridFor(count, true);
+      expect(grid.list, `count ${count}`).toMatch(/^grid-cols-2 /);
+      expect(grid.layout(count - 1), `count ${count}`).toBe('card');
+      expect(grid.item(count - 1), `count ${count}`).toBeUndefined();
+    }
+  });
+
+  it('lays one or two products down only from 768 px', () => {
+    expect(gridFor(1, true).list).toContain('grid-cols-2 md:grid-cols-1');
+    expect(gridFor(2, true).list).toContain('grid-cols-2');
+    expect(gridFor(1, true).layout(0)).toBe('feature');
   });
 });

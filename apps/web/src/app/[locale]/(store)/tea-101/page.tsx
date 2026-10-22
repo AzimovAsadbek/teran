@@ -326,9 +326,12 @@ export default async function TeaBasicsPage() {
   );
 }
 
-/** The cards' columns by how many there are (at most four), never one alone in a row. */
+/**
+ * The cards' columns by how many there are (at most four): from 768 px never one alone in a row;
+ * on a phone two across, every card the same size.
+ */
 function cardGrid(count: number) {
-  if (count === 1) return 'grid-cols-1 max-w-[60rem]';
+  if (count === 1) return 'grid-cols-2 md:grid-cols-1 max-w-[60rem]';
   if (count === 2) return 'grid-cols-2';
   if (count === 3) return 'grid-cols-2 md:grid-cols-3';
   return 'grid-cols-2 lg:grid-cols-4';
@@ -336,7 +339,7 @@ function cardGrid(count: number) {
 
 /**
  * A kind's teas, only where TERAN stocks it: for green tea, TERAN's five on one ruler; for the
- * others up to four cards (one alone is a wide card). Then the way to the whole category.
+ * others up to four cards (one alone lies down from 768 px). Then the way to the whole category.
  */
 async function KindProducts({ kind, slug, shop }: { kind: KindKey; slug: string; shop: string }) {
   await connection();
@@ -369,21 +372,9 @@ async function KindProducts({ kind, slug, shop }: { kind: KindKey; slug: string;
     <div className="mt-8">
       {items.length > 0 ? (
         <ul className={cn('grid gap-3 sm:gap-5', cardGrid(items.length))}>
-          {items.map((product, index) => (
-            <li
-              key={product.id}
-              className={cn(items.length === 3 && index === 2 && 'max-md:col-span-2')}
-            >
-              <ProductCard
-                product={product}
-                layout={
-                  items.length === 1
-                    ? 'feature'
-                    : items.length === 3 && index === 2
-                      ? 'feature-phone'
-                      : 'card'
-                }
-              />
+          {items.map((product) => (
+            <li key={product.id}>
+              <ProductCard product={product} layout={items.length === 1 ? 'feature' : 'card'} />
             </li>
           ))}
         </ul>

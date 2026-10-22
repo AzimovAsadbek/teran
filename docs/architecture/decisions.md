@@ -1335,3 +1335,49 @@ trace, so a section that vanished from a page left nothing to find.
 a refused origin now carries `requestId`, and a missing file under `/uploads` answers the API's
 JSON error instead of Express's HTML page. Reading and searching the logs:
 [production deployment](../deployment/production.md#reading-the-logs).
+
+## ADR-053: A film of its own for each tea, chocolates, the menus' order, and two desks
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-22), on the owner's requests of that day (with screenshots).
+
+**Context.** The owner asked for five things: the five pouches off the first view; the menus in
+the order tea, cold drinks, chocolates and so on, every category holding real products with
+high-quality photographs, and a chocolates category added; a different, lively first picture for
+each of the five TERAN teas, which all opened on the same steaming cup; and sign-in, registration
+and the order form, which looked plain, brought up to the rest of the site.
+
+**Decision.**
+
+- **First view:** TERAN's words over the film, nothing in front of it (`home/hero-stage.tsx`). The
+  pouches keep their other places (the premium collection's header, the five teas' stage, About,
+  the business page).
+- **Menus:** top-level categories in the owner's order (tea, cold drinks, chocolates, matcha,
+  infusions, gift sets, teaware), then "All products". The menus follow the categories' positions,
+  set so in the presentation database; the seed creates new databases in that order
+  (`DEMO_RANGE_CATEGORIES`, gift sets, `DEMO_RANGE_LAST_CATEGORIES`). The home page's range at a
+  glance takes up to seven families.
+- **Chocolates:** a demonstration category like the rest of the wider range (`testOnly`, "This is
+  a demonstration product.", invented prices, taste notes and ingredients typical of the style,
+  no claims): a "chocolate" product type (taste, cocoa %) and five products (dark 70 %, milk,
+  matcha white, Earl Grey tea truffles, a gift box of bonbons), each photographed from a Pexels
+  photograph the owner approved before download (`docs/design/reference-assets.md`, section 12).
+  A "sweets" family: a candy mark, cocoa ink, and a dark chocolate listing header with gold words
+  (`--color-cocoa`).
+- **Each tea's first picture is its own film** (section 12): five Pexels films the owner approved
+  before download, cut to square, seamless loops with the camera's drift followed
+  (`apps/api/scripts/track-drift.swift`, `square-loop.swift`), 1440 px for the product page and a
+  720 px copy for cards (ProductFilm's card copy width is now 720). The whole frame moves, so
+  there is no mask. The owner's steaming cup left the five teas (`storage/remove-tea-cups-v3`,
+  backed up); their dry leaf stays the second picture.
+- **Sign-in desk and order desk** (`docs/design/design-system.md`): white cards on the warm paper.
+  Sign-in, registration and the password pages show one of the five teas beside the card as its
+  living picture; "Forgot your password?" sits under the password. A tea's "Order" makes the
+  contact page an order desk: that tea beside the form, a count of packs, an optional note, no
+  subject to choose.
+
+**Consequences.** No API contract, database schema or business rule changed; the order form sends
+the same contact inquiry (subject "Place an order", the message led by "TERAN 8830 · 400 g × 2").
+The films, the chocolates' photographs and the categories' order are in the presentation
+database and its local uploads only: staging and production need the database moved and the new
+files uploaded to R2. The end-to-end database gets the chocolates with drawn art (no photographs).

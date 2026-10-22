@@ -465,13 +465,63 @@ Japanese shop's, priced in yen). Not downloaded: the sparkling black tea's photo
 file could not be reached without a bot check, which is not passed by hand); that product is not
 created in presentation databases until it has one.
 
+## 12. `storage/tea-films-3/` and the chocolates — each tea's own film (2026-10-22, local)
+
+The owner asked for each of the five teas to open on a picture of its own, alive and modern,
+instead of the same steaming cup (section 7), and for a chocolates category with high-quality
+photographs (ADR-053). Pexels shortlists were shown to the owner (thumbnails and moving
+previews in the browser) and approved before anything was downloaded; the files were taken once
+at full size (4K films, original photographs) into git-ignored folders. Pexels License: free
+commercial use, no attribution required; the authors are named anyway.
+
+**Films** (`storage/tea-films-3/source/`, then square loops beside them). Each pairs with its
+pack's colour; each loop's camera drift is measured on the subject (`scripts/track-drift.swift`)
+and followed by the square, so the subject stays put and the end dissolves into the start
+without doubling (`scripts/square-loop.swift`; the exact parts, squares and grades are in the
+folder's `manifest.json`):
+
+| Tea    | Shows                                                      | Source, author                                                                 | Loop          |
+| ------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------- |
+| XC2025 | tea poured from a clay teapot over a red and gold runner   | Pexels [40137841](https://www.pexels.com/video/40137841/), 夕云 简             | 6.5 s, 24 fps |
+| G8810  | a gaiwan's lid lifted and set down, steam, the low sun     | Pexels [8233766](https://www.pexels.com/video/8233766/), Roman Odintsov        | 9.6 s, 25 fps |
+| 8830   | a hammered silver teapot pouring into a blue-and-white cup | Pexels [40137842](https://www.pexels.com/video/40137842/), 夕云 简             | 7.6 s, 24 fps |
+| 8800   | whole green leaves drifting in a glass kettle              | Pexels [8255164](https://www.pexels.com/video/8255164/), ArtHouse Studio       | 7.3 s, 24 fps |
+| 8009   | fresh leaves in the roasting pan, steam rising             | Pexels [32586150](https://www.pexels.com/video/32586150/), Jaturapond Pungtong | 5.3 s, 24 fps |
+
+Each tea has `<tea>-film.mp4` (1440 px, 3.8 Mbit/s, 2.5–4.6 MB) for its page, `<tea>-card.mp4`
+(720 px, 0.9 Mbit/s, 0.6–1.1 MB) for cards and `<tea>-poster.jpg` (the film's first frame, the
+picture itself). No mask: the whole frame moves.
+
+**Chocolates** (`storage/range-photos/`, listed in its manifest with section 11's): square crops
+written at 2400 px by `scripts/build-demo-photos.ts`; two have plain paper mirrored above and
+below so the square holds the whole subject.
+
+| Crop               | Product                | Shows                                          | Source, photographer                                                                                            | Size                         |
+| ------------------ | ---------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `dark-chocolate`   | dark-chocolate-70      | pieces of a dark chocolate bar on cocoa powder | Pexels [6261691](https://www.pexels.com/photo/close-up-shot-of-black-chocolate-6261691/), Eva Bronzini          | 4000 × 6000 → 4000 px square |
+| `milk-chocolate`   | milk-chocolate         | two milk chocolate bars on white paper         | Pexels [6167340](https://www.pexels.com/photo/chocolate-bars-in-close-up-photography-6167340/), Vie Studio      | 6240 × 4160 → 4600 px square |
+| `matcha-chocolate` | matcha-white-chocolate | matcha chocolate bars on a white table         | Pexels [6341412](https://www.pexels.com/photo/photo-of-matcha-chocolates-6341412/), Marta Dzedyshko             | 3456 × 5184 → 3456 px square |
+| `tea-truffles`     | earl-grey-truffles     | cocoa-dusted truffles in a blue bowl           | Pexels [10313341](https://www.pexels.com/photo/photo-of-a-bowl-with-chocolate-truffles-10313341/), Skyler Ewing | 9504 × 6336 → 6336 px square |
+| `chocolate-box`    | chocolate-gift-box     | a black box of assorted bonbons                | Pexels [13278153](https://www.pexels.com/photo/a-box-of-chocolate-pralines-13278153/), Egor Komarov             | 6240 × 4160 → 4560 px square |
+
+```bash
+corepack pnpm --filter @teran/api visuals:import --dir storage/remove-tea-cups-v3 --remove
+corepack pnpm --filter @teran/api visuals:import --dir storage/tea-films-3
+corepack pnpm --filter @teran/api exec tsx scripts/build-demo-photos.ts --out <demo photos folder>
+DEMO_PHOTOS_DIR=<demo photos folder> SEED_TEST_CATALOGUE=true corepack pnpm --filter @teran/api db:seed
+```
+
+The seed adds only what a database lacks (here the chocolates); on the presentation database it
+was first run on a copy and compared row by row. A backup of the database and of the cups' files
+is in `~/teran-backups/tea-films-2026-10-22/`.
+
 ## Home places after ADR-050 (2026-10-20)
 
 The home page's narrative (ADR-050) uses the pictures already imported; nothing new was copied:
 
 | Place           | Now shown as                                                                                  | Picture (section)                               |
 | --------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `home.hero.1`   | The first view's film, the five pouches over it                                               | Moc Chau tea hill film (9)                      |
+| `home.hero.1`   | The first view's film (the pouches over it until ADR-053)                                     | Moc Chau tea hill film (9)                      |
 | `home.bento.1`  | The range's first tile (tea)                                                                  | Water poured over leaves in a glass pitcher (9) |
 | `home.values`   | Story step 1, "Grown in the mountains" (phone crop)                                           | Longjing tea terraces, Hangzhou, China (9)      |
 | `home.feature`  | Story step 3, "Brewed as it should be" (phone crop)                                           | Gongfu tea with a gaiwan, film (9)              |

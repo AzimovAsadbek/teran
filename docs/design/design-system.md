@@ -388,21 +388,44 @@ desktop, in the drawer and on the home page's cards. No category is named in cod
 ### Home hero
 
 One view, no rotation (ADR-037): TERAN's words on the left over the film of `home.hero.1` (its
-picture, or the lake painted on the packs, without one), and the five pouches standing on the
-view's lower edge, XC2025 in the middle, the outer ones lower and turned outwards
+picture, or the lake painted on the packs, without one), nothing standing in front of the film:
+the five pouches left the view on the owner's word of 2026-10-22 (ADR-053)
 (`components/home/hero.tsx`, `hero-stage.tsx`).
 
 - **Words:** the descriptor, the pack's tagline as the headline (one sentence per line, each line
   rising out of its own mask), the description, then "Shop teas" (the view's one button, to the
   five teas). The headline is fitted to its longest line (`--hero-fit`); the way in for businesses
   is the black strip above the view.
-- **Depth:** while the view scrolls away the film moves slower than the page, the words faster,
-  and the pouches rise and part (GSAP ScrollTrigger, scrubbed; nothing pinned). The view is
-  clipped at its sides only, so the pouches never widen the page.
-- **Arrival:** the film settles from a slight zoom, the lines rise, the words and pouches follow
-  one after another (CSS, from the first paint; still with reduced motion).
-- **Phones:** the taller crop and film under 900 px, the words over its lower half, the pouches
-  smaller; the e2e tests keep "Deep Taste." and "Shop teas" in the first view.
+- **Depth:** while the view scrolls away the film moves slower than the page and the words
+  faster (GSAP ScrollTrigger, scrubbed; nothing pinned).
+- **Arrival:** the film settles from a slight zoom and the lines rise (CSS, from the first paint;
+  still with reduced motion).
+- **Phones:** the taller crop and film under 900 px, the words over its lower half; the e2e tests
+  keep "Deep Taste." and "Shop teas" in the first view.
+
+### Sign-in desk and order desk (ADR-053)
+
+The pages where a visitor fills something in stand on the warm paper (`--color-paper`) as white
+cards with 1.5 rem corners and the product cards' ring and shadow, the title in the headings'
+serif, a line under it, the form, and anything secondary under a rule.
+
+- **Sign-in, registration, password** (`account/auth-card.tsx`): the emblem over the title;
+  beside the card one of TERAN's teas as its living picture (`account/auth-tea-panel.tsx`: its
+  first picture and film, its name in its pack's colour and what it is on a white plate), as tall
+  as the screen allows and held in view beside a long form; a band above the card under 1024 px.
+  Each page shows another of the five (`pick`). "Forgot your password?" sits under the password;
+  the way to the other page is a line and an outlined pill under the rule. The reset page, whose
+  address carries a one-time token, has no picture.
+- **Contact and order** (`(store)/contact/page.tsx`): breadcrumbs, then the desk card (title, a
+  line, the form) beside the contact page's picture. A tea's "Order" (`/contact?tea=<slug>`)
+  makes it the order desk: the title "Place an order", the line on what follows (TERAN gets in
+  touch to confirm the order and agree the delivery), and beside the form the tea itself
+  (`TeaShowcase`: its living picture with its dry leaf ringed in its pack colour, its name back
+  to its page, kind and pack, what it is, the delivery promise and the way down to the
+  messengers), held in view while the form is filled in. While the form is the only column the
+  tea sits at the top of the form instead, so it is never shown twice. The order form has no
+  subject; a stepper counts the packs and the message is an optional note; it sends "TERAN 8830 ·
+  400 g × 2" and the note.
 
 ### Category cards
 

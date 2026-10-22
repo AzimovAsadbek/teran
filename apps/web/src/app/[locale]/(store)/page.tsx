@@ -34,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * The home page as one narrative (docs/design/design-system.md, "Experience upgrade"): the promo
- * strip · the first view (the film and the five TERAN pouches) · the category ribbon · the five
+ * strip · the first view (TERAN's words over the film) · the category ribbon · the five
  * teas on one stage · the whole range at a glance · the cold drinks (once stocked) · TERAN for
  * business (who TERAN works with, the proof and the process) · the story from the garden to the
  * cup · new arrivals beyond the five teas · the gift sets (once stocked) · the journal · the request

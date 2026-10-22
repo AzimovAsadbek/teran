@@ -17,8 +17,8 @@ function sentences(text: string): string[] {
 /**
  * The front page's first view: TERAN's words — the pack's tagline, what TERAN is and a pill to the
  * five teas (the way in for businesses is the black strip above) — over the film of the first view's place (`home.hero.1`,
- * set by the import script), or its picture (Admin → Settings), or the lake painted on the packs,
- * with the five TERAN pouches standing on its lower edge. One view, no rotation (the owner's
+ * set by the import script), or its picture (Admin → Settings), or the lake painted on the packs.
+ * One view, no rotation (the owner's
  * decision of 2026-10-18, ADR-037). The words are prerendered with the page, and so is the picture
  * (the page's largest paint) when the page has the settings while prerendering: the browser then
  * finds it in the document's first bytes and in its head (ADR-039). Without them (a build with no

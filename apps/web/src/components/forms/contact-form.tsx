@@ -4,6 +4,7 @@ import { contactInquirySchema, type Locale } from '@teran/contracts';
 import { Send } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useRef, useState, type FormEvent } from 'react';
+import { QuantityStepper } from '@/components/cart/quantity-stepper';
 import { Button } from '@/components/ui/button';
 import {
   FieldError,
@@ -23,6 +24,9 @@ import { useOrderLine } from './order-line';
 
 const EMPTY = { name: '', phone: '', email: '', subject: '', message: '' };
 
+/** The most packs one request names; more is a business enquiry (the wholesale page). */
+const MAX_PACKS = 99;
+
 /** The reference's subjects, as TERAN's: what the choice sends is its wording in the language read. */
 const SUBJECTS = [
   'newOrder',
@@ -39,10 +43,12 @@ const SUBJECTS = [
  * The contact form — while prices are hidden, the way to order — on the design system's fields
  * (components/ui/field.tsx): name, then how TERAN can answer (a phone or an e-mail, either one,
  * as one group named by the hint), the subject, the message and the send button, which keeps
- * keyboard focus and shows its progress while sending. Errors are named under each field. Reached
- * from a tea's "Order" (`/contact?tea=…`), it takes "Place an order" and the tea's name and pack
- * from the order summary above it (order-line.ts) while those fields are still untouched, and
- * comes back to that state after a reset. While it fills the lower part of a phone's screen the
+ * keyboard focus and shows its progress while sending. Errors are named under each field.
+ *
+ * Reached from a tea's "Order" (`/contact?tea=…`), it is an order: the tea comes from the order
+ * summary beside it (order-line.ts), the subject is "Place an order", a stepper counts the packs
+ * and the message becomes an optional note; what is sent is the tea, its pack and the count, then
+ * the note ("TERAN 8830 · 400 g × 2"). While it fills the lower part of a phone's screen the
  * floating contact disc steps aside (lib/floating).
  */
 export function ContactForm() {
@@ -53,19 +59,16 @@ export function ContactForm() {
   const form = useFormSubmission(formRef);
   usePrimaryAction(formRef);
   const orderLine = useOrderLine();
-  const ordering = (line: string | null) =>
-    line ? { subject: t('subjects.newOrder'), message: `${line}\n` } : null;
   const [values, setValues] = useState(EMPTY);
+  const [packs, setPacks] = useState(1);
   const id = useId();
 
-  // The summary streams in after the form: the subject and message are filled once when it arrives,
-  // unless the visitor has already chosen or written something there.
-  const [appliedLine, setAppliedLine] = useState<string | null>(null);
-  if (orderLine && orderLine !== appliedLine) {
-    setAppliedLine(orderLine);
-    const prefill = ordering(orderLine);
-    if (prefill && !values.subject && !values.message) setValues({ ...values, ...prefill });
-  }
+  const order = orderLine ? `${orderLine} × ${packs}` : null;
+  const note = values.message.trim();
+  // What is checked and sent: an order fixes the subject and leads the message with the tea.
+  const payload = order
+    ? { ...values, subject: t('subjects.newOrder'), message: note ? `${order}\n\n${note}` : order }
+    : values;
 
   const set =
     (key: keyof typeof EMPTY) =>
@@ -73,7 +76,7 @@ export function ContactForm() {
       setValues((current) => ({ ...current, [key]: event.target.value }));
   // An error leaves as soon as its field changes (form.errorsFor); "a phone or an e-mail", reported
   // on the phone, leaves once either is filled.
-  const live = form.errorsFor(values);
+  const live = form.errorsFor(payload);
   if (live.phone?.message === 'contact_required' && values.email.trim()) delete live.phone;
   const error = (key: keyof typeof EMPTY) => message(live[key], values[key]) ?? undefined;
 
@@ -81,7 +84,7 @@ export function ContactForm() {
     event.preventDefault();
     await form.submit(
       contactInquirySchema,
-      { ...values, locale, website: honeypotValue(event.currentTarget) },
+      { ...payload, locale, website: honeypotValue(event.currentTarget) },
       '/inquiries/contact',
     );
   }
@@ -89,9 +92,10 @@ export function ContactForm() {
   if (form.status === 'sent') {
     return (
       <FormSuccess
-        text={orderLine ? t('orderSuccess', { order: orderLine }) : undefined}
+        text={order ? t('orderSuccess', { order }) : undefined}
         onReset={() => {
-          setValues({ ...EMPTY, ...ordering(orderLine) });
+          setValues(EMPTY);
+          setPacks(1);
           form.reset();
         }}
       />
@@ -168,28 +172,42 @@ export function ContactForm() {
           ) : null}
         </div>
       </fieldset>
-      <SelectField
-        label={t('subject')}
-        name="subject"
-        value={values.subject}
-        onChange={set('subject')}
-        error={error('subject')}
-        placeholder={t('subjectPlaceholder')}
-        options={SUBJECTS.map((subject) => ({
-          value: t(`subjects.${subject}`),
-          label: t(`subjects.${subject}`),
-        }))}
-      />
+      {order ? (
+        <div>
+          <p className="mb-2 text-label text-fg" aria-hidden>
+            {t('quantity')}
+          </p>
+          <QuantityStepper
+            value={packs}
+            max={MAX_PACKS}
+            onChange={setPacks}
+            label={t('quantity')}
+          />
+        </div>
+      ) : (
+        <SelectField
+          label={t('subject')}
+          name="subject"
+          value={values.subject}
+          onChange={set('subject')}
+          error={error('subject')}
+          placeholder={t('subjectPlaceholder')}
+          options={SUBJECTS.map((subject) => ({
+            value: t(`subjects.${subject}`),
+            label: t(`subjects.${subject}`),
+          }))}
+        />
+      )}
       <TextAreaField
-        label={t('message')}
+        label={order ? t('orderNote') : t('message')}
         name="message"
         value={values.message}
         onChange={set('message')}
         error={error('message')}
-        required
-        rows={5}
+        required={!order}
+        rows={order ? 4 : 5}
         maxLength={3000}
-        placeholder={t('messagePlaceholder')}
+        placeholder={order ? t('orderNotePlaceholder') : t('messagePlaceholder')}
       />
       <Honeypot />
       {form.apiErrorMessage ? (
@@ -199,12 +217,11 @@ export function ContactForm() {
       ) : null}
       <Button
         type="submit"
-        variant="inverse"
         size="lg"
         loading={form.status === 'sending'}
         className="w-full gap-2.5 @min-[35.5rem]:w-auto @min-[35.5rem]:self-start"
       >
-        {form.status === 'sending' ? t('sending') : orderLine ? t('sendOrder') : t('sendMessage')}
+        {form.status === 'sending' ? t('sending') : order ? t('sendOrder') : t('sendMessage')}
         {form.status === 'sending' ? null : <Send aria-hidden className="h-4 w-4" />}
       </Button>
     </form>

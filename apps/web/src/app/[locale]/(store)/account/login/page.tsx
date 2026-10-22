@@ -6,7 +6,9 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
 import { LoginForm } from '@/components/account/auth-forms';
-import { Link, getPathname } from '@/i18n/navigation';
+import { AuthTeaPanel } from '@/components/account/auth-tea-panel';
+import { ButtonLink } from '@/components/ui/button';
+import { getPathname } from '@/i18n/navigation';
 import { currentUser } from '@/lib/account';
 import { getAuthFeatures } from '@/lib/data/content';
 import { safeNextPath } from '@/lib/safe-next';
@@ -38,40 +40,29 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
     <AuthCard
       title={staff ? t('staffLoginTitle') : t('loginTitle')}
       intro={staff ? t('staffLoginIntro') : t('guestNote')}
+      aside={<AuthTeaPanel pick={1} />}
       footer={
-        <>
-          {features?.passwordReset ? (
-            <p>
-              <Link
-                href="/account/forgot-password"
-                className="font-semibold text-fg underline-offset-4 hover:underline"
-              >
-                {t('forgotPassword')}
-              </Link>
-            </p>
-          ) : null}
-          {!staff && features?.registration !== false ? (
-            <p>
-              {t('noAccount')}{' '}
-              <Link
-                href={registerHref}
-                className="font-semibold text-fg underline-offset-4 hover:underline"
-              >
-                {t('register')}
-              </Link>
-            </p>
-          ) : null}
-        </>
+        !staff && features?.registration !== false ? (
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <p>{t('noAccount')}</p>
+            <ButtonLink href={registerHref} variant="secondary">
+              {t('register')}
+            </ButtonLink>
+          </div>
+        ) : undefined
       }
     >
-      <LoginForm next={next} />
+      <LoginForm
+        next={next}
+        forgotPasswordHref={features?.passwordReset ? '/account/forgot-password' : null}
+      />
     </AuthCard>
   );
 }
 
 export default function LoginPage({ searchParams }: PageProps<'/[locale]/account/login'>) {
   return (
-    <Suspense fallback={<AuthCardSkeleton />}>
+    <Suspense fallback={<AuthCardSkeleton aside />}>
       <Login searchParams={searchParams} />
     </Suspense>
   );

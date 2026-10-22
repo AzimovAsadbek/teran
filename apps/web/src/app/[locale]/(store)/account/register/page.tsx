@@ -6,8 +6,9 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
 import { RegisterForm } from '@/components/account/auth-forms';
+import { AuthTeaPanel } from '@/components/account/auth-tea-panel';
 import { ButtonLink } from '@/components/ui/button';
-import { Link, getPathname } from '@/i18n/navigation';
+import { getPathname } from '@/i18n/navigation';
 import { currentUser } from '@/lib/account';
 import { getAuthFeatures } from '@/lib/data/content';
 import { safeNextPath } from '@/lib/safe-next';
@@ -41,11 +42,11 @@ async function Register({
     next === '/account' ? '/account/login' : `/account/login?next=${encodeURIComponent(next)}`;
   if (features?.registration === false) {
     return (
-      <AuthCard title={t('registerTitle')}>
-        <p className="text-center text-fg-muted">{t('registrationClosed')}</p>
-        <div className="mt-6 flex justify-center">
-          <ButtonLink href="/catalog">{tc('startShopping')}</ButtonLink>
-        </div>
+      <AuthCard title={t('registerTitle')} aside={<AuthTeaPanel pick={3} />}>
+        <p className="text-fg-muted">{t('registrationClosed')}</p>
+        <ButtonLink href="/catalog" className="mt-6">
+          {tc('startShopping')}
+        </ButtonLink>
       </AuthCard>
     );
   }
@@ -54,16 +55,14 @@ async function Register({
     <AuthCard
       title={t('registerTitle')}
       intro={t('guestNote')}
+      aside={<AuthTeaPanel pick={3} />}
       footer={
-        <p>
-          {t('haveAccount')}{' '}
-          <Link
-            href={loginHref}
-            className="font-semibold text-fg underline-offset-4 hover:underline"
-          >
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <p>{t('haveAccount')}</p>
+          <ButtonLink href={loginHref} variant="secondary">
             {t('login')}
-          </Link>
-        </p>
+          </ButtonLink>
+        </div>
       }
     >
       <RegisterForm next={next} />
@@ -73,7 +72,7 @@ async function Register({
 
 export default function RegisterPage({ searchParams }: PageProps<'/[locale]/account/register'>) {
   return (
-    <Suspense fallback={<AuthCardSkeleton />}>
+    <Suspense fallback={<AuthCardSkeleton aside />}>
       <Register searchParams={searchParams} />
     </Suspense>
   );

@@ -689,7 +689,10 @@
       "newOrder": "Buyurtma berish"
     },
     "sendOrder": "Buyurtmani yuborish",
-    "orderSuccess": "Rahmat! {order} boʻyicha buyurtma soʻrovingizni oldik va yetkazib berishni kelishish uchun tez orada siz bilan bogʻlanamiz."
+    "orderSuccess": "Rahmat! {order} boʻyicha buyurtma soʻrovingizni oldik va yetkazib berishni kelishish uchun tez orada siz bilan bogʻlanamiz.",
+    "quantity": "Qadoqlar soni",
+    "orderNote": "Izoh",
+    "orderNotePlaceholder": "Manzil, qulay vaqt yoki boshqa istaklaringiz…"
   },
   "Account": {
     "title": "Shaxsiy kabinet",
@@ -847,7 +850,8 @@
     "journalMetaDescription": "TERAN choy jurnali: choyni damlash va saqlash, choy turlari va oʻzbek dasturxonidagi choy odatlari haqida maqolalar.",
     "faqMetaDescription": "Buyurtma berish, toʻlov, yetkazib berish, qaytarish va TERAN choylari haqida koʻp beriladigan savollarga javoblar.",
     "orderSummaryTitle": "Buyurtmangiz",
-    "orderOtherChannels": "Telegram, WhatsApp yoki qoʻngʻiroq qulayroqmi?"
+    "orderOtherChannels": "Telegram, WhatsApp yoki qoʻngʻiroq qulayroqmi?",
+    "orderIntro": "Maʼlumotlaringizni qoldiring: buyurtmani tasdiqlash va yetkazib berishni kelishish uchun siz bilan bogʻlanamiz."
   },
   "Admin": {
     "demoBadge": "Namoyish",

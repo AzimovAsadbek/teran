@@ -6,6 +6,8 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
 import { ForgotPasswordForm } from '@/components/account/auth-forms';
+import { AuthTeaPanel } from '@/components/account/auth-tea-panel';
+import { ButtonLink } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { getAuthFeatures } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
@@ -30,7 +32,7 @@ async function ForgotPassword() {
     <p>
       <Link
         href="/account/login"
-        className="font-semibold text-fg underline-offset-4 hover:underline"
+        className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
       >
         {t('login')}
       </Link>
@@ -40,18 +42,21 @@ async function ForgotPassword() {
   // Without outgoing e-mail a reset link could never arrive, so the form is not offered.
   if (!features?.passwordReset) {
     return (
-      <AuthCard title={t('forgotTitle')} footer={footer}>
-        <p className="text-center text-fg-muted">{t('resetUnavailable')}</p>
-        <p className="mt-4 text-center">
-          <Link href="/contact" className="font-semibold text-fg underline underline-offset-4">
-            {tn('contact')}
-          </Link>
-        </p>
+      <AuthCard title={t('forgotTitle')} footer={footer} aside={<AuthTeaPanel pick={2} />}>
+        <p className="text-fg-muted">{t('resetUnavailable')}</p>
+        <ButtonLink href="/contact" className="mt-6">
+          {tn('contact')}
+        </ButtonLink>
       </AuthCard>
     );
   }
   return (
-    <AuthCard title={t('forgotTitle')} intro={t('forgotText')} footer={footer}>
+    <AuthCard
+      title={t('forgotTitle')}
+      intro={t('forgotText')}
+      footer={footer}
+      aside={<AuthTeaPanel pick={2} />}
+    >
       <ForgotPasswordForm />
     </AuthCard>
   );
@@ -59,7 +64,7 @@ async function ForgotPassword() {
 
 export default function ForgotPasswordPage() {
   return (
-    <Suspense fallback={<AuthCardSkeleton />}>
+    <Suspense fallback={<AuthCardSkeleton aside />}>
       <ForgotPassword />
     </Suspense>
   );

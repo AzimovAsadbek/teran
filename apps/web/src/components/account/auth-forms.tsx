@@ -73,7 +73,17 @@ function useSignedIn(next: string) {
   };
 }
 
-export function LoginForm({ next }: { next: string }) {
+/**
+ * Sign-in: e-mail and password, the way to a new password right under the password (when TERAN
+ * sends e-mail, `forgotPasswordHref`), then the button.
+ */
+export function LoginForm({
+  next,
+  forgotPasswordHref = null,
+}: {
+  next: string;
+  forgotPasswordHref?: string | null;
+}) {
   const t = useTranslations('Account');
   const message = useValidationMessage();
   const formRef = useRef<HTMLFormElement>(null);
@@ -101,16 +111,30 @@ export function LoginForm({ next }: { next: string }) {
         onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))}
         error={message(form.errors.email, values.email)}
       />
-      <TextField
-        label={t('password')}
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        required
-        value={values.password}
-        onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
-        error={message(form.errors.password, values.password)}
-      />
+      <div>
+        <TextField
+          label={t('password')}
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={values.password}
+          onChange={(event) =>
+            setValues((current) => ({ ...current, password: event.target.value }))
+          }
+          error={message(form.errors.password, values.password)}
+        />
+        {forgotPasswordHref ? (
+          <p className="mt-2.5 text-right text-body-sm">
+            <Link
+              href={forgotPasswordHref}
+              className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
+            >
+              {t('forgotPassword')}
+            </Link>
+          </p>
+        ) : null}
+      </div>
       <ApiAlert message={form.apiErrorMessage} />
       <SubmitButton
         sending={form.status === 'sending'}

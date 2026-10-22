@@ -34,7 +34,7 @@ async function ResetPassword({
           <p>
             <Link
               href="/account/forgot-password"
-              className="font-semibold text-fg underline-offset-4 hover:underline"
+              className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
             >
               {t('forgotPassword')}
             </Link>

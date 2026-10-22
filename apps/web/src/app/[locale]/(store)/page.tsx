@@ -4,12 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { BusinessCloser, BusinessSection } from '@/components/home/business-section';
-import {
-  CategoryMarquee,
-  PairSection,
-  PromoStrip,
-  SloganBand,
-} from '@/components/home/editorial-sections';
+import { CategoryMarquee, PairSection, SloganBand } from '@/components/home/editorial-sections';
 import { FamilyFeature } from '@/components/home/family-feature';
 import { Hero } from '@/components/home/hero';
 import { RangeExplorer } from '@/components/home/range-explorer';
@@ -33,8 +28,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The home page as one narrative (docs/design/design-system.md, "Experience upgrade"): the promo
- * strip · the first view (TERAN's words over the film) · the category ribbon · the five
+ * The home page as one narrative (docs/design/design-system.md, "Experience upgrade"): the first
+ * view (TERAN's words over the film; the black promo strip above it left on the owner's word of
+ * 2026-10-23) · the category ribbon · the five
  * teas on one stage · the whole range at a glance · the cold drinks (once stocked) · TERAN for
  * business (who TERAN works with, the proof and the process) · the story from the garden to the
  * cup · new arrivals beyond the five teas · the gift sets (once stocked) · the journal · the request
@@ -64,11 +60,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <Suspense
-        fallback={<div aria-hidden className="h-[5.75rem] bg-forest-950 min-[46.875rem]:h-20" />}
-      >
-        <PromoStrip />
-      </Suspense>
       <Hero settings={settings} />
       <Suspense fallback={<div aria-hidden className="h-12 bg-jade-100 sm:h-[4.1875rem]" />}>
         <CategoryMarquee />

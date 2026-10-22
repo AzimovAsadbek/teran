@@ -54,7 +54,7 @@ function headlineSize(lines: string[]): { className: string; fit: number } {
  * The front page's first view, one view without rotation (ADR-037): TERAN's words over the film
  * of `home.hero.1` (or its picture, or the lake painted on the packs), nothing standing in front
  * of the film (the pouches left the view on the owner's word of 2026-10-22, ADR-053). It fills
- * the first screen under the header and the promo strip (phones: 1.2 times as tall as wide), the
+ * the first screen under the header (phones: 1.2 times as tall as wide), the
  * words on the left from 1024 px (in the middle on phones, over a soft veil there only: the owner
  * wants the film's own light on wide screens; a layered shadow keeps the letters readable).
  *
@@ -97,7 +97,7 @@ export function HeroStage({
   return (
     <section
       ref={sectionRef}
-      className="relative isolate h-[clamp(31rem,122vw,44rem)] w-full min-[56.25rem]:h-[clamp(36rem,calc(100svh-13.5rem),52rem)]"
+      className="relative isolate h-[clamp(31rem,122vw,44rem)] w-full min-[56.25rem]:h-[clamp(36rem,calc(100svh-8.5rem),52rem)]"
     >
       <h1 className="sr-only">{labels.heading}</h1>
       {/* The pictures, clipped to the view. */}
@@ -180,7 +180,7 @@ export function HeroStage({
             className="arrive-rise mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 lg:mt-8 lg:justify-start"
             style={{ '--i': 1 } as CSSProperties}
           >
-            {/* The view's one button; the way in for businesses is the strip above it. */}
+            {/* The view's one button; the way in for businesses is the business section below. */}
             <Link
               href={words.cta.href}
               className="pill-hover inline-flex h-[3.125rem] items-center rounded-full bg-cream px-8 text-[1rem] font-medium text-fg [text-shadow:none]"

@@ -25,7 +25,7 @@ const TASK_PATHS = [
  * The reference's small offer card in the lower left corner: it comes up 20 seconds into a visit
  * (fading in as it rises 6 px), with a heading, a line and an underlined link; closing it, with
  * its button or Escape, or following its link keeps it away for ten days in this browser. Never on
- * the home page, whose promo strip already says the same, nor where a visitor is busy with a task
+ * the home page, whose first view and teas already say the same, nor where a visitor is busy with a task
  * (TASK_PATHS); on phones it stands above the floating contact button instead of under it.
  */
 export function PromoPopup({

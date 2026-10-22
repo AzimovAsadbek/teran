@@ -1176,7 +1176,9 @@ invented: no terms, volumes, clients, certifications, statistics or health claim
   an offer" — and the header's "Register" is a plain link like "Sign in" (the owner's decisions of
   2026-10-20, after the critique counted three filled buttons in one view). As the page
   scrolls the film, the words and the pouches move at different speeds (depth), and the pouches
-  part as the view leaves.
+  part as the view leaves. (Later: the pouches left the view on 2026-10-22, ADR-053, and the black
+  strip on the owner's word of 2026-10-23: the first view now starts under the header and fills the
+  screen, and the way in for businesses is the business section further down and the menu.)
 - **Signature stage:** the five teas as tabs on one stage tinted (16 %) in the chosen tea's pack
   colour, its dry leaf, pouch and cup, its notes and brewing, and its actions. A tea's leaf, cup
   and film load once it is chosen, pointed at or focused (the first tea's with the page).

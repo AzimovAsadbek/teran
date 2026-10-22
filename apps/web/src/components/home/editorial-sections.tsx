@@ -1,10 +1,8 @@
 import type { Locale } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
-import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { RIBBON_STICKERS, StickerDefs } from '@/components/brand/stickers';
 import { BRAND, PACKAGING } from '@/content/brand';
-import { wholesalePage } from '@/content/pages/wholesale';
 import { ArticleCard } from '@/components/content/article-card';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
@@ -20,76 +18,6 @@ import { Marquee } from './marquee';
  * Nothing is invented — no offer, statistic, certification or rating — and a section with
  * nothing real to show is left out.
  */
-
-/** The reference's pill: 50 px high, 15.3 px text, brighter on a soft shadow when pointed at. */
-const PILL =
-  'pill-hover inline-flex h-[3.125rem] items-center justify-center rounded-full px-8 text-[0.95625rem] font-medium';
-
-/**
- * The promo strip's surface link, over its words as the reference's: a pointer anywhere on the
- * strip, the words included, follows it (the tilted sticker stays above it, unlinked).
- */
-function StripLink({ href }: { href: string }) {
-  return <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0" />;
-}
-
-/* ── 1. Promo strip ──────────────────────────────────────────────────────────────────────── */
-
-/**
- * The black strip above the first view, as the reference's promo strip: TERAN's descriptor, then
- * the way in for businesses — "TERAN for business" and the kinds of business it serves (the
- * for-business page's own words) — and the request as its one button (the owner's decision of
- * 2026-10-20, ADR-050: the first view's own button belongs to the teas). A pointer anywhere on the
- * strip follows it too.
- */
-export async function PromoStrip() {
-  const locale = (await rootParams.locale()) as Locale;
-  const tw = await getTranslations({ locale, namespace: 'Wholesale' });
-  const page = wholesalePage[locale];
-  const href = '/wholesale#request';
-  const kinds = (['HOTEL', 'CAFE_RESTAURANT', 'RETAIL', 'DISTRIBUTOR', 'CORPORATE'] as const)
-    .map((type) => tw(`segments.${type}`))
-    .join(' · ');
-  return (
-    // Named apart from the home page's business section ("TERAN for business") further down.
-    <section
-      aria-label={`${BRAND.descriptor} · ${page.title}`}
-      className="on-dark bg-forest-950 text-ivory-50"
-    >
-      <div className="relative isolate mx-auto flex min-h-[5.75rem] max-w-[120rem] items-center justify-between gap-3 px-[1.375rem] py-3 min-[46.875rem]:min-h-20 min-[46.875rem]:gap-5 min-[46.875rem]:px-12 min-[46.875rem]:py-4 min-[90rem]:gap-6 min-[90rem]:px-[7.5rem] min-[160rem]:px-16">
-        <StripLink href={href} />
-        <p className="hidden font-headline text-[1.75rem] leading-[1.05] whitespace-nowrap text-gold-300 min-[46.875rem]:block min-[90rem]:text-[2rem]">
-          {BRAND.descriptor}
-        </p>
-        <p className="min-w-0">
-          <span className="block font-headline text-[1.375rem] leading-[1.1] [--headline-weight:600] [overflow-wrap:anywhere] min-[46.875rem]:text-[1.75rem] min-[46.875rem]:leading-[1.05] min-[100rem]:inline min-[100rem]:text-[2rem]">
-            {page.title}
-          </span>
-          {/* The kinds of business from 1024 px, under the name until there is room beside it
-              (phones keep the strip to its name and button). */}
-          <span className="hidden font-condensed text-[1rem] leading-[1.34] lg:block min-[100rem]:ml-2 min-[100rem]:inline min-[100rem]:leading-[2.1]">
-            {kinds}
-          </span>
-        </p>
-        <p
-          lang="uz"
-          className="text-sticker hidden -rotate-6 text-[1.575rem] leading-none font-semibold whitespace-nowrap text-ivory-50 uppercase min-[100rem]:block"
-        >
-          {PACKAGING.slogan[2]}
-        </p>
-        <Link
-          href={href}
-          className={cn(
-            PILL,
-            'relative z-[1] h-10 shrink-0 bg-gold-300 px-5 text-fg sm:h-12 sm:px-8',
-          )}
-        >
-          {page.formTitle}
-        </Link>
-      </div>
-    </section>
-  );
-}
 
 /* ── 3. Category marquee ─────────────────────────────────────────────────────────────────── */
 

@@ -483,9 +483,12 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   cuts out the logo set (`teran-logo`, `-emblem`, `-wordmark`, and `-lockup` with the pack's line
   and rule, used for the social image), the artwork (`art/lake`, `art/terraces`, `art/sprig-1`), the pack fronts (`packs/*`) and
   the ornaments (`ornaments/*.svg`), and `scripts/generate-brand-assets.mjs` makes the favicon, app
-  icons (since 2026-10-19 round, at the owner's request: the emblem glowing on a deep green disc in
-  a thin gold ring, transparent around it; the home-screen icon fills its square) and the default
-  social image (1200×630) from the logo set. The logo set
+  icons and the default social image (1200×630) from the logo set. The icons, at the owner's request
+  of 2026-10-22 (the deep green disc of 2026-10-19 lost the emblem at tab size): `icon.svg`, for
+  Chrome, Edge and Firefox, shows the emblem alone in a light colour scheme and on a white disc in
+  a dark one, where its dark green T would vanish on the tab strip; `favicon.ico` (Safari, older
+  browsers) and `icon.png` (the web manifest) are the emblem on a white disc; the home-screen icon
+  is the emblem on an opaque white square, which the phone rounds. The logo set
   is PNG (the artwork WebP); the web app imports them through `next/image`, which serves modern
   formats.
 - **Ornaments** (`components/brand/ornaments.tsx`): the pack's four ringed icons (`ValueIcon`).

@@ -43,86 +43,96 @@ function pngsToIco(images) {
 }
 
 /**
- * The site icon (the owner's choice of 2026-10-19): TERAN's emblem glowing on a deep green disc
- * in a thin gold ring, nothing around the circle (transparent). Its dark greens are lifted so the
- * T and the leaves read on the green; tab sizes (48 px and under) get a larger emblem, a thicker
- * ring and no glow, which would only blur their few pixels. `square` fills the whole square
- * instead, for the home-screen icon that the phone rounds itself.
+ * The site icons (the owner's choice of 2026-10-22): TERAN's emblem itself, and on a white disc
+ * where it needs one. The earlier deep green disc lost the emblem at tab size, and the emblem
+ * alone loses its dark green T on a dark tab strip, so:
+ * - icon.svg (Chrome, Edge, Firefox): the emblem alone in a light colour scheme and on a white
+ *   disc in a dark one (`prefers-color-scheme` inside the SVG), from one small copy of the emblem
+ *   embedded once, so the file stays light;
+ * - favicon.ico (16, 32 and 48 px: Safari and older browsers) and icon.png (512 px, the web
+ *   manifest): the emblem on a white disc, clear on light and dark alike, transparent around it;
+ * - apple-icon.png (180 px): the emblem on an opaque white square, which the phone rounds itself.
  */
-function iconSvg(emblem, aspect, { size, square = false, small = false }) {
-  const s = size;
-  const radius = s / 2 - Math.max(0.5, s * 0.01);
-  const ring = square ? 0 : small ? s * 0.06 : s * 0.034;
-  const height = s * (square ? 0.66 : small ? 0.7 : 0.6);
+
+/** How much of the icon's height the emblem takes: alone, on the disc, on the square. */
+const ALONE = 0.94;
+const ON_DISC = 0.72;
+const ON_SQUARE = 0.7;
+
+/** The emblem `scale` × the icon's side high, centred in a `size` px square, as SVG markup. */
+function placed(href, aspect, size, scale) {
+  const height = size * scale;
   const width = height * aspect;
-  const x = (s - width) / 2;
-  const y = (s - height) / 2 + s * 0.01;
-  const blur = s * 0.012;
-  const table = '0.1 0.42 0.66 0.86 1';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
-    <defs>
-      <radialGradient id="disc" gradientUnits="userSpaceOnUse" cx="${s / 2}" cy="${s / 2}"
-        r="${square ? s * 0.75 : radius}" fx="${s / 2}" fy="${s * 0.44}">
-        <stop offset="0" stop-color="#2f8f37"/><stop offset="0.5" stop-color="#17602a"/>
-        <stop offset="1" stop-color="#093216"/>
-      </radialGradient>
-      <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="${s / 2}" cy="${s * 0.53}" r="${s * 0.36}">
-        <stop offset="0" stop-color="#ffd77a" stop-opacity="0.42"/>
-        <stop offset="1" stop-color="#ffd77a" stop-opacity="0"/>
-      </radialGradient>
-      <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#f6dd8c"/><stop offset="0.5" stop-color="#c9973a"/>
-        <stop offset="1" stop-color="#f0cf72"/>
-      </linearGradient>
-      <filter id="lift" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-        <feComponentTransfer in="SourceGraphic" result="lifted">
-          <feFuncR type="table" tableValues="${table}"/><feFuncG type="table" tableValues="${table}"/>
-          <feFuncB type="table" tableValues="${table}"/>
-        </feComponentTransfer>
-        <feColorMatrix in="lifted" type="saturate" values="1.3" result="vivid"/>
-        ${
-          small
-            ? ''
-            : `<feGaussianBlur in="SourceAlpha" stdDeviation="${blur}" result="blur"/>
-        <feFlood flood-color="#ffcf5a" flood-opacity="0.6"/>
-        <feComposite in2="blur" operator="in" result="halo"/>`
-        }
-        <feMerge>${small ? '' : '<feMergeNode in="halo"/>'}<feMergeNode in="vivid"/></feMerge>
-      </filter>
-      <clipPath id="disc-clip"><circle cx="${s / 2}" cy="${s / 2}" r="${radius}"/></clipPath>
-    </defs>
-    <g clip-path="${square ? 'none' : 'url(#disc-clip)'}">
-      ${square ? `<rect width="${s}" height="${s}" fill="url(#disc)"/>` : `<circle cx="${s / 2}" cy="${s / 2}" r="${radius}" fill="url(#disc)"/>`}
-      <circle cx="${s / 2}" cy="${s * 0.53}" r="${s * 0.36}" fill="url(#glow)"/>
-      <image href="data:image/png;base64,${emblem.toString('base64')}" x="${x}" y="${y}"
-        width="${width}" height="${height}" preserveAspectRatio="xMidYMid meet" filter="url(#lift)"/>
-    </g>
-    ${square ? '' : `<circle cx="${s / 2}" cy="${s / 2}" r="${radius - ring / 2}" fill="none" stroke="url(#gold)" stroke-width="${ring}"/>`}
-  </svg>`;
+  return `<image href="${href}" x="${(size - width) / 2}" y="${(size - height) / 2}" width="${width}" height="${height}"/>`;
 }
 
-/** The icon at `size`: tab sizes are drawn at 256 px in their own design and brought down. */
-async function icon(emblem, aspect, size, square = false) {
-  const small = !square && size <= 48;
-  const svg = iconSvg(emblem, aspect, { size: small ? 256 : size, square, small });
-  let png = await sharp(Buffer.from(svg)).png().toBuffer();
-  if (small) png = await sharp(png).resize(size, size).png().toBuffer();
+/** The emblem on a white disc (or square), transparent around the disc, as SVG markup. */
+function onWhite(emblem, aspect, size, square = false) {
+  const href = `data:image/png;base64,${emblem.toString('base64')}`;
+  const ground = square
+    ? `<rect width="${size}" height="${size}" fill="#ffffff"/>`
+    : `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#ffffff"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    ${ground}${placed(href, aspect, size, square ? ON_SQUARE : ON_DISC)}</svg>`;
+}
+
+/**
+ * A PNG of the emblem on white. Tab sizes (48 px and under) are drawn at 256 px and brought down,
+ * so their few pixels come from a sharp source.
+ */
+async function iconPng(emblem, aspect, size, square = false) {
+  const drawn = size <= 48 ? 256 : size;
+  let png = await sharp(Buffer.from(onWhite(emblem, aspect, drawn, square)))
+    .png()
+    .toBuffer();
+  if (drawn !== size) png = await sharp(png).resize(size, size).png().toBuffer();
   // The home-screen icon is opaque (a phone shows transparency as black).
   return square
-    ? sharp(png).flatten({ background: '#093216' }).png({ compressionLevel: 9 }).toBuffer()
+    ? sharp(png).flatten({ background: '#ffffff' }).png({ compressionLevel: 9 }).toBuffer()
     : sharp(png).png({ palette: true, quality: 92, effort: 10, compressionLevel: 9 }).toBuffer();
+}
+
+/** The embedded emblem (128 px high) drawn `scale` × the icon's side high, centred. */
+function emblemAt(href, aspect, size, scale) {
+  const factor = (size * scale) / 128;
+  const width = 128 * aspect * factor;
+  return `<use href="${href}" transform="translate(${((size - width) / 2).toFixed(2)} ${((size - size * scale) / 2).toFixed(2)}) scale(${factor.toFixed(4)})"/>`;
+}
+
+/** The tab icon for modern browsers: the emblem alone, or on a white disc in a dark scheme. */
+async function iconSvg(emblem, aspect) {
+  const copy = await sharp(emblem)
+    .resize({ height: 128 })
+    .png({ palette: true, quality: 90, effort: 10, compressionLevel: 9 })
+    .toBuffer();
+  const size = 64;
+  const href = '#emblem';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+  <style>
+    .disc { display: none; }
+    @media (prefers-color-scheme: dark) {
+      .alone { display: none; }
+      .disc { display: inline; }
+    }
+  </style>
+  <defs><image id="emblem" width="${Math.round(128 * aspect)}" height="128" href="data:image/png;base64,${copy.toString('base64')}"/></defs>
+  <g class="alone">${emblemAt(href, aspect, size, ALONE)}</g>
+  <g class="disc"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#ffffff"/>${emblemAt(href, aspect, size, ON_DISC)}</g>
+</svg>
+`;
 }
 
 const emblem = readFileSync(resolve(publicBrand, 'teran-emblem.png'));
 const { width: emblemWidth, height: emblemHeight } = await sharp(emblem).metadata();
 const aspect = emblemWidth / emblemHeight;
-writeFileSync(resolve(appDir, 'icon.png'), await icon(emblem, aspect, 512));
-writeFileSync(resolve(appDir, 'apple-icon.png'), await icon(emblem, aspect, 180, true));
+writeFileSync(resolve(appDir, 'icon.svg'), await iconSvg(emblem, aspect));
+writeFileSync(resolve(appDir, 'icon.png'), await iconPng(emblem, aspect, 512));
+writeFileSync(resolve(appDir, 'apple-icon.png'), await iconPng(emblem, aspect, 180, true));
 writeFileSync(
   resolve(appDir, 'favicon.ico'),
   pngsToIco(
     await Promise.all(
-      [16, 32, 48].map(async (size) => ({ size, data: await icon(emblem, aspect, size) })),
+      [16, 32, 48].map(async (size) => ({ size, data: await iconPng(emblem, aspect, size) })),
     ),
   ),
 );
@@ -169,4 +179,4 @@ await sharp({ create: { width, height, channels: 4, background: IVORY } })
   .composite([{ input: waves }, { input: lockup, gravity: 'center' }])
   .png({ compressionLevel: 9 })
   .toFile(resolve(publicBrand, 'og-default.png'));
-console.log('icons and og-default.png written');
+console.log('icon.svg, icon.png, apple-icon.png, favicon.ico and og-default.png written');

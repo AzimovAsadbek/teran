@@ -21,6 +21,7 @@ describe('productFamily', () => {
     expect(productFamily('iced').key).toBe('iced');
     expect(productFamily('water').key).toBe('water');
     expect(productFamily('juice').key).toBe('juice');
+    expect(productFamily('sweets').key).toBe('sweets');
     expect(productFamily('teaware').key).toBe('teaware');
     expect(productFamily('gift').key).toBe('gift');
   });

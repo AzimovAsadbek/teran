@@ -26,13 +26,18 @@ interface Crop {
   size: number;
   /** A cut-out on a transparent background: laid on white. */
   flatten?: boolean;
+  /**
+   * Rows of plain backdrop added above and below by mirroring the picture's own edge, so a square
+   * holds a subject wider than the picture is tall. Only where those edge rows are backdrop alone.
+   */
+  mirror?: { top: number; bottom: number };
   /** What the photograph shows, for the credits. */
   shows: string;
   /** For a source its folder's manifest no longer lists (docs/design/reference-assets.md). */
   credit?: { url: string | null; photographer: string; licence: string };
 }
 
-/** The crops, chosen and checked by eye at card and product-page sizes (2026-10-20). */
+/** The crops, chosen and checked by eye at card and product-page sizes (2026-10-20, 2026-10-22). */
 const CROPS: Crop[] = [
   {
     name: 'black-leaves',
@@ -320,7 +325,57 @@ const CROPS: Crop[] = [
     size: 1600,
     shows: 'two black gift boxes with white ribbons',
   },
+  // The chocolates (demo-range.ts): photographs the owner approved on 2026-10-22, downloaded at
+  // their full size into `storage/range-photos/` (docs/design/reference-assets.md, section 12).
+  {
+    name: 'dark-chocolate',
+    source: 'range-photos/dark-chocolate-pexels-6261691.jpg',
+    left: 0,
+    top: 1000,
+    size: 4000,
+    shows: 'pieces of a dark chocolate bar on cocoa powder',
+  },
+  {
+    name: 'milk-chocolate',
+    source: 'range-photos/milk-chocolate-pexels-6167340.jpg',
+    mirror: { top: 220, bottom: 220 },
+    left: 1506,
+    top: 0,
+    size: 4600,
+    shows: 'two milk chocolate bars on white paper',
+  },
+  {
+    name: 'matcha-chocolate',
+    source: 'range-photos/matcha-chocolate-pexels-6341412.jpg',
+    left: 0,
+    top: 1100,
+    size: 3456,
+    shows: 'matcha chocolate bars standing on a white table',
+  },
+  {
+    name: 'tea-truffles',
+    source: 'range-photos/tea-truffles-pexels-10313341.jpg',
+    left: 2540,
+    top: 0,
+    size: 6336,
+    shows: 'cocoa-dusted truffles in a blue bowl on a wooden table',
+  },
+  {
+    name: 'chocolate-box',
+    source: 'range-photos/chocolate-box-pexels-13278153.jpg',
+    mirror: { top: 200, bottom: 200 },
+    left: 865,
+    top: 0,
+    size: 4560,
+    shows: 'a black box of assorted chocolate bonbons',
+  },
 ];
+
+/**
+ * The longest side a crop is written at: stored product pictures go up to 1600 px
+ * (src/media/image-processing.ts), and a larger source is scaled down to this first.
+ */
+const MAX_SIDE = 2400;
 
 /** The `assets` of a source folder's manifest.json (import-visuals.ts reads the same file). */
 function manifestAssets(value: unknown): Array<Record<string, unknown>> {
@@ -350,18 +405,28 @@ async function main(): Promise<void> {
   const credits: Record<string, unknown>[] = [];
   for (const crop of CROPS) {
     const input = join(from, crop.source);
-    let image = sharp(input);
+    const source = crop.mirror
+      ? await sharp(input)
+          .extend({ top: crop.mirror.top, bottom: crop.mirror.bottom, extendWith: 'mirror' })
+          .toBuffer()
+      : input;
+    let image = sharp(source);
     if (crop.flatten) image = image.flatten({ background: '#ffffff' });
-    const meta = await sharp(input).metadata();
+    const meta = await sharp(source).metadata();
     const size = Math.min(crop.size, (meta.width ?? 0) - crop.left, (meta.height ?? 0) - crop.top);
-    await image
-      .extract({ left: crop.left, top: crop.top, width: size, height: size })
-      .jpeg({ quality: 90, mozjpeg: true })
-      .toFile(join(out, `${crop.name}.jpg`));
+    image = image.extract({ left: crop.left, top: crop.top, width: size, height: size });
+    if (size > MAX_SIDE) image = image.resize({ width: MAX_SIDE });
+    await image.jpeg({ quality: 90, mozjpeg: true }).toFile(join(out, `${crop.name}.jpg`));
     credits.push({
       file: `${crop.name}.jpg`,
       shows: crop.shows,
-      crop: { source: crop.source, left: crop.left, top: crop.top, size },
+      crop: {
+        source: crop.source,
+        ...(crop.mirror ? { mirror: crop.mirror } : {}),
+        left: crop.left,
+        top: crop.top,
+        size,
+      },
       ...(await credit(from, crop)),
     });
   }

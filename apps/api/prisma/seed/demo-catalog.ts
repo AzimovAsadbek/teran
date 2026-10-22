@@ -8,8 +8,8 @@
  * - Everything marked `testOnly` is a generic, invented range of tea styles (other tea types, pack
  *   sizes, a sale price, low and no stock, a draft) that the end-to-end tests need. It is loaded only
  *   with SEED_TEST_CATALOGUE=true; elsewhere the seed archives it (docs/development/demo-mode.md).
- * - The wider demonstration range (matcha, infusions, iced tea, water, juices, teaware, a discovery
- *   box; demo-range.ts) is `testOnly` too. Only demonstration products get ingredients and a
+ * - The wider demonstration range (matcha, infusions, iced tea, water, juices, chocolates, teaware,
+ *   a discovery box; demo-range.ts) is `testOnly` too. Only demonstration products get ingredients and a
  *   caffeine level (typical of their style); the TERAN teas get neither.
  * - Deliberately absent: certifications, health claims and reviews.
  */
@@ -19,6 +19,7 @@ import {
   DEMO_RANGE_CAFFEINE,
   DEMO_RANGE_CATEGORIES,
   DEMO_RANGE_COLLECTIONS,
+  DEMO_RANGE_LAST_CATEGORIES,
   DEMO_RANGE_PRODUCT_TYPES,
   DEMO_RANGE_PRODUCTS,
   DEMO_RANGE_TYPES_BY_CATEGORY,
@@ -494,6 +495,7 @@ export const DEMO_CATEGORIES: DemoCategory[] = [
       en: 'Beautifully packed tea sets for the people you love.',
     },
   },
+  ...DEMO_RANGE_LAST_CATEGORIES,
 ];
 
 export const DEMO_COLLECTIONS: DemoCategory[] = [

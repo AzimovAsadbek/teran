@@ -1,7 +1,8 @@
 /**
  * The wider DEMONSTRATION range (2026-10-20): what a TERAN tea house could carry around its teas —
- * matcha, infusions of flowers and fruit, iced tea, water, juices, teaware and a discovery box —
- * so the storefront can be shown and tested as a whole beverage store.
+ * matcha, infusions of flowers and fruit, iced tea, water, juices, teaware and a discovery box,
+ * and since 2026-10-22 chocolate to eat with tea — so the storefront can be shown and tested as a
+ * whole tea house.
  *
  * Every entry here is `testOnly`: loaded only with SEED_TEST_CATALOGUE=true and archived
  * everywhere else, like the generic tea range (docs/development/demo-mode.md). TERAN sells none of
@@ -28,32 +29,12 @@ function described(text: Localized<string>): Localized<string> {
   };
 }
 
-/** Top-level categories (and their subcategories) placed between "Tea" and "Gift sets". */
+/**
+ * The range's categories in the menus' order (the owner's of 2026-10-22: tea, cold drinks,
+ * chocolates, matcha, infusions, gift sets, teaware; subcategories after their parent). These
+ * come between "Tea" and "Gift sets"; a new category takes its place in this order.
+ */
 export const DEMO_RANGE_CATEGORIES: DemoCategory[] = [
-  {
-    slug: 'matcha',
-    testOnly: true,
-    productType: 'tea',
-    illustrationKey: 'matcha',
-    name: { uz: 'Matcha', ru: 'Матча', en: 'Matcha' },
-    description: {
-      uz: 'Kukun holidagi yashil choy: piyolada koʻpirtiriladi yoki latte qilinadi.',
-      ru: 'Порошковый зелёный чай: его взбивают в пиале или готовят латте.',
-      en: 'Powdered green tea, whisked in a bowl or made into a latte.',
-    },
-  },
-  {
-    slug: 'infusions',
-    testOnly: true,
-    productType: 'infusion',
-    illustrationKey: 'herbal',
-    name: { uz: 'Damlamalar', ru: 'Травяные чаи', en: 'Infusions' },
-    description: {
-      uz: 'Gullar, mevalar va xushboʻy oʻtlardan tayyorlangan damlamalar.',
-      ru: 'Настои из цветов, фруктов и душистых трав.',
-      en: 'Blends of flowers, fruit and fragrant herbs.',
-    },
-  },
   {
     slug: 'drinks',
     testOnly: true,
@@ -102,6 +83,46 @@ export const DEMO_RANGE_CATEGORIES: DemoCategory[] = [
       en: 'Pomegranate, apple and quince juices to sit beside the tea.',
     },
   },
+  {
+    slug: 'chocolates',
+    testOnly: true,
+    productType: 'chocolate',
+    illustrationKey: 'sweets',
+    name: { uz: 'Shokoladlar', ru: 'Шоколад', en: 'Chocolates' },
+    description: {
+      uz: 'Choy bilan uygʻun shokoladlar: qora, sutli, matchali va trufellar.',
+      ru: 'Шоколад, который хорошо идёт к чаю: тёмный, молочный, с матчей и трюфели.',
+      en: 'Chocolate that sits well beside tea: dark, milk, matcha and truffles.',
+    },
+  },
+  {
+    slug: 'matcha',
+    testOnly: true,
+    productType: 'tea',
+    illustrationKey: 'matcha',
+    name: { uz: 'Matcha', ru: 'Матча', en: 'Matcha' },
+    description: {
+      uz: 'Kukun holidagi yashil choy: piyolada koʻpirtiriladi yoki latte qilinadi.',
+      ru: 'Порошковый зелёный чай: его взбивают в пиале или готовят латте.',
+      en: 'Powdered green tea, whisked in a bowl or made into a latte.',
+    },
+  },
+  {
+    slug: 'infusions',
+    testOnly: true,
+    productType: 'infusion',
+    illustrationKey: 'herbal',
+    name: { uz: 'Damlamalar', ru: 'Травяные чаи', en: 'Infusions' },
+    description: {
+      uz: 'Gullar, mevalar va xushboʻy oʻtlardan tayyorlangan damlamalar.',
+      ru: 'Настои из цветов, фруктов и душистых трав.',
+      en: 'Blends of flowers, fruit and fragrant herbs.',
+    },
+  },
+];
+
+/** The range's categories after "Gift sets". */
+export const DEMO_RANGE_LAST_CATEGORIES: DemoCategory[] = [
   {
     slug: 'teaware',
     testOnly: true,
@@ -219,6 +240,21 @@ export const DEMO_RANGE_PRODUCT_TYPES: DemoProductType[] = [
       },
     ],
   },
+  {
+    key: 'chocolate',
+    name: { uz: 'Shokolad', ru: 'Шоколад', en: 'Chocolate' },
+    brewingGuide: false,
+    attributes: [
+      FLAVOUR_ATTRIBUTE,
+      {
+        key: 'cocoa',
+        kind: 'NUMBER',
+        isFilterable: false,
+        unit: '%',
+        label: { uz: 'Kakao', ru: 'Какао', en: 'Cocoa' },
+      },
+    ],
+  },
 ];
 
 /** Product type of a category of the range (subcategories inherit from their parent). */
@@ -229,6 +265,7 @@ export const DEMO_RANGE_TYPES_BY_CATEGORY: Record<string, string> = {
   'iced-tea': 'drink',
   water: 'drink',
   juice: 'drink',
+  chocolates: 'chocolate',
   teaware: 'teaware',
 };
 
@@ -742,6 +779,191 @@ export const DEMO_RANGE_PRODUCTS: DemoProduct[] = [
     ],
   },
 
+  // ─── Chocolates ───
+  {
+    slug: 'dark-chocolate-70',
+    testOnly: true,
+    category: 'chocolates',
+    collections: [],
+    format: 'OTHER',
+    featured: true,
+    illustrationKey: 'sweets',
+    publishedDaysAgo: 1,
+    brewing: null,
+    art: { style: 'cocoa', shape: 'box' },
+    photo: 'dark-chocolate',
+    name: { uz: 'Qora shokolad 70%', ru: 'Тёмный шоколад 70 %', en: 'Dark chocolate 70%' },
+    shortDescription: {
+      uz: 'Kakao 70%: chuqur taʼm, yengil achchiqlik bilan.',
+      ru: 'Какао 70 %: глубокий вкус с лёгкой горчинкой.',
+      en: '70% cocoa: deep, with a light bitterness.',
+    },
+    description: described({
+      uz: 'Qora shokolad plitkasi. Qora choy, pu-erh va qovurilgan oolong bilan yaxshi uygʻunlashadi: kichik boʻlagini choy bilan birga tatib koʻring.',
+      ru: 'Плитка тёмного шоколада. Хорошо идёт к чёрному чаю, пуэру и обжаренному улуну: попробуйте небольшой кусочек вместе с чаем.',
+      en: 'A bar of dark chocolate. It goes well with black tea, pu-erh and a roasted oolong: taste a small piece alongside the tea.',
+    }),
+    tastingNotes: {
+      uz: 'Uslubga xos: kakao, qovurilgan yongʻoq va quritilgan meva.',
+      ru: 'Типично для стиля: какао, обжаренные орехи и сухофрукты.',
+      en: 'Typical of the style: cocoa, roasted nuts and dried fruit.',
+    },
+    ingredients: {
+      uz: 'Kakao massasi, shakar, kakao moyi, emulgator (soya lesitini).',
+      ru: 'Какао тёртое, сахар, какао-масло, эмульгатор (соевый лецитин).',
+      en: 'Cocoa mass, sugar, cocoa butter, emulsifier (soy lecithin).',
+    },
+    variants: [{ sku: 'TRN-CHO-DRK-100', weightGrams: 100, price: '45000', stock: 30 }],
+  },
+  {
+    slug: 'milk-chocolate',
+    testOnly: true,
+    category: 'chocolates',
+    collections: [],
+    format: 'OTHER',
+    featured: false,
+    illustrationKey: 'sweets',
+    publishedDaysAgo: 2,
+    brewing: null,
+    art: { style: 'cocoa', shape: 'box' },
+    photo: 'milk-chocolate',
+    name: { uz: 'Sutli shokolad', ru: 'Молочный шоколад', en: 'Milk chocolate' },
+    shortDescription: {
+      uz: 'Yumshoq va qaymoqli, karamel ohangi bilan.',
+      ru: 'Мягкий и сливочный, с нотой карамели.',
+      en: 'Smooth and creamy, with a note of caramel.',
+    },
+    description: described({
+      uz: 'Kakao miqdori 35% boʻlgan sutli shokolad plitkasi. Yengil qora choy, oolong va sutli choy bilan yaxshi uygʻunlashadi.',
+      ru: 'Плитка молочного шоколада с 35 % какао. Хорошо идёт к лёгкому чёрному чаю, улуну и чаю с молоком.',
+      en: 'A bar of milk chocolate with 35% cocoa. It goes well with a light black tea, an oolong or tea with milk.',
+    }),
+    tastingNotes: {
+      uz: 'Uslubga xos: sut, karamel va vanil.',
+      ru: 'Типично для стиля: молоко, карамель и ваниль.',
+      en: 'Typical of the style: milk, caramel and vanilla.',
+    },
+    ingredients: {
+      uz: 'Shakar, kakao moyi, quruq sut, kakao massasi, emulgator (soya lesitini), vanil.',
+      ru: 'Сахар, какао-масло, сухое молоко, какао тёртое, эмульгатор (соевый лецитин), ваниль.',
+      en: 'Sugar, cocoa butter, milk powder, cocoa mass, emulsifier (soy lecithin), vanilla.',
+    },
+    variants: [{ sku: 'TRN-CHO-MLK-100', weightGrams: 100, price: '42000', stock: 30 }],
+  },
+  {
+    slug: 'matcha-white-chocolate',
+    testOnly: true,
+    category: 'chocolates',
+    collections: [],
+    format: 'OTHER',
+    featured: false,
+    illustrationKey: 'sweets',
+    publishedDaysAgo: 3,
+    brewing: null,
+    art: { style: 'matcha', shape: 'box' },
+    photo: 'matcha-chocolate',
+    name: { uz: 'Matcha oq shokoladi', ru: 'Белый шоколад с матчей', en: 'Matcha white chocolate' },
+    shortDescription: {
+      uz: 'Oq shokolad va matcha: shirin, yengil oʻtsimon taʼm.',
+      ru: 'Белый шоколад и матча: сладкий, с лёгкой травянистой нотой.',
+      en: 'White chocolate and matcha: sweet, lightly grassy.',
+    },
+    description: described({
+      uz: 'Matcha qoʻshilgan oq shokolad plitkasi. Yashil choy, yasminli choy yoki matcha latte bilan tatib koʻring.',
+      ru: 'Плитка белого шоколада с матчей. Попробуйте с зелёным или жасминовым чаем, с латте с матчей.',
+      en: 'A bar of white chocolate made with matcha. Try it with green or jasmine tea, or a matcha latte.',
+    }),
+    tastingNotes: {
+      uz: 'Uslubga xos: qaymoqli shirinlik va matchaning oʻtsimon ohangi.',
+      ru: 'Типично для стиля: сливочная сладость и травянистая нота матчи.',
+      en: 'Typical of the style: creamy sweetness and the grassy note of matcha.',
+    },
+    ingredients: {
+      uz: 'Shakar, kakao moyi, quruq sut, matcha kukuni, emulgator (soya lesitini).',
+      ru: 'Сахар, какао-масло, сухое молоко, порошок матчи, эмульгатор (соевый лецитин).',
+      en: 'Sugar, cocoa butter, milk powder, matcha powder, emulsifier (soy lecithin).',
+    },
+    variants: [{ sku: 'TRN-CHO-MAT-80', weightGrams: 80, price: '48000', stock: 24 }],
+  },
+  {
+    slug: 'earl-grey-truffles',
+    testOnly: true,
+    category: 'chocolates',
+    collections: ['gift-ideas'],
+    format: 'OTHER',
+    featured: false,
+    illustrationKey: 'sweets',
+    publishedDaysAgo: 4,
+    brewing: null,
+    art: { style: 'cocoa', shape: 'gift' },
+    photo: 'tea-truffles',
+    name: {
+      uz: 'Choy trufellari: Earl Grey',
+      ru: 'Чайные трюфели: Эрл Грей',
+      en: 'Tea truffles: Earl Grey',
+    },
+    shortDescription: {
+      uz: 'Earl Grey choyi qoʻshilgan, kakaoga belangan trufellar.',
+      ru: 'Трюфели с чаем Эрл Грей, обвалянные в какао.',
+      en: 'Truffles made with Earl Grey tea, rolled in cocoa.',
+    },
+    description: described({
+      uz: 'Qaymoq Earl Grey choyida damlanadi, qora shokolad bilan aralashtiriladi va kakao kukuniga belanadi. Qutida 12 dona. Salqin joyda saqlang.',
+      ru: 'Сливки настаивают на чае Эрл Грей, смешивают с тёмным шоколадом и обваливают в какао-порошке. В коробке 12 штук. Храните в прохладном месте.',
+      en: 'Cream steeped with Earl Grey tea, blended with dark chocolate and rolled in cocoa powder. Twelve in a box. Keep somewhere cool.',
+    }),
+    tastingNotes: {
+      uz: 'Uslubga xos: bergamotning sitrusli xushboʻyligi va qora shokolad.',
+      ru: 'Типично для стиля: цитрусовый аромат бергамота и тёмный шоколад.',
+      en: 'Typical of the style: the citrus scent of bergamot over dark chocolate.',
+    },
+    ingredients: {
+      uz: 'Qora shokolad, qaymoq, sariyogʻ, Earl Grey choyi (qora choy, bergamot moyi), kakao kukuni.',
+      ru: 'Тёмный шоколад, сливки, сливочное масло, чай Эрл Грей (чёрный чай, масло бергамота), какао-порошок.',
+      en: 'Dark chocolate, cream, butter, Earl Grey tea (black tea, bergamot oil), cocoa powder.',
+    },
+    variants: [{ sku: 'TRN-CHO-TRF-150', weightGrams: 150, price: '95000', stock: 16 }],
+  },
+  {
+    slug: 'chocolate-gift-box',
+    testOnly: true,
+    category: 'chocolates',
+    collections: ['gift-ideas'],
+    format: 'OTHER',
+    featured: true,
+    illustrationKey: 'sweets',
+    publishedDaysAgo: 5,
+    brewing: null,
+    art: { style: 'cocoa', shape: 'gift' },
+    photo: 'chocolate-box',
+    name: {
+      uz: 'Shokoladli konfetlar: sovgʻa qutisi',
+      ru: 'Шоколадные конфеты: подарочная коробка',
+      en: 'Chocolate bonbons: gift box',
+    },
+    shortDescription: {
+      uz: 'Sutli, qora va oq shokoladdan turli konfetlar bitta qutida.',
+      ru: 'Ассорти конфет из молочного, тёмного и белого шоколада в одной коробке.',
+      en: 'Milk, dark and white chocolate bonbons in one box.',
+    },
+    description: described({
+      uz: 'Yongʻoqli, mevali va karamelli konfetlar — choy dasturxoniga yoki sovgʻa uchun.',
+      ru: 'Конфеты с орехами, фруктами и карамелью — к чайному столу или в подарок.',
+      en: 'Bonbons with nuts, fruit and caramel, for the tea table or as a gift.',
+    }),
+    tastingNotes: {
+      uz: 'Uslubga xos: yongʻoq, meva va karamel.',
+      ru: 'Типично для стиля: орехи, фрукты и карамель.',
+      en: 'Typical of the style: nuts, fruit and caramel.',
+    },
+    ingredients: {
+      uz: 'Sutli, qora va oq shokolad, yongʻoqlar, quritilgan mevalar, karamel.',
+      ru: 'Молочный, тёмный и белый шоколад, орехи, сухофрукты, карамель.',
+      en: 'Milk, dark and white chocolate, nuts, dried fruit, caramel.',
+    },
+    variants: [{ sku: 'TRN-CHO-BOX-250', weightGrams: 250, price: '120000', stock: 12 }],
+  },
+
   // ─── Teaware ───
   {
     slug: 'glass-teapot',
@@ -1059,6 +1281,11 @@ export const DEMO_RANGE_ATTRIBUTE_VALUES: Record<
   'sparkling-water': { sparkling: true, volume: 500 },
   'pomegranate-juice': { flavour: ['fruity', 'tart'], sparkling: false, volume: 750 },
   'apple-quince-juice': { flavour: ['fruity', 'sweet'], sparkling: false, volume: 1000 },
+  'dark-chocolate-70': { flavour: ['toasty', 'fruity'], cocoa: 70 },
+  'milk-chocolate': { flavour: ['sweet'], cocoa: 35 },
+  'matcha-white-chocolate': { flavour: ['sweet', 'fresh'] },
+  'earl-grey-truffles': { flavour: ['citrus', 'floral'] },
+  'chocolate-gift-box': { flavour: ['sweet', 'fruity'] },
   'glass-teapot': { material: 'glass', capacity: 600 },
   'porcelain-gaiwan': { material: 'porcelain', capacity: 150 },
   'piyola-set': { material: 'porcelain', capacity: 180 },

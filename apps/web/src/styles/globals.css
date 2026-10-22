@@ -80,6 +80,8 @@
   --color-reef: #21a3a8;
   /* Warm paper: the field TERAN's pouches stand on (tea stage, listing headers, About). */
   --color-paper: #f7f4ee;
+  /* Dark chocolate: the chocolates' field (sun 9:1, ivory 13:1 on it). */
+  --color-cocoa: #40261a;
   /* Where the reference's text colour fails WCAG AA on its own background, the nearest one that
      passes (contrast with that background in brackets). */
   --color-tangerine-ink: #b83c0d; /* on lavender, 3.3:1 for large type */
@@ -731,7 +733,7 @@
   }
 
   /* The leaf lens (components/catalog/product-card.tsx): pointed at, a TERAN tea's swatch grows
-     into a ringed circle of its dry leaf beside the steaming cup — the card's leaf and cup in one
+     into a ringed circle of its dry leaf beside the tea's own film — the card's leaf and tea in one
      picture, as on the five-tea stage — and shrinks back to the swatch when left (faster). The
      ring is the circle behind, 4 px wider; both circles move as one. */
   /* The card's leaf swatch (catalog/product-card.tsx): 48 px, 64 px from 750 px, and on a touch

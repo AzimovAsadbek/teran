@@ -1,5 +1,6 @@
 import type { IllustrationKey } from '@teran/contracts';
 import {
+  Candy,
   Citrus,
   Coffee,
   Droplets,
@@ -19,7 +20,7 @@ import {
  * itself.
  */
 export interface ProductFamily {
-  key: 'tea' | 'matcha' | 'infusion' | 'iced' | 'water' | 'juice' | 'teaware' | 'gift';
+  key: 'tea' | 'matcha' | 'infusion' | 'iced' | 'water' | 'juice' | 'sweets' | 'teaware' | 'gift';
   icon: LucideIcon;
   /** The category line's ink (4.5:1 or more on white). */
   ink: string;
@@ -72,6 +73,14 @@ const FAMILIES: Record<ProductFamily['key'], ProductFamily> = {
     ring: '#eb9a5c',
     sheen: 'clear',
   },
+  sweets: {
+    key: 'sweets',
+    icon: Candy,
+    ink: '#6b3a1f',
+    field: '#f4ebe2',
+    ring: '#a8774e',
+    sheen: null,
+  },
   teaware: {
     key: 'teaware',
     icon: Coffee,
@@ -98,6 +107,7 @@ const BY_KEY: Partial<Record<IllustrationKey, ProductFamily['key']>> = {
   iced: 'iced',
   water: 'water',
   juice: 'juice',
+  sweets: 'sweets',
   teaware: 'teaware',
   gift: 'gift',
 };

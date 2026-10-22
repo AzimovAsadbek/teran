@@ -38,7 +38,8 @@ export type ArtStyle =
   | 'pomegranate'
   | 'apple'
   | 'porcelain'
-  | 'glass';
+  | 'glass'
+  | 'cocoa';
 export type PackShape =
   | 'tin'
   | 'box'
@@ -271,6 +272,14 @@ const PALETTES: Record<ArtStyle, Palette> = {
     band: DYE.saffron600,
     liquid: DYE.saffron500,
     leaves: [DYE.choy700],
+  },
+  cocoa: {
+    body: '#4a2c1c',
+    light: DYE.clay800,
+    dark: '#2a1810',
+    band: DYE.saffron600,
+    liquid: '#3b2216',
+    leaves: ['#2a1810', '#3b2216', '#4a2c1c', '#5a3622', '#6b4329'],
   },
 };
 

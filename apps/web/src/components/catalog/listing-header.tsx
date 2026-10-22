@@ -23,8 +23,8 @@ import { productFamily, type ProductFamily } from './product-family';
 /**
  * Each family's header (ADR-051): its own field and ink, so a listing says at once what it holds
  * — the brand's teal for tea, matcha green, the infusions' blush, the cold drinks' summer sky,
- * the warm cream of teaware, black and gold for gift sets (the colours of the home page's family
- * features). Every pairing meets WCAG AA for its text.
+ * dark chocolate with gold for chocolates, the warm cream of teaware, black and gold for gift
+ * sets (the colours of the home page's family features). Every pairing meets WCAG AA for its text.
  */
 const THEMES: Record<
   ProductFamily['key'],
@@ -36,6 +36,7 @@ const THEMES: Record<
   iced: { field: '--color-sky', ink: 'text-ocean', text: 'text-ocean', dark: false },
   water: { field: '--color-sky', ink: 'text-ocean', text: 'text-ocean', dark: false },
   juice: { field: '--color-sky', ink: 'text-ocean', text: 'text-ocean', dark: false },
+  sweets: { field: '--color-cocoa', ink: 'text-sun', text: 'text-ivory-50', dark: true },
   teaware: { field: '--color-cream', ink: 'text-fg', text: 'text-fg-muted', dark: false },
   gift: { field: '--color-forest-950', ink: 'text-sun', text: 'text-ivory-50', dark: true },
 };
@@ -45,7 +46,8 @@ const PAPER = { field: '--color-paper', ink: 'text-fg', text: 'text-fg-muted', d
 
 /**
  * How each family's colour arrives (ADR-051): tea, matcha and infusions STEEP in; the cold drinks'
- * sky rises like a level (POUR); teaware and gift sets stand still under one pass of LIGHT.
+ * sky rises like a level (POUR); chocolates, teaware and gift sets stand still under one pass of
+ * LIGHT (a bar's gloss).
  */
 const MOTIONS: Record<ProductFamily['key'], 'steep' | 'pour' | 'light'> = {
   tea: 'steep',
@@ -54,6 +56,7 @@ const MOTIONS: Record<ProductFamily['key'], 'steep' | 'pour' | 'light'> = {
   iced: 'pour',
   water: 'pour',
   juice: 'pour',
+  sweets: 'light',
   teaware: 'light',
   gift: 'light',
 };

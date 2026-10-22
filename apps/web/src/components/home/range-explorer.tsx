@@ -36,6 +36,15 @@ const LAYOUTS: Record<number, string[]> = {
     'lg:col-span-2',
     'lg:col-span-2',
   ],
+  7: [
+    'lg:col-span-2 lg:row-span-2',
+    'lg:col-span-1',
+    'lg:col-span-1',
+    'lg:col-span-2',
+    'lg:col-span-2',
+    'lg:col-span-1',
+    'lg:col-span-1',
+  ],
 };
 
 /** The field a family's picture stands on (a cut-out shows it; a photograph covers it). */
@@ -51,6 +60,7 @@ const FIELDS: Record<string, string> = {
   iced: '#e4eff2',
   water: '#e7eef5',
   juice: '#fae9dc',
+  sweets: '#f4ebe2',
   teaware: '#efece6',
   gift: '#f1ebe2',
 };
@@ -74,13 +84,14 @@ function pictureOf(list: ProductSummaryDto[]): ImageDto | null {
 }
 
 /**
- * The whole range at a glance: one tile per product family the catalogue holds (tea at the
- * centre, then matcha, infusions, cold drinks, teaware, gifts — whatever is stocked), each with
- * its picture (its own cover, else one of its products), its name, how many products it holds and
- * its ranges, leading to the family's page. Replaces three rows of shortcuts to the same pages:
- * a new family appears here by itself once it has products. Pointed at, a tile's picture leans
- * in and its label opens on the family's ranges. The tiles stand still as they scroll in (ADR-051:
- * no generic reveals; the brewing language moves where it means something).
+ * The whole range at a glance: one tile per product family the catalogue holds, in the menus'
+ * order (tea at the centre, then cold drinks, chocolates, matcha, infusions, gifts, teaware —
+ * whatever is stocked, up to seven), each with its picture (its own cover, else one of its
+ * products), its name, how many products it holds and its ranges, leading to the family's page.
+ * Replaces three rows of shortcuts to the same pages: a new family appears here by itself once it
+ * has products. Pointed at, a tile's picture leans in and its label opens on the family's ranges.
+ * The tiles stand still as they scroll in (ADR-051: no generic reveals; the brewing language
+ * moves where it means something).
  */
 export async function RangeExplorer() {
   await connection();
@@ -92,7 +103,7 @@ export async function RangeExplorer() {
     getCategories(locale).catch(() => []),
     getPublicSettings(locale).catch(() => null),
   ]);
-  const families = categoryTree(categories).slice(0, 6);
+  const families = categoryTree(categories).slice(0, 7);
   if (families.length < 2) return null;
   const lists = await Promise.all(
     families.map((family) =>

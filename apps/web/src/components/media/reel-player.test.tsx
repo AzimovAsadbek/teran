@@ -52,6 +52,7 @@ const labels: MediaLabels = {
   mute: 'Mute',
   unmute: 'Unmute',
   volume: 'Volume',
+  noSound: 'No sound',
 };
 
 let media: Record<string, boolean>;
@@ -260,8 +261,12 @@ describe('ReelPlayer', () => {
       volume: 1,
     });
 
+    expect(within(current()).queryByText('No sound')).toBeNull();
+
+    // A silent film has nothing to unmute and says so, in plain words, while it is open.
     view.scrollTo(HEIGHT);
     expect(within(current()).queryByRole('button', { name: /mute/i })).toBeNull();
+    expect(within(current()).getByText('No sound')).toBeInTheDocument();
     expect(video().muted).toBe(true);
   });
 

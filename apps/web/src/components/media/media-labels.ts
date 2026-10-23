@@ -27,6 +27,7 @@ export function mediaLabels(t: MediaTranslator): MediaLabels {
     mute: t('mute'),
     unmute: t('unmute'),
     volume: t('volume'),
+    noSound: t('noSound'),
   };
 }
 

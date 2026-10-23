@@ -40,6 +40,8 @@ export interface MediaLabels {
   mute: string;
   unmute: string;
   volume: string;
+  /** Shown on a film without a sound track while it is open in the feed. */
+  noSound: string;
 }
 
 function duration(seconds: number | null): string | null {

@@ -507,7 +507,8 @@ at the right, the steps with the upload's percentage, and a success card with th
   and the caption at its foot over a dark fade. A film with sound plays it (ADR-058): a 2.75 rem
   speaker disc (black 45 %, blurred) at the foot on the right mutes it, and on hover grows upward
   into a pill with a vertical volume slider (white fill and knob on a 30 % track), as on
-  Instagram; silent films have no speaker. A tap or Space pauses (a 4.5 rem play
+  Instagram; a silent film shows a "no sound" pill in the same place (the crossed speaker and
+  "Ovozsiz", same dark disc) for as long as it is open. A tap or Space pauses (a 4.5 rem play
   disc while paused; a small play/pause disc at the top left from 640 px); a swipe, the wheel, ↑/↓,
   PageUp/PageDown, Home/End and two round arrows at the right (from 640 px) move; "3 / 8" at the top
   left, the cross at the top right; Esc closes and focus returns to the card of the film watched

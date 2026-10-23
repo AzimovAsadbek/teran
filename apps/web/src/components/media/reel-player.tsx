@@ -80,8 +80,8 @@ interface ReelPlayerProps {
  * a full-screen modal dialog in which every film takes the screen's height and the list snaps one
  * film at a time. The film in view plays, looping, from its beginning, with a teal line along its
  * foot for its time; the one that left stops. A film with a sound track plays its sound, with a
- * speaker to mute it and, where a mouse hovers, a volume slider (ADR-058); silent films play
- * muted. A swipe, the wheel or a trackpad, the arrows at the side and ↑/↓ (PageUp/PageDown,
+ * speaker to mute it and, where a mouse hovers, a volume slider (ADR-058); a silent film says
+ * "no sound" in the speaker's place. A swipe, the wheel or a trackpad, the arrows at the side and ↑/↓ (PageUp/PageDown,
  * Home/End) move between films; a tap or Space pauses, M mutes; Esc or the cross closes. Only the
  * film in view and its neighbours are fetched.
  */
@@ -431,7 +431,7 @@ function ReelSlide({
         <div
           className={cn(
             'pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/75 via-black/25 to-transparent px-4 pt-28 pb-[calc(env(safe-area-inset-bottom)+1.75rem)] sm:px-6 sm:pb-7',
-            film.video?.hasAudio && 'pr-17 sm:pr-19',
+            film.video?.hasAudio ? 'pr-17 sm:pr-19' : film.video ? 'pr-36 sm:pr-40' : null,
           )}
         >
           <p className="flex items-center gap-2.5">
@@ -452,6 +452,7 @@ function ReelSlide({
             </p>
           ) : null}
         </div>
+        {film.video && !film.video.hasAudio ? <NoSound label={labels.noSound} /> : null}
         {children}
       </div>
     </li>
@@ -587,6 +588,19 @@ function ReelVideo({
         </span>
       ) : null}
     </>
+  );
+}
+
+/**
+ * A film without a sound track says so where the speaker would be, for as long as it is open:
+ * nothing to unmute, so nobody looks for the sound.
+ */
+function NoSound({ label }: { label: string }) {
+  return (
+    <p className="pointer-events-none absolute right-3 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-30 inline-flex h-11 items-center gap-1.5 rounded-full bg-black/45 pr-4 pl-3 text-[0.8125rem] font-semibold text-white backdrop-blur-sm sm:right-4 sm:bottom-6">
+      <VolumeX aria-hidden className="h-5 w-5 shrink-0" />
+      {label}
+    </p>
   );
 }
 

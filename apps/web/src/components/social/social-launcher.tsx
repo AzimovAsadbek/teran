@@ -5,14 +5,15 @@ import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import type { SocialLink } from '@/lib/contact';
 import { cn } from '@/lib/cn';
 import { useFloatingPlace } from '@/lib/floating';
-import { NETWORK_NAMES, SocialIcon } from './social-icon';
+import { SocialIcon } from './social-icon';
 
 /**
  * TERAN's networks in the lower right corner, above the chat (components/chat/chat-widget.tsx):
  * a teal disc showing four small marks — Instagram, a play button, a paper plane and a phone (the
  * owner's "social mix") — that opens the networks entered in the admin area (Telegram, WhatsApp,
- * Instagram, YouTube) as a column of their own marks and names rising from it, each opening the
- * network in a new tab. The marks give way to a cross while it is open; Escape, a click elsewhere
+ * Instagram, YouTube) as a column of their own round marks rising from it, without words (the
+ * owner's choice): each mark opens its network in a new tab, and is named for screen readers and
+ * in a tooltip ("Telegram @TeranTrade"). The marks give way to a cross while it is open; Escape, a click elsewhere
  * or following a link closes it, and Escape gives focus back to the disc. It steps aside while the
  * chat window is open (the window covers the corner).
  */
@@ -75,18 +76,11 @@ export function SocialLauncher({ links, hidden }: { links: SocialLink[]; hidden:
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="group flex items-center gap-2.5 focus-visible:outline-none"
+                aria-label={`${link.label} (${tc('opensInNewTab')})`}
+                title={link.label}
+                className="flex h-11 w-11 items-center justify-center rounded-full shadow-[0_2px_8px_rgb(22_22_22_/_18%)] transition-transform duration-200 hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#107e84] focus-visible:outline-solid"
               >
-                <span className="rounded-full bg-white px-3.5 py-1.5 text-[0.875rem] leading-5 font-semibold whitespace-nowrap text-[#121212] shadow-[0_2px_8px_rgb(22_22_22_/_18%)] group-hover:underline group-hover:underline-offset-[3px] group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-[#107e84] group-focus-visible:outline-solid">
-                  {NETWORK_NAMES[link.network]}
-                  {link.handle ? (
-                    <span className="font-medium text-[#121212]/70"> {link.handle}</span>
-                  ) : null}
-                  <span className="sr-only"> ({tc('opensInNewTab')})</span>
-                </span>
-                <span className="flex h-11 w-11 items-center justify-center rounded-full shadow-[0_2px_8px_rgb(22_22_22_/_18%)] transition-transform duration-200 group-hover:scale-105">
-                  <SocialIcon network={link.network} className="h-11 w-11" />
-                </span>
+                <SocialIcon network={link.network} className="h-11 w-11" />
               </a>
             </li>
           ))}

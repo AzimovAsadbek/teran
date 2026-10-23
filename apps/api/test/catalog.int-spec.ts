@@ -1,5 +1,11 @@
 import request from 'supertest';
-import { categorySchema, productDetailSchema, productListSchema } from '@teran/contracts';
+import {
+  categoryPageSchema,
+  categorySchema,
+  productDetailSchema,
+  productListSchema,
+  sitemapEntriesSchema,
+} from '@teran/contracts';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { createCategory, createProduct, resetDatabase } from './helpers/fixtures.js';
 
@@ -114,6 +120,39 @@ describe('catalogue', () => {
     ]);
     expect(detail.defaultVariant?.price).toBe('45000.00');
     expect(detail.ingredients).toBeNull();
+  });
+
+  it('states the languages a product and its category have their own text in', async () => {
+    const product = await createProduct(ctx.prisma, {
+      categoryId,
+      slug: 'half-translated-tea',
+      name: 'Yarim tarjima choy',
+    });
+    await ctx.prisma.productTranslation.deleteMany({
+      where: { productId: product.id, locale: 'en' },
+    });
+    await ctx.prisma.categoryTranslation.deleteMany({ where: { categoryId, locale: 'ru' } });
+
+    // The English page shows the Uzbek text, and says English is not one of its own languages.
+    const detail = productDetailSchema.parse(
+      (await get('/catalog/products/half-translated-tea?locale=en').expect(200)).body,
+    );
+    expect(detail.name).toBe('Yarim tarjima choy');
+    expect(detail.locales).toEqual(['uz', 'ru']);
+
+    const page = categoryPageSchema.parse(
+      (await get('/catalog/category-page?locale=ru&path=green-tea').expect(200)).body,
+    );
+    expect(page.type === 'category' ? page.category.locales : null).toEqual(['uz', 'en']);
+
+    const sitemap = sitemapEntriesSchema.parse((await get('/catalog/sitemap').expect(200)).body);
+    expect(sitemap.products.find((entry) => entry.slug === 'half-translated-tea')?.locales).toEqual(
+      ['uz', 'ru'],
+    );
+    expect(sitemap.categories.find((entry) => entry.slug === 'green-tea')?.locales).toEqual([
+      'uz',
+      'en',
+    ]);
   });
 
   it('rejects malformed queries with a validation error', async () => {

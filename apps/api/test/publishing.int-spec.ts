@@ -438,8 +438,9 @@ describe('publishing workflow', () => {
       const preview = articleDetailSchema.parse(
         (await admin.get(`${API}/admin/articles/${draft.id}/preview?locale=ru`).expect(200)).body,
       );
-      // Russian is empty: the Uzbek text stands in, as on the site.
+      // Russian is empty: the Uzbek text stands in, as on the site, and the article says so.
       expect(preview).toMatchObject({ slug: 'harvest-notes', title: 'Hosil haqida' });
+      expect(preview.locales).toEqual(['uz']);
       expect(preview.cover?.src).toMatch(/^\/uploads\/articles\//);
       await anonymous().get(`${API}/content/articles/harvest-notes?locale=uz`).expect(404);
       await anonymous().get(`${API}/admin/articles/${draft.id}/preview`).expect(401);

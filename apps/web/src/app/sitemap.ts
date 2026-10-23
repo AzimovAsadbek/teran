@@ -1,10 +1,10 @@
-import type { Locale } from '@teran/contracts';
+import { DEFAULT_LOCALE, type MediaKind } from '@teran/contracts';
 import type { MetadataRoute } from 'next';
 import { connection } from 'next/server';
 import { helpCentre } from '@/content/pages/faq';
-import { routing } from '@/i18n/routing';
 import { getSitemapEntries } from '@/lib/data/catalog';
-import { localizedUrl } from '@/lib/seo';
+import { getMedia } from '@/lib/data/content';
+import { buildSitemap } from '@/lib/seo';
 
 const STATIC_PAGES = [
   '/',
@@ -14,9 +14,6 @@ const STATIC_PAGES = [
   '/journal',
   '/tea-101',
   '/media',
-  '/media/photos',
-  '/media/videos',
-  '/media/shorts',
   '/contact',
   '/stores',
   '/faq',
@@ -36,33 +33,36 @@ const HELP_PAGES = [
   ]),
 ];
 
-/** One entry per language version, each listing all versions (hreflang) and x-default. */
-function entries(path: string, lastModified?: string): MetadataRoute.Sitemap {
-  const languages: Record<string, string> = {};
-  for (const locale of routing.locales) languages[locale] = localizedUrl(path, locale);
-  languages['x-default'] = localizedUrl(path, routing.defaultLocale);
-  return routing.locales.map((locale: Locale) => ({
-    url: localizedUrl(path, locale),
-    lastModified,
-    alternates: { languages },
-  }));
+/** The gallery's page of each kind: listed once something of that kind is published. */
+const MEDIA_PAGES: Record<MediaKind, string> = {
+  PHOTO: '/media/photos',
+  VIDEO: '/media/videos',
+  SHORT: '/media/shorts',
+};
+
+async function publishedMediaPages(): Promise<string[]> {
+  const kinds = Object.keys(MEDIA_PAGES) as MediaKind[];
+  const totals = await Promise.all(
+    kinds.map((kind) =>
+      getMedia(DEFAULT_LOCALE, { kind, pageSize: 1 }).then(
+        (media) => media.total,
+        () => null, // unknown: listed, as before the gallery could be counted
+      ),
+    ),
+  );
+  return kinds.filter((_, index) => totals[index] !== 0).map((kind) => MEDIA_PAGES[kind]);
 }
 
 /**
  * Generated per request from the live catalogue (cached, invalidated with the "catalog" and
  * "content" tags) — never at build time, so it cannot contain data from a build environment.
+ * What goes in, and in which languages, is decided in lib/seo/sitemap.ts.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
-  const data = await getSitemapEntries().catch(() => null);
-  return [
-    ...STATIC_PAGES.flatMap((path) => entries(path)),
-    ...HELP_PAGES.flatMap((path) => entries(path)),
-    ...(data?.categories ?? []).flatMap((item) => entries(`/${item.path}`, item.updatedAt)),
-    ...(data?.collections ?? []).flatMap((item) =>
-      entries(`/collections/${item.slug}`, item.updatedAt),
-    ),
-    ...(data?.products ?? []).flatMap((item) => entries(`/products/${item.slug}`, item.updatedAt)),
-    ...(data?.articles ?? []).flatMap((item) => entries(`/journal/${item.slug}`, item.updatedAt)),
-  ];
+  const [data, mediaPages] = await Promise.all([
+    getSitemapEntries().catch(() => null),
+    publishedMediaPages(),
+  ]);
+  return buildSitemap({ pages: [...STATIC_PAGES, ...mediaPages, ...HELP_PAGES], data });
 }

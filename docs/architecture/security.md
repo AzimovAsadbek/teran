@@ -213,9 +213,11 @@ is disabled in the production Compose file and Nginx does not route it (only `/a
   checks, stored files and CORS preflights are logged only when they fail.
 - Nginx's access log (`teran_access` format) records the path without its query string and no
   `Referer`, so tokens in links never reach the disk.
-- Pages whose URL carries a token (order status, password reset, newsletter unsubscribe) are
-  `noindex, nofollow` and send no referrer; account, cart, checkout, search and admin pages are
-  `noindex` and disallowed in `robots.txt`.
+- Pages whose URL carries a token (order status, payments, password reset, newsletter
+  unsubscribe) are `noindex, nofollow` and send no referrer; account, cart, checkout, search and
+  admin pages are `noindex` and disallowed in `robots.txt`; API answers carry
+  `X-Robots-Tag: noindex, nofollow`. A staging, local or demonstration build is `noindex`
+  throughout ([SEO architecture](seo.md)).
 - The `next` parameter after sign-in only accepts same-site paths (`apps/web/src/lib/safe-next.ts`).
 - CSV exports prefix cells starting with `=`, `+`, `-`, `@`, tab or carriage return so spreadsheets
   do not execute them (`apps/api/src/admin/admin-support.ts`).

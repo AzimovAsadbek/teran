@@ -19,8 +19,9 @@ import {
 import { SupportRow } from '@/components/content/support-row';
 import { HelpSearch } from '@/components/help/help-search';
 import { HelpShell } from '@/components/help/help-shell';
+import { JsonLd } from '@/components/seo/json-ld';
 import { helpCentre } from '@/content/pages/faq';
-import { jsonLd, pageMetadata } from '@/lib/seo';
+import { faqSchema, pageMetadata } from '@/lib/seo';
 
 export function generateStaticParams() {
   return helpCentre('en', false).flatMap((category) =>
@@ -66,17 +67,9 @@ async function HelpArticleView({
   if (!category || !article) notFound();
   const t = await getTranslations('Help');
   const [search, labels] = await Promise.all([searchProps(locale), shellLabels()]);
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: article.question,
-        acceptedAnswer: { '@type': 'Answer', text: plainText(article.answer) },
-      },
-    ],
-  };
+  const structuredData = faqSchema([
+    { question: article.question, answer: plainText(article.answer) },
+  ]);
 
   return (
     <>
@@ -111,7 +104,7 @@ async function HelpArticleView({
           </div>
         </article>
       </HelpShell>
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
+      <JsonLd data={structuredData} />
     </>
   );
 }

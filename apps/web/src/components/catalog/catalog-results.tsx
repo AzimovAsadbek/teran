@@ -12,6 +12,7 @@ import {
   parseCatalogFilters,
   toApiQuery,
   toSearchParams,
+  type CatalogFilters,
   type RawSearchParams,
 } from '@/features/catalog/query';
 import { FilterBar } from './filter-bar';
@@ -25,6 +26,25 @@ import { ProductCard } from './product-card';
 
 const PAGE_SIZE = 24;
 
+/** What a listing lists: everything, a category, a collection or a search's results. */
+type ListingScope = { category?: string; collection?: string; q?: string };
+
+/**
+ * Whether a listing's page number lies past its last page (an old link, a category that emptied):
+ * that page shows no products and is not indexed. Reads the same cached list as the page itself.
+ */
+export async function pastLastPage(
+  locale: Locale,
+  filters: CatalogFilters,
+  scope: ListingScope,
+): Promise<boolean> {
+  if (filters.page <= 1) return false;
+  const list = await getProductList(locale, toApiQuery(filters, scope, PAGE_SIZE)).catch(
+    () => null,
+  );
+  return list !== null && filters.page > list.totalPages;
+}
+
 /** Filter bar, product grid and pagination for any listing (all teas, category, collection, search). */
 export async function CatalogResults({
   basePath,
@@ -33,7 +53,7 @@ export async function CatalogResults({
   shelves = false,
 }: {
   basePath: string;
-  scope: { category?: string; collection?: string; q?: string };
+  scope: ListingScope;
   searchParams: Promise<RawSearchParams>;
   /** The whole catalogue: unfiltered, on its first page, its families as shelves. */
   shelves?: boolean;

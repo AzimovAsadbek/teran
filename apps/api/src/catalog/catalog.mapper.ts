@@ -16,7 +16,7 @@ import {
   type VariantDto,
 } from '@teran/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
-import { localeChain, pickTranslation } from '../common/i18n.js';
+import { localeChain, pickTranslation, translatedLocales } from '../common/i18n.js';
 import { toMoney, toMoneyOrNull } from '../common/money.js';
 import {
   PRODUCT_FILM_CARD_FILE,
@@ -91,6 +91,8 @@ export function detailInclude(locale: Locale) {
   const labels = { where: { locale: { in: chain } } };
   return {
     ...summaryInclude(locale),
+    // Every language's row (at most three): the page states which versions exist (hreflang).
+    translations: true,
     images: { orderBy: { position: 'asc' }, include: { translations: { where: { locale } } } },
     productType: { include: { translations: labels } },
     attributeValues: {
@@ -402,5 +404,6 @@ export function toProductDetail(
     seoTitle: translation?.seoTitle ?? null,
     seoDescription: translation?.seoDescription ?? null,
     updatedAt: product.updatedAt.toISOString(),
+    locales: translatedLocales(product.translations),
   };
 }

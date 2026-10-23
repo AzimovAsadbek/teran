@@ -41,14 +41,22 @@ export async function mediaKindMetadata(
   locale: Locale,
   searchParams: Promise<RawSearchParams>,
 ): Promise<Metadata> {
-  const t = await getTranslations({ locale, namespace: 'Media' });
   const page = pageNumber((await searchParams).page);
+  const [t, tc, media] = await Promise.all([
+    getTranslations({ locale, namespace: 'Media' }),
+    getTranslations({ locale, namespace: 'Common' }),
+    // The same cached page the list reads.
+    getMedia(locale, { kind: KIND_OF_PAGE[key], page, pageSize: PAGE_SIZE[key] }).catch(() => null),
+  ]);
   return pageMetadata({
     title: t(`${key}MetaTitle`),
     description: t(`${key}MetaDescription`),
     href: MEDIA_PATHS[key],
     locale,
-    query: page > 1 ? `page=${page}` : '',
+    pagination: { page, label: tc('pageN', { page }) },
+    // Nothing of this kind published yet, or a page past the last: not offered to search engines
+    // (and out of the sitemap, app/sitemap.ts).
+    noIndex: media !== null && media.items.length === 0,
   });
 }
 

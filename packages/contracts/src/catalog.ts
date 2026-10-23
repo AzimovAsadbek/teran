@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { localeSchema, moneySchema, slugSchema } from './common.js';
+import { localeSchema, moneySchema, slugSchema, translatedLocalesSchema } from './common.js';
 import { CAFFEINE_LEVELS, PRODUCT_FORMATS, PRODUCT_SORTS } from './constants.js';
 
 export const productFormatSchema = z.enum(PRODUCT_FORMATS);
@@ -330,6 +330,7 @@ export const productDetailSchema = productSummarySchema.extend({
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
   updatedAt: z.string(),
+  locales: translatedLocalesSchema,
 });
 export type ProductDetailDto = z.infer<typeof productDetailSchema>;
 
@@ -349,6 +350,7 @@ export const collectionSchema = z.object({
   productCount: z.number().int(),
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
+  locales: translatedLocalesSchema,
 });
 export type CollectionDto = z.infer<typeof collectionSchema>;
 
@@ -422,11 +424,17 @@ export const searchSuggestionsSchema = z.object({
 });
 export type SearchSuggestionsDto = z.infer<typeof searchSuggestionsSchema>;
 
-/** Minimal data for sitemap generation. */
+const sitemapEntrySchema = z.object({
+  slug: z.string(),
+  updatedAt: z.string(),
+  locales: translatedLocalesSchema,
+});
+
+/** Minimal data for sitemap generation: every public page's slug, last change and languages. */
 export const sitemapEntriesSchema = z.object({
-  products: z.array(z.object({ slug: z.string(), updatedAt: z.string() })),
-  categories: z.array(z.object({ slug: z.string(), path: z.string(), updatedAt: z.string() })),
-  collections: z.array(z.object({ slug: z.string(), updatedAt: z.string() })),
-  articles: z.array(z.object({ slug: z.string(), updatedAt: z.string() })),
+  products: z.array(sitemapEntrySchema),
+  categories: z.array(sitemapEntrySchema.extend({ path: z.string() })),
+  collections: z.array(sitemapEntrySchema),
+  articles: z.array(sitemapEntrySchema),
 });
 export type SitemapEntriesDto = z.infer<typeof sitemapEntriesSchema>;

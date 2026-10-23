@@ -1,4 +1,14 @@
-import { DEFAULT_LOCALE, type Locale } from '@teran/contracts';
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '@teran/contracts';
+
+/**
+ * The languages an item has its own translation row in, in the site's order (uz, ru, en). The
+ * storefront offers only these versions to search engines; the others show the Uzbek text.
+ */
+export function translatedLocales(translations: readonly { locale: string }[]): Locale[] {
+  return LOCALES.filter((locale) =>
+    translations.some((translation) => translation.locale === locale),
+  );
+}
 
 /** Locales to load for a request: the requested one plus the default (Uzbek) as fallback. */
 export function localeChain(locale: Locale): Locale[] {

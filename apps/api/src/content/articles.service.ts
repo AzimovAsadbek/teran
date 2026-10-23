@@ -9,7 +9,7 @@ import {
 } from '@teran/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
 import { ApiException } from '../common/errors/api-exception.js';
-import { localeChain, pickTranslation } from '../common/i18n.js';
+import { localeChain, pickTranslation, translatedLocales } from '../common/i18n.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { asIllustrationKey, PUBLIC_UPLOADS_PATH } from '../catalog/catalog.mapper.js';
 import { toMediaItem, VISIBLE_MEDIA_WHERE } from './media.service.js';
@@ -91,7 +91,8 @@ export class ArticlesService {
     const article = await this.prisma.article.findFirst({
       where,
       include: {
-        translations: { where: locales },
+        // Every language's row (at most three): the page states which versions exist (hreflang).
+        translations: true,
         // Gallery items go with the article only while they are published themselves.
         media: {
           where: { mediaItem: VISIBLE_MEDIA_WHERE },
@@ -114,6 +115,7 @@ export class ArticlesService {
       seoTitle: translation.seoTitle,
       seoDescription: translation.seoDescription,
       updatedAt: article.updatedAt.toISOString(),
+      locales: translatedLocales(article.translations),
       media: article.media.flatMap(({ mediaItem }) => {
         const item = toMediaItem(mediaItem, locale);
         return item ? [item] : [];

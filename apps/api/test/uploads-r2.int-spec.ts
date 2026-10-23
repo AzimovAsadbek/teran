@@ -40,6 +40,8 @@ describe('/uploads with the files in R2', () => {
     writeFileSync(join(local, 'note.txt'), 'kept on the volume');
     const kept = await request(server()).get('/uploads/legacy/kept/note.txt').expect(200);
     expect(kept.text).toBe('kept on the volume');
+    // Stored pictures may appear in image search; only the API's answers are noindex.
+    expect(kept.headers['x-robots-tag']).toBeUndefined();
 
     // Only a stored file's address is sent on: not a bare name, not an encoded `..`, not a POST.
     await request(server()).get(`/uploads/${key}/no-extension`).expect(404);

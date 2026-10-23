@@ -4,7 +4,8 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { routing } from '@/i18n/routing';
-import { isDemoContent, ogLocales, siteUrl } from '@/lib/site';
+import { DEFAULT_OG_IMAGE, defaultRobots, searchIndexing } from '@/lib/seo';
+import { ogLocales, siteUrl } from '@/lib/site';
 import { fontVariables } from '@/styles/fonts';
 import '@/styles/globals.css';
 
@@ -26,12 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: 'TERAN',
       type: 'website',
       locale: ogLocales[locale],
-      images: [{ url: '/brand/og-default.png', width: 1200, height: 630, alt: 'TERAN' }],
+      images: [DEFAULT_OG_IMAGE],
     },
     twitter: { card: 'summary_large_image' },
     formatDetection: { telephone: false, address: false, email: false },
-    // Placeholder products and prices must never appear in search results.
-    ...(isDemoContent ? { robots: { index: false, follow: true } } : {}),
+    // Only the real shop on its public address is indexed (demonstration content, staging and
+    // local builds are not); pages can only narrow this.
+    robots: defaultRobots(searchIndexing),
   };
 }
 

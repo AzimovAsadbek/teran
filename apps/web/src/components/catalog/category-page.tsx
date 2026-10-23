@@ -18,7 +18,7 @@ import { coverShareImage, pageMetadata } from '@/lib/seo';
 import { Breadcrumbs } from './breadcrumbs';
 import { wholesalePage } from '@/content/pages/wholesale';
 import { BusinessLine } from './business-line';
-import { CatalogResults, CatalogResultsSkeleton } from './catalog-results';
+import { CatalogResults, CatalogResultsSkeleton, pastLastPage } from './catalog-results';
 import { productFamily } from './product-family';
 import {
   CategoryChipRow,
@@ -49,16 +49,19 @@ export async function categoryMetadata(
     );
   }
   const { category } = page;
-  const tc = await getTranslations({ locale, namespace: 'Common' });
-  const title = category.seoTitle ?? category.name;
+  const [tc, pastEnd] = await Promise.all([
+    getTranslations({ locale, namespace: 'Common' }),
+    pastLastPage(locale, filters, { category: category.slug }),
+  ]);
   return pageMetadata({
-    title: filters.page > 1 ? `${title} — ${tc('pageN', { page: filters.page })}` : title,
+    title: category.seoTitle ?? category.name,
     description: category.seoDescription ?? category.description ?? undefined,
     href: `/${category.path}`,
-    query: filters.page > 1 ? `page=${filters.page}` : '',
+    pagination: { page: filters.page, label: tc('pageN', { page: filters.page }) },
     locale,
+    locales: category.locales,
     // A category without products yet ("coming soon") is not offered to search engines.
-    noIndex: hasRefinements(filters) || category.productCount === 0,
+    noIndex: hasRefinements(filters) || category.productCount === 0 || pastEnd,
     image: coverShareImage(category.image),
   });
 }

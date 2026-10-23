@@ -5,7 +5,11 @@ import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
-import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/catalog-results';
+import {
+  CatalogResults,
+  CatalogResultsSkeleton,
+  pastLastPage,
+} from '@/components/catalog/catalog-results';
 import {
   CategoryChipsFallback,
   CategoryChipsLoader,
@@ -26,15 +30,12 @@ export async function generateMetadata({
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const filters = parseCatalogFilters(await searchParams);
   return pageMetadata({
-    title:
-      filters.page > 1
-        ? `${t('metaTitle')} — ${tc('pageN', { page: filters.page })}`
-        : t('metaTitle'),
+    title: t('metaTitle'),
     description: showPrices ? t('shopAllDescription') : t('metaDescription'),
     href: '/catalog',
-    query: filters.page > 1 ? `page=${filters.page}` : '',
+    pagination: { page: filters.page, label: tc('pageN', { page: filters.page }) },
     locale,
-    noIndex: hasRefinements(filters),
+    noIndex: hasRefinements(filters) || (await pastLastPage(locale, filters, {})),
   });
 }
 

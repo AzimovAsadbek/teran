@@ -27,6 +27,7 @@ function category(
     path: parentSlug ? `${parentSlug}/${slug}` : slug,
     body: null,
     position: 0,
+    locales: ['uz', 'ru', 'en'],
   };
 }
 
@@ -41,6 +42,7 @@ function collection(slug: string, productCount: number): CollectionDto {
     productCount,
     seoTitle: null,
     seoDescription: null,
+    locales: ['uz', 'ru', 'en'],
   };
 }
 

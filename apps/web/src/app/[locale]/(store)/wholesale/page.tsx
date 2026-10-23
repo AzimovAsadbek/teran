@@ -13,13 +13,14 @@ import { BusinessTypeFromLink } from '@/components/forms/business-type-link';
 import { WholesaleForm } from '@/components/forms/wholesale-form';
 import { BusinessIndex } from '@/components/home/business-index';
 import { businessCases } from '@/components/home/business-section';
+import { JsonLd } from '@/components/seo/json-ld';
 import { SocialIcon } from '@/components/social/social-icon';
 import { BRAND, PACK_COLOURS, teaHref, type TeaCode } from '@/content/brand';
 import { wholesalePage } from '@/content/pages/wholesale';
 import { Link } from '@/i18n/navigation';
 import { emailLinks, phoneLinks, socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
-import { jsonLd, pageMetadata } from '@/lib/seo';
+import { faqSchema, pageMetadata } from '@/lib/seo';
 import pack8009 from '../../../../../public/brand/packs/8009.webp';
 import pack8800 from '../../../../../public/brand/packs/8800.webp';
 import pack8830 from '../../../../../public/brand/packs/8830.webp';
@@ -144,18 +145,13 @@ export default async function WholesalePage() {
   const landing = page.landing;
   const packByCode = new Map(PACKS.map((pack) => [pack.code, pack]));
 
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: page.faq.items.map((item) => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answer.filter((block) => typeof block === 'string').join(' '),
-      },
+  // The questions answered on the page, with the text of their answers.
+  const structuredData = faqSchema(
+    page.faq.items.map((item) => ({
+      question: item.question,
+      answer: item.answer.filter((block) => typeof block === 'string').join(' '),
     })),
-  };
+  );
 
   return (
     <>
@@ -393,7 +389,7 @@ export default async function WholesalePage() {
           </div>
         </div>
       </section>
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
+      <JsonLd data={structuredData} />
     </>
   );
 }

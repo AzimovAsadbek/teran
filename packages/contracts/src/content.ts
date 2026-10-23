@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { localeSchema } from './common.js';
+import { localeSchema, translatedLocalesSchema } from './common.js';
 import { illustrationKeySchema, imageSchema, videoTypeSchema } from './catalog.js';
 
 const localizedText = (max: number) =>
@@ -416,6 +416,7 @@ export const articleDetailSchema = articleSummarySchema.extend({
   seoDescription: z.string().nullable(),
   updatedAt: z.string(),
   media: z.array(mediaItemSchema).default([]),
+  locales: translatedLocalesSchema,
 });
 export type ArticleDetailDto = z.infer<typeof articleDetailSchema>;
 

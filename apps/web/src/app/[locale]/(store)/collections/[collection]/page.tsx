@@ -5,7 +5,11 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/catalog/breadcrumbs';
-import { CatalogResults, CatalogResultsSkeleton } from '@/components/catalog/catalog-results';
+import {
+  CatalogResults,
+  CatalogResultsSkeleton,
+  pastLastPage,
+} from '@/components/catalog/catalog-results';
 import {
   ListingHeader,
   ListingHeaderSkeleton,
@@ -39,14 +43,19 @@ export async function generateMetadata({
     notFound();
   }
   const filters = parseCatalogFilters(await searchParams);
+  const [tc, pastEnd] = await Promise.all([
+    getTranslations({ locale, namespace: 'Common' }),
+    pastLastPage(locale, filters, { collection: collection.slug }),
+  ]);
   return pageMetadata({
     title: collection.seoTitle ?? collection.name,
     description: collection.seoDescription ?? collection.description ?? undefined,
     href: `/collections/${collection.slug}`,
-    query: filters.page > 1 ? `page=${filters.page}` : '',
+    pagination: { page: filters.page, label: tc('pageN', { page: filters.page }) },
     locale,
+    locales: collection.locales,
     // A collection without products yet ("coming soon") is not offered to search engines.
-    noIndex: hasRefinements(filters) || collection.productCount === 0,
+    noIndex: hasRefinements(filters) || collection.productCount === 0 || pastEnd,
     image: coverShareImage(collection.image),
   });
 }

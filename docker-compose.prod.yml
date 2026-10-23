@@ -160,6 +160,7 @@ services:
         NEXT_PUBLIC_SITE_URL: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN, e.g. https://teran.example}
         NEXT_PUBLIC_ENABLED_LOCALES: ${ENABLED_LOCALES:-uz,ru,en}
         NEXT_PUBLIC_DEMO_CONTENT: ${DEMO_CONTENT:-true}
+        NEXT_PUBLIC_SEARCH_INDEXING: ${SEARCH_INDEXING:-auto}
         NEXT_PUBLIC_SHOW_PRICES: ${SHOW_PRICES:-false}
         # The bucket's public address, allowed in the content security policy for pictures and films.
         UPLOADS_ORIGIN: ${R2_PUBLIC_URL:-}

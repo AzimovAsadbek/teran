@@ -4,6 +4,13 @@ import { LOCALES } from './constants.js';
 export const localeSchema = z.enum(LOCALES);
 
 /**
+ * The languages an item has its own text in: Uzbek always, Russian and English once entered (they
+ * are optional in the admin area). In any other language the storefront shows the Uzbek text, so
+ * only these versions are offered to search engines (hreflang, sitemap).
+ */
+export const translatedLocalesSchema = z.array(localeSchema);
+
+/**
  * Monetary amounts travel as exact decimal strings ("85000.00"), never as floating-point numbers.
  * The API produces them from PostgreSQL NUMERIC values.
  */

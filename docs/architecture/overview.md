@@ -83,12 +83,15 @@ Every page exists in each enabled language: Uzbek without a prefix, `/ru/...` an
 
 ### SEO
 
-Per-page titles and descriptions, canonical URLs, `hreflang` alternates with `x-default`, Open
-Graph images, a sitemap of every public page per language, and JSON-LD: `Organization` and
-`WebSite` (home), `BreadcrumbList`, `Product` with offers per pack size and, once customers have
-rated it, `aggregateRating` and the reviews on the page ([ADR-042](./decisions.md)), `Article`,
-and `FAQPage`. Private pages are `noindex` and disallowed in `robots.txt`. In demonstration mode
-the whole site is `noindex` ([ADR-012](./decisions.md)).
+Per-page titles and descriptions, canonical URLs, `hreflang` alternates with `x-default` for the
+languages each page is written in, Open Graph images, a sitemap of every public page per
+language, and JSON-LD: `OnlineStore` and `WebSite` (home), `BreadcrumbList`, `Product` (offers
+per pack size once prices are shown; once customers have rated it, `aggregateRating` and the
+reviews on the page, [ADR-042](./decisions.md)), `Article`, and `FAQPage`. Private pages are
+`noindex` and disallowed in `robots.txt`. A build is indexed only on its public https address
+without demonstration content ([ADR-060](./decisions.md)); everything else (demonstration mode,
+staging, local) is `noindex` throughout. Modules, rules and tests:
+[SEO architecture](./seo.md).
 
 Pages whose metadata depends on data stream it after the shell for browsers and for crawlers
 that render JavaScript (Googlebot). Crawlers and link-preview bots that read only HTML — Yandex,

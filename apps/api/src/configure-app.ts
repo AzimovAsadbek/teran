@@ -65,6 +65,12 @@ export function configureApp(app: NestExpressApplication): void {
       ? docsHelmet(request, response, next)
       : apiHelmet(request, response, next),
   );
+  // Search engines index the storefront's pages, never the API's answers; the stored pictures
+  // under /uploads stay indexable.
+  app.use(`/${API_PREFIX}`, (_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    next();
+  });
 
   app.enableCors({
     origin: allowedOrigins,

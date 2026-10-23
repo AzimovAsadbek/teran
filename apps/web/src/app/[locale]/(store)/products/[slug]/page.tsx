@@ -27,6 +27,7 @@ import {
 import { PurchasePanel } from '@/components/product/purchase-panel';
 import { RecentlyViewed } from '@/components/product/recently-viewed';
 import { formatAverage, ReviewsSection } from '@/components/product/reviews-section';
+import { JsonLd } from '@/components/seo/json-ld';
 import { DemoNotice } from '@/components/ui/demo-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PACK_COLOURS, teaCodeOf } from '@/content/brand';
@@ -37,17 +38,10 @@ import { getCheckoutOptions } from '@/lib/data/content';
 import { getProductReviews } from '@/lib/data/reviews';
 import { brewingMeasures } from '@/lib/brewing';
 import { namesFormat } from '@/lib/format';
-import { jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
+import { coverShareImage, pageMetadata, productSchema } from '@/lib/seo';
 import { ShareButton } from '@/components/product/share-button';
 import { packLabel } from '@/lib/format';
-import { absoluteUrl, showPrices } from '@/lib/site';
-
-function largestImageUrl(product: ProductDetailDto): string | null {
-  const image = product.images[0];
-  if (!image) return null;
-  const width = image.widths.includes(1280) ? 1280 : image.widths[image.widths.length - 1];
-  return absoluteUrl(`${image.src}/${width}.webp`);
-}
+import { showPrices } from '@/lib/site';
 
 export async function generateMetadata({
   params,
@@ -66,9 +60,9 @@ export async function generateMetadata({
     if (current) permanentRedirect(getPathname({ href: `/products/${current}`, locale }));
     notFound();
   }
-  const image = largestImageUrl(product);
   const title = product.seoTitle ?? product.name;
   const pack = product.variants.length === 1 ? product.variants[0]?.weightGrams : null;
+  const image = coverShareImage(product.images[0]);
   return pageMetadata({
     // "TERAN G8810 — Yashil choy, 400 g": a name that carries the brand needs no "— TERAN".
     title: /teran/i.test(title)
@@ -77,15 +71,10 @@ export async function generateMetadata({
     description: product.seoDescription ?? product.shortDescription ?? undefined,
     href: `/products/${product.slug}`,
     locale,
-    images: image ? [{ url: image, alt: product.name }] : undefined,
+    locales: product.locales,
+    image: image ? { ...image, alt: product.name } : undefined,
   });
 }
-
-const AVAILABILITY = {
-  in_stock: 'https://schema.org/InStock',
-  low_stock: 'https://schema.org/LimitedAvailability',
-  out_of_stock: 'https://schema.org/OutOfStock',
-} as const;
 
 async function ProductView({
   params,
@@ -138,55 +127,15 @@ async function ProductView({
     product.variants[0];
   if (!initialVariant) notFound();
 
-  const productUrl = localizedUrl(`/products/${product.slug}`, locale);
   const rating = product.rating;
   // Mirrors exactly what the page shows: the customers' average and the reviews on the page.
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    '@id': `${productUrl}#product`,
-    url: productUrl,
-    name: product.name,
-    description: product.shortDescription ?? product.description ?? undefined,
-    image: product.images.map((image) =>
-      absoluteUrl(`${image.src}/${image.widths[image.widths.length - 1]}.webp`),
-    ),
-    sku: initialVariant.sku,
-    ...(initialVariant.barcode ? { gtin13: initialVariant.barcode } : {}),
-    brand: { '@type': 'Brand', name: 'TERAN' },
-    category: product.category.name,
-    ...(rating
-      ? {
-          aggregateRating: {
-            '@type': 'AggregateRating',
-            ratingValue: rating.average,
-            ratingCount: rating.count,
-            bestRating: 5,
-            worstRating: 1,
-          },
-          review: reviews?.items.map((review) => ({
-            '@type': 'Review',
-            author: { '@type': 'Person', name: review.authorName },
-            datePublished: review.createdAt.slice(0, 10),
-            ...(review.comment ? { reviewBody: review.comment } : {}),
-            reviewRating: { '@type': 'Rating', ratingValue: review.rating, bestRating: 5 },
-          })),
-        }
-      : {}),
-    // No offer (it would publish the price) while the shop shows no prices.
-    offers: !showPrices
-      ? undefined
-      : product.variants.map((variant) => ({
-          '@type': 'Offer',
-          sku: variant.sku,
-          ...(variant.barcode ? { gtin13: variant.barcode } : {}),
-          price: variant.price,
-          priceCurrency: variant.currency,
-          availability: AVAILABILITY[variant.stockLevel],
-          url: `${productUrl}?variant=${encodeURIComponent(variant.sku)}`,
-          itemCondition: 'https://schema.org/NewCondition',
-        })),
-  };
+  const structuredData = productSchema({
+    product,
+    locale,
+    variant: initialVariant,
+    reviews: reviews?.items ?? null,
+    withOffers: showPrices,
+  });
 
   const th = await getTranslations('Home');
   const tn = await getTranslations('Nav');
@@ -426,7 +375,7 @@ async function ProductView({
         labels={railLabels}
         frame="content"
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
+      <JsonLd data={structuredData} />
     </>
   );
 }

@@ -18,7 +18,7 @@ import {
 } from '@teran/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
 import { ApiException } from '../common/errors/api-exception.js';
-import { localeChain, pickTranslation } from '../common/i18n.js';
+import { localeChain, pickTranslation, translatedLocales } from '../common/i18n.js';
 import { toMoney } from '../common/money.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -81,10 +81,8 @@ export class CatalogService {
       this.prisma.category.findMany({
         where: PUBLIC_CATEGORY_WHERE,
         orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          translations: { where: { locale: { in: localeChain(locale) } } },
-          parent: { select: { slug: true } },
-        },
+        // Every language's row (a few dozen in all): each category states its versions.
+        include: { translations: true, parent: { select: { slug: true } } },
       }),
       this.visibleProductCounts(),
     ]);
@@ -135,15 +133,11 @@ export class CatalogService {
     if (currentPath !== path) return { type: 'redirect', path: currentPath };
 
     const topId = category.parent?.id ?? category.id;
-    const chain = localeChain(locale);
     const [family, counts] = await Promise.all([
       this.prisma.category.findMany({
         where: { AND: [PUBLIC_CATEGORY_WHERE, { OR: [{ id: topId }, { parentId: topId }] }] },
         orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          translations: { where: { locale: { in: chain } } },
-          parent: { select: { slug: true } },
-        },
+        include: { translations: true, parent: { select: { slug: true } } },
       }),
       this.visibleProductCounts(),
     ]);
@@ -181,7 +175,8 @@ export class CatalogService {
       where: { isActive: true },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       include: {
-        translations: { where: { locale: { in: localeChain(locale) } } },
+        // Every language's row: each collection states its versions.
+        translations: true,
         _count: { select: { products: { where: { product: visibleProductWhere() } } } },
       },
     });
@@ -200,6 +195,7 @@ export class CatalogService {
         productCount: collection._count.products,
         seoTitle: translation?.seoTitle ?? null,
         seoDescription: translation?.seoDescription ?? null,
+        locales: translatedLocales(collection.translations),
       };
     });
   }
@@ -411,29 +407,36 @@ export class CatalogService {
   }
 
   async sitemapEntries(): Promise<SitemapEntriesDto> {
+    // The languages each page has its own text in: only those versions go into the sitemap.
+    const languages = { translations: { select: { locale: true } } } as const;
     const [products, categories, collections, articles] = await Promise.all([
       this.prisma.product.findMany({
         where: visibleProductWhere(),
-        select: { slug: true, updatedAt: true },
+        select: { slug: true, updatedAt: true, ...languages },
         orderBy: { slug: 'asc' },
       }),
       // Categories and collections with products only: an empty one is a "coming soon" page.
       this.prisma.category.findMany({
         where: { AND: [PUBLIC_CATEGORY_WHERE, stockedCategoryWhere()] },
-        select: { slug: true, updatedAt: true, parent: { select: { slug: true } } },
+        select: { slug: true, updatedAt: true, parent: { select: { slug: true } }, ...languages },
       }),
       this.prisma.collection.findMany({
         where: { isActive: true, products: { some: { product: visibleProductWhere() } } },
-        select: { slug: true, updatedAt: true },
+        select: { slug: true, updatedAt: true, ...languages },
       }),
       this.prisma.article.findMany({
         where: { status: 'PUBLISHED', publishedAt: { lte: new Date() } },
-        select: { slug: true, updatedAt: true },
+        select: { slug: true, updatedAt: true, ...languages },
       }),
     ]);
-    const toEntry = (entry: { slug: string; updatedAt: Date }) => ({
+    const toEntry = (entry: {
+      slug: string;
+      updatedAt: Date;
+      translations: { locale: string }[];
+    }) => ({
       slug: entry.slug,
       updatedAt: entry.updatedAt.toISOString(),
+      locales: translatedLocales(entry.translations),
     });
     return {
       products: products.map(toEntry),
@@ -602,6 +605,7 @@ export class CatalogService {
       body: translation?.body ?? null,
       position: category.position,
       image: coverImageDto(category, translation?.imageAlt ?? translation?.name ?? category.slug),
+      locales: translatedLocales(category.translations),
     };
   }
 

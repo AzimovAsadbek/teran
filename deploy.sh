@@ -614,6 +614,13 @@ validate_env() {
         ;;
     esac
   done
+  case "$(env_value SEARCH_INDEXING)" in
+    '' | auto | on | off) ;;
+    *)
+      fail "SEARCH_INDEXING auto, on yoki off bo'lishi kerak (ADR-060)."
+      problems=$((problems + 1))
+      ;;
+  esac
   if [ "$(env_value SHOW_PRICES)" = "true" ]; then flag="true"; else flag="false"; fi
   if [ "$(env_value CHECKOUT_ENABLED)" = "true" ]; then value="true"; else value="false"; fi
   if [ "$flag" != "$value" ]; then
@@ -1193,6 +1200,13 @@ smoke_checks() {
     die "Bosh sahifa: HTTP $HTTP_CODE."
   }
   ok "Frontend: http://127.0.0.1:$WEB_PORT/ (bosh sahifa) -> 200"
+  # Whether search engines may index this build (ADR-060): reported, never a failure.
+  http_get "http://127.0.0.1:$WEB_PORT/robots.txt"
+  if [ "$HTTP_CODE" = "200" ] && grep -q '^Sitemap:' <<<"$HTTP_BODY"; then
+    ok "Frontend: /robots.txt -> qidiruv tizimlari uchun ochiq"
+  else
+    warn "Frontend: /robots.txt saytni qidiruv tizimlaridan yopadi (DEMO_CONTENT, SEARCH_INDEXING=off yoki staging/localhost PUBLIC_ORIGIN; ADR-060)."
+  fi
 }
 
 # Before the first successful deployment, the manual Compose commands (`--env-file .deploy.env`)

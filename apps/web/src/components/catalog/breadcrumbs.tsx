@@ -1,13 +1,8 @@
 import type { Locale } from '@teran/contracts';
 import { getTranslations } from 'next-intl/server';
+import { JsonLd } from '@/components/seo/json-ld';
 import { Link } from '@/i18n/navigation';
-import { jsonLd, localizedUrl } from '@/lib/seo';
-
-export interface Crumb {
-  label: string;
-  /** Path without locale prefix; omit for the current page. */
-  href?: string;
-}
+import { breadcrumbSchema, type Crumb } from '@/lib/seo';
 
 /**
  * Visible breadcrumb trail plus matching BreadcrumbList structured data, as the reference sets it:
@@ -16,20 +11,6 @@ export interface Crumb {
 export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: Locale }) {
   const t = await getTranslations('Common');
   const trail: Crumb[] = [{ label: t('home'), href: '/' }, ...items];
-
-  // Search engines need an address for every step but the last, so a step without a page of its
-  // own (the collections heading) stays out of the structured data.
-  const linked = trail.filter((crumb, index) => crumb.href || index === trail.length - 1);
-  const structured = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: linked.map((crumb, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: crumb.label,
-      ...(crumb.href ? { item: localizedUrl(crumb.href, locale) } : {}),
-    })),
-  };
 
   return (
     <nav aria-label={t('breadcrumbs')} className="text-[0.875rem] leading-[1.5]">
@@ -52,7 +33,7 @@ export async function Breadcrumbs({ items, locale }: { items: Crumb[]; locale: L
           </li>
         ))}
       </ol>
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structured)} />
+      <JsonLd data={breadcrumbSchema(trail, locale)} />
     </nav>
   );
 }

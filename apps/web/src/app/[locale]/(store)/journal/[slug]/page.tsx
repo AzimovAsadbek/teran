@@ -8,14 +8,13 @@ import { Suspense } from 'react';
 import { ArticleCard } from '@/components/content/article-card';
 import { ArticleContent } from '@/components/content/article-content';
 import { FurtherLinks } from '@/components/content/further-links';
+import { JsonLd } from '@/components/seo/json-ld';
 import { Skeleton } from '@/components/ui/skeleton';
 import { brandCopy, PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { getPathname } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { getArticle, getArticleRedirect, getArticles } from '@/lib/data/content';
-import { imageSources } from '@/lib/navigation';
-import { coverShareImage, jsonLd, localizedUrl, pageMetadata } from '@/lib/seo';
-import { absoluteUrl, siteUrl } from '@/lib/site';
+import { articleSchema, coverShareImage, pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata({
   params,
@@ -39,6 +38,7 @@ export async function generateMetadata({
     description: article.seoDescription ?? article.excerpt ?? undefined,
     href: `/journal/${article.slug}`,
     locale,
+    locales: article.locales,
     type: 'article',
     image: coverShareImage(article.cover),
   });
@@ -54,32 +54,12 @@ async function ArticleView({ params }: Pick<PageProps<'/[locale]/journal/[slug]'
     notFound();
   }
 
-  const url = localizedUrl(`/journal/${article.slug}`, locale);
-  // Authored by the brand: no individual author is invented.
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: article.title,
-    description: article.excerpt ?? undefined,
-    datePublished: article.publishedAt,
-    dateModified: article.updatedAt,
-    inLanguage: locale,
-    mainEntityOfPage: url,
-    ...(article.cover ? { image: absoluteUrl(imageSources(article.cover, 1280).src) } : {}),
-    author: { '@type': 'Organization', name: 'TERAN', url: siteUrl },
-    publisher: {
-      '@type': 'Organization',
-      name: 'TERAN',
-      logo: { '@type': 'ImageObject', url: `${siteUrl}/brand/teran-logo.png` },
-    },
-  };
-
   return (
     <>
       <article>
         <ArticleContent article={article} locale={locale} />
       </article>
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structuredData)} />
+      <JsonLd data={articleSchema({ article, locale })} />
       {/* Where to read on: two more articles, then Tea 101 and TERAN's five teas. */}
       <Suspense fallback={null}>
         <ReadNext current={article.slug} />

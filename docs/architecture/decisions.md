@@ -1627,3 +1627,55 @@ and for a short posted in the admin area to appear on the home page.
 the gallery. The server gets the change through its migrations when `deploy.sh` runs, its upright
 films becoming shorts as here. The end-to-end tests post a short from the Shorts tab and find it
 first in the home page's feed, and check that an upright file is refused as a film.
+
+## ADR-060: One indexing decision per build, language versions only where the text exists
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-23), from a technical SEO review. Amends ADR-007, ADR-012 and ADR-035. The whole design is
+described in [SEO architecture](seo.md).
+
+**Context.** The review found that whether a build could be indexed depended only on
+`NEXT_PUBLIC_DEMO_CONTENT`: a build on `http://localhost`, a staging host (the former
+`staging.terantrade.uz`, built with `DEMO_CONTENT=false`) or a hosting platform's preview address
+was indexable, with canonical addresses on that host. The API shows the Uzbek text where a Russian
+or English translation is missing (both are optional in the admin area), yet every page and the
+sitemap listed all three languages as versions of their own. Every product's structured data named
+the brand "TERAN", teapots, juices and chocolates included, and any 8–14 digit barcode was
+published as a `gtin13`. The organisation claimed sales support in three languages, which TERAN
+has not stated.
+
+**Decision.**
+
+- **One indexing decision** (`apps/web/src/lib/seo/indexing.ts`), made at build time and read by
+  the root layout's robots tag, `robots.txt` and an `X-Robots-Tag` header on every response
+  (`next.config.ts`). A build is indexed only when it has no demonstration content, its public
+  origin is https on a public host name (never localhost, an IP address or a reserved name), the
+  host is not a staging-like subdomain (`staging.`, `dev.`, `preview.`, `test.`, `qa.`, `uat.`,
+  `sandbox.`, `demo.`) or a hosting platform's address, and `NEXT_PUBLIC_SEARCH_INDEXING` is not
+  `off`. `on` overrides only the staging-host rule. The production stack passes `SEARCH_INDEXING`
+  (default `auto`); `deploy.sh` validates it and reports after each deployment whether
+  `robots.txt` lets search engines in.
+- **Language versions from the data.** The API states the languages each product, category,
+  collection, article and sitemap entry has its own text in (`locales`, from its translation rows).
+  `hreflang`, `x-default`, `og:locale:alternate` and the sitemap list only those versions; a page
+  showing the Uzbek fallback text is `noindex` without alternates. Static pages and the help centre
+  are written in every language.
+- **Structured data from builders** (`lib/seo/schema.ts`) that take only the page's own data, and
+  one serialiser (`lib/seo/json-ld.ts`) that also escapes `>`, `&`, U+2028 and U+2029. The brand
+  is stated only for products whose name carries it; a barcode becomes a `gtin` only with a valid
+  GS1 length and check digit; `availableLanguage` is gone; the website is described once for all
+  its languages; articles name TERAN by the organisation's `@id` and the language of the text they
+  show.
+- **Listings**: a page beyond the first carries its number in its title and canonical address; a
+  page past the last one, an empty gallery kind and (as before) filtered or sorted listings are
+  `noindex`; empty gallery kinds leave the sitemap. Titles that name TERAN get no second "— TERAN".
+  `robots.txt` also lists `/payments` and `/faq/search`; API answers carry
+  `X-Robots-Tag: noindex, nofollow` (stored pictures do not).
+
+**Consequences.** A copy of the site on a staging or local address can no longer compete with
+terantrade.uz in search results, and the production build stays indexable without a new setting:
+deployed with `PUBLIC_ORIGIN=https://staging.terantrade.uz` the site keeps search engines out;
+with `https://terantrade.uz` it lets them in. Product rich results still need offers, which wait
+for TERAN's prices (ADR-027). Unit tests cover the policy,
+URLs, metadata, sitemap, robots and structured data; `e2e/tests/seo.spec.ts` reads the production
+build as Googlebot does.

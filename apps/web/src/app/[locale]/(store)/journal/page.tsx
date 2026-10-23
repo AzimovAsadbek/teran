@@ -23,14 +23,20 @@ export async function generateMetadata({
   searchParams,
 }: PageProps<'/[locale]/journal'>): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
-  const t = await getTranslations({ locale, namespace: 'Pages' });
   const page = pageNumber((await searchParams).page);
+  const [t, tc, articles] = await Promise.all([
+    getTranslations({ locale, namespace: 'Pages' }),
+    getTranslations({ locale, namespace: 'Common' }),
+    // The same cached page the list reads: a page past the last one shows no articles.
+    page > 1 ? getArticles(locale, page, PAGE_SIZE).catch(() => null) : null,
+  ]);
   return pageMetadata({
     title: t('journalTitle'),
     description: t('journalMetaDescription'),
     href: '/journal',
     locale,
-    query: page > 1 ? `page=${page}` : '',
+    pagination: { page, label: tc('pageN', { page }) },
+    noIndex: articles !== null && articles.items.length === 0,
   });
 }
 

@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+// With its extension: Node.js loads this file and its imports as they are (native TypeScript).
+import { searchIndexing } from './src/lib/seo/indexing.ts';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -112,7 +114,17 @@ const nextConfig: NextConfig = {
     remotePatterns: [],
   },
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    // A build that may not be indexed (demonstration content, staging, local) says so on every
+    // response, pictures and files included; the real shop's pages carry their own robots tags
+    // (lib/seo/indexing.ts, ADR-060).
+    const robots = searchIndexing.indexable
+      ? []
+      : [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
+    return [
+      { source: '/:path*', headers: [...securityHeaders, ...robots] },
+      // The storefront's own routes (health, cache revalidation) are never search results.
+      { source: '/api/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+    ];
   },
   async redirects() {
     // The two TERAN codes renamed to what their packs say (2026-10-17). The page itself also

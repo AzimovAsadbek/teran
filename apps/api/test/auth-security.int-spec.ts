@@ -177,6 +177,8 @@ describe('authentication and HTTP security', () => {
     const response = await agent().get(`${API}/health/live`).expect(200);
     expect(response.headers['content-security-policy']).toContain("default-src 'none'");
     expect(response.headers['x-content-type-options']).toBe('nosniff');
+    // API answers are never search results.
+    expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
     expect(response.headers['x-powered-by']).toBeUndefined();
     expect(response.headers['x-request-id']).toBeTruthy();
 

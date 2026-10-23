@@ -91,6 +91,10 @@ const nextConfig: NextConfig = {
     // The rewrites below give up on the API after 30 s by default; the chat's AI assistant waits
     // up to 45 s for Gemini at busy times (ADR-055).
     proxyTimeout: 50_000,
+    // Requests through the rewrites are buffered, by default only up to 10 MB: a larger film sent
+    // from the admin area reached the API cut short and hung until the timeout. Films go up to
+    // 64 MB (MAX_VIDEO_UPLOAD_BYTES); 70 MB is the same allowance the server's Nginx gives them.
+    proxyClientMaxBodySize: '70mb',
   },
   turbopack: {
     rules: {

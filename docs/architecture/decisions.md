@@ -1568,7 +1568,9 @@ then publishing), and the admin menu called the gallery "Lavhalar".
   volume buttons; iOS does not let a page set the volume). The choice is kept for the tab's
   session (`sessionStorage`), so the next film sounds the same. A browser that refuses sound
   without a tap (Safari) gets the film muted and the speaker shown off; a tap on it brings the
-  sound. Silent films show no speaker. The home page's band stays muted.
+  sound. A silent film shows a "no sound" pill ("Ovozsiz", a crossed speaker) in the speaker's
+  place for as long as it is open, so nobody looks for its sound. The home page's band stays
+  muted.
 - **"Joylash" posts in one go** (`/admin/media/post`, `components/admin/media-composer.tsx`). The
   file comes first, chosen or dropped, and decides the kind. A film is previewed with its sound
   and its cover is a frame of it picked with a slider (taken in the browser as a JPEG); a
@@ -1584,6 +1586,9 @@ then publishing), and the admin menu called the gallery "Lavhalar".
 **Consequences.** Films with sound come from the owner's own footage (or edited exports): phone
 videos in MP4 or WebM up to 64 MB (the server's Nginx must accept 70 MB on the video route,
 docs/deployment/production.md). iPhone `.MOV` files are refused with a note to export them as MP4
-(CapCut, InShot): the API keeps refusing QuickTime, whose HEVC films not every browser plays. The
-end-to-end tests post a 2-second upright film with a tone (`e2e/tests/support/fixtures/reel.mp4`,
+(CapCut, InShot): the API keeps refusing QuickTime, whose HEVC films not every browser plays.
+Where uploads go through the storefront's rewrites (development, the end-to-end stack), Next.js
+buffered request bodies only up to 10 MB and a larger film reached the API cut short; its
+`proxyClientMaxBodySize` is raised to 70 MB like the server's Nginx. The end-to-end tests upload an
+11 MB film through the editor and post a 2-second upright film with a tone (`e2e/tests/support/fixtures/reel.mp4`,
 made by `e2e/scripts/make-test-reel.swift`) and a photograph through the composer.

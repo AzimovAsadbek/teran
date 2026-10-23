@@ -18,8 +18,11 @@ const TINY_PNG = Buffer.from(
   'base64',
 );
 
-/** An MP4 whose movie box (95 s) follows the media data; enough for the API's checks. */
-function mp4(seconds: number): Buffer {
+/**
+ * An MP4 whose movie box (95 s) follows the media data; enough for the API's checks. `mediaBytes`
+ * pads the media data (a film over 10 MB crosses the storefront's default request buffer).
+ */
+function mp4(seconds: number, mediaBytes = 64 * 1024): Buffer {
   const box = (type: string, content: Buffer) => {
     const header = Buffer.alloc(8);
     header.writeUInt32BE(content.length + 8, 0);
@@ -31,7 +34,7 @@ function mp4(seconds: number): Buffer {
   mvhd.writeUInt32BE(seconds * 1000, 16);
   return Buffer.concat([
     box('ftyp', Buffer.from('isom\0\0\x02\0isomiso2', 'latin1')),
-    box('mdat', Buffer.alloc(64 * 1024)),
+    box('mdat', Buffer.alloc(mediaBytes)),
     box('moov', box('mvhd', mvhd)),
   ]);
 }
@@ -318,11 +321,12 @@ test.describe('publishing workflow', () => {
     const status = field(page, 'Status');
     await expect(status.locator('option[value="PUBLISHED"]')).toBeDisabled();
 
-    // The video is played here before it is sent; its length is read from the file.
+    // The video is played here before it is sent; its length is read from the file. At 11 MB it
+    // is larger than the 10 MB the storefront's rewrites buffered by default: it must arrive whole.
     await page.locator('input[type="file"][accept^="video/"]').setInputFiles({
       name: 'garden.mp4',
       mimeType: 'video/mp4',
-      buffer: mp4(95),
+      buffer: mp4(95, 11 * 1024 * 1024),
     });
     await expect(visible(page.getByText('Not uploaded yet'))).toBeVisible();
     await expect(page.locator('#media-files video[src^="blob:"]')).toHaveCount(1);

@@ -362,6 +362,7 @@ async function updateEarlierFilm(
       videoKey: video.storageKey,
       videoType: video.type,
       videoBytes: video.bytes,
+      videoHasAudio: video.hasAudio,
       videoDurationSeconds: video.durationSeconds,
     },
   });
@@ -420,6 +421,7 @@ export async function seedMedia(
               videoKey: video.storageKey,
               videoType: video.type,
               videoBytes: video.bytes,
+              videoHasAudio: video.hasAudio,
               videoDurationSeconds: video.durationSeconds,
             }
           : {}),

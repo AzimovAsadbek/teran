@@ -37,6 +37,9 @@ export interface MediaLabels {
   resume: string;
   /** How to move on in the feed on a touch screen. */
   swipeHint: string;
+  mute: string;
+  unmute: string;
+  volume: string;
 }
 
 function duration(seconds: number | null): string | null {

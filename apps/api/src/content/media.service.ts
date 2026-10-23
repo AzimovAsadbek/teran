@@ -102,6 +102,7 @@ export function toMediaItem(row: MediaRow, locale: Locale): MediaItemDto | null 
             type: row.videoType,
             durationSeconds: row.videoDurationSeconds,
             captions: captions ? { src: captions, srclang: 'uz' as const } : null,
+            hasAudio: row.videoHasAudio,
           }
         : null,
     publishedAt: (row.publishedAt ?? row.createdAt).toISOString(),

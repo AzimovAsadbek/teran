@@ -1505,7 +1505,9 @@ footage two teas' product films also use (ADR-053).
 ## ADR-057: Upright films scroll as a feed, as on Reels or Shorts
 
 **Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
-2026-10-23), on the owner's request of 2026-10-23. Amends ADR-056.
+2026-10-23), on the owner's request of 2026-10-23. Amends ADR-056. (Amended by
+[ADR-058](#adr-058-a-films-own-sound-and-posting-from-the-admin-area-in-one-go): a film with a
+sound track plays its sound in the feed.)
 
 **Context.** The owner asked for the feed's films to scroll the way Instagram's short films do.
 Opened from the home page's band, a film came up in the gallery's viewer: one item at a time with
@@ -1540,3 +1542,48 @@ landscape films keep the viewer.
 (reduced motion, data saving, the footer's pause): the visitor asked to watch it, and a tap stops
 it. The feed's position is not in the address (there is no link to one film). The viewer no longer
 has an option to start films by itself.
+
+## ADR-058: A film's own sound, and posting from the admin area in one go
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-23), on the owner's request of 2026-10-23. Amends ADR-057.
+
+**Context.** The owner asked for the feed to play whatever sound a film has, with Instagram's
+speaker and volume slider, and for a way to post photographs and films from the admin area "as on
+Instagram". None of the gallery's films had sound: of the Pexels originals, twelve of fifteen have
+no sound track and three a silent one, and the site's copies were made without sound (ADR-056).
+Posting a film took four steps in the editor (texts, then the file, then a poster made elsewhere,
+then publishing), and the admin menu called the gallery "Lavhalar".
+
+**Decision.**
+
+- **The API knows which films have sound.** On upload it reads the file: an MP4 with a track whose
+  handler is `soun`, or a WebM with an audio track (TrackType 2). `MediaItem.videoHasAudio`
+  (migration `20261023180000_media_video_audio`, false for the films already there) reaches the
+  storefront as `video.hasAudio` and the admin area as `video.hasAudio`; the editor shows "ovozi
+  bor" or "ovozsiz". A silent sound track still counts. Files are still kept as uploaded.
+- **The feed plays it.** A film with sound plays with it when the feed is opened (the visitor's
+  click), with a speaker at the film's foot on the right that mutes and unmutes it (and M), and,
+  where a mouse hovers, a vertical volume slider above it, as on Instagram (phones keep their own
+  volume buttons; iOS does not let a page set the volume). The choice is kept for the tab's
+  session (`sessionStorage`), so the next film sounds the same. A browser that refuses sound
+  without a tap (Safari) gets the film muted and the speaker shown off; a tap on it brings the
+  sound. Silent films show no speaker. The home page's band stays muted.
+- **"Joylash" posts in one go** (`/admin/media/post`, `components/admin/media-composer.tsx`). The
+  file comes first, chosen or dropped, and decides the kind. A film is previewed with its sound
+  and its cover is a frame of it picked with a slider (taken in the browser as a JPEG); a
+  photograph too heavy (over 5 MB), larger than 4096 px or in HEIC (where the browser can read it)
+  is scaled down to a JPEG in the browser. Then the title (the other languages optional), "show on
+  the home page" for films, and "publish now": the item is created, the file uploaded with its
+  progress, the cover uploaded, the item published and put first in its list (the existing admin
+  API: create, upload, update, reorder). A step that fails leaves a draft; pressing "Post" again
+  does only what is left. The editor stays for subtitles, image descriptions and later changes.
+- The admin menu and page say "Galereya" in Uzbek, like the storefront; their notes no longer say
+  that films never play by themselves.
+
+**Consequences.** Films with sound come from the owner's own footage (or edited exports): phone
+videos in MP4 or WebM up to 64 MB (the server's Nginx must accept 70 MB on the video route,
+docs/deployment/production.md). iPhone `.MOV` files are refused with a note to export them as MP4
+(CapCut, InShot): the API keeps refusing QuickTime, whose HEVC films not every browser plays. The
+end-to-end tests post a 2-second upright film with a tone (`e2e/tests/support/fixtures/reel.mp4`,
+made by `e2e/scripts/make-test-reel.swift`) and a photograph through the composer.

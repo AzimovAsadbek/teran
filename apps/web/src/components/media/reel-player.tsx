@@ -1,7 +1,7 @@
 'use client';
 
 import type { MediaItemDto } from '@teran/contracts';
-import { ChevronDown, ChevronUp, Pause, Play, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pause, Play, Volume1, Volume2, VolumeX, X } from 'lucide-react';
 import {
   useEffect,
   useEffectEvent,
@@ -10,6 +10,8 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   type Ref,
 } from 'react';
 import { Emblem } from '@/components/brand/logo';
@@ -28,6 +30,40 @@ const ROUND =
 /** A click on an arrow leaves focus on the film, so Space still pauses it (Tab reaches the arrows). */
 const keepFocus = (event: ReactMouseEvent) => event.preventDefault();
 
+/** The feed's sound as the visitor left it: on (at full volume) until they turn it down or off. */
+interface Sound {
+  muted: boolean;
+  /** 0 to 1. */
+  volume: number;
+}
+
+const SOUND_KEY = 'teran.reel-sound';
+const FULL_SOUND: Sound = { muted: false, volume: 1 };
+
+/** Kept for the browser tab's session, so the next film (and the next opening) sounds the same. */
+function readSound(): Sound {
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(SOUND_KEY) ?? 'null') as unknown;
+    if (saved && typeof saved === 'object' && 'muted' in saved && 'volume' in saved) {
+      const { muted, volume } = saved as { muted: unknown; volume: unknown };
+      if (typeof muted === 'boolean' && typeof volume === 'number' && Number.isFinite(volume)) {
+        return { muted, volume: Math.min(1, Math.max(0, volume)) };
+      }
+    }
+  } catch {
+    // Storage refused (a private window): the sound starts on.
+  }
+  return FULL_SOUND;
+}
+
+function writeSound(sound: Sound) {
+  try {
+    window.sessionStorage.setItem(SOUND_KEY, JSON.stringify(sound));
+  } catch {
+    // The choice then lasts while the feed is open.
+  }
+}
+
 interface ReelPlayerProps {
   items: MediaItemDto[];
   labels: MediaLabels;
@@ -42,10 +78,12 @@ interface ReelPlayerProps {
 /**
  * TERAN's upright films as a feed to scroll, as on Instagram's Reels or YouTube Shorts (ADR-057):
  * a full-screen modal dialog in which every film takes the screen's height and the list snaps one
- * film at a time. The film in view plays, muted and looping, from its beginning, with a teal line
- * along its foot for its time; the one that left stops. A swipe, the wheel or a trackpad, the
- * arrows at the side and ↑/↓ (PageUp/PageDown, Home/End) move between films; a tap or Space
- * pauses; Esc or the cross closes. Only the film in view and its neighbours are fetched.
+ * film at a time. The film in view plays, looping, from its beginning, with a teal line along its
+ * foot for its time; the one that left stops. A film with a sound track plays its sound, with a
+ * speaker to mute it and, where a mouse hovers, a volume slider (ADR-058); silent films play
+ * muted. A swipe, the wheel or a trackpad, the arrows at the side and ↑/↓ (PageUp/PageDown,
+ * Home/End) move between films; a tap or Space pauses, M mutes; Esc or the cross closes. Only the
+ * film in view and its neighbours are fetched.
  */
 export function ReelPlayer({ index, ...props }: ReelPlayerProps & { index: number | null }) {
   return index === null ? null : <ReelFeed start={index} {...props} />;
@@ -64,9 +102,11 @@ function ReelFeed({
   const toggleRef = useRef<HTMLButtonElement>(null);
   const opening = useRef(start);
   const frame = useRef(0);
+  const currentVideo = useRef<HTMLVideoElement | null>(null);
   const [active, setActive] = useState(start);
   const [paused, setPaused] = useState(false);
   const [hint, setHint] = useState(false);
+  const [sound, setSoundState] = useState(readSound);
   const filmsAllowed = useFilmsAllowed();
   const touch = useMatches('(pointer: coarse)') === true;
   const count = items.length;
@@ -114,6 +154,20 @@ function ReelFeed({
     onClose();
   };
 
+  const setSound = (next: Sound) => {
+    writeSound(next);
+    setSoundState(next);
+    // Set on the film in view inside the visitor's own tap: browsers let sound start only then.
+    const element = currentVideo.current;
+    if (element && film?.video?.hasAudio) {
+      element.volume = next.volume;
+      element.muted = next.muted;
+    }
+  };
+  const silent = sound.muted || sound.volume === 0;
+  const toggleSound = () =>
+    setSound(silent ? { muted: false, volume: sound.volume || 1 } : { ...sound, muted: true });
+
   /** The film filling most of the screen becomes the one in view. */
   const onScroll = () => {
     setHint(false);
@@ -144,6 +198,13 @@ function ReelFeed({
     } else if (event.key === 'Home' || event.key === 'End') {
       event.preventDefault();
       goTo(event.key === 'Home' ? 0 : count - 1);
+    } else if (event.key === ' ' && !(event.target as HTMLElement).closest('button')) {
+      // Space pauses wherever focus is (a focused button keeps Space for itself).
+      event.preventDefault();
+      setPaused((value) => !value);
+    } else if (event.key.toLowerCase() === 'm' && film?.video?.hasAudio) {
+      event.preventDefault();
+      toggleSound();
     }
   };
 
@@ -186,12 +247,32 @@ function ReelFeed({
             preload={
               index === active || (index === active + 1 && filmsAllowed) ? 'auto' : 'metadata'
             }
+            muted={!item.video?.hasAudio || silent}
+            volume={sound.volume}
             handle={handle}
             labels={labels}
             toggleRef={index === active ? toggleRef : undefined}
             onToggle={() => setPaused((value) => !value)}
             onBlocked={() => setPaused(true)}
-          />
+            onSoundBlocked={() => setSound({ ...sound, muted: true })}
+            onElement={
+              index === active
+                ? (element) => {
+                    currentVideo.current = element;
+                  }
+                : undefined
+            }
+          >
+            {index === active && item.video?.hasAudio ? (
+              <SoundControl
+                sound={sound}
+                silent={silent}
+                labels={labels}
+                onToggle={toggleSound}
+                onVolume={(volume) => setSound({ muted: volume === 0, volume })}
+              />
+            ) : null}
+          </ReelSlide>
         ))}
       </ol>
 
@@ -259,22 +340,34 @@ function ReelSlide({
   near,
   playing,
   preload,
+  muted,
+  volume,
   handle,
   labels,
   toggleRef,
   onToggle,
   onBlocked,
+  onSoundBlocked,
+  onElement,
+  children,
 }: {
   film: MediaItemDto;
   current: boolean;
   near: boolean;
   playing: boolean;
   preload: 'auto' | 'metadata';
+  muted: boolean;
+  volume: number;
   handle: string | null;
   labels: MediaLabels;
   toggleRef?: Ref<HTMLButtonElement>;
   onToggle: () => void;
   onBlocked: () => void;
+  onSoundBlocked: () => void;
+  /** The film in view hands over its video element (sound is set on it inside a tap). */
+  onElement?: (element: HTMLVideoElement | null) => void;
+  /** Over the film, above its tap target: the sound control of the film in view. */
+  children?: ReactNode;
 }) {
   const poster = imageSources(film.image, 960);
   return (
@@ -301,8 +394,12 @@ function ReelSlide({
             current={current}
             playing={playing}
             preload={preload}
+            muted={muted}
+            volume={volume}
             labels={labels}
             onBlocked={onBlocked}
+            onSoundBlocked={onSoundBlocked}
+            onElement={onElement}
           />
         ) : null}
         <button
@@ -331,7 +428,12 @@ function ReelSlide({
             </span>
           ) : null}
         </button>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/75 via-black/25 to-transparent px-4 pt-28 pb-[calc(env(safe-area-inset-bottom)+1.75rem)] sm:px-6 sm:pb-7">
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/75 via-black/25 to-transparent px-4 pt-28 pb-[calc(env(safe-area-inset-bottom)+1.75rem)] sm:px-6 sm:pb-7',
+            film.video?.hasAudio && 'pr-17 sm:pr-19',
+          )}
+        >
           <p className="flex items-center gap-2.5">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white p-1">
               <Emblem className="w-full" sizes="36px" />
@@ -350,34 +452,60 @@ function ReelSlide({
             </p>
           ) : null}
         </div>
+        {children}
       </div>
     </li>
   );
 }
 
 /**
- * The moving picture of a film in view or beside it: muted and looping, it plays only in view,
- * starts afresh each time it comes back, and fades in over the poster at its first frame.
+ * The moving picture of a film in view or beside it: looping, it plays only in view, starts afresh
+ * each time it comes back, and fades in over the poster at its first frame. It sounds as the feed
+ * says (muted without a sound track); a browser that refuses sound without a tap gets it muted.
  */
 function ReelVideo({
   video,
   current,
   playing,
   preload,
+  muted,
+  volume,
   labels,
   onBlocked,
+  onSoundBlocked,
+  onElement,
 }: {
   video: NonNullable<MediaItemDto['video']>;
   current: boolean;
   playing: boolean;
   preload: 'auto' | 'metadata';
+  muted: boolean;
+  volume: number;
   labels: MediaLabels;
   /** The browser refused to start it (iOS in Low Power Mode): the play mark asks for a tap. */
   onBlocked: () => void;
+  /** The browser refused its sound without a tap (Safari): it plays muted, the speaker shows off. */
+  onSoundBlocked: () => void;
+  onElement?: (element: HTMLVideoElement | null) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const barRef = useRef<HTMLSpanElement>(null);
   const [ready, setReady] = useState(false);
+
+  const register = useEffectEvent((element: HTMLVideoElement | null) => onElement?.(element));
+  useEffect(() => {
+    if (!current) return;
+    register(videoRef.current);
+    return () => register(null);
+  }, [current]);
+
+  // Set before it plays: the effects run in this order.
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) return;
+    element.volume = volume;
+    element.muted = muted;
+  }, [muted, volume]);
 
   // Out of view, a film stops and goes back to its beginning.
   useEffect(() => {
@@ -388,6 +516,7 @@ function ReelVideo({
   }, [current]);
 
   const blocked = useEffectEvent(onBlocked);
+  const soundBlocked = useEffectEvent(onSoundBlocked);
   useEffect(() => {
     const element = videoRef.current;
     if (!element) return;
@@ -396,7 +525,14 @@ function ReelVideo({
       return;
     }
     element.play().catch((error: unknown) => {
-      if (error instanceof DOMException && error.name === 'NotAllowedError') blocked();
+      if (!(error instanceof DOMException) || error.name !== 'NotAllowedError') return;
+      if (element.muted) {
+        blocked();
+        return;
+      }
+      soundBlocked();
+      element.muted = true;
+      element.play().catch(() => blocked());
     });
   }, [playing]);
 
@@ -451,5 +587,129 @@ function ReelVideo({
         </span>
       ) : null}
     </>
+  );
+}
+
+/**
+ * The sound of the film in view, as on Instagram: a speaker that mutes and unmutes it and, where
+ * a mouse can hover, a slider above it for the volume (phones keep their own volume buttons; iOS
+ * does not let a page set it).
+ */
+function SoundControl({
+  sound,
+  silent,
+  labels,
+  onToggle,
+  onVolume,
+}: {
+  sound: Sound;
+  silent: boolean;
+  labels: MediaLabels;
+  onToggle: () => void;
+  onVolume: (volume: number) => void;
+}) {
+  const hover = useMatches('(hover: hover) and (pointer: fine)') === true;
+  const Icon = silent ? VolumeX : sound.volume < 0.5 ? Volume1 : Volume2;
+  return (
+    <div className="group/sound absolute right-3 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-30 flex w-11 flex-col items-center rounded-full bg-black/45 text-white backdrop-blur-sm sm:right-4 sm:bottom-6">
+      {hover ? (
+        <div className="grid h-0 w-full place-items-center overflow-hidden opacity-0 transition-[height,opacity] duration-200 ease-[var(--ease-soft)] group-focus-within/sound:h-32 group-focus-within/sound:opacity-100 group-hover/sound:h-32 group-hover/sound:opacity-100 motion-reduce:transition-none">
+          <VolumeSlider
+            value={silent ? 0 : sound.volume}
+            label={labels.volume}
+            onChange={onVolume}
+          />
+        </div>
+      ) : null}
+      <button
+        type="button"
+        onMouseDown={keepFocus}
+        onClick={onToggle}
+        aria-label={silent ? labels.unmute : labels.mute}
+        className="grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-white/10"
+      >
+        <Icon aria-hidden className="h-5 w-5" />
+      </button>
+    </div>
+  );
+}
+
+/** Keys that move the volume: arrows by a tenth, PageUp/PageDown by a quarter. */
+const VOLUME_STEPS: Record<string, number> = {
+  ArrowUp: 0.1,
+  ArrowRight: 0.1,
+  ArrowDown: -0.1,
+  ArrowLeft: -0.1,
+  PageUp: 0.25,
+  PageDown: -0.25,
+};
+
+/** A vertical slider from silent at the foot to full at the top: dragged, clicked or keyed. */
+function VolumeSlider({
+  value,
+  label,
+  onChange,
+}: {
+  value: number;
+  label: string;
+  onChange: (value: number) => void;
+}) {
+  const percent = Math.round(value * 100);
+  const setFrom = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    if (box.height === 0) return;
+    onChange(Math.min(1, Math.max(0, (box.bottom - event.clientY) / box.height)));
+  };
+  return (
+    <div
+      role="slider"
+      tabIndex={0}
+      aria-label={label}
+      aria-orientation="vertical"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      aria-valuetext={`${percent}%`}
+      onMouseDown={keepFocus}
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        setFrom(event);
+      }}
+      onPointerMove={(event) => {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) setFrom(event);
+      }}
+      onKeyDown={(event) => {
+        const step = VOLUME_STEPS[event.key];
+        const next =
+          step !== undefined
+            ? value + step
+            : event.key === 'Home'
+              ? 0
+              : event.key === 'End'
+                ? 1
+                : null;
+        if (next === null) return;
+        // The feed's own keys (↑/↓ move between films) stay out of it.
+        event.preventDefault();
+        event.stopPropagation();
+        onChange(Math.round(Math.min(1, Math.max(0, next)) * 100) / 100);
+      }}
+      className="relative h-24 w-6 cursor-pointer touch-none rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300"
+    >
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-white/30"
+      />
+      <span
+        aria-hidden
+        className="absolute bottom-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-white"
+        style={{ height: `${percent}%` }}
+      />
+      <span
+        aria-hidden
+        className="absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 translate-y-1/2 rounded-full bg-white shadow-[0_1px_4px_rgb(0_0_0_/_0.45)]"
+        style={{ bottom: `${percent}%` }}
+      />
+    </div>
   );
 }

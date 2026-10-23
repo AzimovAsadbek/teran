@@ -875,7 +875,8 @@ describe('admin API', () => {
           .expect(200)
       ).body as AdminMediaItem;
       expect(published.publishedAt).not.toBeNull();
-      expect(published.image?.widths).toEqual([320]);
+      // Gallery pictures also keep their own width (ADR-056): 320 px, then the 400 px original.
+      expect(published.image?.widths).toEqual([320, 400]);
 
       // A film needs its poster and a real MP4 or WebM file, never just a file name.
       const film = (
@@ -916,7 +917,11 @@ describe('admin API', () => {
           .attach('file', mp4, { filename: 'film.mp4', contentType: 'video/mp4' })
           .expect(201)
       ).body as AdminMediaItem;
-      expect(withFile.video).toMatchObject({ type: 'video/mp4', bytes: mp4.length });
+      expect(withFile.video).toMatchObject({
+        type: 'video/mp4',
+        bytes: mp4.length,
+        hasAudio: false,
+      });
       await agent.put(`${API}/admin/media/${film.id}`).send(filmPublish).expect(200);
 
       // A second photograph, then the photographs reordered (films keep their own order).
@@ -952,7 +957,11 @@ describe('admin API', () => {
       ]);
       const films = await visible('&kind=VIDEO');
       expect(films.map((item) => item.title)).toEqual(['Harvest (en)']);
-      expect(films[0]?.video).toMatchObject({ type: 'video/mp4', durationSeconds: 95 });
+      expect(films[0]?.video).toMatchObject({
+        type: 'video/mp4',
+        durationSeconds: 95,
+        hasAudio: false,
+      });
       expect(films[0]?.video?.src).toMatch(/^\/uploads\/media\/.+\/video\.mp4$/);
       const videosOnly = (await agent.get(`${API}/admin/media?kind=VIDEO`).expect(200))
         .body as AdminMediaItem[];

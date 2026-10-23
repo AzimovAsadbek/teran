@@ -446,6 +446,7 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
         <p className="text-caption text-fg-subtle">
           {formatBytes(item.video.bytes, locale)}
           {item.videoDurationSeconds ? ` · ${duration(item.videoDurationSeconds)}` : ''}
+          {` · ${item.video.hasAudio ? t('media.withSound') : t('media.silent')}`}
         </p>
       ) : null}
       {chosen ? (

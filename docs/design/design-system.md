@@ -464,10 +464,13 @@ appears in the desktop catalogue panel and on the collection tiles.
 
 ### Media: photographs ("Rasmlar") and films ("Videolar") kept apart
 
-Photographs and short films managed in Admin → Gallery, in two separate lists with their own
+Photographs and short films managed in Admin → Galereya, in two separate lists with their own
 "new" buttons and order (`MediaItem`: kind fixed when created, title, caption or description and
 image description in three languages, status, shown on the home page or not; a photo, or a film's
-poster, file, running time read from the file and optional WebVTT subtitles).
+poster, file, running time and sound read from the file and optional WebVTT subtitles). "Joylash"
+(ADR-058) posts one in a single screen: a drop zone with an image-plus mark, then the file's
+preview (a film with its cover picked by a slider beside it), the texts and marks in a sticky panel
+at the right, the steps with the upload's percentage, and a success card with the cover.
 
 - **Home page — "Bir piyola, bir lavha" / "Sip & scroll"** (ADR-056), after the journal on
   `surface-muted`: the upright films chosen for the home page as 9:16 cards (rounded 1.25 rem) in a
@@ -499,9 +502,12 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   the films as a feed scrolled like Reels or Shorts, full screen on `forest-950`. Each film is the
   screen's height: edge to edge on phones; from 640 px a 9:16 frame rounded 1.25 rem with a deep
   shadow, the film's own colours blurred (80 px) and dimmed around it. The list snaps one film at a
-  time (`scroll-snap-stop: always`). The film in view plays muted and looping from its start, a
-  3 px teal line along its foot for its time; TERAN's emblem in a white disc, "TERAN", the handle,
-  the title and the caption at its foot over a dark fade. A tap or Space pauses (a 4.5 rem play
+  time (`scroll-snap-stop: always`). The film in view plays looping from its start, a 3 px teal
+  line along its foot for its time; TERAN's emblem in a white disc, "TERAN", the handle, the title
+  and the caption at its foot over a dark fade. A film with sound plays it (ADR-058): a 2.75 rem
+  speaker disc (black 45 %, blurred) at the foot on the right mutes it, and on hover grows upward
+  into a pill with a vertical volume slider (white fill and knob on a 30 % track), as on
+  Instagram; silent films have no speaker. A tap or Space pauses (a 4.5 rem play
   disc while paused; a small play/pause disc at the top left from 640 px); a swipe, the wheel, ↑/↓,
   PageUp/PageDown, Home/End and two round arrows at the right (from 640 px) move; "3 / 8" at the top
   left, the cross at the top right; Esc closes and focus returns to the card of the film watched
@@ -552,10 +558,11 @@ To keep the store consistent when photos arrive:
   1600 px tall, tightly cropped) stands free on the stage; the upload marks it automatically
   (transparent corners). Products with only an ordinary photograph are shown inside the gate
   instead.
-- **Gallery ("Lavhalar"):** real photographs and short films only — tea gardens, the packs,
+- **Gallery ("Galereya"):** real photographs and short films only — tea gardens, the packs,
   brewing, people at work with their permission. Landscape pictures at least 2000 px wide suit the
-  large tiles; films as web-ready MP4 (H.264/AAC) or WebM up to 64 MB with a poster frame, and with
-  sound that makes sense when a visitor chooses to play it (nothing plays by itself).
+  large tiles; films as web-ready MP4 (H.264/AAC) or WebM up to 64 MB, posted with "Joylash" (the
+  cover is a frame of the film). Upright films play in the feed with their own sound when a visitor
+  opens one, so the sound should be worth hearing: the room, the water, the pour.
 - **About and journal:** only real places, people and processes, with permission.
 
 ### Missing assets

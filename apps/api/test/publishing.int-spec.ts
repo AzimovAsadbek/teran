@@ -530,21 +530,27 @@ describe('publishing workflow', () => {
   });
 
   describe('films uploaded through the API', () => {
-    /** An MP4 whose movie box (95 s) follows the media data, as many cameras write it. */
-    function mp4(seconds: number): Buffer {
-      const box = (type: string, content: Buffer) => {
+    /**
+     * An MP4 whose movie box (95 s) follows the media data, as many cameras write it; with `sound`,
+     * the movie box also declares a sound track.
+     */
+    function mp4(seconds: number, sound = false): Buffer {
+      const box = (type: string, ...content: Buffer[]) => {
+        const body = Buffer.concat(content);
         const header = Buffer.alloc(8);
-        header.writeUInt32BE(content.length + 8, 0);
+        header.writeUInt32BE(body.length + 8, 0);
         header.write(type, 4, 'latin1');
-        return Buffer.concat([header, content]);
+        return Buffer.concat([header, body]);
       };
       const mvhd = Buffer.alloc(100);
       mvhd.writeUInt32BE(1000, 12);
       mvhd.writeUInt32BE(seconds * 1000, 16);
+      const track = (handler: string) =>
+        box('trak', box('mdia', box('hdlr', Buffer.alloc(8), Buffer.from(handler, 'latin1'))));
       return Buffer.concat([
         box('ftyp', Buffer.from('isom\0\0\x02\0isomiso2', 'latin1')),
         box('mdat', Buffer.alloc(256 * 1024)),
-        box('moov', box('mvhd', mvhd)),
+        box('moov', box('mvhd', mvhd), track('vide'), ...(sound ? [track('soun')] : [])),
       ]);
     }
 
@@ -570,11 +576,20 @@ describe('publishing workflow', () => {
           .attach('file', real, { filename: 'film.mp4', contentType: 'video/mp4' })
           .expect(201)
       ).body as AdminMediaItem;
-      expect(done.video).toMatchObject({ type: 'video/mp4', bytes: real.length });
+      expect(done.video).toMatchObject({ type: 'video/mp4', bytes: real.length, hasAudio: false });
       expect(done.video?.src).toMatch(
         new RegExp(`^/uploads/media/${film.id}/[A-Za-z0-9_-]{12}/video\\.mp4$`),
       );
       expect(done.videoDurationSeconds).toBe(95);
+
+      // A film with a sound track says so (the feed then offers its sound, ADR-058).
+      const withSound = (
+        await admin
+          .post(`${API}/admin/media/${film.id}/video`)
+          .attach('file', mp4(95, true), { filename: 'film.mp4', contentType: 'video/mp4' })
+          .expect(201)
+      ).body as AdminMediaItem;
+      expect(withSound.video?.hasAudio).toBe(true);
 
       const customer = await signedIn('CUSTOMER');
       await customer.post(`${API}/admin/media/${film.id}/video`).expect(403);

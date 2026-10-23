@@ -392,6 +392,8 @@ export const mediaItemSchema = z.object({
       durationSeconds: z.number().int().nullable(),
       /** Optional subtitles (WebVTT), offered as a track the visitor can switch on. */
       captions: z.object({ src: z.string(), srclang: localeSchema }).nullable().default(null),
+      /** The file has a sound track: the feed offers its sound (ADR-058). */
+      hasAudio: z.boolean().default(false),
     })
     .nullable(),
   publishedAt: z.string(),

@@ -14,6 +14,12 @@ export const PICTURES = {
   sprig: fileURLToPath(new URL('../../../apps/web/public/brand/art/sprig-1.webp', import.meta.url)),
 } as const;
 
+/**
+ * A 2-second upright film (360 × 640) with a soft tone: a real H.264 + AAC MP4 that the browser
+ * plays and the API finds a sound track in (made by e2e/scripts/make-test-reel.swift).
+ */
+export const REEL = fileURLToPath(new URL('./fixtures/reel.mp4', import.meta.url));
+
 /** A picture as a file payload (to mix with generated files in one selection). */
 export function pictureFile(picture: string) {
   return {

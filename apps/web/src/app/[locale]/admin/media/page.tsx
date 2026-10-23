@@ -4,7 +4,7 @@ import {
   type Locale,
   type MediaKind,
 } from '@teran/contracts';
-import { Captions, Film, ImageIcon, Plus } from 'lucide-react';
+import { Captions, Film, ImageIcon, ImagePlus, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -40,9 +40,10 @@ function duration(seconds: number | null): string | null {
 }
 
 /**
- * "Lavhalar" in two separate lists — photographs ("Rasmlar") and films ("Videolar") — each in the
- * order the storefront shows it, with its own "new" button and ordering. What an item still needs
- * before it can be published is shown in the list.
+ * The gallery in two separate lists — photographs ("Rasmlar") and films ("Videolar") — each in the
+ * order the storefront shows it, with its own "new" button and ordering, and "Joylash" to post a
+ * photograph or a film in one go (ADR-058). What an item still needs before it can be published
+ * is shown in the list.
  */
 export default async function AdminMediaPage({ searchParams }: PageProps<'/[locale]/admin/media'>) {
   const [params, locale, t] = await Promise.all([
@@ -66,10 +67,19 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
         title={t('media.title')}
         description={t('media.intro')}
         actions={
-          <ButtonLink href={`/admin/media/new?kind=${kind === 'VIDEO' ? 'videos' : 'photos'}`}>
-            <Plus aria-hidden className="h-4 w-4" />
-            {kind === 'VIDEO' ? t('media.newVideo') : t('media.newPhoto')}
-          </ButtonLink>
+          <>
+            <ButtonLink
+              href={`/admin/media/new?kind=${kind === 'VIDEO' ? 'videos' : 'photos'}`}
+              variant="secondary"
+            >
+              <Plus aria-hidden className="h-4 w-4" />
+              {kind === 'VIDEO' ? t('media.newVideo') : t('media.newPhoto')}
+            </ButtonLink>
+            <ButtonLink href="/admin/media/post">
+              <ImagePlus aria-hidden className="h-4 w-4" />
+              {t('compose.post')}
+            </ButtonLink>
+          </>
         }
       />
       <StatusTabs

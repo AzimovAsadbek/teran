@@ -4,6 +4,7 @@ import {
   storeCaptions,
   storeVideo,
   videoDurationSeconds,
+  videoHasAudio,
   VideoRejectedError,
   type ImageStore,
 } from './image-processing.js';
@@ -113,6 +114,50 @@ describe('video running time', () => {
 
   it('answers null when the file does not record it', () => {
     expect(videoDurationSeconds(box('ftyp', Buffer.alloc(16)), 'video/mp4')).toBeNull();
+  });
+});
+
+describe('video sound', () => {
+  /** A track whose media handler is of a type ("vide", "soun"). */
+  const trak = (handler: string) =>
+    box(
+      'trak',
+      box('mdia', box('hdlr', Buffer.alloc(8), Buffer.from(handler, 'latin1'), Buffer.alloc(13))),
+    );
+  const ftyp = box('ftyp', Buffer.from('isom\0\0\x02\0isomiso2', 'latin1'));
+
+  it('finds an MP4 sound track, in whichever track it comes', () => {
+    const film = Buffer.concat([ftyp, box('moov', box('mvhd', Buffer.alloc(100)), trak('vide'))]);
+    const withSound = Buffer.concat([
+      ftyp,
+      box('moov', box('mvhd', Buffer.alloc(100)), trak('vide'), trak('soun')),
+      box('mdat', Buffer.alloc(64)),
+    ]);
+    expect(videoHasAudio(film, 'video/mp4')).toBe(false);
+    expect(videoHasAudio(withSound, 'video/mp4')).toBe(true);
+    expect(videoHasAudio(ftyp, 'video/mp4')).toBe(false);
+  });
+
+  it('finds a WebM audio track (TrackType 2)', () => {
+    const ebmlHeader = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x84, 0x42, 0x82, 0x81, 0x77]);
+    const entry = (type: number) => Buffer.from([0xae, 0x83, 0x83, 0x81, type]);
+    const webm = (...entries: Buffer[]) => {
+      const tracks = Buffer.concat(entries);
+      return Buffer.concat([
+        ebmlHeader,
+        Buffer.from([0x18, 0x53, 0x80, 0x67, 0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
+        Buffer.from([0x16, 0x54, 0xae, 0x6b, 0x80 | tracks.length]),
+        tracks,
+      ]);
+    };
+    expect(videoHasAudio(webm(entry(1)), 'video/webm')).toBe(false);
+    expect(videoHasAudio(webm(entry(1), entry(2)), 'video/webm')).toBe(true);
+  });
+
+  it('is recorded when a film is stored', async () => {
+    const { store } = memoryStore();
+    const silent = await storeVideo(isoMedia('isom'), store, mediaPrefix('item-3'));
+    expect(silent.hasAudio).toBe(false);
   });
 });
 

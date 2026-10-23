@@ -27,6 +27,8 @@ const film = (n: number): MediaItemDto => ({
     type: 'video/mp4',
     durationSeconds: 12,
     captions: null,
+    // The first film has a sound track; the others are silent.
+    hasAudio: n === 1,
   },
   publishedAt: '2026-10-23T00:00:00.000Z',
 });
@@ -47,6 +49,9 @@ const labels: MediaLabels = {
   pause: 'Pause',
   resume: 'Play',
   swipeHint: 'Swipe up for the next video',
+  mute: 'Mute',
+  unmute: 'Unmute',
+  volume: 'Volume',
 };
 
 let media: Record<string, boolean>;
@@ -62,6 +67,7 @@ const descriptors = {
 };
 
 beforeEach(() => {
+  window.sessionStorage.clear();
   media = {};
   frames = new Map();
   lastFrame = 0;
@@ -236,6 +242,56 @@ describe('ReelPlayer', () => {
     await waitFor(() =>
       expect(within(current()).getByRole('button', { name: 'Play' })).toBeInTheDocument(),
     );
+  });
+
+  it('plays a film’s own sound; the speaker or M mutes it, and a silent film has no speaker', () => {
+    const { current, dialog, ...view } = setup(0);
+    const video = () => current().querySelector('video')!;
+
+    expect(video().muted).toBe(false);
+    fireEvent.click(within(current()).getByRole('button', { name: 'Mute' }));
+    expect(video().muted).toBe(true);
+    fireEvent.keyDown(dialog, { key: 'm' });
+    expect(video().muted).toBe(false);
+    expect(within(current()).getByRole('button', { name: 'Mute' })).toBeInTheDocument();
+    // Kept for the tab's session: the next film and the next opening sound the same.
+    expect(JSON.parse(window.sessionStorage.getItem('teran.reel-sound')!)).toEqual({
+      muted: false,
+      volume: 1,
+    });
+
+    view.scrollTo(HEIGHT);
+    expect(within(current()).queryByRole('button', { name: /mute/i })).toBeNull();
+    expect(video().muted).toBe(true);
+  });
+
+  it('where a mouse hovers, a slider sets the volume without moving the feed', () => {
+    media['(hover: hover) and (pointer: fine)'] = true;
+    const { current } = setup(0);
+    const slider = within(current()).getByRole('slider', { name: 'Volume' });
+
+    expect(slider).toHaveAttribute('aria-valuenow', '100');
+    fireEvent.keyDown(slider, { key: 'ArrowDown' });
+    expect(slider).toHaveAttribute('aria-valuenow', '90');
+    expect(current().querySelector('video')!.volume).toBeCloseTo(0.9);
+    expect(scrollTo).not.toHaveBeenCalled();
+    fireEvent.keyDown(slider, { key: 'Home' });
+    expect(within(current()).getByRole('button', { name: 'Unmute' })).toBeInTheDocument();
+  });
+
+  it('a browser that refuses sound without a tap gets the film muted, with the speaker off', async () => {
+    play.mockImplementation(function (this: HTMLMediaElement) {
+      return this.muted
+        ? Promise.resolve()
+        : Promise.reject(new DOMException('No sound without a tap', 'NotAllowedError'));
+    });
+    const { current } = setup(0);
+    await waitFor(() =>
+      expect(within(current()).getByRole('button', { name: 'Unmute' })).toBeInTheDocument(),
+    );
+    expect(current().querySelector('video')!.muted).toBe(true);
+    // Still playing, muted: the film's control pauses it.
+    expect(within(current()).getByRole('button', { name: 'Pause' })).toBeInTheDocument();
   });
 
   it('on a touch screen, says how to move on until the first swipe', () => {

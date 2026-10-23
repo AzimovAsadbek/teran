@@ -250,6 +250,7 @@ export class AdminMediaService {
             videoKey: stored.storageKey,
             videoType: stored.type,
             videoBytes: stored.bytes,
+            videoHasAudio: stored.hasAudio,
             ...(duration !== null ? { videoDurationSeconds: duration } : {}),
           },
         });
@@ -344,7 +345,7 @@ export class AdminMediaService {
       image: mediaImage(row, translations.uz.altText ?? translations.uz.title),
       video:
         src && row.videoType && row.videoBytes !== null
-          ? { src, type: row.videoType, bytes: row.videoBytes }
+          ? { src, type: row.videoType, bytes: row.videoBytes, hasAudio: row.videoHasAudio }
           : null,
       videoDurationSeconds: row.videoDurationSeconds,
       captions: captions ? { src: captions } : null,

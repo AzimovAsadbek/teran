@@ -121,6 +121,7 @@ async function importOne(
                 videoKey: video.storageKey,
                 videoType: video.type,
                 videoBytes: video.bytes,
+                videoHasAudio: video.hasAudio,
                 videoDurationSeconds: videoDurationSeconds(file, video.type),
               }
             : {}),

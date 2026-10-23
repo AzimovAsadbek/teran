@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   API,
   PICTURES,
+  REEL,
   field,
   pictureFile,
   publishProduct,
@@ -384,6 +385,70 @@ test.describe('publishing workflow', () => {
     await page.getByRole('button', { name: 'Delete item' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Delete item' }).click();
     await expect(page).toHaveURL(/\/en\/admin\/media\?kind=videos$/);
+  });
+
+  test('the composer posts a film with its sound and a photo in one go, each first in its list', async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    type Listed = { items: { id: string; title: string; video: { hasAudio: boolean } | null }[] };
+    const listed = async (kind: 'PHOTO' | 'VIDEO') =>
+      (await (
+        await page.request.get(`${API}/content/media?locale=en&kind=${kind}`)
+      ).json()) as Listed;
+    await signInAsAdmin(page);
+    await page.goto('/en/admin/media?kind=videos');
+    await page.getByRole('link', { name: 'Post', exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/admin\/media\/post$/);
+    const main = page.getByRole('main');
+
+    // A film: played here with its sound, its cover one of its frames, then posted in one go.
+    await main.locator('input[type="file"]').first().setInputFiles(REEL);
+    await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
+    await expect(visible(main.getByText(/^Upright video/))).toBeVisible();
+    await expect(
+      visible(main.getByRole('slider', { name: 'Time of the cover frame' })),
+    ).toBeVisible();
+    const film = `E2E reel ${Date.now().toString(36)}`;
+    await field(page, 'Title').fill(film);
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
+      timeout: 30_000,
+    });
+    const films = await listed('VIDEO');
+    expect(films.items[0]).toMatchObject({ title: film, video: { hasAudio: true } });
+
+    // On the site, it opens in the feed with its sound offered.
+    const tile = () => page.getByRole('button', { name: `Watch the video: ${film}` });
+    await expect(async () => {
+      await page.goto('/en/media');
+      await expect(tile()).toHaveCount(1, { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+    await tile().click();
+    const feed = page.getByRole('dialog', { name: film });
+    await expect(feed.getByRole('button', { name: /^(Mute|Unmute)$/ })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(feed).toBeHidden();
+
+    // A photograph, from "Post another".
+    await page.goto('/en/admin/media/post');
+    await main.locator('input[type="file"]').first().setInputFiles(PICTURES.lake);
+    await expect(visible(main.getByRole('img', { name: /lake\.webp/ }))).toBeVisible();
+    const photo = `E2E photo ${Date.now().toString(36)}`;
+    await field(page, 'Title').fill(photo);
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
+      timeout: 30_000,
+    });
+    const photos = await listed('PHOTO');
+    expect(photos.items[0]).toMatchObject({ title: photo, video: null });
+    await page.getByRole('button', { name: 'Post another' }).click();
+    await expect(visible(main.getByText('Drop a photo or a video here'))).toBeVisible();
+
+    // Clean up: the stack's other journeys expect no films.
+    for (const id of [films.items[0]!.id, photos.items[0]!.id]) {
+      expect((await page.request.delete(`${API}/admin/media/${id}`)).status()).toBe(204);
+    }
   });
 
   test('publishing needs a staff session and a complete product', async ({ page }) => {

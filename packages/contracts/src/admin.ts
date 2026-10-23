@@ -832,8 +832,8 @@ export interface AdminMediaItem {
   position: number;
   /** The photograph or the poster; null until one is uploaded. */
   image: ImageDto | null;
-  /** The uploaded video file (videos only). */
-  video: { src: string; type: string; bytes: number } | null;
+  /** The uploaded video file (videos only); `hasAudio`: it has a sound track. */
+  video: { src: string; type: string; bytes: number; hasAudio: boolean } | null;
   videoDurationSeconds: number | null;
   /** Subtitles (WebVTT) for a video, when uploaded. */
   captions: { src: string } | null;

@@ -74,6 +74,7 @@ async function addFilm(prisma: PrismaClient, store: ImageStore, film: Buffer, po
           videoKey: video.storageKey,
           videoType: video.type,
           videoBytes: video.bytes,
+          videoHasAudio: video.hasAudio,
           videoDurationSeconds: videoDurationSeconds(film, video.type),
         },
       });
@@ -122,6 +123,7 @@ async function replaceFilm(
           videoKey: video.storageKey,
           videoType: video.type,
           videoBytes: video.bytes,
+          videoHasAudio: video.hasAudio,
           ...(duration !== null ? { videoDurationSeconds: duration } : {}),
         },
       });

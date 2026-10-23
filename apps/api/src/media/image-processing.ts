@@ -285,6 +285,8 @@ export interface StoredVideo {
   storageKey: string;
   type: VideoType;
   bytes: number;
+  /** The file has a sound track (see videoHasAudio). */
+  hasAudio: boolean;
 }
 
 /** The file name a stored video has under its key. */
@@ -319,7 +321,7 @@ export async function storeVideo(
   if (!type) throw new VideoRejectedError();
   const storageKey = `${prefix}/${randomBytes(9).toString('base64url')}`;
   await store.saveFile(storageKey, videoFileName(type), input, type);
-  return { storageKey, type, bytes: input.length };
+  return { storageKey, type, bytes: input.length, hasAudio: videoHasAudio(input, type) };
 }
 
 function videoType(input: Buffer): VideoType | null {
@@ -366,6 +368,53 @@ function mp4Duration(input: Buffer): number | null {
   return timescale > 0 ? duration / timescale : null;
 }
 
+/**
+ * Whether a video carries sound: an MP4 with a track whose handler is "soun", or a WebM with an
+ * audio track. A recording whose sound track is silent still counts; one without a track does not.
+ */
+export function videoHasAudio(input: Buffer, type: VideoType): boolean {
+  return type === 'video/mp4' ? mp4HasAudio(input) : webmHasAudio(input);
+}
+
+function mp4HasAudio(input: Buffer): boolean {
+  const moov = findBox(input, 0, input.length, 'moov');
+  if (!moov) return false;
+  for (const trak of boxes(input, moov.start, moov.end)) {
+    if (trak.type !== 'trak') continue;
+    const mdia = findBox(input, trak.start, trak.end, 'mdia');
+    const hdlr = mdia && findBox(input, mdia.start, mdia.end, 'hdlr');
+    // A full box: version and flags, pre_defined, then the handler type.
+    if (hdlr && hdlr.end - hdlr.start >= 12) {
+      if (input.toString('latin1', hdlr.start + 8, hdlr.start + 12) === 'soun') return true;
+    }
+  }
+  return false;
+}
+
+/** The boxes between two offsets, each with its type and its content's start and end. */
+function* boxes(
+  input: Buffer,
+  from: number,
+  to: number,
+): Generator<{ type: string; start: number; end: number }> {
+  let offset = from;
+  while (offset + 8 <= to) {
+    let size = input.readUInt32BE(offset);
+    let header = 8;
+    if (size === 1) {
+      if (offset + 16 > to) return;
+      size = Number(input.readBigUInt64BE(offset + 8));
+      header = 16;
+    } else if (size === 0) {
+      size = to - offset;
+    }
+    if (size < header) return;
+    const type = input.toString('latin1', offset + 4, offset + 8);
+    yield { type, start: offset + header, end: Math.min(offset + size, to) };
+    offset += size;
+  }
+}
+
 /** The first box of a type among the boxes between two offsets: its content's start and end. */
 function findBox(
   input: Buffer,
@@ -373,22 +422,8 @@ function findBox(
   to: number,
   type: string,
 ): { start: number; end: number } | null {
-  let offset = from;
-  while (offset + 8 <= to) {
-    let size = input.readUInt32BE(offset);
-    let header = 8;
-    if (size === 1) {
-      if (offset + 16 > to) return null;
-      size = Number(input.readBigUInt64BE(offset + 8));
-      header = 16;
-    } else if (size === 0) {
-      size = to - offset;
-    }
-    if (size < header) return null;
-    if (input.toString('latin1', offset + 4, offset + 8) === type) {
-      return { start: offset + header, end: Math.min(offset + size, to) };
-    }
-    offset += size;
+  for (const box of boxes(input, from, to)) {
+    if (box.type === type) return { start: box.start, end: box.end };
   }
   return null;
 }
@@ -397,6 +432,25 @@ const EBML_SEGMENT = 0x18538067;
 const EBML_INFO = 0x1549a966;
 const EBML_TIMECODE_SCALE = 0x2ad7b1;
 const EBML_DURATION = 0x4489;
+const EBML_TRACKS = 0x1654ae6b;
+const EBML_TRACK_ENTRY = 0xae;
+const EBML_TRACK_TYPE = 0x83;
+const TRACK_TYPE_AUDIO = 2;
+
+function webmHasAudio(input: Buffer): boolean {
+  const segment = findEbml(input, 0, input.length, EBML_SEGMENT);
+  const tracks = segment && findEbml(input, segment.start, segment.end, EBML_TRACKS);
+  if (!tracks) return false;
+  for (const entry of ebmlElements(input, tracks.start, tracks.end)) {
+    if (entry.id !== EBML_TRACK_ENTRY) continue;
+    const type = findEbml(input, entry.start, entry.end, EBML_TRACK_TYPE);
+    const length = type ? type.end - type.start : 0;
+    if (type && length >= 1 && length <= 6) {
+      if (input.readUIntBE(type.start, length) === TRACK_TYPE_AUDIO) return true;
+    }
+  }
+  return false;
+}
 
 function webmDuration(input: Buffer): number | null {
   const segment = findEbml(input, 0, input.length, EBML_SEGMENT);
@@ -428,19 +482,33 @@ function findEbml(
   to: number,
   id: number,
 ): { start: number; end: number } | null {
+  for (const element of ebmlElements(input, from, to)) {
+    if (element.id === id) return { start: element.start, end: element.end };
+  }
+  return null;
+}
+
+/**
+ * The EBML elements between two offsets, each with its id and its content's start and end. One of
+ * unknown size runs to the end and is the last (what follows it cannot be found).
+ */
+function* ebmlElements(
+  input: Buffer,
+  from: number,
+  to: number,
+): Generator<{ id: number; start: number; end: number }> {
   let offset = from;
   while (offset < to) {
     const elementId = readVint(input, offset, true);
-    if (!elementId) return null;
+    if (!elementId) return;
     const size = readVint(input, offset + elementId.length, false);
-    if (!size) return null;
+    if (!size) return;
     const start = offset + elementId.length + size.length;
     const end = size.unknown ? to : Math.min(start + size.value, to);
-    if (elementId.value === id) return { start, end };
-    if (size.unknown) return null;
+    yield { id: elementId.value, start, end };
+    if (size.unknown) return;
     offset = end;
   }
-  return null;
 }
 
 function readVint(

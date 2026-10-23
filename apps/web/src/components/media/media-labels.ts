@@ -24,6 +24,9 @@ export function mediaLabels(t: MediaTranslator): MediaLabels {
     pause: t('pause'),
     resume: t('resume'),
     swipeHint: t('swipeHint'),
+    mute: t('mute'),
+    unmute: t('unmute'),
+    volume: t('volume'),
   };
 }
 

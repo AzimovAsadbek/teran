@@ -2,7 +2,7 @@ import type { Locale } from '@teran/contracts';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { connection } from 'next/server';
 import { mediaLabels } from '@/components/media/media-labels';
-import { socialLinks } from '@/lib/contact';
+import { socialHandle, socialLinks } from '@/lib/contact';
 import { getMedia, getPublicSettings } from '@/lib/data/content';
 import { SocialReelView } from './social-reel-view';
 
@@ -31,6 +31,7 @@ export async function SocialReel() {
     <SocialReelView
       films={films}
       socials={socialLinks(settings?.contact)}
+      handle={socialHandle(settings?.contact)}
       labels={{
         title: t('socialTitle'),
         intro: t('socialIntro'),

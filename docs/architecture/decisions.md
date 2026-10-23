@@ -1457,7 +1457,9 @@ text say: keeping that text current is TERAN's part. See `docs/architecture/assi
 ## ADR-056: The gallery comes back, and the home page gets a feed of upright films
 
 **Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
-2026-10-23), on the owner's request of 2026-10-23. Amends ADR-033 and ADR-050.
+2026-10-23), on the owner's request of 2026-10-23. Amends ADR-033 and ADR-050. (Amended by
+[ADR-057](#adr-057-upright-films-scroll-as-a-feed-as-on-reels-or-shorts): a card of the feed, or an
+upright film in the gallery, opens the films as a feed to scroll rather than the viewer.)
 
 **Context.** The owner asked for the reference's "sip & scroll on social" band (a row of upright
 social films, the middle one playing) in TERAN's design, and for a separate gallery page with
@@ -1499,3 +1501,42 @@ same keys; the server's database gets their rows separately (an additive SQL fil
 footage shows tea culture in general, never TERAN's own gardens or a particular TERAN tea: titles
 say what the frame shows. Two upright films (Pexels 8233766, 40137842) are full-length cuts of
 footage two teas' product films also use (ADR-053).
+
+## ADR-057: Upright films scroll as a feed, as on Reels or Shorts
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-23), on the owner's request of 2026-10-23. Amends ADR-056.
+
+**Context.** The owner asked for the feed's films to scroll the way Instagram's short films do.
+Opened from the home page's band, a film came up in the gallery's viewer: one item at a time with
+arrows to the sides and a strip of thumbnails, made for photographs.
+
+**Decision.** Upright films open in a player of their own (`components/media/reel-player.tsx`), from
+the home page's band and from the gallery's "Qisqa lavhalar" (the `reels` layout); photographs and
+landscape films keep the viewer.
+
+- **The browser's own scrolling.** A full-screen native modal dialog holds a vertical list in which
+  every film is the screen's height and the list snaps one film at a time
+  (`scroll-snap-type: y mandatory`, `scroll-snap-stop: always`): a swipe, the wheel and a trackpad
+  move it with their own momentum, and even a hard fling moves one film. ↑/↓, PageUp/PageDown,
+  Home/End and two round arrows at the side (from 640 px) scroll it too, at once with reduced
+  motion.
+- **The film in view plays.** The film filling most of the screen plays, muted and looping, from its
+  beginning; the one that left stops and rewinds. A tap or Space pauses it (WCAG 2.2.2); when the
+  browser refuses to start it (iOS in Low Power Mode) the play mark asks for a tap. A teal line
+  along its foot shows its time.
+- **Only what is near is fetched.** The film in view and its two neighbours have a video element,
+  the next one fetched ahead (not with data saving or reduced motion); the others show their
+  posters.
+- **Focus and screen readers stay on the film in view.** The other films are inert; focus follows
+  the film in view, its position and title are announced, and closing (Esc, the cross) returns
+  focus to the card of the film watched last, which the row behind has followed.
+- **Look.** Phones show the film edge to edge; wider screens a 9:16 frame with the film's own colours
+  blurred and dimmed around it. TERAN's emblem, name and handle (the first network that names one,
+  `socialHandle`) and the title sit at the film's foot, as on a social post. On touch screens a
+  pill says how to move on for the first few seconds.
+
+**Consequences.** A film opened in the feed plays even where films do not start by themselves
+(reduced motion, data saving, the footer's pause): the visitor asked to watch it, and a tap stops
+it. The feed's position is not in the address (there is no link to one film). The viewer no longer
+has an option to start films by itself.

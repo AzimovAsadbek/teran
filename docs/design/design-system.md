@@ -475,7 +475,7 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   muted, the others at 88 % and 80 % brightness on their posters with a white play disc; over each
   card's foot TERAN's emblem in a white disc, "TERAN" and the handle, then the film's title, as a
   social post. Arrows (white discs) and "2 / 8" beneath; the networks as white pills with their
-  marks; "Galereyani koʻrish →". Shown from three upright films.
+  marks; "Galereyani koʻrish →". Shown from three upright films. A card opens the feed (below).
 - **`/media` ("Galereya")**: opens full-bleed (min 27 rem, up to 74 svh) on its first landscape
   film over its poster, a veil deepening towards the foot, the title in Oswald capitals up to
   6 rem and the intro at the lower left; then Rasmlar (12, justified), Videolar (landscape, 16:9
@@ -495,8 +495,18 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   frames the smaller ones with a gold hairline.
 - The gallery's photographs and films (2026-10-23) are licensed stock of tea culture, titled by
   what the frame shows; the packaging artwork items stay drafts.
-- The viewer starts a film at once (muted, looping) when it is opened from the home page's feed;
-  elsewhere a film waits for its controls.
+- **Feed** (upright films, ADR-057): a card of the home page's band or a Qisqa lavhalar tile opens
+  the films as a feed scrolled like Reels or Shorts, full screen on `forest-950`. Each film is the
+  screen's height: edge to edge on phones; from 640 px a 9:16 frame rounded 1.25 rem with a deep
+  shadow, the film's own colours blurred (80 px) and dimmed around it. The list snaps one film at a
+  time (`scroll-snap-stop: always`). The film in view plays muted and looping from its start, a
+  3 px teal line along its foot for its time; TERAN's emblem in a white disc, "TERAN", the handle,
+  the title and the caption at its foot over a dark fade. A tap or Space pauses (a 4.5 rem play
+  disc while paused; a small play/pause disc at the top left from 640 px); a swipe, the wheel, ↑/↓,
+  PageUp/PageDown, Home/End and two round arrows at the right (from 640 px) move; "3 / 8" at the top
+  left, the cross at the top right; Esc closes and focus returns to the card of the film watched
+  last. On touch screens a dark pill ("Keyingi video uchun yuqoriga suring") shows for 4 s or
+  until the first swipe.
 
 ## Imagery
 

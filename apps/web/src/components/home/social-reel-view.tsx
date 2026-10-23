@@ -4,7 +4,9 @@ import type { MediaItemDto } from '@teran/contracts';
 import { ArrowLeft, ArrowRight, Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Emblem } from '@/components/brand/logo';
-import { MediaViewer, type MediaLabels } from '@/components/media/media-gallery';
+import type { MediaLabels } from '@/components/media/media-gallery';
+import { fillLabel } from '@/components/media/media-labels';
+import { ReelPlayer } from '@/components/media/reel-player';
 import { NETWORK_NAMES, SocialIcon } from '@/components/social/social-icon';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
@@ -22,9 +24,6 @@ export interface SocialReelLabels {
   media: MediaLabels;
 }
 
-const fill = (template: string, values: Record<string, string | number>) =>
-  template.replace(/\{(\w+)\}/g, (match, key: string) => String(values[key] ?? match));
-
 const ROUND =
   'grid h-12 w-12 place-items-center rounded-full border border-forest-900/15 bg-white text-fg shadow-[0_2px_8px_-2px_rgb(0_0_0_/_0.18)] transition-[background-color,scale,opacity] duration-200 hover:bg-ivory-100 active:scale-95 disabled:pointer-events-none disabled:opacity-35';
 
@@ -32,17 +31,21 @@ const ROUND =
  * TERAN's films as a feed (the reference's "sip & scroll on social", ADR-056): upright cards in a
  * row that snaps to the middle, the one in the middle larger and playing, muted, the others still
  * on their posters. Arrows below move it, a swipe or the wheel scroll it, and a card opens the
- * full-screen viewer at its film. TERAN's networks follow, then the way to the gallery. The film
+ * feed at its film (reel-player.tsx, ADR-057), where the films scroll up and down as on Reels and
+ * the row follows behind. TERAN's networks follow, then the way to the gallery. The film here
  * plays only while the band is in view, the page has loaded and films are allowed (no reduced
  * motion or data saving, not paused with the footer's switch); otherwise every card is a poster.
  */
 export function SocialReelView({
   films,
   socials,
+  handle,
   labels,
 }: {
   films: MediaItemDto[];
   socials: SocialLink[];
+  /** TERAN's account as people know it ("@TeranTrade"), under its name on every film. */
+  handle: string | null;
   labels: SocialReelLabels;
 }) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -57,7 +60,6 @@ export function SocialReelView({
   const paused = useMotionPaused();
   const loaded = usePageLoaded();
   const playing = inView && loaded && filmsAllowed && !paused && open === null;
-  const handle = socials.find((link) => link.handle)?.handle ?? null;
 
   // The second card starts in the middle, so the row reads as a row on either side.
   useEffect(() => {
@@ -149,7 +151,7 @@ export function SocialReelView({
                   opener.current = event.currentTarget;
                   setOpen(index);
                 }}
-                aria-label={fill(labels.media.play, { title: film.title })}
+                aria-label={fillLabel(labels.media.play, { title: film.title })}
                 className={cn(
                   'group relative block aspect-[9/16] w-full overflow-hidden rounded-[1.25rem] bg-forest-900 text-left transition-[scale,filter,box-shadow] duration-500 ease-[var(--ease-soft)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-forest-900 motion-reduce:transition-none',
                   current
@@ -234,7 +236,7 @@ export function SocialReelView({
           aria-live="polite"
           className="min-w-14 text-center text-body-sm font-semibold text-fg-muted tabular-nums"
         >
-          {fill(labels.position, { index: active + 1, total: films.length })}
+          {fillLabel(labels.position, { index: active + 1, total: films.length })}
         </p>
         <button
           type="button"
@@ -278,19 +280,20 @@ export function SocialReelView({
         </Link>
       </div>
 
-      <MediaViewer
+      <ReelPlayer
         items={films}
         index={open}
         labels={labels.media}
-        autoPlayFilms
+        handle={handle}
         onChange={(index) => {
-          setOpen(index);
           setActive(index);
           goTo(index);
         }}
         onClose={() => {
           setOpen(null);
-          opener.current?.focus();
+          // Back to the film watched last, which the row has followed meanwhile.
+          const card = trackRef.current?.children[active]?.querySelector('button');
+          (card ?? opener.current)?.focus({ preventScroll: true });
         }}
       />
     </section>

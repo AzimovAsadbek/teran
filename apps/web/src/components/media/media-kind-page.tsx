@@ -6,7 +6,8 @@ import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { Pagination } from '@/components/catalog/pagination';
 import { Link } from '@/i18n/navigation';
-import { getMedia } from '@/lib/data/content';
+import { socialHandle } from '@/lib/contact';
+import { getMedia, getPublicSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
 import {
   KIND_OF_PAGE,
@@ -64,13 +65,14 @@ async function KindList({
     searchParams,
   ]);
   const page = pageNumber(params.page);
-  const [media, totals] = await Promise.all([
+  const [media, totals, settings] = await Promise.all([
     getMedia(locale, {
       kind: KIND_OF_PAGE[pageKey],
       page,
       pageSize: PAGE_SIZE[pageKey],
     }).catch(() => null),
     mediaTotals(locale),
+    pageKey === 'videos' ? getPublicSettings(locale).catch(() => null) : null,
   ]);
   const items = media?.items ?? [];
   const videos = pageKey === 'videos';
@@ -96,6 +98,7 @@ async function KindList({
               items={upright}
               labels={mediaLabels(t)}
               layout="reels"
+              handle={socialHandle(settings?.contact)}
               className={landscape.length > 0 ? 'mt-14 sm:mt-20' : 'mt-8'}
             />
           ) : null}

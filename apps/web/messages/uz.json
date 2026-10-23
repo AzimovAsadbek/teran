@@ -253,6 +253,9 @@
     "emptyPhotosTitle": "Rasmlar tez orada",
     "emptyPhotosText": "Bu yerda TERAN olamidan suratlar paydo boʻladi.",
     "captions": "Subtitrlar (oʻzbekcha)",
+    "pause": "Toʻxtatish",
+    "resume": "Davom ettirish",
+    "swipeHint": "Keyingi video uchun yuqoriga suring",
     "reelsTitle": "Qisqa lavhalar",
     "reelsIntro": "Telefon ekrani uchun tik videolar: bosh sahifadagi “Bir piyola, bir lavha” lentasidagilar."
   },

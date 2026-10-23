@@ -61,3 +61,8 @@ export function socialLinks(contact: Contact): SocialLink[] {
   ];
   return links.filter((link): link is SocialLink => link !== null);
 }
+
+/** The account TERAN is known by ("@TeranTrade"): the first network that names one, else null. */
+export function socialHandle(contact: Contact): string | null {
+  return socialLinks(contact).find((link) => link.handle)?.handle ?? null;
+}

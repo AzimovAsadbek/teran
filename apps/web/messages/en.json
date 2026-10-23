@@ -253,6 +253,9 @@
     "emptyPhotosTitle": "Photos coming soon",
     "emptyPhotosText": "Photographs from the world of TERAN will appear here.",
     "captions": "Subtitles (Uzbek)",
+    "pause": "Pause",
+    "resume": "Play",
+    "swipeHint": "Swipe up for the next video",
     "reelsTitle": "Short films",
     "reelsIntro": "Upright films made for a phone’s screen — the ones in the home page’s “Sip & scroll” feed."
   },

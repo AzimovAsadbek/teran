@@ -17,7 +17,8 @@ import {
 } from '@/components/media/media-archive';
 import { MediaGallery } from '@/components/media/media-gallery';
 import { mediaLabels } from '@/components/media/media-labels';
-import { getMedia } from '@/lib/data/content';
+import { socialHandle } from '@/lib/contact';
+import { getMedia, getPublicSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
 
 /** The overview shows the latest of each kind; the kind pages hold everything. */
@@ -41,9 +42,10 @@ export async function generateMetadata(): Promise<Metadata> {
 async function Overview() {
   await connection();
   const [locale, t] = await Promise.all([getLocale() as Promise<Locale>, getTranslations('Media')]);
-  const [photos, videos] = await Promise.all([
+  const [photos, videos, settings] = await Promise.all([
     getMedia(locale, { kind: 'PHOTO', pageSize: PHOTOS_SHOWN }).catch(() => null),
     getMedia(locale, { kind: 'VIDEO', pageSize: VIDEOS_READ }).catch(() => null),
+    getPublicSettings(locale).catch(() => null),
   ]);
   const totals = { photos: photos?.total ?? 0, videos: videos?.total ?? 0 };
   const films = (videos?.items ?? []).filter(isLandscape).slice(0, FILMS_SHOWN);
@@ -97,7 +99,13 @@ async function Overview() {
             title={t('reelsTitle')}
             text={t('reelsIntro')}
           />
-          <MediaGallery items={reels} labels={labels} layout="reels" className="mt-6" />
+          <MediaGallery
+            items={reels}
+            labels={labels}
+            layout="reels"
+            handle={socialHandle(settings?.contact)}
+            className="mt-6"
+          />
         </section>
       ) : null}
     </>

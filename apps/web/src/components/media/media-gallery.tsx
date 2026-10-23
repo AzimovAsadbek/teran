@@ -11,6 +11,8 @@ import {
 } from 'react';
 import { cn } from '@/lib/cn';
 import { imageSources } from '@/lib/navigation';
+import { fillLabel } from './media-labels';
+import { ReelPlayer } from './reel-player';
 import { TileTitle } from './tile-title';
 
 export interface MediaLabels {
@@ -29,10 +31,13 @@ export interface MediaLabels {
   thumbnails: string;
   /** Label of a film's subtitle track. */
   captions: string;
+  /** Name of the feed of upright films (reel-player.tsx). */
+  reels: string;
+  pause: string;
+  resume: string;
+  /** How to move on in the feed on a touch screen. */
+  swipeHint: string;
 }
-
-const fill = (template: string, values: Record<string, string | number>) =>
-  template.replace(/\{(\w+)\}/g, (match, key: string) => String(values[key] ?? match));
 
 function duration(seconds: number | null): string | null {
   if (!seconds) return null;
@@ -168,13 +173,16 @@ const TILE_BUTTON =
  * - `reels` (upright films, ADR-056): tall posters side by side, the title over each, as a feed's
  *   cards (two across on phones, four, then all eight in one row on wide screens).
  * Films never play by themselves: a tile shows the poster, and the film starts in the viewer when
- * the visitor presses play (browser controls, sound and subtitles under their control).
+ * the visitor presses play (browser controls, sound and subtitles under their control). Upright
+ * films open the feed instead (reel-player.tsx, ADR-057): each plays, muted, as it comes into view,
+ * and a scroll moves to the next.
  */
 export function MediaGallery({
   items,
   labels,
   layout = 'justified',
   priorityFirst = false,
+  handle = null,
   className,
 }: {
   items: MediaItemDto[];
@@ -182,6 +190,8 @@ export function MediaGallery({
   layout?: 'editorial' | 'justified' | 'films' | 'reels';
   /** The first picture is the page's largest paint (a media page): fetch it before the others. */
   priorityFirst?: boolean;
+  /** TERAN's account ("@TeranTrade"), under its name on the films of the feed (`reels`). */
+  handle?: string | null;
   className?: string;
 }) {
   const [open, setOpen] = useState<number | null>(null);
@@ -250,16 +260,30 @@ export function MediaGallery({
           ))}
         </ul>
       )}
-      <MediaViewer
-        items={shown}
-        index={open}
-        labels={labels}
-        onChange={setOpen}
-        onClose={() => {
-          setOpen(null);
-          opener.current?.focus();
-        }}
-      />
+      {layout === 'reels' ? (
+        <ReelPlayer
+          items={shown}
+          index={open}
+          labels={labels}
+          handle={handle}
+          onChange={setOpen}
+          onClose={() => {
+            setOpen(null);
+            opener.current?.focus();
+          }}
+        />
+      ) : (
+        <MediaViewer
+          items={shown}
+          index={open}
+          labels={labels}
+          onChange={setOpen}
+          onClose={() => {
+            setOpen(null);
+            opener.current?.focus();
+          }}
+        />
+      )}
     </>
   );
 }
@@ -288,7 +312,7 @@ function ReelsLayout({
             <button
               type="button"
               onClick={(event) => onOpen(index)(event.currentTarget)}
-              aria-label={fill(labels.play, { title: item.title })}
+              aria-label={fillLabel(labels.play, { title: item.title })}
               className={cn(TILE_BUTTON, 'aspect-[9/16] rounded-[0.875rem]')}
             >
               <TileImage
@@ -566,18 +590,12 @@ export function MediaViewer({
   items,
   index,
   labels,
-  autoPlayFilms = false,
   onChange,
   onClose,
 }: {
   items: MediaItemDto[];
   index: number | null;
   labels: MediaLabels;
-  /**
-   * A film starts at once, muted and looping (the home page's feed of TERAN's silent films: the
-   * visitor opened it to watch); otherwise it waits for its controls.
-   */
-  autoPlayFilms?: boolean;
   onChange: (index: number) => void;
   onClose: () => void;
 }) {
@@ -662,7 +680,7 @@ export function MediaViewer({
         >
           <div className="flex items-center justify-between gap-4 px-4 pt-3 sm:px-6 sm:pt-4">
             <p className="text-body-sm text-ivory-100/70 lining-nums">
-              {fill(labels.position, { index: (index ?? 0) + 1, total: count })}
+              {fillLabel(labels.position, { index: (index ?? 0) + 1, total: count })}
             </p>
             <button
               type="button"
@@ -679,10 +697,7 @@ export function MediaViewer({
                 key={item.id}
                 controls
                 playsInline
-                autoPlay={autoPlayFilms}
-                muted={autoPlayFilms}
-                loop={autoPlayFilms}
-                preload={autoPlayFilms ? 'auto' : 'metadata'}
+                preload="metadata"
                 poster={image.src}
                 className="max-h-full max-w-full rounded-[0.25rem] bg-black"
               >
@@ -758,7 +773,10 @@ export function MediaViewer({
                     <button
                       type="button"
                       onClick={() => onChange(thumbIndex)}
-                      aria-label={fill(labels.position, { index: thumbIndex + 1, total: count })}
+                      aria-label={fillLabel(labels.position, {
+                        index: thumbIndex + 1,
+                        total: count,
+                      })}
                       aria-current={thumbIndex === index ? 'true' : undefined}
                       className={cn(
                         'relative block h-12 w-12 overflow-hidden rounded-[0.25rem] opacity-55 ring-1 ring-ivory-50/10 transition-[opacity,box-shadow] hover:opacity-90 aria-current:opacity-100 aria-current:ring-2 aria-current:ring-gold-300 sm:h-14 sm:w-14',

@@ -370,9 +370,18 @@ export const articleListQuerySchema = z.object({
 
 // ─── Media ("Lavhalar": photographs and short films) ───────────────────────
 
-export const MEDIA_KINDS = ['PHOTO', 'VIDEO'] as const;
+/**
+ * Photographs, films (landscape, the gallery's "Videolar") and shorts (upright films: the home
+ * page's feed and the gallery's "Qisqa lavhalar", ADR-059), each kind with its own list and order.
+ */
+export const MEDIA_KINDS = ['PHOTO', 'VIDEO', 'SHORT'] as const;
 export const mediaKindSchema = z.enum(MEDIA_KINDS);
 export type MediaKind = z.infer<typeof mediaKindSchema>;
+
+/** A kind made of a film (its file, poster, running time and subtitles): films and shorts. */
+export function isFilmKind(kind: MediaKind): boolean {
+  return kind !== 'PHOTO';
+}
 
 /** Video files the storefront plays (MP4 with H.264/AAC, or WebM). */
 export const MEDIA_VIDEO_TYPES = ['video/mp4', 'video/webm'] as const;

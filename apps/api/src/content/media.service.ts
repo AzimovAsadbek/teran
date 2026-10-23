@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   buildPaginated,
+  isFilmKind,
   type ImageDto,
   type Locale,
   type MediaItemDto,
@@ -20,7 +21,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export const VISIBLE_MEDIA_WHERE = {
   status: 'PUBLISHED',
   imageKey: { not: null },
-  OR: [{ kind: 'PHOTO' }, { kind: 'VIDEO', videoKey: { not: null } }],
+  OR: [{ kind: 'PHOTO' }, { kind: { in: ['VIDEO', 'SHORT'] }, videoKey: { not: null } }],
 } satisfies Prisma.MediaItemWhereInput;
 
 type MediaRow = Prisma.MediaItemGetPayload<{ include: { translations: true } }>;
@@ -94,7 +95,7 @@ export function toMediaItem(row: MediaRow, locale: Locale): MediaItemDto | null 
     caption: translation?.caption ?? null,
     image,
     video:
-      row.kind === 'VIDEO' &&
+      isFilmKind(row.kind) &&
       src &&
       (row.videoType === 'video/mp4' || row.videoType === 'video/webm')
         ? {

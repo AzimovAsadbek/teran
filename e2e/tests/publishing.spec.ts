@@ -391,51 +391,65 @@ test.describe('publishing workflow', () => {
     await expect(page).toHaveURL(/\/en\/admin\/media\?kind=videos$/);
   });
 
-  test('the composer posts a film with its sound and a photo in one go, each first in its list', async ({
+  test('a short posted from the admin area plays first in the home page feed; photos post the same way', async ({
     page,
   }) => {
     test.setTimeout(120_000);
     type Listed = { items: { id: string; title: string; video: { hasAudio: boolean } | null }[] };
-    const listed = async (kind: 'PHOTO' | 'VIDEO') =>
+    const listed = async (kind: 'PHOTO' | 'VIDEO' | 'SHORT') =>
       (await (
         await page.request.get(`${API}/content/media?locale=en&kind=${kind}`)
       ).json()) as Listed;
     await signInAsAdmin(page);
-    await page.goto('/en/admin/media?kind=videos');
+    await page.goto('/en/admin/media?kind=shorts');
     await page.getByRole('link', { name: 'Post', exact: true }).click();
-    await expect(page).toHaveURL(/\/en\/admin\/media\/post$/);
+    await expect(page).toHaveURL(/\/en\/admin\/media\/post\?kind=shorts$/);
     const main = page.getByRole('main');
+    await expect(visible(main.getByRole('radio', { name: 'Shorts' }))).toBeChecked();
 
-    // A film: played here with its sound, its cover one of its frames, then posted in one go.
+    // A short: played here with its sound, its cover one of its frames, then posted in one go.
     await main.locator('input[type="file"]').first().setInputFiles(REEL);
     await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
-    await expect(visible(main.getByText(/^Upright video/))).toBeVisible();
+    await expect(visible(main.getByText(/^Short: shown in the home page/))).toBeVisible();
     await expect(
       visible(main.getByRole('slider', { name: 'Time of the cover frame' })),
     ).toBeVisible();
-    const film = `E2E reel ${Date.now().toString(36)}`;
+    const film = `E2E short ${Date.now().toString(36)}`;
     await field(page, 'Title').fill(film);
     await page.getByRole('button', { name: 'Post', exact: true }).click();
     await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
       timeout: 30_000,
     });
-    const films = await listed('VIDEO');
-    expect(films.items[0]).toMatchObject({ title: film, video: { hasAudio: true } });
+    const shorts = await listed('SHORT');
+    expect(shorts.items[0]).toMatchObject({ title: film, video: { hasAudio: true } });
+    expect((await listed('VIDEO')).items.map((item) => item.title)).not.toContain(film);
 
-    // On the site, it opens in the feed with its sound offered.
-    const tile = () => page.getByRole('button', { name: `Watch the video: ${film}` });
+    // On the home page it is first in the feed, and opens with its sound offered.
+    const card = () =>
+      page
+        .getByRole('region', { name: 'Sip & scroll' })
+        .getByRole('button', { name: `Watch the video: ${film}` });
     await expect(async () => {
-      await page.goto('/en/media');
-      await expect(tile()).toHaveCount(1, { timeout: 1_000 });
+      await page.goto('/en');
+      await expect(card()).toHaveCount(1, { timeout: 1_000 });
     }).toPass({ timeout: 20_000 });
-    await tile().click();
+    await card().click();
     const feed = page.getByRole('dialog', { name: film });
     await expect(feed.getByRole('button', { name: /^(Mute|Unmute)$/ })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(feed).toBeHidden();
 
-    // A photograph, from "Post another".
-    await page.goto('/en/admin/media/post');
+    // An upright film is not a "Video": the composer offers to post it as a short instead.
+    await page.goto('/en/admin/media/post?kind=videos');
+    await expect(visible(main.getByRole('radio', { name: 'Video' }))).toBeChecked();
+    await main.locator('input[type="file"]').first().setInputFiles(REEL);
+    await expect(visible(main.getByText(/^This is an upright video/))).toBeVisible();
+    await visible(main.getByRole('button', { name: 'Post as “Shorts”' })).click();
+    await expect(visible(main.getByRole('radio', { name: 'Shorts' }))).toBeChecked();
+    await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
+
+    // A photograph, then "Post another".
+    await page.goto('/en/admin/media/post?kind=photos');
     await main.locator('input[type="file"]').first().setInputFiles(PICTURES.lake);
     await expect(visible(main.getByRole('img', { name: /lake\.webp/ }))).toBeVisible();
     const photo = `E2E photo ${Date.now().toString(36)}`;
@@ -447,10 +461,10 @@ test.describe('publishing workflow', () => {
     const photos = await listed('PHOTO');
     expect(photos.items[0]).toMatchObject({ title: photo, video: null });
     await page.getByRole('button', { name: 'Post another' }).click();
-    await expect(visible(main.getByText('Drop a photo or a video here'))).toBeVisible();
+    await expect(visible(main.getByText('Drop a photo here'))).toBeVisible();
 
     // Clean up: the stack's other journeys expect no films.
-    for (const id of [films.items[0]!.id, photos.items[0]!.id]) {
+    for (const id of [shorts.items[0]!.id, photos.items[0]!.id]) {
       expect((await page.request.delete(`${API}/admin/media/${id}`)).status()).toBe(204);
     }
   });

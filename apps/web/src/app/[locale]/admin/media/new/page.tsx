@@ -1,4 +1,4 @@
-import type { Locale } from '@teran/contracts';
+import type { Locale, MediaKind } from '@teran/contracts';
 import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -13,23 +13,33 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('media.newItem') };
 }
 
-/** A new photograph (?kind=photos, the default) or film (?kind=videos); the kind stays fixed. */
+const NEW = {
+  PHOTO: { list: '/admin/media', title: 'newPhoto' },
+  VIDEO: { list: '/admin/media?kind=videos', title: 'newVideo' },
+  SHORT: { list: '/admin/media?kind=shorts', title: 'newShort' },
+} as const satisfies Record<MediaKind, object>;
+
+/**
+ * A new photograph (?kind=photos, the default), film (?kind=videos) or short (?kind=shorts, the
+ * home page's feed); the kind stays fixed.
+ */
 export default async function NewMediaPage({
   searchParams,
 }: PageProps<'/[locale]/admin/media/new'>) {
   const [params, t] = await Promise.all([searchParams, getTranslations('Admin')]);
-  const video = params.kind === 'videos';
+  const kind: MediaKind =
+    params.kind === 'videos' ? 'VIDEO' : params.kind === 'shorts' ? 'SHORT' : 'PHOTO';
   return (
     <>
       <Link
-        href={video ? '/admin/media?kind=videos' : '/admin/media'}
+        href={NEW[kind].list}
         className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-fg hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
-        {video ? t('media.kinds.VIDEO_PLURAL') : t('media.kinds.PHOTO_PLURAL')}
+        {t(`media.kinds.${kind}_PLURAL`)}
       </Link>
-      <AdminPageHeader title={video ? t('media.newVideo') : t('media.newPhoto')} />
-      <MediaEditor item={null} kind={video ? 'VIDEO' : 'PHOTO'} />
+      <AdminPageHeader title={t(`media.${NEW[kind].title}`)} />
+      <MediaEditor item={null} kind={kind} />
     </>
   );
 }

@@ -990,5 +990,43 @@ describe('admin API', () => {
         expect.arrayContaining(['media.create', 'media.video', 'media.reorder', 'media.delete']),
       );
     });
+
+    it('keeps shorts as a kind of their own: a film file, their own list and order (ADR-059)', async () => {
+      const { agent } = await signedIn('ADMIN');
+      const short = (
+        await agent
+          .post(`${API}/admin/media`)
+          .send(media('Steam', { kind: 'SHORT' }))
+          .expect(201)
+      ).body as AdminMediaItem;
+      expect(short).toMatchObject({ kind: 'SHORT', position: 0 });
+      await agent
+        .post(`${API}/admin/media/${short.id}/video`)
+        .attach('file', mp4, { filename: 'short.mp4', contentType: 'video/mp4' })
+        .expect(201);
+      await agent
+        .post(`${API}/admin/media/${short.id}/image`)
+        .attach('file', await png(400), { filename: 'steam.png', contentType: 'image/png' })
+        .expect(201);
+      await agent
+        .put(`${API}/admin/media/${short.id}`)
+        .send(media('Steam', { kind: 'SHORT', status: 'PUBLISHED' }))
+        .expect(200);
+
+      // Listed as a short only, with its film; the home page's feed reads exactly this.
+      const shorts = await visible('&kind=SHORT&featured=true');
+      expect(shorts.map((item) => [item.title, item.kind])).toEqual([['Steam (en)', 'SHORT']]);
+      expect(shorts[0]?.video).toMatchObject({ type: 'video/mp4' });
+      expect(await visible('&kind=VIDEO')).toEqual([]);
+      const adminShorts = (await agent.get(`${API}/admin/media?kind=SHORT`).expect(200))
+        .body as AdminMediaItem[];
+      expect(adminShorts.map((item) => item.id)).toEqual([short.id]);
+      // Its order is its own: reordering shorts names shorts only.
+      await agent
+        .put(`${API}/admin/media/order`)
+        .send({ kind: 'SHORT', ids: [short.id] })
+        .expect(200);
+      await agent.delete(`${API}/admin/media/${short.id}`).expect(204);
+    });
   });
 });

@@ -6,7 +6,17 @@ import {
   type AdminMediaItem,
   type MediaKind,
 } from '@teran/contracts';
-import { Check, ImagePlus, Loader2, RefreshCw, X } from 'lucide-react';
+import {
+  Check,
+  Film,
+  ImageIcon,
+  ImagePlus,
+  Loader2,
+  RefreshCw,
+  Smartphone,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   useEffect,
@@ -42,14 +52,32 @@ import { notify } from './toast';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
 
 const KEYS = ['title', 'caption'] as const;
-const ACCEPT = 'image/*,video/mp4,video/webm';
+
+/** What is posted, chosen first (ADR-059): a photograph, a film, or a short for the home page. */
+const KINDS: { kind: MediaKind; icon: LucideIcon; accept: string }[] = [
+  { kind: 'PHOTO', icon: ImageIcon, accept: 'image/*' },
+  { kind: 'VIDEO', icon: Film, accept: 'video/mp4,video/webm' },
+  { kind: 'SHORT', icon: Smartphone, accept: 'video/mp4,video/webm' },
+];
+const DROP = { PHOTO: 'dropPhoto', VIDEO: 'dropVideo', SHORT: 'dropShort' } as const;
+const HINT = { PHOTO: 'hintPhoto', VIDEO: 'hintVideo', SHORT: 'hintShort' } as const;
 
 type Picked =
-  | { kind: 'PHOTO'; url: string; photo: PreparedPhoto }
-  | { kind: 'VIDEO'; url: string; file: File; facts: VideoFacts };
+  | { type: 'photo'; url: string; photo: PreparedPhoto }
+  | { type: 'film'; url: string; file: File; facts: VideoFacts };
 
 type Problem =
-  'unsupported' | 'mov' | 'tooLargeVideo' | 'unreadableVideo' | 'heic' | 'too_small' | 'unreadable';
+  | 'unsupported'
+  | 'mov'
+  | 'tooLargeVideo'
+  | 'unreadableVideo'
+  | 'heic'
+  | 'too_small'
+  | 'unreadable'
+  | 'notUpright'
+  | 'notLandscape'
+  | 'photoOnly'
+  | 'videoOnly';
 
 type Step = 'create' | 'file' | 'cover' | 'publish' | 'order';
 
@@ -83,14 +111,17 @@ function clock(seconds: number): string {
 }
 
 /**
- * "Joylash": a photograph or a film posted in one go, as on Instagram (ADR-058). The file comes
- * first, chosen or dropped, and decides the kind. A film is previewed with its sound and its cover
- * is a frame picked with a slider; a photograph too heavy or too large for the site is scaled down
- * in the browser. Then the title (other languages optional), the home page mark for films, and
- * "Post": the item is created, its files uploaded (the film with its progress), it is published
- * and put first in its list. A step that fails leaves a draft; pressing "Post" again finishes it.
+ * "Joylash": a photograph, a film or a short posted in one go, as on Instagram (ADR-058, ADR-059).
+ * The kind is chosen first (the list's tab opens it on its own kind): a short must be upright and
+ * appears in the home page's feed, a film is landscape and stays in the gallery; a file of the
+ * other shape is refused with a way to post it as the other kind. A film is previewed with its
+ * sound and its cover is a frame picked with a slider; a photograph too heavy or too large for the
+ * site is scaled down in the browser. Then the title (other languages optional), the home page
+ * mark for shorts, and "Post": the item is created, its files uploaded (the film with its
+ * progress), it is published and put first in its list. A step that fails leaves a draft; pressing
+ * "Post" again finishes it.
  */
-export function MediaComposer() {
+export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   const t = useTranslations('Admin');
   const locale = useLocale();
   const message = useValidationMessage();
@@ -102,8 +133,11 @@ export function MediaComposer() {
   const captureRef = useRef<HTMLVideoElement>(null);
   const coverRef = useRef<HTMLCanvasElement>(null);
   const made = useRef<Made>({ ...NOTHING_MADE });
+  const [kind, setKind] = useState<MediaKind>(initialKind);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
+  /** A film of the other shape, offered to be posted as the kind it fits. */
+  const [suggest, setSuggest] = useState<{ file: File; kind: MediaKind } | null>(null);
   const [reading, setReading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [coverAt, setCoverAt] = useState(0);
@@ -116,11 +150,10 @@ export function MediaComposer() {
   /** The draft a failed post left, to finish in the editor (also in `made`, for the steps). */
   const [draftId, setDraftId] = useState<string | null>(null);
   const videoLimit = formatBytes(MAX_VIDEO_UPLOAD_BYTES, locale);
-  const kind: MediaKind = picked?.kind ?? 'PHOTO';
   const payload = {
     kind,
     status: 'DRAFT' as const,
-    isFeatured: kind === 'VIDEO' && isFeatured,
+    isFeatured: kind === 'SHORT' && isFeatured,
     videoDurationSeconds: null,
     translations: toTranslationPayload(translations),
   };
@@ -133,7 +166,7 @@ export function MediaComposer() {
 
   // The cover follows the slider, drawn from a hidden copy of the film (the preview stays free).
   useEffect(() => {
-    if (picked?.kind !== 'VIDEO') return;
+    if (picked?.type !== 'film') return;
     const video = captureRef.current;
     const canvas = coverRef.current;
     if (!video || !canvas) return;
@@ -155,6 +188,7 @@ export function MediaComposer() {
   function reset() {
     setPicked(null);
     setProblem(null);
+    setSuggest(null);
     setRun(null);
     setPosted(null);
     setCoverFailed(false);
@@ -166,45 +200,66 @@ export function MediaComposer() {
     form.reset();
   }
 
-  async function choose(file: File | undefined) {
+  async function choose(file: File | undefined, as: MediaKind = kind) {
     if (!file || reading || sending) return;
     form.reset();
     setRun(null);
     setCoverFailed(false);
+    setSuggest(null);
     made.current = { ...NOTHING_MADE };
+    setDraftId(null);
     const name = file.name.toLowerCase();
-    const refuse = (next: Problem) => {
+    const refuse = (next: Problem, otherKind?: MediaKind) => {
       setPicked(null);
       setProblem(next);
+      if (otherKind) setSuggest({ file, kind: otherKind });
     };
     setProblem(null);
-    if (file.type.startsWith('video/') || /\.(mp4|m4v|webm|mov)$/.test(name)) {
-      if (file.type === 'video/quicktime' || name.endsWith('.mov')) return refuse('mov');
-      if (!/^video\/(mp4|webm)$/.test(file.type) && !/\.(mp4|m4v|webm)$/.test(name)) {
-        return refuse('unsupported');
-      }
-      if (file.size > MAX_VIDEO_UPLOAD_BYTES) return refuse('tooLargeVideo');
-      const url = URL.createObjectURL(file);
+    const video = file.type.startsWith('video/') || /\.(mp4|m4v|webm|mov)$/.test(name);
+    const image = file.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|heic|heif)$/.test(name);
+    if (as === 'PHOTO') {
+      if (video) return refuse('photoOnly');
+      if (!image) return refuse('unsupported');
       setReading(true);
-      const facts = await readVideo(url);
+      const photo = await preparePhoto(file);
       setReading(false);
-      if (!facts) {
-        URL.revokeObjectURL(url);
-        return refuse('unreadableVideo');
-      }
-      setCoverAt(Math.min(1, facts.duration / 3));
-      setPicked({ kind: 'VIDEO', url, file, facts });
+      if (photo === 'unreadable' && /\.(heic|heif)$/.test(name)) return refuse('heic');
+      if (typeof photo === 'string') return refuse(photo);
+      setPicked({ type: 'photo', url: URL.createObjectURL(photo.file), photo });
       return;
     }
-    if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|avif|heic|heif)$/.test(name)) {
+    if (image && !video) return refuse('videoOnly');
+    if (!video) return refuse('unsupported');
+    if (file.type === 'video/quicktime' || name.endsWith('.mov')) return refuse('mov');
+    if (!/^video\/(mp4|webm)$/.test(file.type) && !/\.(mp4|m4v|webm)$/.test(name)) {
       return refuse('unsupported');
     }
+    if (file.size > MAX_VIDEO_UPLOAD_BYTES) return refuse('tooLargeVideo');
+    const url = URL.createObjectURL(file);
     setReading(true);
-    const photo = await preparePhoto(file);
+    const facts = await readVideo(url);
     setReading(false);
-    if (photo === 'unreadable' && /\.(heic|heif)$/.test(name)) return refuse('heic');
-    if (typeof photo === 'string') return refuse(photo);
-    setPicked({ kind: 'PHOTO', url: URL.createObjectURL(photo.file), photo });
+    const upright = facts !== null && facts.height > facts.width;
+    if (!facts || (as === 'SHORT') !== upright) {
+      URL.revokeObjectURL(url);
+      if (!facts) return refuse('unreadableVideo');
+      return as === 'SHORT' ? refuse('notUpright', 'VIDEO') : refuse('notLandscape', 'SHORT');
+    }
+    setCoverAt(Math.min(1, facts.duration / 3));
+    setPicked({ type: 'film', url, file, facts });
+  }
+
+  /** Another kind: the chosen file (if any) is let go, since it was checked for the other one. */
+  function switchKind(next: MediaKind) {
+    if (next === kind || sending) return;
+    setKind(next);
+    setPicked(null);
+    setProblem(null);
+    setSuggest(null);
+    setRun(null);
+    made.current = { ...NOTHING_MADE };
+    setDraftId(null);
+    form.reset();
   }
 
   function onDrop(event: DragEvent<HTMLElement>) {
@@ -220,7 +275,7 @@ export function MediaComposer() {
     const steps: Step[] = [
       'create',
       'file',
-      ...(picked.kind === 'VIDEO' ? (['cover'] as const) : []),
+      ...(picked.type === 'film' ? (['cover'] as const) : []),
       ...(publish ? (['publish'] as const) : []),
       'order',
     ];
@@ -243,13 +298,13 @@ export function MediaComposer() {
         if (!made.current.file) {
           at('file', 0);
           result.item = await uploadFileWithProgress<AdminMediaItem>(
-            `/admin/media/${id}/${picked.kind === 'VIDEO' ? 'video' : 'image'}`,
-            picked.kind === 'VIDEO' ? picked.file : picked.photo.file,
+            `/admin/media/${id}/${picked.type === 'film' ? 'video' : 'image'}`,
+            picked.type === 'film' ? picked.file : picked.photo.file,
             (sent) => at('file', Math.round(sent * 100)),
           );
           made.current.file = true;
         }
-        if (picked.kind === 'VIDEO' && !made.current.cover) {
+        if (picked.type === 'film' && !made.current.cover) {
           at('cover');
           const video = captureRef.current;
           const cover = video ? await captureCover(video, coverAt) : null;
@@ -270,11 +325,11 @@ export function MediaComposer() {
         }
         if (!made.current.ordered) {
           at('order');
-          const list = await apiRequest<AdminMediaItem[]>(`/admin/media?kind=${picked.kind}`);
+          const list = await apiRequest<AdminMediaItem[]>(`/admin/media?kind=${kind}`);
           const ordered = await apiRequest<AdminMediaItem[]>('/admin/media/order', {
             method: 'PUT',
             body: {
-              kind: picked.kind,
+              kind,
               ids: [id, ...list.map((entry) => entry.id).filter((other) => other !== id)],
             },
           });
@@ -323,11 +378,17 @@ export function MediaComposer() {
         <div className="flex flex-wrap justify-center gap-2">
           {live ? (
             <ButtonLink
-              href={posted.kind === 'VIDEO' ? '/media/videos' : '/media/photos'}
+              href={
+                posted.kind === 'SHORT'
+                  ? '/'
+                  : posted.kind === 'VIDEO'
+                    ? '/media/videos'
+                    : '/media/photos'
+              }
               target="_blank"
               variant="secondary"
             >
-              {t('media.viewOnSite')}
+              {posted.kind === 'SHORT' ? t('compose.viewOnHome') : t('media.viewOnSite')}
             </ButtonLink>
           ) : null}
           <ButtonLink href={`/admin/media/${posted.id}`} variant="secondary">
@@ -352,12 +413,43 @@ export function MediaComposer() {
         ? photoProblem(problem)
         : t(`compose.problems.${problem}`, { limit: videoLimit });
 
+  const accept = KINDS.find((entry) => entry.kind === kind)?.accept;
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
       <section aria-label={t('compose.file')} className="space-y-4">
+        <fieldset>
+          <legend className="mb-2 text-label text-fg">{t('compose.kindLabel')}</legend>
+          <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-control border border-line bg-surface p-1">
+            {KINDS.map(({ kind: option, icon: Icon }) => (
+              <label
+                key={option}
+                className={cn(
+                  'inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[calc(var(--radius-control)-0.125rem)] px-4 text-body-sm font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
+                  kind === option
+                    ? 'bg-brand text-fg-inverse'
+                    : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
+                  sending && 'cursor-not-allowed opacity-60',
+                )}
+              >
+                <input
+                  type="radio"
+                  name="compose-kind"
+                  value={option}
+                  checked={kind === option}
+                  disabled={sending}
+                  onChange={() => switchKind(option)}
+                  className="sr-only"
+                />
+                <Icon aria-hidden className="h-4 w-4" />
+                {t(`media.kinds.${option}`)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         {picked ? (
           <ChosenFile
             picked={picked}
+            kind={kind}
             coverAt={coverAt}
             coverRef={coverRef}
             captureRef={captureRef}
@@ -393,16 +485,16 @@ export function MediaComposer() {
               )}
             </span>
             <span className="text-title-lg text-fg">
-              {reading ? t('compose.reading') : t('compose.drop')}
+              {reading ? t('compose.reading') : t(`compose.${DROP[kind]}`)}
             </span>
             <span className={buttonClasses('primary', 'md')}>{t('compose.choose')}</span>
             <span className="max-w-md text-body-sm text-fg-muted">
-              {t('compose.dropHint', { limit: videoLimit })}
+              {t(`compose.${HINT[kind]}`, { limit: videoLimit })}
             </span>
             <input
               id={inputId}
               type="file"
-              accept={ACCEPT}
+              accept={accept}
               disabled={reading}
               className="sr-only"
               onChange={(event) => {
@@ -419,6 +511,19 @@ export function MediaComposer() {
           >
             {problemText}
           </p>
+        ) : null}
+        {suggest ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const { file, kind: other } = suggest;
+              setKind(other);
+              void choose(file, other);
+            }}
+          >
+            {t('compose.switchTo', { kind: t(`media.kinds.${suggest.kind}`) })}
+          </Button>
         ) : null}
       </section>
 
@@ -438,14 +543,14 @@ export function MediaComposer() {
             { key: 'title', label: t('media.itemTitle'), required: true, maxLength: 120 },
             {
               key: 'caption',
-              label: kind === 'VIDEO' ? t('media.description') : t('media.caption'),
+              label: kind === 'PHOTO' ? t('media.caption') : t('media.description'),
               multiline: true,
               rows: 3,
               maxLength: 400,
             },
           ]}
         />
-        {kind === 'VIDEO' ? (
+        {kind === 'SHORT' ? (
           <CheckboxField
             label={t('media.featured')}
             hint={t('media.featuredVideoHint')}
@@ -494,6 +599,7 @@ export function MediaComposer() {
 /** The chosen file: a photograph, or a film with its cover picked from its own frames. */
 function ChosenFile({
   picked,
+  kind,
   coverAt,
   coverRef,
   captureRef,
@@ -502,6 +608,7 @@ function ChosenFile({
   onChange,
 }: {
   picked: Picked;
+  kind: MediaKind;
   coverAt: number;
   coverRef: RefObject<HTMLCanvasElement | null>;
   captureRef: RefObject<HTMLVideoElement | null>;
@@ -519,7 +626,7 @@ function ChosenFile({
     </Button>
   );
 
-  if (picked.kind === 'PHOTO') {
+  if (picked.type === 'photo') {
     const { photo } = picked;
     return (
       <div className="space-y-3 rounded-card border border-line bg-surface p-4 sm:p-5">
@@ -615,7 +722,7 @@ function ChosenFile({
         {formatBytes(picked.file.size, locale)}
       </p>
       <p className="text-body-sm text-fg-muted">
-        {upright ? t('compose.upright') : t('compose.landscape')}
+        {kind === 'SHORT' ? t('compose.upright') : t('compose.landscape')}
       </p>
       {change}
     </div>
@@ -641,7 +748,7 @@ function Progress({ run, kind }: { run: Run; kind: MediaKind }) {
         const active = position === index && !failed;
         const label =
           step === 'file'
-            ? t(kind === 'VIDEO' ? 'compose.steps.video' : 'compose.steps.photo')
+            ? t(kind === 'PHOTO' ? 'compose.steps.photo' : 'compose.steps.video')
             : t(STEP_LABELS[step]);
         return (
           <li key={step} className="space-y-1.5">

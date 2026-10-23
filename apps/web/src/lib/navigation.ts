@@ -84,6 +84,7 @@ export const LEARN_LINKS = [
   { href: '/tea-101', label: 'tea101' },
   { href: '/media/photos', label: 'photos' },
   { href: '/media/videos', label: 'videos' },
+  { href: '/media/shorts', label: 'shorts' },
 ] as const;
 
 export const ABOUT_LINKS = [

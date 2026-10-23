@@ -1592,3 +1592,38 @@ buffered request bodies only up to 10 MB and a larger film reached the API cut s
 `proxyClientMaxBodySize` is raised to 70 MB like the server's Nginx. The end-to-end tests upload an
 11 MB film through the editor and post a 2-second upright film with a tone (`e2e/tests/support/fixtures/reel.mp4`,
 made by `e2e/scripts/make-test-reel.swift`) and a photograph through the composer.
+
+## ADR-059: Shorts are a kind of their own, posted apart and shown on the home page
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-23), on the owner's request of 2026-10-23. Amends ADR-056, ADR-057 and ADR-058.
+
+**Context.** The owner uploaded a film from the admin area and looked for it on the home page. It
+was landscape (and went through the detailed form, to the end of the list), so it stayed in the
+gallery: the home page's feed showed the featured films that happened to be upright, a rule
+nobody could see in the admin area. The owner asked for films and shorts to be uploaded apart,
+and for a short posted in the admin area to appear on the home page.
+
+**Decision.**
+
+- **A third kind.** `MediaKind` gains `SHORT` (migration `20261023200000_media_kind_short`), and
+  the gallery's upright films become shorts (`20261023200100_media_upright_films_to_shorts`: films
+  whose poster is taller than wide; their order among themselves is kept). Photographs, films and
+  shorts each have their own list and order; a short has a film like a film does (file, poster,
+  running time, sound, subtitles).
+- **Admin → Galereya** has three tabs — Rasmlar · Videolar · Shorts — each with "Joylash" (the
+  composer, opened on that kind) and the detailed form. The composer starts with a three-way
+  switch: a short must be upright and a film landscape; a file of the other shape is refused with
+  a button to post it as the kind it fits. "Bosh sahifada koʻrsatish" is offered for shorts only
+  (on by default), and the list shows it for shorts only.
+- **The home page's feed** shows the published shorts marked for it, in their order (a new post
+  comes first), from the very first one.
+- **The gallery** groups photographs, films and shorts on its overview; `/media/shorts` ("Qisqa
+  lavhalar") is the shorts' own page, with its tab, a place in the tea school menu and the
+  sitemap; `/media/videos` holds films only. An article shows the shorts chosen for it as a group
+  of their own, opening the feed.
+
+**Consequences.** Posting a short is how a film reaches the home page; landscape films stay in
+the gallery. The server gets the change through its migrations when `deploy.sh` runs, its upright
+films becoming shorts as here. The end-to-end tests post a short from the Shorts tab and find it
+first in the home page's feed, and check that an upright file is refused as a film.

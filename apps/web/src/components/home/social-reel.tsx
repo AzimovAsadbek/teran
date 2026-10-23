@@ -6,13 +6,11 @@ import { socialHandle, socialLinks } from '@/lib/contact';
 import { getMedia, getPublicSettings } from '@/lib/data/content';
 import { SocialReelView } from './social-reel-view';
 
-/** Fewer upright films than this make no feed: the band is left out. */
-const MIN_FILMS = 3;
-
 /**
- * The home page's feed of TERAN's upright films (ADR-056): the gallery's films chosen for the home
- * page in Admin → Gallery, in their order, with TERAN's networks from Admin → Settings. Landscape
- * films and photographs stay in the gallery.
+ * The home page's feed of TERAN's shorts (ADR-056, ADR-059): the shorts posted in Admin →
+ * Galereya → Shorts and shown on the home page (the default), in their order, with TERAN's
+ * networks from Admin → Settings. A short posted there appears here at once; films and
+ * photographs stay in the gallery. Without a short there is no band.
  */
 export async function SocialReel() {
   await connection();
@@ -20,13 +18,11 @@ export async function SocialReel() {
   const [t, tm, media, settings] = await Promise.all([
     getTranslations('Home'),
     getTranslations('Media'),
-    getMedia(locale, { kind: 'VIDEO', featured: true, pageSize: 12 }).catch(() => null),
+    getMedia(locale, { kind: 'SHORT', featured: true, pageSize: 12 }).catch(() => null),
     getPublicSettings(locale).catch(() => null),
   ]);
-  const films = (media?.items ?? []).filter(
-    (item) => item.video && item.image.height > item.image.width,
-  );
-  if (films.length < MIN_FILMS) return null;
+  const films = (media?.items ?? []).filter((item) => item.video);
+  if (films.length === 0) return null;
   return (
     <SocialReelView
       films={films}

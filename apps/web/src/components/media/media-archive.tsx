@@ -1,5 +1,5 @@
 import type { Locale, MediaItemDto, MediaKind } from '@teran/contracts';
-import { ArrowRight, Film, Images, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Film, Images, Smartphone, type LucideIcon } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import Image from 'next/image';
@@ -9,32 +9,43 @@ import { getMedia, getPrerenderMedia } from '@/lib/data/content';
 import lake from '../../../public/brand/art/lake.webp';
 import { MediaCover } from './media-cover';
 
-/** The media pages: an overview and one page per kind, photographs and films kept apart. */
-export type MediaPageKey = 'all' | 'photos' | 'videos';
+/** The media pages: an overview and one page per kind, photographs, films and shorts apart. */
+export type MediaPageKey = 'all' | 'photos' | 'videos' | 'shorts';
 
 export const MEDIA_PATHS = {
   all: '/media',
   photos: '/media/photos',
   videos: '/media/videos',
+  shorts: '/media/shorts',
 } as const satisfies Record<MediaPageKey, string>;
 
-export const KIND_OF_PAGE = { photos: 'PHOTO', videos: 'VIDEO' } as const satisfies Record<
-  Exclude<MediaPageKey, 'all'>,
-  MediaKind
->;
+export const KIND_OF_PAGE = {
+  photos: 'PHOTO',
+  videos: 'VIDEO',
+  shorts: 'SHORT',
+} as const satisfies Record<Exclude<MediaPageKey, 'all'>, MediaKind>;
+
+/** Each kind's mark: photographs, films, and shorts as a phone's upright screen. */
+export const KIND_ICONS: Record<MediaKind, LucideIcon> = {
+  PHOTO: Images,
+  VIDEO: Film,
+  SHORT: Smartphone,
+};
 
 export interface MediaTotals {
   photos: number;
   videos: number;
+  shorts: number;
 }
 
-/** How many photographs and films are published (cached with the rest of the content). */
+/** How many photographs, films and shorts are published (cached with the rest of the content). */
 export async function mediaTotals(locale: Locale): Promise<MediaTotals> {
-  const [photos, videos] = await Promise.all([
+  const [photos, videos, shorts] = await Promise.all([
     getMedia(locale, { kind: 'PHOTO', pageSize: 1 }).catch(() => null),
     getMedia(locale, { kind: 'VIDEO', pageSize: 1 }).catch(() => null),
+    getMedia(locale, { kind: 'SHORT', pageSize: 1 }).catch(() => null),
   ]);
-  return { photos: photos?.total ?? 0, videos: videos?.total ?? 0 };
+  return { photos: photos?.total ?? 0, videos: videos?.total ?? 0, shorts: shorts?.total ?? 0 };
 }
 
 export function pageNumber(value: string | string[] | undefined): number {
@@ -42,10 +53,8 @@ export function pageNumber(value: string | string[] | undefined): number {
   return Number.isInteger(parsed) && parsed > 1 && parsed <= 1000 ? parsed : 1;
 }
 
-/** A film shot wider than tall: the kind the gallery's header and its films grid show. */
+/** A film shot wider than tall: the kind the gallery's header opens on. */
 export const isLandscape = (item: MediaItemDto) => item.image.width > item.image.height;
-/** A film shot upright: the home page's feed and the gallery's short films. */
-export const isUpright = (item: MediaItemDto) => item.image.height > item.image.width;
 
 /**
  * The picture a media page opens on: the first landscape film in the gallery's order, else (or on
@@ -124,11 +133,12 @@ export function MediaHeader({
 
 const TAB_ICONS: Record<MediaPageKey, LucideIcon | null> = {
   all: null,
-  photos: Images,
-  videos: Film,
+  photos: KIND_ICONS.PHOTO,
+  videos: KIND_ICONS.VIDEO,
+  shorts: KIND_ICONS.SHORT,
 };
 
-/** "Hammasi · Rasmlar · Videolar" with counts: links between the media pages. */
+/** "Hammasi · Rasmlar · Videolar · Qisqa lavhalar" with counts: links between the media pages. */
 export async function MediaTabs({
   current,
   totals,
@@ -139,9 +149,10 @@ export async function MediaTabs({
   const t = await getTranslations('Media');
   // A kind with nothing published yet has no tab (but its own page keeps it).
   const tabs: { key: MediaPageKey; count: number }[] = [
-    { key: 'all' as const, count: totals.photos + totals.videos },
+    { key: 'all' as const, count: totals.photos + totals.videos + totals.shorts },
     { key: 'photos' as const, count: totals.photos },
     { key: 'videos' as const, count: totals.videos },
+    { key: 'shorts' as const, count: totals.shorts },
   ].filter((tab) => tab.key === 'all' || tab.count > 0 || tab.key === current);
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-ivory-50/10 pb-6">
@@ -179,7 +190,11 @@ export async function MediaTabs({
         </ul>
       </nav>
       <p className="text-body-sm text-ivory-100/65">
-        {t('archiveCount', { photos: totals.photos, videos: totals.videos })}
+        {t('archiveCount', {
+          photos: totals.photos,
+          videos: totals.videos,
+          shorts: totals.shorts,
+        })}
       </p>
     </div>
   );
@@ -203,7 +218,7 @@ export function MediaGroupHeading({
   linkLabel?: string;
   as?: 'h2' | 'h3';
 }) {
-  const Icon = kind === 'VIDEO' ? Film : Images;
+  const Icon = KIND_ICONS[kind];
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
       <div className="min-w-0">
@@ -248,7 +263,7 @@ export function MediaEmpty({
   action?: ReactNode;
   compact?: boolean;
 }) {
-  const Icon = kind === 'VIDEO' ? Film : Images;
+  const Icon = KIND_ICONS[kind];
   return (
     <div
       className={cn(

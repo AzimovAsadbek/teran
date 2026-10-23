@@ -9,14 +9,15 @@ import { ArticleBody } from './article-body';
 import { ArticleCover } from './article-cover';
 
 /**
- * The gallery items chosen for an article, on a dark band like the gallery itself: photographs
- * and films in separate groups, each opening the full-screen viewer.
+ * The gallery items chosen for an article, on a dark band like the gallery itself: photographs,
+ * films and shorts in separate groups, each opening the full-screen viewer (shorts, the feed).
  */
 async function ArticleMedia({ items }: { items: MediaItemDto[] }) {
   const [t, tp] = await Promise.all([getTranslations('Media'), getTranslations('Pages')]);
   const labels = mediaLabels(t);
   const photos = items.filter((item) => item.kind === 'PHOTO');
   const videos = items.filter((item) => item.kind === 'VIDEO');
+  const shorts = items.filter((item) => item.kind === 'SHORT');
   return (
     <section
       aria-labelledby="article-media"
@@ -35,6 +36,12 @@ async function ArticleMedia({ items }: { items: MediaItemDto[] }) {
         <div className="mt-8">
           <MediaGroupHeading id="article-videos" as="h3" kind="VIDEO" title={t('videosTitle')} />
           <MediaGallery items={videos} labels={labels} layout="films" className="mt-4" />
+        </div>
+      ) : null}
+      {shorts.length > 0 ? (
+        <div className="mt-8">
+          <MediaGroupHeading id="article-shorts" as="h3" kind="SHORT" title={t('reelsTitle')} />
+          <MediaGallery items={shorts} labels={labels} layout="reels" className="mt-4" />
         </div>
       ) : null}
     </section>

@@ -462,29 +462,33 @@ screens need no hover: the whole card is the link. Rows hold at most four cards 
 (6 → 3 + 3, 7 → 4 + 3); tablets show two per row; phones scroll the cards sideways. The same art
 appears in the desktop catalogue panel and on the collection tiles.
 
-### Media: photographs ("Rasmlar") and films ("Videolar") kept apart
+### Media: photographs ("Rasmlar"), films ("Videolar") and shorts ("Qisqa lavhalar") kept apart
 
-Photographs and short films managed in Admin → Galereya, in two separate lists with their own
-"new" buttons and order (`MediaItem`: kind fixed when created, title, caption or description and
-image description in three languages, status, shown on the home page or not; a photo, or a film's
-poster, file, running time and sound read from the file and optional WebVTT subtitles). "Joylash"
-(ADR-058) posts one in a single screen: a drop zone with an image-plus mark, then the file's
-preview (a film with its cover picked by a slider beside it), the texts and marks in a sticky panel
-at the right, the steps with the upload's percentage, and a success card with the cover.
+Photographs, films and shorts (ADR-059) managed in Admin → Galereya, in three separate lists with
+their own "new" buttons and order (`MediaItem`: kind fixed when created, title, caption or
+description and image description in three languages, status, shown on the home page or not for
+shorts; a photo, or a film's poster, file, running time and sound read from the file and
+optional WebVTT subtitles). "Joylash" (ADR-058) posts one in a single screen: a three-way kind
+switch (Rasm · Video · Shorts, segments on a bordered bar, the chosen one in `brand`), a drop
+zone with an image-plus mark, then the file's preview (a film with its cover picked by a slider
+beside it), the texts and marks in a sticky panel at the right, the steps with the upload's
+percentage, and a success card with the cover.
 
-- **Home page — "Bir piyola, bir lavha" / "Sip & scroll"** (ADR-056), after the journal on
-  `surface-muted`: the upright films chosen for the home page as 9:16 cards (rounded 1.25 rem) in a
-  row that snaps to the middle; the middle card full size with a deep soft shadow and playing,
-  muted, the others at 88 % and 80 % brightness on their posters with a white play disc; over each
-  card's foot TERAN's emblem in a white disc, "TERAN" and the handle, then the film's title, as a
-  social post. Arrows (white discs) and "2 / 8" beneath; the networks as white pills with their
-  marks; "Galereyani koʻrish →". Shown from three upright films. A card opens the feed (below).
+- **Home page — "Bir piyola, bir lavha" / "Sip & scroll"** (ADR-056, ADR-059), after the journal on
+  `surface-muted`: the shorts marked for the home page (all, by default) as 9:16 cards (rounded 1.25
+  rem) in a row that snaps to the middle; the middle card full size with a deep soft shadow and
+  playing, muted, the others at 88 % and 80 % brightness on their posters with a white play disc;
+  over each card's foot TERAN's emblem in a white disc, "TERAN" and the handle, then the film's
+  title, as a social post. Arrows (white discs) and "2 / 8" beneath; the networks as white pills
+  with their marks; "Galereyani koʻrish →". Shown from the first short. A card opens the feed
+  (below).
 - **`/media` ("Galereya")**: opens full-bleed (min 27 rem, up to 74 svh) on its first landscape
   film over its poster, a veil deepening towards the foot, the title in Oswald capitals up to
-  6 rem and the intro at the lower left; then Rasmlar (12, justified), Videolar (landscape, 16:9
-  grid, up to 6) and Qisqa lavhalar (upright, 2 / 4 / 8 across). **`/media/photos`** and
-  **`/media/videos`**: every published item of one kind, paginated, films split by shape, with a
-  way back to the gallery above the title. Tabs ("Hammasi · Rasmlar · Videolar", with counts)
+  6 rem and the intro at the lower left; then Rasmlar (12, justified), Videolar (films, 16:9
+  grid, up to 6) and Qisqa lavhalar (shorts, 2 / 4 / 8 across). **`/media/photos`**,
+  **`/media/videos`** and **`/media/shorts`**: every published item of one kind, paginated, with
+  a way back to the gallery above the title. Tabs ("Hammasi · Rasmlar · Videolar · Qisqa
+  lavhalar", with counts; a phone mark for shorts)
   link the three pages; old `/media?kind=…` links redirect permanently. Photographs keep their
   proportions in rows of equal height; films are posters with play marks.
 - **In articles**: an article can show photographs and films chosen from the gallery (reused,
@@ -498,7 +502,7 @@ at the right, the steps with the upload's percentage, and a success card with th
   frames the smaller ones with a gold hairline.
 - The gallery's photographs and films (2026-10-23) are licensed stock of tea culture, titled by
   what the frame shows; the packaging artwork items stay drafts.
-- **Feed** (upright films, ADR-057): a card of the home page's band or a Qisqa lavhalar tile opens
+- **Feed** (shorts, ADR-057): a card of the home page's band or a Qisqa lavhalar tile opens
   the films as a feed scrolled like Reels or Shorts, full screen on `forest-950`. Each film is the
   screen's height: edge to edge on phones; from 640 px a 9:16 frame rounded 1.25 rem with a deep
   shadow, the film's own colours blurred (80 px) and dimmed around it. The list snaps one film at a

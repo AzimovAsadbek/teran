@@ -22,15 +22,15 @@ export default async function EditMediaPage({ params }: PageProps<'/[locale]/adm
   if (!UUID.test(id)) notFound();
   const item = await adminGet<AdminMediaItem>(`/media/${id}`).catch(() => null);
   if (!item) notFound();
-  const video = item.kind === 'VIDEO';
+  const list = { PHOTO: '', VIDEO: '?kind=videos', SHORT: '?kind=shorts' }[item.kind];
   return (
     <>
       <Link
-        href={video ? '/admin/media?kind=videos' : '/admin/media'}
+        href={`/admin/media${list}`}
         className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-fg hover:underline"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
-        {video ? t('media.kinds.VIDEO_PLURAL') : t('media.kinds.PHOTO_PLURAL')}
+        {t(`media.kinds.${item.kind}_PLURAL`)}
       </Link>
       <AdminPageHeader
         title={item.translations.uz.title}

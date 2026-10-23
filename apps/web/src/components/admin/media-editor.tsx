@@ -64,7 +64,7 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
     kind,
     status,
     isFeatured,
-    videoDurationSeconds: kind === 'VIDEO' && seconds.trim() !== '' ? Number(seconds) : null,
+    videoDurationSeconds: kind !== 'PHOTO' && seconds.trim() !== '' ? Number(seconds) : null,
     translations: toTranslationPayload(translations),
   };
   const [initial, setInitial] = useState(() => JSON.stringify(payload));
@@ -110,7 +110,7 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
     }
   }
 
-  const video = kind === 'VIDEO';
+  const video = kind !== 'PHOTO';
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
       <div className="space-y-6">
@@ -213,13 +213,15 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
               </div>
             ) : null}
           </div>
-          <CheckboxField
-            label={t('media.featured')}
-            hint={video ? t('media.featuredVideoHint') : t('media.featuredHint')}
-            name="isFeatured"
-            checked={isFeatured}
-            onChange={(event) => setFeatured(event.target.checked)}
-          />
+          {kind === 'SHORT' ? (
+            <CheckboxField
+              label={t('media.featured')}
+              hint={t('media.featuredVideoHint')}
+              name="isFeatured"
+              checked={isFeatured}
+              onChange={(event) => setFeatured(event.target.checked)}
+            />
+          ) : null}
           <TranslationEditor
             value={translations}
             onChange={setTranslations}
@@ -287,7 +289,7 @@ function ItemActions({ item }: { item: AdminMediaItem }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<ApiError | null>(null);
   const deleteMessage = useAdminOrApiMessage(deleteError);
-  const list = item.kind === 'VIDEO' ? '/admin/media?kind=videos' : '/admin/media';
+  const list = `/admin/media${{ PHOTO: '', VIDEO: '?kind=videos', SHORT: '?kind=shorts' }[item.kind]}`;
 
   async function remove() {
     setDeleting(true);
@@ -306,7 +308,9 @@ function ItemActions({ item }: { item: AdminMediaItem }) {
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-surface p-4">
       {item.status === 'PUBLISHED' ? (
         <Link
-          href={item.kind === 'VIDEO' ? '/media/videos' : '/media/photos'}
+          href={
+            { PHOTO: '/media/photos', VIDEO: '/media/videos', SHORT: '/media/shorts' }[item.kind]
+          }
           target="_blank"
           className="inline-flex min-h-10 items-center gap-1.5 text-body-sm font-semibold text-fg hover:underline"
         >

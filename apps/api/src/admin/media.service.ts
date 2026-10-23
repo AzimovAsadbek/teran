@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { AdminMediaItem, MediaKind, mediaUpsertSchema } from '@teran/contracts';
+import {
+  isFilmKind,
+  type AdminMediaItem,
+  type MediaKind,
+  type mediaUpsertSchema,
+} from '@teran/contracts';
 import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { ApiException } from '../common/errors/api-exception.js';
@@ -231,8 +236,8 @@ export class AdminMediaService {
   /** A video's file (MP4 or WebM, kept as uploaded); replaces the previous one. */
   async setVideo(id: string, file: Buffer, actor: Actor): Promise<AdminMediaItem> {
     const existing = await this.find(id);
-    if (existing.kind !== 'VIDEO') {
-      throw ApiException.badRequest('BAD_REQUEST', 'Only video items have a video file');
+    if (!isFilmKind(existing.kind)) {
+      throw ApiException.badRequest('BAD_REQUEST', 'Only films and shorts have a video file');
     }
     let stored;
     try {
@@ -268,8 +273,8 @@ export class AdminMediaService {
   /** Subtitles (WebVTT) for a film; replaces the previous file. */
   async setCaptions(id: string, file: Buffer, actor: Actor): Promise<AdminMediaItem> {
     const existing = await this.find(id);
-    if (existing.kind !== 'VIDEO') {
-      throw ApiException.badRequest('BAD_REQUEST', 'Only films have subtitles');
+    if (!isFilmKind(existing.kind)) {
+      throw ApiException.badRequest('BAD_REQUEST', 'Only films and shorts have subtitles');
     }
     let stored;
     try {

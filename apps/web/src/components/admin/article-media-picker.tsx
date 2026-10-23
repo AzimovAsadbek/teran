@@ -1,7 +1,7 @@
 'use client';
 
 import { MAX_ARTICLE_MEDIA, type AdminMediaItem, type MediaKind } from '@teran/contracts';
-import { ArrowDown, ArrowUp, Film, ImageIcon, Images, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Film, ImageIcon, Images, Smartphone, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button, iconButtonClasses } from '@/components/ui/button';
@@ -59,7 +59,8 @@ export function ArticleMediaPicker({
           {chosen.map((item, index) => {
             const src = thumb(item);
             const title = item.translations.uz.title;
-            const Icon = item.kind === 'VIDEO' ? Film : ImageIcon;
+            const Icon =
+              item.kind === 'PHOTO' ? ImageIcon : item.kind === 'SHORT' ? Smartphone : Film;
             return (
               <li
                 key={item.id}
@@ -153,7 +154,7 @@ export function ArticleMediaPicker({
         }
       >
         <div className="space-y-6">
-          {(['PHOTO', 'VIDEO'] as const).map((kind) =>
+          {(['PHOTO', 'VIDEO', 'SHORT'] as const).map((kind) =>
             group(kind).length > 0 ? (
               <fieldset key={kind}>
                 <legend className="mb-3 text-label text-fg">

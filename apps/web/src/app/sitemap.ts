@@ -16,6 +16,7 @@ const STATIC_PAGES = [
   '/media',
   '/media/photos',
   '/media/videos',
+  '/media/shorts',
   '/contact',
   '/stores',
   '/faq',

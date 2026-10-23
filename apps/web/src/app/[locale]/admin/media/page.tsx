@@ -4,7 +4,7 @@ import {
   type Locale,
   type MediaKind,
 } from '@teran/contracts';
-import { Captions, Film, ImageIcon, ImagePlus, Plus } from 'lucide-react';
+import { Captions, Film, ImageIcon, ImagePlus, Plus, Smartphone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -30,8 +30,34 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('media.title') };
 }
 
+/** Each list's address parameter, its kind, mark and texts (photographs are the default list). */
+const LISTS = {
+  PHOTO: {
+    param: 'photos',
+    icon: ImageIcon,
+    intro: 'photosIntro',
+    empty: 'emptyPhotos',
+    new: 'newPhoto',
+  },
+  VIDEO: {
+    param: 'videos',
+    icon: Film,
+    intro: 'videosIntro',
+    empty: 'emptyVideos',
+    new: 'newVideo',
+  },
+  SHORT: {
+    param: 'shorts',
+    icon: Smartphone,
+    intro: 'shortsIntro',
+    empty: 'emptyShorts',
+    new: 'newShort',
+  },
+} as const satisfies Record<MediaKind, object>;
+
 function kindOf(value: string | string[] | undefined): MediaKind {
-  return (Array.isArray(value) ? value[0] : value) === 'videos' ? 'VIDEO' : 'PHOTO';
+  const param = Array.isArray(value) ? value[0] : value;
+  return param === 'videos' ? 'VIDEO' : param === 'shorts' ? 'SHORT' : 'PHOTO';
 }
 
 function duration(seconds: number | null): string | null {
@@ -40,10 +66,10 @@ function duration(seconds: number | null): string | null {
 }
 
 /**
- * The gallery in two separate lists — photographs ("Rasmlar") and films ("Videolar") — each in the
- * order the storefront shows it, with its own "new" button and ordering, and "Joylash" to post a
- * photograph or a film in one go (ADR-058). What an item still needs before it can be published
- * is shown in the list.
+ * The gallery in three separate lists — photographs ("Rasmlar"), films ("Videolar") and shorts
+ * (the home page's feed, ADR-059) — each in the order the storefront shows it, with its own
+ * "Joylash" (post in one go, ADR-058), "new" (the detailed form) and ordering. What an item still
+ * needs before it can be published is shown in the list.
  */
 export default async function AdminMediaPage({ searchParams }: PageProps<'/[locale]/admin/media'>) {
   const [params, locale, t] = await Promise.all([
@@ -52,14 +78,17 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
     getTranslations('Admin'),
   ]);
   const kind = kindOf(params.kind);
-  const [photos, videos] = await Promise.all([
+  const list = LISTS[kind];
+  const [photos, videos, shorts] = await Promise.all([
     adminGet<AdminMediaItem[]>('/media?kind=PHOTO'),
     adminGet<AdminMediaItem[]>('/media?kind=VIDEO'),
+    adminGet<AdminMediaItem[]>('/media?kind=SHORT'),
   ]);
-  if (!photos || !videos) return <AccessDenied />;
-  const items = kind === 'VIDEO' ? videos : photos;
+  if (!photos || !videos || !shorts) return <AccessDenied />;
+  const items = { PHOTO: photos, VIDEO: videos, SHORT: shorts }[kind];
   const ids = items.map((item) => item.id);
-  const Icon = kind === 'VIDEO' ? Film : ImageIcon;
+  const Icon = list.icon;
+  const film = kind !== 'PHOTO';
 
   return (
     <>
@@ -68,14 +97,11 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
         description={t('media.intro')}
         actions={
           <>
-            <ButtonLink
-              href={`/admin/media/new?kind=${kind === 'VIDEO' ? 'videos' : 'photos'}`}
-              variant="secondary"
-            >
+            <ButtonLink href={`/admin/media/new?kind=${list.param}`} variant="secondary">
               <Plus aria-hidden className="h-4 w-4" />
-              {kind === 'VIDEO' ? t('media.newVideo') : t('media.newPhoto')}
+              {t(`media.${list.new}`)}
             </ButtonLink>
-            <ButtonLink href="/admin/media/post">
+            <ButtonLink href={`/admin/media/post?kind=${list.param}`}>
               <ImagePlus aria-hidden className="h-4 w-4" />
               {t('compose.post')}
             </ButtonLink>
@@ -97,15 +123,17 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
             count: videos.length,
             current: kind === 'VIDEO',
           },
+          {
+            href: '/admin/media?kind=shorts',
+            label: t('media.kinds.SHORT_PLURAL'),
+            count: shorts.length,
+            current: kind === 'SHORT',
+          },
         ]}
       />
-      <p className="mb-4 max-w-3xl text-body-sm text-fg-muted">
-        {kind === 'VIDEO' ? t('media.videosIntro') : t('media.photosIntro')}
-      </p>
+      <p className="mb-4 max-w-3xl text-body-sm text-fg-muted">{t(`media.${list.intro}`)}</p>
       {items.length === 0 ? (
-        <EmptyState>
-          {kind === 'VIDEO' ? t('media.emptyVideos') : t('media.emptyPhotos')}
-        </EmptyState>
+        <EmptyState>{t(`media.${list.empty}`)}</EmptyState>
       ) : (
         <div className={table.wrapper}>
           <table className={table.table}>
@@ -120,14 +148,16 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
                 <th scope="col" className={table.th}>
                   {t('readiness.title')}
                 </th>
-                {kind === 'VIDEO' ? (
+                {film ? (
                   <th scope="col" className={table.th}>
                     {t('media.duration')}
                   </th>
                 ) : null}
-                <th scope="col" className={table.th}>
-                  {t('media.onHome')}
-                </th>
+                {kind === 'SHORT' ? (
+                  <th scope="col" className={table.th}>
+                    {t('media.onHome')}
+                  </th>
+                ) : null}
                 <th scope="col" className={table.th}>
                   {t('common.updated')}
                 </th>
@@ -179,7 +209,7 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
                         </span>
                       )}
                     </Cell>
-                    {kind === 'VIDEO' ? (
+                    {film ? (
                       <Cell label={t('media.duration')} className="whitespace-nowrap tabular-nums">
                         <span className="inline-flex items-center gap-2">
                           {duration(item.videoDurationSeconds) ?? '—'}
@@ -192,9 +222,11 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
                         </span>
                       </Cell>
                     ) : null}
-                    <Cell label={t('media.onHome')}>
-                      {item.isFeatured ? t('common.yes') : t('common.no')}
-                    </Cell>
+                    {kind === 'SHORT' ? (
+                      <Cell label={t('media.onHome')}>
+                        {item.isFeatured ? t('common.yes') : t('common.no')}
+                      </Cell>
+                    ) : null}
                     <Cell label={t('common.updated')} className="whitespace-nowrap text-fg-muted">
                       {formatDate(item.updatedAt, locale as Locale)}
                     </Cell>

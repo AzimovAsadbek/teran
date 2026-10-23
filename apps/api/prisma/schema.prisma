@@ -149,9 +149,11 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+/// Photographs, films (landscape) and shorts (upright films, the home page's feed; ADR-059).
 enum MediaKind {
   PHOTO
   VIDEO
+  SHORT
 }
 
 /// What a Telegram channel post announces.

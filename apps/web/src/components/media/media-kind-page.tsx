@@ -16,8 +16,6 @@ import {
   MediaHeader,
   MediaListSkeleton,
   MediaTabs,
-  isLandscape,
-  isUpright,
   mediaCover,
   mediaTotals,
   pageNumber,
@@ -28,8 +26,11 @@ import { mediaLabels } from './media-labels';
 type KindPage = keyof typeof KIND_OF_PAGE;
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
-/** Photographs fill rows of a justified grid; films are fewer and larger. */
-const PAGE_SIZE: Record<KindPage, number> = { photos: 24, videos: 24 };
+/** Photographs fill rows of a justified grid; films and shorts are fewer and larger. */
+const PAGE_SIZE: Record<KindPage, number> = { photos: 24, videos: 24, shorts: 24 };
+
+/** How each kind is laid out: rows of photographs, a grid of films, shorts side by side. */
+const LAYOUT = { photos: 'justified', videos: 'films', shorts: 'reels' } as const;
 
 function hrefFor(key: KindPage, page: number): string {
   return page > 1 ? `${MEDIA_PATHS[key]}?page=${page}` : MEDIA_PATHS[key];
@@ -72,36 +73,27 @@ async function KindList({
       pageSize: PAGE_SIZE[pageKey],
     }).catch(() => null),
     mediaTotals(locale),
-    pageKey === 'videos' ? getPublicSettings(locale).catch(() => null) : null,
+    pageKey === 'shorts' ? getPublicSettings(locale).catch(() => null) : null,
   ]);
   const items = media?.items ?? [];
-  const videos = pageKey === 'videos';
-  // Films by their shape: landscape ones in the grid, upright ones side by side beneath.
-  const landscape = videos ? items.filter(isLandscape) : items;
-  const upright = videos ? items.filter(isUpright) : [];
+  const empty = {
+    photos: { title: t('emptyPhotosTitle'), text: t('emptyPhotosText') },
+    videos: { title: t('emptyVideosTitle'), text: t('emptyVideosText') },
+    shorts: { title: t('emptyShortsTitle'), text: t('emptyShortsText') },
+  }[pageKey];
 
   return (
     <>
       <MediaTabs current={pageKey} totals={totals} />
       {items.length > 0 ? (
         <>
-          {landscape.length > 0 ? (
-            <MediaGallery
-              items={landscape}
-              labels={mediaLabels(t)}
-              layout={videos ? 'films' : 'justified'}
-              className="mt-8"
-            />
-          ) : null}
-          {upright.length > 0 ? (
-            <MediaGallery
-              items={upright}
-              labels={mediaLabels(t)}
-              layout="reels"
-              handle={socialHandle(settings?.contact)}
-              className={landscape.length > 0 ? 'mt-14 sm:mt-20' : 'mt-8'}
-            />
-          ) : null}
+          <MediaGallery
+            items={items}
+            labels={mediaLabels(t)}
+            layout={LAYOUT[pageKey]}
+            handle={pageKey === 'shorts' ? socialHandle(settings?.contact) : null}
+            className="mt-8"
+          />
           <Pagination
             page={media?.page ?? 1}
             totalPages={media?.totalPages ?? 1}
@@ -112,10 +104,10 @@ async function KindList({
       ) : (
         <MediaEmpty
           kind={KIND_OF_PAGE[pageKey]}
-          title={videos ? t('emptyVideosTitle') : t('emptyPhotosTitle')}
-          text={videos ? t('emptyVideosText') : t('emptyPhotosText')}
+          title={empty.title}
+          text={empty.text}
           action={
-            videos && totals.photos > 0 ? (
+            pageKey !== 'photos' && totals.photos > 0 ? (
               <Link
                 href={MEDIA_PATHS.photos}
                 className="mt-5 text-body-sm font-semibold text-gold-300 underline underline-offset-4"
@@ -131,8 +123,9 @@ async function KindList({
 }
 
 /**
- * "Rasmlar" or "Videolar": every published item of one kind, in the order set in the admin area,
- * with its own address, tabs to the other kind and to the overview, and pagination.
+ * "Rasmlar", "Videolar" or "Qisqa lavhalar" (shorts, ADR-059): every published item of one kind,
+ * in the order set in the admin area, with its own address, tabs to the other kinds and to the
+ * overview, and pagination. Shorts open the feed (reel-player.tsx).
  */
 export async function MediaKindPage({
   pageKey,
@@ -155,7 +148,7 @@ export async function MediaKindPage({
         back={{ href: MEDIA_PATHS.all, label: t('title') }}
       />
       <div className="container-page pt-8 pb-section sm:pt-10">
-        <Suspense fallback={<MediaListSkeleton films={pageKey === 'videos'} />}>
+        <Suspense fallback={<MediaListSkeleton films={pageKey !== 'photos'} />}>
           <KindList pageKey={pageKey} searchParams={searchParams} />
         </Suspense>
       </div>

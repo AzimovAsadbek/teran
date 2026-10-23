@@ -11,8 +11,6 @@ import {
   MediaHeader,
   MediaListSkeleton,
   MediaTabs,
-  isLandscape,
-  isUpright,
   mediaCover,
 } from '@/components/media/media-archive';
 import { MediaGallery } from '@/components/media/media-gallery';
@@ -24,9 +22,7 @@ import { pageMetadata } from '@/lib/seo';
 /** The overview shows the latest of each kind; the kind pages hold everything. */
 const PHOTOS_SHOWN = 12;
 const FILMS_SHOWN = 6;
-const REELS_SHOWN = 8;
-/** Films are read together and shown by their shape: landscape in a grid, upright side by side. */
-const VIDEOS_READ = 24;
+const SHORTS_SHOWN = 8;
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -42,14 +38,19 @@ export async function generateMetadata(): Promise<Metadata> {
 async function Overview() {
   await connection();
   const [locale, t] = await Promise.all([getLocale() as Promise<Locale>, getTranslations('Media')]);
-  const [photos, videos, settings] = await Promise.all([
+  const [photos, videos, shorts, settings] = await Promise.all([
     getMedia(locale, { kind: 'PHOTO', pageSize: PHOTOS_SHOWN }).catch(() => null),
-    getMedia(locale, { kind: 'VIDEO', pageSize: VIDEOS_READ }).catch(() => null),
+    getMedia(locale, { kind: 'VIDEO', pageSize: FILMS_SHOWN }).catch(() => null),
+    getMedia(locale, { kind: 'SHORT', pageSize: SHORTS_SHOWN }).catch(() => null),
     getPublicSettings(locale).catch(() => null),
   ]);
-  const totals = { photos: photos?.total ?? 0, videos: videos?.total ?? 0 };
-  const films = (videos?.items ?? []).filter(isLandscape).slice(0, FILMS_SHOWN);
-  const reels = (videos?.items ?? []).filter(isUpright).slice(0, REELS_SHOWN);
+  const totals = {
+    photos: photos?.total ?? 0,
+    videos: videos?.total ?? 0,
+    shorts: shorts?.total ?? 0,
+  };
+  const films = videos?.items ?? [];
+  const reels = shorts?.items ?? [];
   const labels = mediaLabels(t);
 
   return (
@@ -95,9 +96,11 @@ async function Overview() {
         <section aria-labelledby="media-reels" className="mt-16 sm:mt-24">
           <MediaGroupHeading
             id="media-reels"
-            kind="VIDEO"
+            kind="SHORT"
             title={t('reelsTitle')}
             text={t('reelsIntro')}
+            href={MEDIA_PATHS.shorts}
+            linkLabel={t('allShorts')}
           />
           <MediaGallery
             items={reels}
@@ -113,10 +116,10 @@ async function Overview() {
 }
 
 /**
- * The gallery (ADR-056): TERAN's photographs and films, opening on one of its films. The overview
- * shows the latest photographs, the landscape films and the upright ones (the home page's feed);
- * each kind has its own page (/media/photos, /media/videos) for the whole archive. Old ?kind=
- * links are redirected to those pages before rendering (see lib/media-redirect.ts).
+ * The gallery (ADR-056): TERAN's photographs, films and shorts, opening on one of its films. The
+ * overview shows the latest of each kind (shorts are also the home page's feed, ADR-059); each
+ * kind has its own page (/media/photos, /media/videos, /media/shorts) for the whole archive. Old
+ * ?kind= links are redirected to those pages before rendering (see lib/media-redirect.ts).
  */
 export default async function MediaPage() {
   const locale = (await rootParams.locale()) as Locale;

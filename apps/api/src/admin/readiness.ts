@@ -1,5 +1,11 @@
 import { HttpStatus } from '@nestjs/common';
-import { missingRequired, readiness, type Readiness, type ReadinessItem } from '@teran/contracts';
+import {
+  missingRequired,
+  readiness,
+  type MediaKind,
+  type Readiness,
+  type ReadinessItem,
+} from '@teran/contracts';
 import { ApiException } from '../common/errors/api-exception.js';
 
 /**
@@ -114,7 +120,7 @@ export function articleReadiness(article: ArticleReadinessInput): Readiness {
 }
 
 export interface MediaReadinessInput {
-  kind: 'PHOTO' | 'VIDEO';
+  kind: MediaKind;
   hasImage: boolean;
   hasVideo: boolean;
   hasCaptions: boolean;

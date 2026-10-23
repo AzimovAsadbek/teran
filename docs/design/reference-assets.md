@@ -515,6 +515,40 @@ The seed adds only what a database lacks (here the chocolates); on the presentat
 was first run on a copy and compared row by row. A backup of the database and of the cups' files
 is in `~/teran-backups/tea-films-2026-10-22/`.
 
+## 13. `storage/gallery-2026-10-23/` — the gallery and the home page's feed (2026-10-23)
+
+The owner asked for the reference's "sip & scroll on social" band and a gallery page with 4K
+photographs and films (ADR-056). A Pexels shortlist (37 files, 673 MB) was shown in the browser and
+approved before anything was downloaded; the originals are in `originals/` (git-ignored) with
+`credits.tsv` (SHA-256, title, author, source). Pexels License: free commercial use, no attribution
+required; the authors are named anyway. One approved film (38351337, a skywalk tower over tea
+fields) was left out: the tower and its visitors fill the frame.
+
+Films were re-encoded by `apps/api/scripts/web-film.swift` into `web/` (upright 1080×1920 at
+6 Mbit/s, 3.9–10.3 MB; landscape 2560×1440 at 12 Mbit/s, 12–24 MB; first frame = poster).
+Photographs larger than 5120 px were scaled to 5120 (`photos/`, the API refuses more than 40 MP).
+`gallery.json` is the import manifest (titles and descriptions in three languages).
+
+| Kind           | Source                                                    | Author              | Used as                                       |
+| -------------- | --------------------------------------------------------- | ------------------- | --------------------------------------------- |
+| Upright film   | Pexels [40137840](https://www.pexels.com/video/40137840/) | 夕云 简             | Choynakdan piyolaga — feed                    |
+| Upright film   | Pexels [8233766](https://www.pexels.com/video/8233766/)   | Roman Odintsov      | Gaiwan qopqogʻi — feed, 0–12 s                |
+| Upright film   | Pexels [5976232](https://www.pexels.com/video/5976232/)   | Roman Odintsov      | Birinchi damlama — feed                       |
+| Upright film   | Pexels [8282268](https://www.pexels.com/video/8282268/)   | 宇航 钱             | Kichik choynak — feed                         |
+| Upright film   | Pexels [8233935](https://www.pexels.com/video/8233935/)   | Roman Odintsov      | Bugʻ va iliqlik — feed                        |
+| Upright film   | Pexels [5976233](https://www.pexels.com/video/5976233/)   | Roman Odintsov      | Choy hayvoni — feed, 2–14 s                   |
+| Upright film   | Pexels [35489605](https://www.pexels.com/video/35489605/) | Rahulkumar R        | Choy bogʻlari — feed                          |
+| Upright film   | Pexels [40137842](https://www.pexels.com/video/40137842/) | 夕云 简             | Choy marosimi — feed                          |
+| Landscape film | Pexels [35344835](https://www.pexels.com/video/35344835/) | Sergey Guk          | Choy bogʻlarida tong — gallery header, 0–16 s |
+| Landscape film | Pexels [39566938](https://www.pexels.com/video/39566938/) | Ravi Roshan         | Barg terish                                   |
+| Landscape film | Pexels [6540517](https://www.pexels.com/video/6540517/)   | Tima Miroshnichenko | Choynakni chayqash                            |
+| Landscape film | Pexels [6691563](https://www.pexels.com/video/6691563/)   | RDNE Stock project  | Seladon piyolalar                             |
+| Landscape film | Pexels [35368956](https://www.pexels.com/video/35368956/) | Özgür Sürmeli       | Ikki choynak                                  |
+| Landscape film | Pexels [6540437](https://www.pexels.com/video/6540437/)   | Tima Miroshnichenko | Choy stoli                                    |
+| Landscape film | Pexels [5983917](https://www.pexels.com/video/5983917/)   | Tima Miroshnichenko | Shisha stakanga                               |
+
+**Photographs** (21, Pexels): [36253266](https://www.pexels.com/photo/36253266/) (TBD Tuyên), [6136356](https://www.pexels.com/photo/6136356/) (Quang Nguyen Vinh), [5975975](https://www.pexels.com/photo/5975975/) (Roman Odintsov), [8952612](https://www.pexels.com/photo/8952612/) (Ivan S), [11669662](https://www.pexels.com/photo/11669662/) (Quang Nguyen Vinh), [33851960](https://www.pexels.com/photo/33851960/) (Yi Ren), [31756539](https://www.pexels.com/photo/31756539/) (Gu Ko), [6545419](https://www.pexels.com/photo/6545419/) (Tima Miroshnichenko), [6872257](https://www.pexels.com/photo/6872257/) (Quang Nguyen Vinh), [8952094](https://www.pexels.com/photo/8952094/) (Ivan S), [5988043](https://www.pexels.com/photo/5988043/) (Eva Bronzini), [9795403](https://www.pexels.com/photo/9795403/) (Mikhail Nilov), [16325662](https://www.pexels.com/photo/16325662/) (Bluesea Tea), [20051169](https://www.pexels.com/photo/20051169/) (Nadin Sh), [8952106](https://www.pexels.com/photo/8952106/) (Ivan S), [31528044](https://www.pexels.com/photo/31528044/) (Caleb Ishaya), [6545369](https://www.pexels.com/photo/6545369/) (Tima Miroshnichenko), [5976074](https://www.pexels.com/photo/5976074/) (Roman Odintsov), [34344554](https://www.pexels.com/photo/34344554/) (Betül Nur Akyürek), [38307066](https://www.pexels.com/photo/38307066/) (Peter Xie), [230477](https://www.pexels.com/photo/230477/) (Mykola Osmachko).
+
 ## Home places after ADR-050 (2026-10-20)
 
 The home page's narrative (ADR-050) uses the pictures already imported; nothing new was copied:

@@ -16,6 +16,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import {
   deleteStoredImage,
+  GALLERY_IMAGE_WIDTHS,
   imageStore,
   mediaPrefix,
   r2ConfigFrom,
@@ -24,6 +25,9 @@ import {
   videoDurationSeconds,
   type ImageStore,
 } from '../src/media/image-processing.js';
+
+/** Posters as the admin area stores them: up to 4K for the full-screen viewer (ADR-056). */
+const POSTER_OPTIONS = { widths: GALLERY_IMAGE_WIDTHS, fullWidth: true };
 
 function option(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -48,7 +52,7 @@ async function addFilm(prisma: PrismaClient, store: ImageStore, film: Buffer, po
   });
   const keys: string[] = [];
   try {
-    const image = await storeImage(poster, store, mediaPrefix(item.id));
+    const image = await storeImage(poster, store, mediaPrefix(item.id), POSTER_OPTIONS);
     keys.push(image.storageKey);
     const video = await storeVideo(film, store, mediaPrefix(item.id));
     keys.push(video.storageKey);
@@ -102,7 +106,7 @@ async function replaceFilm(
   if (!existing || existing.kind !== 'VIDEO') throw new Error(`No gallery film ${id}`);
   const keys: string[] = [];
   try {
-    const image = await storeImage(poster, store, mediaPrefix(id));
+    const image = await storeImage(poster, store, mediaPrefix(id), POSTER_OPTIONS);
     keys.push(image.storageKey);
     const video = await storeVideo(film, store, mediaPrefix(id));
     keys.push(video.storageKey);

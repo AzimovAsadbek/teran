@@ -23,7 +23,6 @@ import { Link } from '@/i18n/navigation';
 import { getCategories } from '@/lib/data/catalog';
 import { categoryTree } from '@/lib/navigation';
 import { pageMetadata } from '@/lib/seo';
-import { showGallery } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -255,7 +254,7 @@ export default async function AboutPage() {
         links={[
           { href: '/journal', label: tn('journal'), text: tn('journalText') },
           { href: '/tea-101', label: tn('tea101'), text: tt('tagline') },
-          ...(showGallery ? [{ href: '/media', label: tn('media'), text: tn('photosText') }] : []),
+          { href: '/media', label: tn('media'), text: tn('photosText') },
         ]}
       />
     </>

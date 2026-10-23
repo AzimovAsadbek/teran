@@ -11,16 +11,21 @@ import {
   MediaHeader,
   MediaListSkeleton,
   MediaTabs,
+  isLandscape,
+  isUpright,
+  mediaCover,
 } from '@/components/media/media-archive';
 import { MediaGallery } from '@/components/media/media-gallery';
 import { mediaLabels } from '@/components/media/media-labels';
 import { getMedia } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import { showGallery } from '@/lib/site';
 
 /** The overview shows the latest of each kind; the kind pages hold everything. */
-const PHOTOS_SHOWN = 10;
-const VIDEOS_SHOWN = 3;
+const PHOTOS_SHOWN = 12;
+const FILMS_SHOWN = 6;
+const REELS_SHOWN = 8;
+/** Films are read together and shown by their shape: landscape in a grid, upright side by side. */
+const VIDEOS_READ = 24;
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -30,8 +35,6 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t('metaDescription'),
     href: '/media',
     locale,
-    // Unlisted while the storefront does not link to the gallery (lib/site showGallery).
-    noIndex: !showGallery,
   });
 }
 
@@ -40,9 +43,11 @@ async function Overview() {
   const [locale, t] = await Promise.all([getLocale() as Promise<Locale>, getTranslations('Media')]);
   const [photos, videos] = await Promise.all([
     getMedia(locale, { kind: 'PHOTO', pageSize: PHOTOS_SHOWN }).catch(() => null),
-    getMedia(locale, { kind: 'VIDEO', pageSize: VIDEOS_SHOWN }).catch(() => null),
+    getMedia(locale, { kind: 'VIDEO', pageSize: VIDEOS_READ }).catch(() => null),
   ]);
   const totals = { photos: photos?.total ?? 0, videos: videos?.total ?? 0 };
+  const films = (videos?.items ?? []).filter(isLandscape).slice(0, FILMS_SHOWN);
+  const reels = (videos?.items ?? []).filter(isUpright).slice(0, REELS_SHOWN);
   const labels = mediaLabels(t);
 
   return (
@@ -58,13 +63,7 @@ async function Overview() {
           linkLabel={t('allPhotos')}
         />
         {photos && photos.items.length > 0 ? (
-          <MediaGallery
-            items={photos.items}
-            labels={labels}
-            layout="justified"
-            priorityFirst
-            className="mt-6"
-          />
+          <MediaGallery items={photos.items} labels={labels} layout="justified" className="mt-6" />
         ) : (
           <div className="mt-6">
             <MediaEmpty
@@ -76,20 +75,29 @@ async function Overview() {
           </div>
         )}
       </section>
-      {/* No "coming soon" for films: their part shows once one is published. */}
-      {totals.videos > 0 ? (
-        <section aria-labelledby="media-videos" className="mt-16 sm:mt-20">
+      {/* No "coming soon" for films: their parts show once one is published. */}
+      {films.length > 0 ? (
+        <section aria-labelledby="media-videos" className="mt-16 sm:mt-24">
           <MediaGroupHeading
             id="media-videos"
             kind="VIDEO"
             title={t('videosTitle')}
             text={t('videosIntro')}
-            href={totals.videos > 0 ? MEDIA_PATHS.videos : undefined}
+            href={MEDIA_PATHS.videos}
             linkLabel={t('allVideos')}
           />
-          {videos && videos.items.length > 0 ? (
-            <MediaGallery items={videos.items} labels={labels} layout="films" className="mt-6" />
-          ) : null}
+          <MediaGallery items={films} labels={labels} layout="films" className="mt-6" />
+        </section>
+      ) : null}
+      {reels.length > 0 ? (
+        <section aria-labelledby="media-reels" className="mt-16 sm:mt-24">
+          <MediaGroupHeading
+            id="media-reels"
+            kind="VIDEO"
+            title={t('reelsTitle')}
+            text={t('reelsIntro')}
+          />
+          <MediaGallery items={reels} labels={labels} layout="reels" className="mt-6" />
         </section>
       ) : null}
     </>
@@ -97,15 +105,17 @@ async function Overview() {
 }
 
 /**
- * "Lavhalar": the overview of the brand's pictures and films as two separate groups, "Rasmlar"
- * and "Videolar", each with its own page (/media/photos, /media/videos) for the whole archive.
- * Old ?kind= links are redirected to those pages before rendering (see lib/media-redirect.ts).
+ * The gallery (ADR-056): TERAN's photographs and films, opening on one of its films. The overview
+ * shows the latest photographs, the landscape films and the upright ones (the home page's feed);
+ * each kind has its own page (/media/photos, /media/videos) for the whole archive. Old ?kind=
+ * links are redirected to those pages before rendering (see lib/media-redirect.ts).
  */
 export default async function MediaPage() {
-  const t = await getTranslations('Media');
+  const locale = (await rootParams.locale()) as Locale;
+  const [t, cover] = await Promise.all([getTranslations('Media'), mediaCover(locale)]);
   return (
     <div className="on-dark bg-forest-950 text-ivory-50">
-      <MediaHeader eyebrow={t('eyebrow')} title={t('title')} intro={t('intro')} />
+      <MediaHeader title={t('title')} intro={t('intro')} cover={cover} />
       <div className="container-page pt-8 pb-section sm:pt-10">
         <Suspense fallback={<MediaListSkeleton />}>
           <Overview />

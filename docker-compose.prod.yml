@@ -161,7 +161,6 @@ services:
         NEXT_PUBLIC_ENABLED_LOCALES: ${ENABLED_LOCALES:-uz,ru,en}
         NEXT_PUBLIC_DEMO_CONTENT: ${DEMO_CONTENT:-true}
         NEXT_PUBLIC_SHOW_PRICES: ${SHOW_PRICES:-false}
-        NEXT_PUBLIC_SHOW_GALLERY: ${SHOW_GALLERY:-false}
         # The bucket's public address, allowed in the content security policy for pictures and films.
         UPLOADS_ORIGIN: ${R2_PUBLIC_URL:-}
     image: teran-web:${TERAN_VERSION:-latest}

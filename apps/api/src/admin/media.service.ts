@@ -9,6 +9,7 @@ import { mediaCaptionsSrc, mediaImage, mediaVideoSrc } from '../content/media.se
 import type { Prisma } from '../generated/prisma/client.js';
 import {
   deleteStoredImage,
+  GALLERY_IMAGE_WIDTHS,
   mediaPrefix,
   storeCaptions,
   storeImage,
@@ -198,7 +199,10 @@ export class AdminMediaService {
     const existing = await this.find(id);
     let stored;
     try {
-      stored = await storeImage(file, this.files, mediaPrefix(id));
+      stored = await storeImage(file, this.files, mediaPrefix(id), {
+        widths: GALLERY_IMAGE_WIDTHS,
+        fullWidth: true,
+      });
     } catch (error) {
       uploadError(error);
     }

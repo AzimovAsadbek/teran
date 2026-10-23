@@ -28,14 +28,5 @@ export const isDemoContent = process.env.NEXT_PUBLIC_DEMO_CONTENT !== 'false';
  */
 export const showPrices = process.env.NEXT_PUBLIC_SHOW_PRICES === 'true';
 
-/**
- * Whether the storefront links to the photo and film gallery (/media). Off since 2026-10-17: the
- * reference has no such page, and the owner asked for what it lacks to go. The gallery's pages,
- * the admin area's gallery and the home page's film band stay (the pages answer by their address,
- * unindexed); no menu, footer, banner or tile leads to them. NEXT_PUBLIC_SHOW_GALLERY=true (build
- * time) brings the links back.
- */
-export const showGallery = process.env.NEXT_PUBLIC_SHOW_GALLERY === 'true';
-
 /** Open Graph locale codes for the supported languages. */
 export const ogLocales = { uz: 'uz_UZ', ru: 'ru_RU', en: 'en_US' } as const;

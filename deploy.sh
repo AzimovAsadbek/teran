@@ -605,7 +605,7 @@ validate_env() {
     problems=$((problems + 1))
   fi
 
-  for flag in DEMO_CONTENT SHOW_PRICES CHECKOUT_ENABLED SHOW_GALLERY; do
+  for flag in DEMO_CONTENT SHOW_PRICES CHECKOUT_ENABLED; do
     case "$(env_value "$flag")" in
       '' | true | false) ;;
       *)

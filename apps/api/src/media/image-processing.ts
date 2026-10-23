@@ -19,6 +19,12 @@ export const IMAGE_WIDTHS = [320, 480, 640, 960, 1280, 1600] as const;
  */
 export const WIDE_IMAGE_WIDTHS = [...IMAGE_WIDTHS, 1920, 2560, 3200, 3840, 5120] as const;
 
+/**
+ * Widths for the gallery's photographs and posters: the viewer shows a picture over the whole
+ * screen, so up to 3840 (a 4K display) when the source is that large (ADR-056).
+ */
+export const GALLERY_IMAGE_WIDTHS = [...IMAGE_WIDTHS, 1920, 2560, 3840] as const;
+
 const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp']);
 const MIN_DIMENSION = 200;
 /** Rejects decompression bombs (e.g. a tiny PNG that expands to gigapixels). */

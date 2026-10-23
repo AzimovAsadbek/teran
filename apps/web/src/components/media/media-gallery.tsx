@@ -165,6 +165,8 @@ const TILE_BUTTON =
  *   proportions (each takes room in proportion to its width), so nothing is cut or left ragged.
  * - `films` (films, home page and films page): posters in a 16:9 grid with the running time, the
  *   title and the description beneath.
+ * - `reels` (upright films, ADR-056): tall posters side by side, the title over each, as a feed's
+ *   cards (two across on phones, four, then all eight in one row on wide screens).
  * Films never play by themselves: a tile shows the poster, and the film starts in the viewer when
  * the visitor presses play (browser controls, sound and subtitles under their control).
  */
@@ -177,7 +179,7 @@ export function MediaGallery({
 }: {
   items: MediaItemDto[];
   labels: MediaLabels;
-  layout?: 'editorial' | 'justified' | 'films';
+  layout?: 'editorial' | 'justified' | 'films' | 'reels';
   /** The first picture is the page's largest paint (a media page): fetch it before the others. */
   priorityFirst?: boolean;
   className?: string;
@@ -194,6 +196,8 @@ export function MediaGallery({
     <>
       {layout === 'editorial' ? (
         <EditorialLayout items={shown} labels={labels} onOpen={openAt} className={className} />
+      ) : layout === 'reels' ? (
+        <ReelsLayout items={shown} labels={labels} onOpen={openAt} className={className} />
       ) : layout === 'films' ? (
         <FilmsLayout
           items={shown}
@@ -257,6 +261,64 @@ export function MediaGallery({
         }}
       />
     </>
+  );
+}
+
+/** Upright posters side by side, each with its title over its foot. */
+function ReelsLayout({
+  items,
+  labels,
+  onOpen,
+  className,
+}: {
+  items: MediaItemDto[];
+  labels: MediaLabels;
+  onOpen: (index: number) => (element: HTMLElement) => void;
+  className?: string;
+}) {
+  return (
+    <ul
+      role="list"
+      className={cn('grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 xl:grid-cols-8', className)}
+    >
+      {items.map((item, index) => {
+        const time = duration(item.video?.durationSeconds ?? null);
+        return (
+          <li key={item.id} className="min-w-0">
+            <button
+              type="button"
+              onClick={(event) => onOpen(index)(event.currentTarget)}
+              aria-label={fill(labels.play, { title: item.title })}
+              className={cn(TILE_BUTTON, 'aspect-[9/16] rounded-[0.875rem]')}
+            >
+              <TileImage
+                item={item}
+                sizes="(min-width: 1280px) 10rem, (min-width: 640px) 23vw, 46vw"
+              />
+              <span
+                aria-hidden
+                className="absolute inset-0 bg-linear-to-t from-forest-950/85 via-forest-950/10 via-40% to-transparent"
+              />
+              <PlayMark />
+              {time ? (
+                <span
+                  aria-hidden
+                  className="absolute top-2.5 right-2.5 rounded-full bg-forest-950/70 px-2 py-0.5 text-caption font-semibold text-ivory-50 tabular-nums"
+                >
+                  {time}
+                </span>
+              ) : null}
+              <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 p-3 text-body-sm leading-snug font-semibold text-balance text-ivory-50"
+              >
+                {item.title}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -504,12 +566,18 @@ export function MediaViewer({
   items,
   index,
   labels,
+  autoPlayFilms = false,
   onChange,
   onClose,
 }: {
   items: MediaItemDto[];
   index: number | null;
   labels: MediaLabels;
+  /**
+   * A film starts at once, muted and looping (the home page's feed of TERAN's silent films: the
+   * visitor opened it to watch); otherwise it waits for its controls.
+   */
+  autoPlayFilms?: boolean;
   onChange: (index: number) => void;
   onClose: () => void;
 }) {
@@ -611,7 +679,10 @@ export function MediaViewer({
                 key={item.id}
                 controls
                 playsInline
-                preload="metadata"
+                autoPlay={autoPlayFilms}
+                muted={autoPlayFilms}
+                loop={autoPlayFilms}
+                preload={autoPlayFilms ? 'auto' : 'metadata'}
                 poster={image.src}
                 className="max-h-full max-w-full rounded-[0.25rem] bg-black"
               >

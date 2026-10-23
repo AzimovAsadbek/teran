@@ -10,6 +10,7 @@ import { Hero } from '@/components/home/hero';
 import { RangeExplorer } from '@/components/home/range-explorer';
 import { NewArrivalsRail, RailFallback } from '@/components/home/rail-sections';
 import { SignatureTeas } from '@/components/home/signature-teas';
+import { SocialReel } from '@/components/home/social-reel';
 import { StorySequence } from '@/components/home/story-sequence';
 import { StoreStructuredData } from '@/components/seo/store-structured-data';
 import { brandCopy } from '@/content/brand';
@@ -85,6 +86,9 @@ export default async function HomePage() {
       </Suspense>
       <Suspense fallback={null}>
         <PairSection />
+      </Suspense>
+      <Suspense fallback={null}>
+        <SocialReel />
       </Suspense>
       <Suspense fallback={null}>
         <BusinessCloser />

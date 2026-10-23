@@ -469,15 +469,19 @@ Photographs and short films managed in Admin → Gallery, in two separate lists 
 image description in three languages, status, shown on the home page or not; a photo, or a film's
 poster, file, running time read from the file and optional WebVTT subtitles).
 
-- **Home page**: "TERAN olamidan lavhalar" on a dark band (`forest-950`, the quiet `gallery`
-  botanical scene) with two groups, each with its own heading and "all" link: **Rasmlar** — an
-  editorial spread of the photographs chosen for the home page (a wide feature with its caption
-  over the picture, a tall picture beside it, then a full row with captions beneath; phones scroll
-  the rest sideways) — and **Videolar** — up to three film posters in a 16:9 grid with the running
-  time. While no film exists, the films group says plainly that films are coming; no footage is
-  invented.
-- **`/media`**: an overview with the same two groups; **`/media/photos`** and **`/media/videos`**:
-  every published item of one kind, paginated. Tabs ("Hammasi · Rasmlar · Videolar", with counts)
+- **Home page — "Bir piyola, bir lavha" / "Sip & scroll"** (ADR-056), after the journal on
+  `surface-muted`: the upright films chosen for the home page as 9:16 cards (rounded 1.25 rem) in a
+  row that snaps to the middle; the middle card full size with a deep soft shadow and playing,
+  muted, the others at 88 % and 80 % brightness on their posters with a white play disc; over each
+  card's foot TERAN's emblem in a white disc, "TERAN" and the handle, then the film's title, as a
+  social post. Arrows (white discs) and "2 / 8" beneath; the networks as white pills with their
+  marks; "Galereyani koʻrish →". Shown from three upright films.
+- **`/media` ("Galereya")**: opens full-bleed (min 27 rem, up to 74 svh) on its first landscape
+  film over its poster, a veil deepening towards the foot, the title in Oswald capitals up to
+  6 rem and the intro at the lower left; then Rasmlar (12, justified), Videolar (landscape, 16:9
+  grid, up to 6) and Qisqa lavhalar (upright, 2 / 4 / 8 across). **`/media/photos`** and
+  **`/media/videos`**: every published item of one kind, paginated, films split by shape, with a
+  way back to the gallery above the title. Tabs ("Hammasi · Rasmlar · Videolar", with counts)
   link the three pages; old `/media?kind=…` links redirect permanently. Photographs keep their
   proportions in rows of equal height; films are posters with play marks.
 - **In articles**: an article can show photographs and films chosen from the gallery (reused,
@@ -489,8 +493,10 @@ poster, file, running time read from the file and optional WebVTT subtitles).
   presses play, with the browser's controls and subtitles when they exist; moving on stops them.
 - Pictures are lazy WebP renditions with `srcset`; hover draws them 3.5 % closer over 1.4 s and
   frames the smaller ones with a gold hairline.
-- The demonstration items are the packaging artwork, titled as such ("Qadoq rasmi: …"); they are
-  never presented as photographs of real places or processes.
+- The gallery's photographs and films (2026-10-23) are licensed stock of tea culture, titled by
+  what the frame shows; the packaging artwork items stay drafts.
+- The viewer starts a film at once (muted, looping) when it is opened from the home page's feed;
+  elsewhere a film waits for its controls.
 
 ## Imagery
 

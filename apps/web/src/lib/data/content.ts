@@ -53,20 +53,51 @@ export async function getArticles(
   );
 }
 
-/** Published photographs and films ("Lavhalar") in display order; `featured` for the home page. */
-export async function getMedia(
-  locale: Locale,
-  options: { kind?: MediaKind; featured?: boolean; page?: number; pageSize?: number } = {},
-): Promise<Paginated<MediaItemDto>> {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('content');
+interface MediaQuery {
+  kind?: MediaKind;
+  featured?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+function mediaPath(locale: Locale, options: MediaQuery): string {
   const query = new URLSearchParams({ locale });
   if (options.featured) query.set('featured', 'true');
   if (options.kind) query.set('kind', options.kind);
   query.set('page', String(options.page ?? 1));
   query.set('pageSize', String(options.pageSize ?? 24));
-  return apiGet<Paginated<MediaItemDto>>(`/content/media?${query}`);
+  return `/content/media?${query}`;
+}
+
+/** Published photographs and films (the gallery) in display order; `featured` for the home page. */
+export async function getMedia(
+  locale: Locale,
+  options: MediaQuery = {},
+): Promise<Paginated<MediaItemDto>> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('content');
+  return apiGet<Paginated<MediaItemDto>>(mediaPath(locale, options));
+}
+
+/**
+ * The gallery for a page to prerender with (its header's picture, ADR-056), or null when the API
+ * does not answer. Never throws, for the reason given at getPrerenderSettings.
+ */
+export async function getPrerenderMedia(
+  locale: Locale,
+  options: MediaQuery = {},
+): Promise<Paginated<MediaItemDto> | null> {
+  'use cache';
+  cacheTag('content');
+  try {
+    const media = await apiGet<Paginated<MediaItemDto>>(mediaPath(locale, options));
+    cacheLife('hours');
+    return media;
+  } catch {
+    cacheLife('minutes');
+    return null;
+  }
 }
 
 /** Current address of a renamed article (for a permanent redirect), or null. */

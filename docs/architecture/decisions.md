@@ -537,7 +537,8 @@ are not indexed. The language menu shows each language's flag.
 
 **Consequences.** Turning the gallery on is a build setting, like prices and the advisor (ADR-027,
 ADR-029). Tea 101's words are the same for every shop and need no business details; its products
-follow the catalogue.
+follow the catalogue. (Superseded for the gallery by ADR-056: the flag is gone and the gallery is
+always linked.)
 
 ## ADR-034: Pictures do what they show, and only unbranded pictures go live
 
@@ -1452,3 +1453,49 @@ daily ceiling).
 a key from a project with billing does not, which the owner should choose for the live shop.
 Answers can still be wrong, and the chat says so. The assistant knows what the database and TERAN's
 text say: keeping that text current is TERAN's part. See `docs/architecture/assistant.md`.
+
+## ADR-056: The gallery comes back, and the home page gets a feed of upright films
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-23), on the owner's request of 2026-10-23. Amends ADR-033 and ADR-050.
+
+**Context.** The owner asked for the reference's "sip & scroll on social" band (a row of upright
+social films, the middle one playing) in TERAN's design, and for a separate gallery page with
+photographs and films, in high-quality (4K) footage that gives the design more charm. The gallery
+existed (`/media`, ADR-033) but was hidden behind `NEXT_PUBLIC_SHOW_GALLERY` and nearly empty: one
+published film and the packaging artwork as drafts.
+
+**Decision.**
+
+- **Content:** 21 photographs and 15 films from Pexels (free licence, authors named in
+  `docs/design/reference-assets.md` §13), shortlisted in the browser and downloaded only after the
+  owner approved the list. Films are re-encoded from their 4K sources by
+  `apps/api/scripts/web-film.swift` (Lanczos scaling, a light sharpening, exact 9:16 or 16:9
+  crop, trimmed, 50/60 fps halved, a key frame every 2 s, H.264 High without sound): upright films
+  1080×1920 at 6 Mbit/s, landscape films 2560×1440 at 12 Mbit/s. Photographs and posters get
+  WebP renditions up to 3840 px (`GALLERY_IMAGE_WIDTHS`, the admin area's uploads too).
+  `apps/api/scripts/import-gallery.ts` imports a manifest of them, published, in front of the
+  gallery's order; a file already imported (by SHA-256) is skipped.
+- **Home page — "Bir piyola, bir lavha"** (`components/home/social-reel*.tsx`), after the journal:
+  the gallery's films marked "show on the home page" that are upright, as tall cards in a row that
+  snaps to the middle on the light surface; the middle card larger and playing, muted, the others
+  dimmed on their posters with a play mark, TERAN's mark and handle over each card as on a social
+  post. Arrows and a counter move it, a swipe or the wheel scroll it, a card opens the full-screen
+  viewer with its film playing. TERAN's networks (Admin → Settings) follow as pills, then the way
+  to the gallery. Films play only while the band is in view and films are allowed (no reduced
+  motion, data saving or the footer's pause). With fewer than three upright films the band is left
+  out. Landscape films and photographs stay in the gallery.
+- **Gallery** (`/media`, menus "Galereya"): opens full-bleed on its first landscape film playing
+  over its poster (from 768 px; phones keep the poster), title and intro at the lower left, no
+  eyebrow; then the photographs in justified rows, the landscape films in a 16:9 grid and the
+  upright films side by side ("Qisqa lavhalar"). `/media/photos` and `/media/videos` keep the
+  whole archive, the films page split by shape the same way, with a way back to the gallery.
+- **The flag is removed:** the gallery is linked from the menus, the footer, the about page and the
+  sitemap, and indexed (`SHOW_GALLERY` is no longer read; deploy.sh no longer checks it).
+
+**Consequences.** New films for the feed are upright films marked "show on the home page" in Admin →
+Gallery, in its order. The new media live in the uploads of `teran_refinement` and in R2 under the
+same keys; the server's database gets their rows separately (an additive SQL file). The stock
+footage shows tea culture in general, never TERAN's own gardens or a particular TERAN tea: titles
+say what the frame shows. Two upright films (Pexels 8233766, 40137842) are full-length cuts of
+footage two teas' product films also use (ADR-053).

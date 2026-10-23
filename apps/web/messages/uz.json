@@ -92,13 +92,13 @@
     "faqText": "Koʻp beriladigan savollarga javoblar",
     "photos": "Rasmlar",
     "videos": "Videolar",
-    "photosText": "TERAN olamidan suratlar",
+    "photosText": "Choy bogʻlari va choy marosimi suratlari",
     "videosText": "TERAN haqida qisqa videolar",
     "menuCount": "{count, plural, =0 {Tez orada} other {# ta mahsulot}}",
     "menuSoon": "Tez orada",
     "menuSoonNote": "Bu boʻlimning mahsulotlari tez orada paydo boʻladi.",
     "learn": "Choy maktabi",
-    "media": "Lavhalar",
+    "media": "Galereya",
     "returns": "Qaytarish",
     "terms": "Foydalanish shartlari",
     "privacy": "Maxfiylik siyosati",
@@ -195,7 +195,11 @@
       "guest": {
         "title": "Har bir mehmon uchun"
       }
-    }
+    },
+    "socialTitle": "Bir piyola, bir lavha",
+    "socialIntro": "Choy damlash lahzalari, choy bogʻlari va har kungi marosim — qisqa videolarda.",
+    "socialFollow": "Bizni kuzatib boring",
+    "socialGallery": "Galereyani koʻrish"
   },
   "Brewing": {
     "temperature": "Harorat",
@@ -211,11 +215,10 @@
     "method": "Tayyorlash usuli"
   },
   "Media": {
-    "metaTitle": "Lavhalar — TERAN rasmlari va videolari",
-    "metaDescription": "TERAN olamidan rasmlar va qisqa videolar.",
-    "eyebrow": "TERAN olami",
-    "title": "Lavhalar",
-    "intro": "Rasmlar va qisqa videolar — TERAN olamidan tanlab olingan lavhalar.",
+    "metaTitle": "Galereya — TERAN rasmlari va videolari",
+    "metaDescription": "Choy marosimi, choy bogʻlari va damlash lahzalari: TERAN galereyasidagi rasmlar va videolar.",
+    "title": "Galereya",
+    "intro": "Choy marosimi, choy bogʻlari va damlash lahzalari — rasmlar va videolarda.",
     "sectionTitle": "TERAN olamidan lavhalar",
     "viewAll": "Barcha lavhalar",
     "filter": "Lavhalar turi",
@@ -239,17 +242,19 @@
     "archiveCount": "{photos, plural, other {# ta rasm}} · {videos, plural, =0 {video hali yoʻq} other {# ta video}}",
     "photosTitle": "Rasmlar",
     "videosTitle": "Videolar",
-    "photosIntro": "TERAN qadoqlari, choy bogʻlari va choy damlash lavhalari.",
-    "videosIntro": "TERAN haqida qisqa videolar. Video faqat siz bosganingizda boshlanadi.",
+    "photosIntro": "Choy bogʻlari, choy barglari va choy marosimi suratlari.",
+    "videosIntro": "Choy bogʻlari va choy damlash haqida qisqa filmlar. Video siz bosganingizda boshlanadi.",
     "photosMetaTitle": "Rasmlar — TERAN olamidan suratlar",
-    "photosMetaDescription": "TERAN qadoqlari, choy bogʻlari va choy madaniyati suratlari.",
+    "photosMetaDescription": "Choy bogʻlari, choy barglari va choy madaniyati suratlari.",
     "videosMetaTitle": "Videolar — TERAN haqida qisqa videolar",
-    "videosMetaDescription": "TERAN choylari va choy madaniyati haqida qisqa videolar.",
+    "videosMetaDescription": "Choy bogʻlari va choy damlash haqida qisqa videolar.",
     "allPhotos": "Barcha rasmlar",
     "allVideos": "Barcha videolar",
     "emptyPhotosTitle": "Rasmlar tez orada",
     "emptyPhotosText": "Bu yerda TERAN olamidan suratlar paydo boʻladi.",
-    "captions": "Subtitrlar (oʻzbekcha)"
+    "captions": "Subtitrlar (oʻzbekcha)",
+    "reelsTitle": "Qisqa lavhalar",
+    "reelsIntro": "Telefon ekrani uchun tik videolar: bosh sahifadagi “Bir piyola, bir lavha” lentasidagilar."
   },
   "Catalog": {
     "title": "Barcha choylar",
@@ -1348,7 +1353,7 @@
         "VIDEO_PLURAL": "Videolar"
       },
       "featured": "Bosh sahifada koʻrsatish",
-      "featuredHint": "Bosh sahifadagi “Rasmlar” guruhida tartib boʻyicha birinchi oltitasi chiqadi.",
+      "featuredHint": "Hozircha bosh sahifada rasmlar chiqmaydi: rasm galereyada turadi. Belgi tik videolar uchun ishlaydi.",
       "onHome": "Bosh sahifada",
       "duration": "Davomiyligi, soniya",
       "durationHint": "Fayldan oʻzi aniqlanadi; kerak boʻlsa tuzating (masalan, 95 → 1:35).",
@@ -1378,7 +1383,7 @@
       "emptyVideos": "Hali video yoʻq. Birinchi videoni qoʻshing.",
       "hasCaptions": "Subtitrlar bor",
       "saveFirstVideo": "Avval qoralama sifatida saqlang — keyin video, poster va subtitrlarni yuklash mumkin.",
-      "featuredVideoHint": "Bosh sahifadagi “Videolar” guruhida tartib boʻyicha birinchi uchtasi chiqadi.",
+      "featuredVideoHint": "Tik (telefon formatidagi) videolar bosh sahifadagi “Bir piyola, bir lavha” lentasida tartib boʻyicha chiqadi (kamida uchtasi boʻlsa).",
       "description": "Tavsif",
       "posterAlt": "Poster tavsifi",
       "notOnSite": "Saytda koʻrinmaydi (eʼlon qilinmagan)",

@@ -5,7 +5,6 @@ import { helpCentre } from '@/content/pages/faq';
 import { routing } from '@/i18n/routing';
 import { getSitemapEntries } from '@/lib/data/catalog';
 import { localizedUrl } from '@/lib/seo';
-import { showGallery } from '@/lib/site';
 
 const STATIC_PAGES = [
   '/',
@@ -14,8 +13,9 @@ const STATIC_PAGES = [
   '/wholesale',
   '/journal',
   '/tea-101',
-  // The gallery only while the storefront links to it (lib/site showGallery).
-  ...(showGallery ? (['/media', '/media/photos', '/media/videos'] as const) : []),
+  '/media',
+  '/media/photos',
+  '/media/videos',
   '/contact',
   '/stores',
   '/faq',

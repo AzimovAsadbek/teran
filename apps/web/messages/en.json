@@ -92,7 +92,7 @@
     "faqText": "Answers to common questions",
     "photos": "Photos",
     "videos": "Videos",
-    "photosText": "Photographs from the world of TERAN",
+    "photosText": "Photographs of tea gardens and the tea ceremony",
     "videosText": "Short films about TERAN",
     "menuCount": "{count, plural, =0 {Coming soon} one {# product} other {# products}}",
     "menuSoon": "Coming soon",
@@ -195,7 +195,11 @@
       "guest": {
         "title": "Poured for every guest"
       }
-    }
+    },
+    "socialTitle": "Sip & scroll",
+    "socialIntro": "Brewing moments, tea gardens and the daily ritual — in short films.",
+    "socialFollow": "Follow us",
+    "socialGallery": "View the gallery"
   },
   "Brewing": {
     "temperature": "Temperature",
@@ -212,10 +216,9 @@
   },
   "Media": {
     "metaTitle": "Gallery — TERAN photos and videos",
-    "metaDescription": "Photographs and short videos from the world of TERAN.",
-    "eyebrow": "The world of TERAN",
+    "metaDescription": "The tea ceremony, tea gardens and brewing moments: photographs and films in the TERAN gallery.",
     "title": "Gallery",
-    "intro": "Photographs and short videos — chosen scenes from the world of TERAN.",
+    "intro": "The tea ceremony, tea gardens and brewing moments — in photographs and films.",
     "sectionTitle": "Scenes from the world of TERAN",
     "viewAll": "View the gallery",
     "filter": "Kind of media",
@@ -239,17 +242,19 @@
     "archiveCount": "{photos, plural, one {# photo} other {# photos}} · {videos, plural, =0 {no videos yet} one {# video} other {# videos}}",
     "photosTitle": "Photos",
     "videosTitle": "Videos",
-    "photosIntro": "TERAN packaging, tea gardens and the art of brewing.",
-    "videosIntro": "Short films about TERAN. A video only starts when you press play.",
+    "photosIntro": "Tea gardens, tea leaves and the tea ceremony.",
+    "videosIntro": "Short films of tea gardens and brewing. A film starts when you press play.",
     "photosMetaTitle": "Photos — pictures from the world of TERAN",
-    "photosMetaDescription": "Photographs of TERAN packaging, tea gardens and tea culture.",
+    "photosMetaDescription": "Photographs of tea gardens, tea leaves and tea culture.",
     "videosMetaTitle": "Videos — short films about TERAN",
-    "videosMetaDescription": "Short videos about TERAN teas and tea culture.",
+    "videosMetaDescription": "Short videos of tea gardens and tea brewing.",
     "allPhotos": "All photos",
     "allVideos": "All videos",
     "emptyPhotosTitle": "Photos coming soon",
     "emptyPhotosText": "Photographs from the world of TERAN will appear here.",
-    "captions": "Subtitles (Uzbek)"
+    "captions": "Subtitles (Uzbek)",
+    "reelsTitle": "Short films",
+    "reelsIntro": "Upright films made for a phone’s screen — the ones in the home page’s “Sip & scroll” feed."
   },
   "Catalog": {
     "title": "All teas",
@@ -1348,7 +1353,7 @@
         "VIDEO_PLURAL": "Videos"
       },
       "featured": "Show on the home page",
-      "featuredHint": "The home page’s “Photos” group shows the first six in order.",
+      "featuredHint": "Photographs are not shown on the home page for now: they stay in the gallery. The mark works for upright films.",
       "onHome": "On home page",
       "duration": "Length, seconds",
       "durationHint": "Read from the file; correct it if needed (for example, 95 → 1:35).",
@@ -1378,7 +1383,7 @@
       "emptyVideos": "No videos yet. Add the first one.",
       "hasCaptions": "Has subtitles",
       "saveFirstVideo": "Save it as a draft first — then you can upload the video, its poster and subtitles.",
-      "featuredVideoHint": "The home page’s “Videos” group shows the first three in order.",
+      "featuredVideoHint": "Upright (phone-shaped) films appear in order in the home page’s “Sip & scroll” feed (once there are at least three).",
       "description": "Description",
       "posterAlt": "Poster description",
       "notOnSite": "Not on the site (not published)",

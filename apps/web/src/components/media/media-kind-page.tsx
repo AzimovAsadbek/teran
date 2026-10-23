@@ -1,13 +1,13 @@
 import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
+import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
 import { Pagination } from '@/components/catalog/pagination';
 import { Link } from '@/i18n/navigation';
 import { getMedia } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import { showGallery } from '@/lib/site';
 import {
   KIND_OF_PAGE,
   MEDIA_PATHS,
@@ -15,6 +15,9 @@ import {
   MediaHeader,
   MediaListSkeleton,
   MediaTabs,
+  isLandscape,
+  isUpright,
+  mediaCover,
   mediaTotals,
   pageNumber,
 } from './media-archive';
@@ -25,7 +28,7 @@ type KindPage = keyof typeof KIND_OF_PAGE;
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
 /** Photographs fill rows of a justified grid; films are fewer and larger. */
-const PAGE_SIZE: Record<KindPage, number> = { photos: 24, videos: 12 };
+const PAGE_SIZE: Record<KindPage, number> = { photos: 24, videos: 24 };
 
 function hrefFor(key: KindPage, page: number): string {
   return page > 1 ? `${MEDIA_PATHS[key]}?page=${page}` : MEDIA_PATHS[key];
@@ -44,8 +47,6 @@ export async function mediaKindMetadata(
     href: MEDIA_PATHS[key],
     locale,
     query: page > 1 ? `page=${page}` : '',
-    // Unlisted while the storefront does not link to the gallery (lib/site showGallery).
-    noIndex: !showGallery,
   });
 }
 
@@ -73,19 +74,31 @@ async function KindList({
   ]);
   const items = media?.items ?? [];
   const videos = pageKey === 'videos';
+  // Films by their shape: landscape ones in the grid, upright ones side by side beneath.
+  const landscape = videos ? items.filter(isLandscape) : items;
+  const upright = videos ? items.filter(isUpright) : [];
 
   return (
     <>
       <MediaTabs current={pageKey} totals={totals} />
       {items.length > 0 ? (
         <>
-          <MediaGallery
-            items={items}
-            labels={mediaLabels(t)}
-            layout={videos ? 'films' : 'justified'}
-            priorityFirst
-            className="mt-8"
-          />
+          {landscape.length > 0 ? (
+            <MediaGallery
+              items={landscape}
+              labels={mediaLabels(t)}
+              layout={videos ? 'films' : 'justified'}
+              className="mt-8"
+            />
+          ) : null}
+          {upright.length > 0 ? (
+            <MediaGallery
+              items={upright}
+              labels={mediaLabels(t)}
+              layout="reels"
+              className={landscape.length > 0 ? 'mt-14 sm:mt-20' : 'mt-8'}
+            />
+          ) : null}
           <Pagination
             page={media?.page ?? 1}
             totalPages={media?.totalPages ?? 1}
@@ -125,10 +138,19 @@ export async function MediaKindPage({
   pageKey: KindPage;
   searchParams: Promise<RawSearchParams>;
 }) {
-  const t = await getTranslations('Media');
+  const locale = (await rootParams.locale()) as Locale;
+  const [t, cover] = await Promise.all([
+    getTranslations('Media'),
+    mediaCover(locale, pageKey === 'photos' ? 'photo' : 'film'),
+  ]);
   return (
     <div className="on-dark bg-forest-950 text-ivory-50">
-      <MediaHeader eyebrow={t('title')} title={t(`${pageKey}Title`)} intro={t(`${pageKey}Intro`)} />
+      <MediaHeader
+        title={t(`${pageKey}Title`)}
+        intro={t(`${pageKey}Intro`)}
+        cover={cover}
+        back={{ href: MEDIA_PATHS.all, label: t('title') }}
+      />
       <div className="container-page pt-8 pb-section sm:pt-10">
         <Suspense fallback={<MediaListSkeleton films={pageKey === 'videos'} />}>
           <KindList pageKey={pageKey} searchParams={searchParams} />

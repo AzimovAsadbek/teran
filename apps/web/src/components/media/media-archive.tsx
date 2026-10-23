@@ -1,12 +1,13 @@
-import type { Locale, MediaKind } from '@teran/contracts';
+import type { Locale, MediaItemDto, MediaKind } from '@teran/contracts';
 import { ArrowRight, Film, Images, type LucideIcon } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { getMedia } from '@/lib/data/content';
+import { getMedia, getPrerenderMedia } from '@/lib/data/content';
 import lake from '../../../public/brand/art/lake.webp';
+import { MediaCover } from './media-cover';
 
 /** The media pages: an overview and one page per kind, photographs and films kept apart. */
 export type MediaPageKey = 'all' | 'photos' | 'videos';
@@ -41,38 +42,81 @@ export function pageNumber(value: string | string[] | undefined): number {
   return Number.isInteger(parsed) && parsed > 1 && parsed <= 1000 ? parsed : 1;
 }
 
+/** A film shot wider than tall: the kind the gallery's header and its films grid show. */
+export const isLandscape = (item: MediaItemDto) => item.image.width > item.image.height;
+/** A film shot upright: the home page's feed and the gallery's short films. */
+export const isUpright = (item: MediaItemDto) => item.image.height > item.image.width;
+
 /**
- * The header of the media pages on the reference's hero template: the pack's landscape full-bleed
- * under a deep veil, the title and intro centred (the dark gallery continues below it).
+ * The picture a media page opens on: the first landscape film in the gallery's order, else (or on
+ * the photographs' page) the first photograph; null while the gallery is empty. Read for the
+ * prerendered shell, so a build without the API gets the painting rather than an error.
+ */
+export async function mediaCover(locale: Locale, prefer: 'film' | 'photo' = 'film') {
+  const [videos, photos] = await Promise.all([
+    prefer === 'film'
+      ? getPrerenderMedia(locale, { kind: 'VIDEO', pageSize: 24 })
+      : Promise.resolve(null),
+    getPrerenderMedia(locale, { kind: 'PHOTO', pageSize: 1 }),
+  ]);
+  return videos?.items.find(isLandscape) ?? photos?.items[0] ?? null;
+}
+
+/**
+ * The header of the media pages (ADR-056): the gallery's own picture full-bleed (a landscape film
+ * playing over its poster, or a photograph) under a veil that deepens towards the words, the title
+ * in TERAN's capitals and the intro at the lower left, a way back to the gallery on its inner
+ * pages. Before anything is published, the landscape painted on the packs stands in.
  */
 export function MediaHeader({
-  eyebrow,
   title,
   intro,
+  cover,
+  back,
 }: {
-  eyebrow: string;
   title: string;
   intro: string;
+  cover: MediaItemDto | null;
+  /** The way back to the gallery's overview (its inner pages). */
+  back?: { href: string; label: string };
 }) {
   return (
-    <header className="relative isolate overflow-hidden border-b border-ivory-50/10">
-      <Image
-        src={lake}
-        alt=""
-        fill
-        loading="eager"
-        fetchPriority="high"
-        quality={60}
-        sizes="(max-width: 767px) 75vw, 100vw"
-        className="-z-20 object-cover"
+    <header className="relative isolate flex min-h-[27rem] items-end overflow-hidden border-b border-ivory-50/10 sm:min-h-[min(74svh,46rem)]">
+      {cover ? (
+        <MediaCover item={cover} />
+      ) : (
+        <Image
+          src={lake}
+          alt=""
+          fill
+          loading="eager"
+          fetchPriority="high"
+          quality={60}
+          sizes="(max-width: 767px) 75vw, 100vw"
+          className="-z-20 object-cover"
+        />
+      )}
+      <span
+        aria-hidden
+        className="absolute inset-0 -z-10 bg-linear-to-t from-forest-950 via-forest-950/50 via-35% to-forest-950/10"
       />
-      <span aria-hidden className="absolute inset-0 -z-10 bg-forest-950/65" />
-      <div className="container-page flex min-h-[17rem] flex-col items-center justify-center py-14 text-center sm:min-h-[25rem] sm:py-20">
-        <p className="text-eyebrow text-sun">{eyebrow}</p>
-        <h1 className="mt-3 font-headline text-[3rem] break-words text-ivory-50 sm:text-[5rem]">
+      <div className="container-page w-full pt-28 pb-10 sm:pb-16">
+        {back ? (
+          <Link
+            href={back.href}
+            className="group mb-4 inline-flex min-h-10 items-center gap-2 text-body-sm font-semibold text-ivory-100/85 underline-offset-4 hover:text-ivory-50 hover:underline"
+          >
+            <ArrowRight
+              aria-hidden
+              className="h-4 w-4 rotate-180 transition-transform duration-200 group-hover:-translate-x-0.5"
+            />
+            {back.label}
+          </Link>
+        ) : null}
+        <h1 className="font-headline text-[3.25rem] leading-[0.95] break-words text-ivory-50 sm:text-[5.25rem] lg:text-[6rem]">
           {title}
         </h1>
-        <p className="mt-4 max-w-2xl text-body-lg text-ivory-100/90">{intro}</p>
+        <p className="mt-4 max-w-xl text-body-lg text-pretty text-ivory-100/90">{intro}</p>
       </div>
     </header>
   );

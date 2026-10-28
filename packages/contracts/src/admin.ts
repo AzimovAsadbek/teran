@@ -444,8 +444,8 @@ export const mediaUpsertSchema = z.object({
   status: articleStatusSchema,
   /** Shown in the home page's media section. */
   isFeatured: z.boolean(),
-  /** Seconds, shown on video tiles; optional. */
-  videoDurationSeconds: z.number().int().min(1).max(3600).nullable(),
+  /** Seconds, shown on video tiles; optional (a film of any length, up to a day). */
+  videoDurationSeconds: z.number().int().min(1).max(86_400).nullable(),
   translations: localizedInput(mediaTranslationInputSchema),
 });
 export type MediaUpsertInput = z.input<typeof mediaUpsertSchema>;
@@ -459,12 +459,33 @@ export const mediaReorderSchema = z.object({
 export const adminMediaListQuerySchema = z.object({ kind: mediaKindSchema.optional() });
 
 /**
- * Largest film the admin area uploads. Films go through the API, which keeps one in memory while
- * it checks and stores it; the reverse proxy in front of the API must accept request bodies a
- * little larger than this (docs/deployment/production.md). Larger films are added with the API's
- * scripts/add-gallery-film.ts.
+ * Films go up in pieces of this size (ADR-061): each piece is one request, well under the request
+ * size the server's Nginx accepts (12 MB), so a film of any size uploads, and an interrupted upload
+ * goes on from the last piece the API has. The API writes the pieces to disk, never to memory.
  */
-export const MAX_VIDEO_UPLOAD_BYTES = 64 * 1024 * 1024;
+export const MEDIA_UPLOAD_CHUNK_BYTES = 8 * 1024 * 1024;
+
+/** Starts a film's upload: the size of the whole file, in bytes. */
+export const mediaUploadStartSchema = z.object({
+  size: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+});
+export type MediaUploadStartInput = z.input<typeof mediaUploadStartSchema>;
+
+/** Where the next piece of a film starts (`?offset=`). */
+export const mediaUploadChunkQuerySchema = z.object({
+  offset: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+});
+
+/** A film being uploaded: how much of it the API has. */
+export interface MediaUploadSession {
+  id: string;
+  /** The whole file, in bytes. */
+  size: number;
+  /** Bytes the API has from the start of the file: the next piece starts here. */
+  received: number;
+  /** The size of each piece but the last. */
+  chunkBytes: number;
+}
 
 // ─── Staff accounts ─────────────────────────────────────────────────────────
 
@@ -869,6 +890,22 @@ export interface AdminDashboard {
   recentOrders: AdminOrderListItem[];
   salesByDay: SalesDay[];
   topProducts: { productName: string; quantity: number; revenue: Money }[];
+  /** What the site shows now: the catalogue, the gallery, the journal and customers' reviews. */
+  site: AdminSiteCounts;
+}
+
+export interface AdminSiteCounts {
+  /** Products a visitor can open (active, published, in a public category). */
+  productsOnSale: number;
+  /** Products not archived (drafts included). */
+  products: number;
+  /** Published gallery items of each kind. */
+  media: Record<MediaKind, number>;
+  /** Published articles whose date has come. */
+  articles: number;
+  /** Published customers' reviews, and how many of them came in the last seven days. */
+  reviews: number;
+  reviewsThisWeek: number;
 }
 
 export interface AdminAuditEntry {

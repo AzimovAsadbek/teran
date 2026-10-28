@@ -1679,3 +1679,72 @@ with `https://terantrade.uz` it lets them in. Product rich results still need of
 for TERAN's prices (ADR-027). Unit tests cover the policy,
 URLs, metadata, sitemap, robots and structured data; `e2e/tests/seo.spec.ts` reads the production
 build as Googlebot does.
+
+## ADR-061: Films and pictures of any size, and an admin area that says what is happening
+
+**Status.** Accepted on the design-refinement branch (`feat/teran-design-refinement`,
+2026-10-28), on the owner's request of 2026-10-28. Amends ADR-046 (upload limits) and ADR-058.
+
+**Context.** The owner asked for films and pictures of any size to be accepted in the admin area,
+for the film upload to be easier to follow, and for a review of the whole admin area. A film went
+up in one request and was refused above 64 MB (the server's Nginx accepts 70 MB on that route
+only); a lost connection meant starting again, with nothing on screen but a percentage. Only the
+gallery's composer made large photographs smaller: a product, category, collection, article or
+page picture over 5 MB or 4096 px was refused with a note to shrink it elsewhere. `videoBytes`, a
+32-bit integer, could not hold a film over 2 GiB.
+
+**Decision.**
+
+- **Films go up in pieces.** `POST /admin/media/:id/video/uploads` starts an upload with the
+  file's size; it is refused with 507 (`disk_full`) when the server's disk has not room for it
+  plus 512 MB. The browser sends the file in 8 MB pieces (`PUT …/uploads/:uploadId?offset=`, the
+  raw bytes), each accepted only where the file ends (otherwise 409 with `received`, where the
+  next piece starts); a piece cut short is taken back whole. A piece fits the 12 MB that Nginx
+  already accepts on every API route, so the server's Nginx needs no new rule. The pieces grow a
+  file on the uploads volume (`.incoming/`, a dot folder that is never served; uploads left for a
+  day are cleared). `POST …/complete` reads the finished file from disk (an MP4's movie box
+  wherever it is, a WebM's head), stores it as uploaded (moved within the volume, or sent to R2
+  as a multipart upload in 16 MB parts, aborted on error) and records it with its running time
+  and sound. Storing a film of several gigabytes in R2 can outlast Nginx's minute: the browser
+  asks again, and a second request for the same upload waits for the work under way. `DELETE`
+  cancels an upload (refused while it is being stored). The piece route allows 600 requests a
+  minute; the rest of the API keeps 120. The one-request film route is gone, and
+  `MediaItem.videoBytes` is a BIGINT (migration `20261028120000_media_video_bytes_bigint`).
+- **The browser keeps going** (`lib/admin/film-upload.ts`). A failed piece is tried again up to
+  five times with growing pauses, asking first how far the API got; then the upload stops with
+  "Davom ettirish", which goes on from there. The composer and the editor show how much of how
+  much has gone up, the speed and about how long is left, with a stop button (what was sent is
+  removed); once every byte is there, a note says the server is storing the film and the stop
+  button goes. Leaving the page during an upload asks first.
+- **Pictures of any size.** Every picture input of the admin area (products, categories,
+  collections, page pictures, articles, stores, the gallery) prepares the file in the browser
+  (`prepareImageFile`): kept as it is when it already fits (at most 5 MB, JPEG, PNG, WebP or AVIF,
+  at most 5120 px; 4096 px in the composer), otherwise drawn again at most that size and within
+  iOS's 16.7-megapixel canvas, as WebP or PNG when it has transparency and as JPEG otherwise, the
+  quality and then the size lowered until it is under 5 MB; a note says it was made smaller. The
+  API's limit per file stays (`UPLOAD_MAX_BYTES`, 5 MB), so two pictures in one request still fit
+  Nginx's 12 MB. A file the browser cannot read (HEIC outside Safari) is refused with a note.
+- **The composer explains itself.** Three numbered steps (what to post, the file, the texts); each
+  kind says where it appears; the drop area says "tap" on touch screens; a chosen film shows its
+  facts (upright or landscape, pixels, length, size); a large one gets a note that it goes up in
+  pieces and may take minutes.
+- **The admin area, reviewed.** The dashboard leads with actions (post to the gallery, new
+  product, new article, open the shop), its tasks, and "Saytda hozir": products on sale, the
+  gallery's photographs, films and shorts, published articles and reviews of the week. While
+  prices are hidden (ADR-027) the sales figures give way to a note that online sales are off.
+  Settings are three sections with their own addresses (general, AI assistant, page pictures);
+  page pictures are grouped by where they appear (home page, menus, catalogue, collections, other
+  pages), each group folding with how many of its places have a picture. The menu scrolls on its
+  own while the account and "Chiqish" stay at its foot; a product on sale with no stock left is
+  marked "Tugagan" in the list; file sizes are written the same on the server and in the browser,
+  which ends a hydration mismatch in the gallery editor.
+
+**Consequences.** A film as large as the server's disk allows can be posted from a phone or a
+computer over a poor connection, and a dropped connection costs one piece. Deploying runs the
+BIGINT migration; nothing changes in Nginx (its 70 MB rule for the old film route is no longer
+used and may stay). Films are still kept as uploaded: an iPhone `.MOV` (HEVC) is refused with a
+note to export it as MP4, since turning it into MP4 would need transcoding on the server. Tests
+cover the API's piece rules, out-of-turn and cut-short pieces, cancelling, a completion asked for
+twice, R2 multipart uploads and their abort, reading MP4 and WebM from disk, the dashboard's
+counts, and in the browser the retries, resuming and waiting while a film is stored; the
+end-to-end tests post films through the composer and the editor in pieces.

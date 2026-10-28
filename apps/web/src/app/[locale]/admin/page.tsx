@@ -1,5 +1,15 @@
 import type { AdminDashboard, Locale } from '@teran/contracts';
-import { ChevronRight, ClipboardCheck, Inbox, PackageOpen, Truck } from 'lucide-react';
+import {
+  ChevronRight,
+  ClipboardCheck,
+  ExternalLink,
+  FilePlus2,
+  ImagePlus,
+  Inbox,
+  PackageOpen,
+  PackagePlus,
+  Truck,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
@@ -14,11 +24,14 @@ import {
   Pill,
   table,
 } from '@/components/admin/ui';
+import { Notice } from '@/components/ui/notice';
+import { ButtonLink } from '@/components/ui/button';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { packLabel } from '@/lib/admin/pack';
 import { adminGet, getAdminBadges } from '@/lib/admin/server';
 import { formatDateTime, formatMoney } from '@/lib/format';
+import { showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -65,6 +78,32 @@ function Task({
   );
 }
 
+/** One line of "on the site now": what it is, how much of it, and the way to its section. */
+function SiteRow({ href, label, value }: { href: string; label: string; value: string }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="group -mx-2 flex min-h-12 items-center justify-between gap-4 rounded-control px-2 py-2.5 text-body-sm transition-colors hover:bg-surface-muted"
+      >
+        <span className="text-fg-muted">{label}</span>
+        <span className="flex items-center gap-2 text-right font-semibold text-fg tabular-nums">
+          {value}
+          <ChevronRight
+            aria-hidden
+            className="h-4 w-4 shrink-0 text-fg-subtle transition-transform group-hover:translate-x-0.5"
+          />
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * "What do I do now" (docs/architecture/overview.md): the most frequent actions in the header,
+ * the waiting work, what the site shows now, and stock. Sales figures appear while the shop sells
+ * online; while it takes orders by phone (ADR-027) they would always read zero, so a line says so.
+ */
 export default async function AdminDashboardPage() {
   const [locale, t, tc] = await Promise.all([
     getLocale(),
@@ -107,9 +146,31 @@ export default async function AdminDashboardPage() {
     },
   ];
 
+  const site = data.site;
+  const actions = (
+    <>
+      <ButtonLink href="/admin/media/post?kind=shorts" size="sm">
+        <ImagePlus aria-hidden className="h-4 w-4" />
+        {t('dashboard.actionPost')}
+      </ButtonLink>
+      <ButtonLink href="/admin/products/new" size="sm" variant="secondary">
+        <PackagePlus aria-hidden className="h-4 w-4" />
+        {t('dashboard.actionProduct')}
+      </ButtonLink>
+      <ButtonLink href="/admin/journal/new" size="sm" variant="secondary">
+        <FilePlus2 aria-hidden className="h-4 w-4" />
+        {t('dashboard.actionArticle')}
+      </ButtonLink>
+      <ButtonLink href="/" target="_blank" size="sm" variant="ghost">
+        <ExternalLink aria-hidden className="h-4 w-4" />
+        {t('nav.viewStore')}
+      </ButtonLink>
+    </>
+  );
+
   return (
     <>
-      <AdminPageHeader title={t('dashboard.title')} />
+      <AdminPageHeader title={t('dashboard.title')} actions={actions} />
 
       <section aria-labelledby="dashboard-tasks" className="mb-6">
         <h2 id="dashboard-tasks" className="mb-3 text-title-lg text-fg">
@@ -149,6 +210,114 @@ export default async function AdminDashboardPage() {
         )}
       </section>
 
+      {showPrices ? null : (
+        <Notice tone="neutral" className="mb-6">
+          {t('dashboard.salesOff')}
+        </Notice>
+      )}
+
+      <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Panel title={t('dashboard.siteTitle')}>
+          <ul className="divide-y divide-line">
+            <SiteRow
+              href="/admin/products"
+              label={t('dashboard.siteProducts')}
+              value={t('dashboard.siteProductsValue', {
+                onSale: site.productsOnSale,
+                total: site.products,
+              })}
+            />
+            <SiteRow
+              href="/admin/media"
+              label={t('dashboard.siteMedia')}
+              value={t('dashboard.siteMediaValue', {
+                photos: site.media.PHOTO,
+                videos: site.media.VIDEO,
+                shorts: site.media.SHORT,
+              })}
+            />
+            <SiteRow
+              href="/admin/journal"
+              label={t('dashboard.siteArticles')}
+              value={t('dashboard.siteArticlesValue', { count: site.articles })}
+            />
+            <SiteRow
+              href="/admin/reviews"
+              label={t('dashboard.siteReviews')}
+              value={t('dashboard.siteReviewsValue', {
+                count: site.reviews,
+                week: site.reviewsThisWeek,
+              })}
+            />
+          </ul>
+        </Panel>
+        <LowStockPanel data={data} />
+      </div>
+
+      {showPrices ? <SalesFigures data={data} kpis={kpis} locale={locale as Locale} /> : null}
+    </>
+  );
+}
+
+/** Pack sizes running low, each a way to its inventory row. */
+async function LowStockPanel({ data }: { data: AdminDashboard }) {
+  const t = await getTranslations('Admin');
+  return (
+    <Panel
+      title={t('dashboard.lowStock')}
+      actions={
+        <Link href="/admin/inventory?lowStockOnly=true" className={table.link}>
+          {t('common.viewAll')}
+        </Link>
+      }
+    >
+      {data.lowStock.length === 0 ? (
+        <p className="text-fg-subtle">{t('dashboard.noLowStock')}</p>
+      ) : (
+        <ul className="divide-y divide-line text-body-sm">
+          {data.lowStock.map((row) => (
+            <li
+              key={row.variantId}
+              className="relative flex items-center justify-between gap-4 py-2.5"
+            >
+              <span className="min-w-0">
+                <Link
+                  href={`/admin/inventory?q=${encodeURIComponent(row.sku)}`}
+                  className={table.rowLink}
+                >
+                  {row.productName}
+                </Link>
+                <span className="block text-xs text-fg-subtle">
+                  {[packLabel(row), row.sku].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              {row.stockQuantity === 0 ? (
+                <Pill tone="danger">{t('dashboard.outOfStock')}</Pill>
+              ) : (
+                <Pill tone="gold">{t('dashboard.left', { count: row.stockQuantity })}</Pill>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+/** Orders and money over the last 30 days: shown while the shop sells online. */
+async function SalesFigures({
+  data,
+  kpis,
+  locale,
+}: {
+  data: AdminDashboard;
+  kpis: { label: string; value: string; note?: string; href?: string }[];
+  locale: Locale;
+}) {
+  const [t, tc] = await Promise.all([getTranslations('Admin'), getTranslations('Common')]);
+  const money = (amount: string) => formatMoney(amount, locale, tc('currency.UZS'));
+  return (
+    <>
       <ul className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
         {kpis.map((kpi) => {
           const body = (
@@ -225,79 +394,38 @@ export default async function AdminDashboardPage() {
           )}
         </Panel>
 
-        <div className="space-y-6">
-          <Panel
-            title={t('dashboard.lowStock')}
-            actions={
-              <Link href="/admin/inventory?lowStockOnly=true" className={table.link}>
-                {t('common.viewAll')}
-              </Link>
-            }
-          >
-            {data.lowStock.length === 0 ? (
-              <p className="text-fg-subtle">{t('dashboard.noLowStock')}</p>
-            ) : (
-              <ul className="divide-y divide-line text-body-sm">
-                {data.lowStock.map((row) => (
-                  <li
-                    key={row.variantId}
-                    className="relative flex items-center justify-between gap-4 py-2.5"
-                  >
-                    <span className="min-w-0">
-                      <Link
-                        href={`/admin/inventory?q=${encodeURIComponent(row.sku)}`}
-                        className={table.rowLink}
-                      >
-                        {row.productName}
-                      </Link>
-                      <span className="block text-xs text-fg-subtle">
-                        {[packLabel(row), row.sku].filter(Boolean).join(' · ')}
-                      </span>
-                    </span>
-                    {row.stockQuantity === 0 ? (
-                      <Pill tone="danger">{t('dashboard.outOfStock')}</Pill>
-                    ) : (
-                      <Pill tone="gold">{t('dashboard.left', { count: row.stockQuantity })}</Pill>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title={t('dashboard.topProducts')}>
-            {data.topProducts.length === 0 ? (
-              <p className="text-fg-subtle">{t('common.empty')}</p>
-            ) : (
-              <table className="w-full text-body-sm">
-                <thead>
-                  <tr className="text-left text-xs text-fg-subtle uppercase">
-                    <th scope="col" className="pb-2 font-semibold">
-                      {t('products.name')}
-                    </th>
-                    <th scope="col" className="pb-2 text-right font-semibold">
-                      {t('dashboard.quantity')}
-                    </th>
-                    <th scope="col" className="pb-2 text-right font-semibold">
-                      {t('dashboard.revenue')}
-                    </th>
+        <Panel title={t('dashboard.topProducts')}>
+          {data.topProducts.length === 0 ? (
+            <p className="text-fg-subtle">{t('common.empty')}</p>
+          ) : (
+            <table className="w-full text-body-sm">
+              <thead>
+                <tr className="text-left text-xs text-fg-subtle uppercase">
+                  <th scope="col" className="pb-2 font-semibold">
+                    {t('products.name')}
+                  </th>
+                  <th scope="col" className="pb-2 text-right font-semibold">
+                    {t('dashboard.quantity')}
+                  </th>
+                  <th scope="col" className="pb-2 text-right font-semibold">
+                    {t('dashboard.revenue')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.topProducts.map((product) => (
+                  <tr key={product.productName} className="border-t border-line-subtle">
+                    <td className="py-2">{product.productName}</td>
+                    <td className="py-2 text-right tabular-nums">{product.quantity}</td>
+                    <td className="py-2 text-right whitespace-nowrap tabular-nums">
+                      {money(product.revenue)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {data.topProducts.map((product) => (
-                    <tr key={product.productName} className="border-t border-line-subtle">
-                      <td className="py-2">{product.productName}</td>
-                      <td className="py-2 text-right tabular-nums">{product.quantity}</td>
-                      <td className="py-2 text-right whitespace-nowrap tabular-nums">
-                        {money(product.revenue)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Panel>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Panel>
       </div>
     </>
   );

@@ -1,20 +1,17 @@
 'use client';
 
-import type { ImageDto } from '@teran/contracts';
+import type { ImageDto, Locale } from '@teran/contracts';
 import { ImageIcon, Loader2, Trash2, Upload, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useId, useState } from 'react';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { useRouter } from '@/i18n/navigation';
-import {
-  checkImageFile,
-  IMAGE_ACCEPT,
-  uploadFile,
-  type LocalImageCheck,
-} from '@/lib/admin/uploads';
+import { prepareImageFile, type ImageProblem, type PreparedImage } from '@/lib/admin/media-files';
+import { IMAGE_PICK, uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
 import { cn } from '@/lib/cn';
+import { formatFileSize } from '@/lib/format';
 import { useAdminOrApiMessage, useLocalImageProblem } from './admin-errors';
 import { ConfirmDialog } from './confirm-dialog';
 
@@ -24,10 +21,18 @@ export function renditionSrc(image: ImageDto, max = 640): string {
   return `${image.src}/${width}.webp`;
 }
 
+/** A chosen picture, made ready to send (or the reason it cannot be). */
+type Chosen = {
+  url: string;
+  name: string;
+  prepared: PreparedImage | null;
+  problem: ImageProblem | null;
+};
+
 /**
- * One picture of an item (a category's or collection's cover, an article's cover): shows the
- * current one, previews a chosen file before it is sent, uploads it (the API validates and
- * re-encodes it) and removes it after a confirmation.
+ * One picture of an item (a category's or collection's cover, an article's cover, a page picture):
+ * shows the current one, previews a chosen file of any size (made light enough in the browser,
+ * ADR-061), uploads it (the API validates and re-encodes it) and removes it after a confirmation.
  */
 export function ImageUploader({
   image,
@@ -51,12 +56,12 @@ export function ImageUploader({
   disabledText?: string;
 }) {
   const t = useTranslations('Admin');
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const inputId = useId();
   const localProblem = useLocalImageProblem();
-  const [chosen, setChosen] = useState<{ file: File; url: string; check: LocalImageCheck } | null>(
-    null,
-  );
+  const [chosen, setChosen] = useState<Chosen | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -67,15 +72,27 @@ export function ImageUploader({
   async function choose(file: File | undefined) {
     if (!file) return;
     setError(null);
-    setChosen({ file, url: URL.createObjectURL(file), check: await checkImageFile(file) });
+    setPreparing(true);
+    const prepared = await prepareImageFile(file);
+    setPreparing(false);
+    setChosen(
+      typeof prepared === 'string'
+        ? { url: URL.createObjectURL(file), name: file.name, prepared: null, problem: prepared }
+        : {
+            url: URL.createObjectURL(prepared.file),
+            name: file.name,
+            prepared,
+            problem: null,
+          },
+    );
   }
 
   async function upload() {
-    if (!chosen || !uploadPath) return;
+    if (!chosen?.prepared || !uploadPath) return;
     setPending(true);
     setError(null);
     try {
-      await uploadFile(uploadPath, chosen.file);
+      await uploadFile(uploadPath, chosen.prepared.file);
       setChosen(null);
       router.refresh();
     } catch (caught) {
@@ -105,7 +122,8 @@ export function ImageUploader({
     shape === 'square' ? 'aspect-square w-40' : 'aspect-[16/9] w-full max-w-md',
   );
   const shown = chosen?.url ?? (image ? renditionSrc(image) : null);
-  const problem = chosen?.check.problem ?? null;
+  const problem = chosen?.problem ?? null;
+  const original = chosen?.prepared?.original ?? null;
 
   return (
     <div className="space-y-3">
@@ -114,7 +132,7 @@ export function ImageUploader({
           // eslint-disable-next-line @next/next/no-img-element -- local preview or API rendition (ADR-009)
           <img
             src={shown}
-            alt={chosen ? t('uploads.previewAlt', { name: chosen.file.name }) : (image?.alt ?? '')}
+            alt={chosen ? t('uploads.previewAlt', { name: chosen.name }) : (image?.alt ?? '')}
             className={cn(
               'h-full w-full',
               image?.transparent && !chosen ? 'object-contain p-3' : 'object-cover',
@@ -136,9 +154,20 @@ export function ImageUploader({
       {chosen ? (
         <div className="space-y-2">
           <p className="text-caption text-fg-subtle">
-            {chosen.file.name}
-            {chosen.check.width ? ` · ${chosen.check.width} × ${chosen.check.height} px` : ''}
+            {chosen.name}
+            {chosen.prepared
+              ? ` · ${chosen.prepared.width} × ${chosen.prepared.height} px · ${formatFileSize(chosen.prepared.file.size, locale)}`
+              : ''}
           </p>
+          {chosen.prepared && original ? (
+            <p className="text-caption text-fg-muted">
+              {t('uploads.resized', {
+                from: `${original.width} × ${original.height} px, ${formatFileSize(original.bytes, locale)}`,
+                width: chosen.prepared.width,
+                height: chosen.prepared.height,
+              })}
+            </p>
+          ) : null}
           {problem ? (
             <p role="alert" className="text-body-sm font-medium text-danger">
               {localProblem(problem)}
@@ -170,7 +199,7 @@ export function ImageUploader({
               'cursor-pointer has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
             )}
           >
-            {pending ? (
+            {pending || preparing ? (
               <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
             ) : (
               <Upload aria-hidden className="h-4 w-4" />
@@ -179,7 +208,8 @@ export function ImageUploader({
             <input
               id={inputId}
               type="file"
-              accept={IMAGE_ACCEPT}
+              accept={IMAGE_PICK}
+              disabled={preparing}
               className="sr-only"
               onChange={(event) => {
                 void choose(event.target.files?.[0]);

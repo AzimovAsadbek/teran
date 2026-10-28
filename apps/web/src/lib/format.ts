@@ -71,6 +71,27 @@ export function formatMoney(amount: Money, locale: Locale, currencyLabel: string
   return `${formatAmount(amount, locale)} ${currencyLabel}`;
 }
 
+/**
+ * A file's size in the reader's language: "37 KB", "4,5 MB", "1,2 GB" (one decimal where it says
+ * something), the same on the server and in every browser.
+ */
+export function formatFileSize(bytes: number, locale: Locale): string {
+  const { group, decimal } = SEPARATORS[locale];
+  const units = [
+    [1024 ** 3, 'GB'],
+    [1024 ** 2, 'MB'],
+  ] as const;
+  for (const [size, unit] of units) {
+    if (bytes < size) continue;
+    const [integer = '0', fraction = '0'] = (Math.round((bytes / size) * 10) / 10)
+      .toFixed(1)
+      .split('.');
+    const whole = groupDigits(integer, group);
+    return `${fraction === '0' ? whole : `${whole}${decimal}${fraction}`} ${unit}`;
+  }
+  return `${groupDigits(String(Math.max(1, Math.round(bytes / 1024))), group)} KB`;
+}
+
 export function formatGrams(grams: number, locale: Locale): string {
   const [integer = '0', fraction] = String(Math.abs(grams)).split('.');
   const { group, decimal } = SEPARATORS[locale];

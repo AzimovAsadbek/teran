@@ -2,11 +2,12 @@
 
 import {
   ARTICLE_STATUSES,
-  MAX_VIDEO_UPLOAD_BYTES,
   mediaUpsertSchema,
   type AdminMediaItem,
   type ArticleStatus,
+  type Locale,
   type MediaKind,
+  type MediaUploadSession,
 } from '@teran/contracts';
 import { Captions, ExternalLink, Film, Loader2, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -17,12 +18,20 @@ import { CheckboxField, FormErrorSummary, SelectField, TextField } from '@/compo
 import { Notice } from '@/components/ui/notice';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
-import { formatBytes, uploadFile } from '@/lib/admin/uploads';
+import {
+  cancelFilmUpload,
+  FilmUploadInterrupted,
+  uploadFilm,
+  type FilmUploadProgress,
+} from '@/lib/admin/film-upload';
+import { uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
+import { formatFileSize } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { useAdminErrorMessage, useAdminOrApiMessage } from './admin-errors';
 import { ConfirmDialog } from './confirm-dialog';
+import { FilmTransfer } from './film-transfer';
 import { ImageUploader } from './image-uploader';
 import { ReadinessChecklist } from './readiness-checklist';
 import { notify } from './toast';
@@ -346,56 +355,90 @@ function ItemActions({ item }: { item: AdminMediaItem }) {
   );
 }
 
-type VideoProblem = 'unsupported_video' | 'too_large';
-
 /**
  * The film's file: what is there now (playable here, never automatically), a chosen file played
- * locally before it is sent, and the upload through the API, which checks the real content and
- * reads the running time from it.
+ * locally before it is sent, and the upload in pieces through the API (any size, ADR-061), which
+ * checks the real content and reads the running time from it. A lost connection leaves the upload
+ * to go on with; leaving the page while it goes up asks first.
  */
 function VideoSlot({ item }: { item: AdminMediaItem }) {
   const t = useTranslations('Admin');
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const inputId = useId();
-  const [chosen, setChosen] = useState<{
-    file: File;
-    url: string;
-    problem: VideoProblem | null;
-  } | null>(null);
+  const [chosen, setChosen] = useState<{ file: File; url: string; playable: boolean } | null>(null);
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<ApiError | null>(null);
-  const failureMessage = useAdminOrApiMessage(failure);
-  const limit = formatBytes(MAX_VIDEO_UPLOAD_BYTES, locale);
+  const [transfer, setTransfer] = useState<FilmUploadProgress | null>(null);
+  const [interrupted, setInterrupted] = useState(false);
+  const session = useRef<MediaUploadSession | null>(null);
+  const stop = useRef<AbortController | null>(null);
+  const failureMessage = useAdminOrApiMessage(interrupted ? null : failure);
 
   useEffect(() => () => (chosen ? URL.revokeObjectURL(chosen.url) : undefined), [chosen]);
 
+  useEffect(() => {
+    if (!pending) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [pending]);
+
+  /** Drops an upload that will not go on; what was sent of it is removed. */
+  function forget() {
+    if (session.current) void cancelFilmUpload(item.id, session.current.id);
+    session.current = null;
+    setTransfer(null);
+    setInterrupted(false);
+  }
+
   function choose(file: File | undefined) {
     if (!file) return;
+    forget();
     setFailure(null);
-    const typeOk = VIDEO_TYPES.has(file.type) || /\.(mp4|webm)$/i.test(file.name);
-    const problem: VideoProblem | null = !typeOk
-      ? 'unsupported_video'
-      : file.size > MAX_VIDEO_UPLOAD_BYTES
-        ? 'too_large'
-        : null;
-    setChosen({ file, url: URL.createObjectURL(file), problem });
+    const playable = VIDEO_TYPES.has(file.type) || /\.(mp4|webm)$/i.test(file.name);
+    setChosen({ file, url: URL.createObjectURL(file), playable });
   }
 
   async function upload() {
-    if (!chosen || chosen.problem) return;
+    if (!chosen?.playable) return;
     setPending(true);
     setFailure(null);
+    setInterrupted(false);
+    const controller = new AbortController();
+    stop.current = controller;
     try {
-      await uploadFile(`/admin/media/${item.id}/video`, chosen.file);
+      await uploadFilm(item.id, chosen.file, {
+        session: session.current,
+        onStart: (started) => {
+          session.current = started;
+        },
+        onProgress: setTransfer,
+        signal: controller.signal,
+      });
+      session.current = null;
+      setTransfer(null);
       setChosen(null);
       notify(t('common.saved'));
       router.refresh();
     } catch (caught) {
-      setFailure(caught instanceof ApiError ? caught : new ApiError(0, null));
+      if (caught instanceof FilmUploadInterrupted) {
+        session.current = caught.session;
+        setInterrupted(true);
+        setFailure(caught.reason);
+      } else if (!(caught instanceof DOMException && caught.name === 'AbortError')) {
+        session.current = null;
+        setFailure(caught instanceof ApiError ? caught : new ApiError(0, null));
+      }
     } finally {
+      stop.current = null;
       setPending(false);
     }
+  }
+
+  function cancel() {
+    stop.current?.abort();
+    forget();
   }
 
   const poster = item.image
@@ -448,7 +491,7 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
       </div>
       {item.video && !chosen ? (
         <p className="text-caption text-fg-subtle">
-          {formatBytes(item.video.bytes, locale)}
+          {formatFileSize(item.video.bytes, locale)}
           {item.videoDurationSeconds ? ` · ${duration(item.videoDurationSeconds)}` : ''}
           {` · ${item.video.hasAudio ? t('media.withSound') : t('media.silent')}`}
         </p>
@@ -456,35 +499,45 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
       {chosen ? (
         <div className="space-y-2">
           <p className="text-caption text-fg-subtle">
-            {chosen.file.name} · {formatBytes(chosen.file.size, locale)}
+            {chosen.file.name} · {formatFileSize(chosen.file.size, locale)}
           </p>
-          {chosen.problem ? (
+          {!chosen.playable ? (
             <p role="alert" className="text-body-sm font-medium text-danger">
-              {chosen.problem === 'too_large'
-                ? t('uploads.errors.too_large', { limit })
-                : t('uploads.errors.unsupported_video', { limit })}
+              {t('uploads.errors.unsupported_video')}
             </p>
           ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              onClick={() => void upload()}
-              loading={pending}
-              disabled={chosen.problem !== null}
-            >
-              <Upload aria-hidden className="h-4 w-4" />
-              {t('uploads.uploadOne')}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setChosen(null)} disabled={pending}>
-              <X aria-hidden className="h-4 w-4" />
-              {t('uploads.cancel')}
-            </Button>
-          </div>
-          {pending ? (
-            <p className="text-caption text-fg-subtle" aria-live="polite">
-              {t('media.uploadingVideo')}
-            </p>
+          {transfer && (pending || interrupted) ? (
+            <div aria-live="polite">
+              <FilmTransfer transfer={transfer} active={pending} onStop={cancel} />
+            </div>
           ) : null}
+          {interrupted && transfer ? (
+            <Notice tone="warning">
+              {t('compose.interrupted', {
+                sent: formatFileSize(transfer.sent, locale),
+                total: formatFileSize(transfer.total, locale),
+              })}
+            </Notice>
+          ) : null}
+          {pending ? null : (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => void upload()} disabled={!chosen.playable}>
+                <Upload aria-hidden className="h-4 w-4" />
+                {interrupted ? t('compose.resume') : t('uploads.uploadOne')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  forget();
+                  setChosen(null);
+                }}
+              >
+                <X aria-hidden className="h-4 w-4" />
+                {t('uploads.cancel')}
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <label
@@ -509,7 +562,7 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
           />
         </label>
       )}
-      <p className="text-caption text-fg-subtle">{t('media.videoHint', { limit })}</p>
+      <p className="text-caption text-fg-subtle">{t('media.videoHint')}</p>
       {failureMessage ? (
         <p
           role="alert"

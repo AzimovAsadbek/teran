@@ -1,6 +1,10 @@
 import sharp from 'sharp';
-import type { Agent } from 'supertest';
-import type { ProductUpsertInput } from '@teran/contracts';
+import type { Agent, Response } from 'supertest';
+import {
+  MEDIA_UPLOAD_CHUNK_BYTES,
+  type MediaUploadSession,
+  type ProductUpsertInput,
+} from '@teran/contracts';
 
 const API = '/api/v1';
 
@@ -55,4 +59,29 @@ export async function createProductViaAdmin(
       .expect(200);
   }
   return id;
+}
+
+/**
+ * Uploads a film the way the admin area does (ADR-061): an upload started with the file's size,
+ * the file sent in pieces, then completed. Answers the first response that is not a success, or
+ * the completion's (the item, 201).
+ */
+export async function uploadFilm(
+  admin: Agent,
+  mediaId: string,
+  film: Buffer,
+  pieceBytes = MEDIA_UPLOAD_CHUNK_BYTES,
+): Promise<Response> {
+  const base = `${API}/admin/media/${mediaId}/video/uploads`;
+  const started = await admin.post(base).send({ size: film.length });
+  if (started.status !== 201) return started;
+  const session = started.body as MediaUploadSession;
+  for (let offset = 0; offset < film.length; offset += pieceBytes) {
+    const piece = await admin
+      .put(`${base}/${session.id}?offset=${offset}`)
+      .set('Content-Type', 'application/octet-stream')
+      .send(film.subarray(offset, offset + pieceBytes));
+    if (piece.status !== 200) return piece;
+  }
+  return admin.post(`${base}/${session.id}/complete`);
 }

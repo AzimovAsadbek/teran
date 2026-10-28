@@ -74,9 +74,15 @@ test.describe('administration', () => {
     await expect(visible(page.getByRole('heading', { name: 'Dashboard' }))).toBeVisible();
     await expect(page.getByRole('link', { name: 'Staff' })).toBeVisible();
 
-    // New product with one pack size.
-    await page.getByRole('link', { name: 'Products' }).click();
-    await page.getByRole('link', { name: 'New product' }).click();
+    // New product with one pack size. (The dashboard links to products too: use the menu.)
+    await page
+      .getByRole('navigation', { name: 'Administration' })
+      .getByRole('link', { name: 'Products' })
+      .click();
+    // The dashboard stays in the document, hidden, with a "New product" link of its own: wait
+    // for the products page before looking for its button.
+    await expect(visible(page.getByRole('heading', { level: 1, name: 'Products' }))).toBeVisible();
+    await visible(page.getByRole('link', { name: 'New product' })).click();
     const slug = `e2e-tea-${Date.now()}`;
     const sku = `E2E-${Date.now()}`;
     await field(page, 'Name').first().fill('E2E Admin Tea');
@@ -159,7 +165,10 @@ test.describe('administration', () => {
   });
   test('publishes a photograph to the gallery, then removes it', async ({ page }) => {
     await signInAsAdmin(page);
-    await page.getByRole('link', { name: 'Gallery' }).click();
+    await page
+      .getByRole('navigation', { name: 'Administration' })
+      .getByRole('link', { name: 'Gallery' })
+      .click();
     // Photos and videos are separate lists, each with its own "new" button.
     await expect(
       visible(page.getByRole('navigation', { name: 'Type' }).getByRole('link', { name: /Photos/ })),
@@ -197,6 +206,9 @@ test.describe('administration', () => {
     await expect(store.getByRole('dialog', { name: title })).toBeVisible();
     await store.keyboard.press('Escape');
 
+    // Back to the admin tab, as a person would: a tab behind another one is not painted, so its
+    // confirmation dialog would never finish opening.
+    await page.bringToFront();
     await page.getByRole('button', { name: 'Delete item' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Delete item' }).click();
     await expect(page).toHaveURL(/\/en\/admin\/media$/);

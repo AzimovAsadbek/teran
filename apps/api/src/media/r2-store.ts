@@ -1,11 +1,13 @@
 import { createHash, createHmac } from 'node:crypto';
+import { open } from 'node:fs/promises';
 import type { ImageStore } from './image-processing.js';
 
 /**
  * Cloudflare R2 (or any S3-compatible object storage) through its S3 API, signed with AWS
- * Signature Version 4 by hand, so no SDK is needed: the operations used are PUT, GET, DELETE and
- * a prefix listing. Files are public through the bucket's public address (R2_PUBLIC_URL), which
- * the storefront and the API's picture addresses point at (ADR-043).
+ * Signature Version 4 by hand, so no SDK is needed: the operations used are PUT, GET, DELETE, a
+ * prefix listing and multipart uploads for large files. Files are public through the bucket's
+ * public address (R2_PUBLIC_URL), which the storefront and the API's picture addresses point at
+ * (ADR-043).
  */
 export interface S3Config {
   /** The account's S3 endpoint, e.g. https://<account id>.r2.cloudflarestorage.com */
@@ -19,6 +21,11 @@ export interface S3Config {
 
 const KEY_PATTERN = /^[A-Za-z0-9/_.-]+$/;
 const ONE_YEAR = 'public, max-age=31536000, immutable';
+/**
+ * A large file goes up in parts of this size (R2 wants every part but the last the same size, of
+ * at least 5 MiB); one part is in memory at a time.
+ */
+export const MULTIPART_PART_BYTES = 16 * 1024 * 1024;
 
 function sha256(data: Buffer | string): string {
   return createHash('sha256').update(data).digest('hex');
@@ -113,7 +120,7 @@ export function signS3Request(
 async function send(
   config: S3Config,
   request: {
-    method: 'GET' | 'PUT' | 'DELETE';
+    method: 'GET' | 'PUT' | 'POST' | 'DELETE';
     key?: string;
     query?: Record<string, string>;
     headers?: Record<string, string>;
@@ -189,6 +196,79 @@ export async function putObject(
   );
 }
 
+/**
+ * Stores a file from disk at `key`: in one request up to MULTIPART_PART_BYTES, else as a multipart
+ * upload read from the file part by part (a film of any size never sits in memory whole). A failed
+ * upload is aborted, so the bucket keeps no stray parts.
+ */
+export async function putObjectFromFile(
+  config: S3Config,
+  key: string,
+  path: string,
+  contentType: string,
+): Promise<void> {
+  if (!KEY_PATTERN.test(key)) throw new Error(`Refusing an unsafe key: ${key}`);
+  const file = await open(path, 'r');
+  try {
+    const { size } = await file.stat();
+    const readPart = async (offset: number, length: number) => {
+      const part = Buffer.alloc(length);
+      const { bytesRead } = await file.read(part, 0, length, offset);
+      if (bytesRead !== length) throw new Error(`Short read of ${path} at ${offset}`);
+      return part;
+    };
+    if (size <= MULTIPART_PART_BYTES) {
+      await putObject(config, key, await readPart(0, size), contentType);
+      return;
+    }
+    const created = await check(
+      await send(config, {
+        method: 'POST',
+        key,
+        query: { uploads: '' },
+        headers: { 'content-type': contentType, 'cache-control': ONE_YEAR },
+      }),
+      `start ${key}`,
+    );
+    const uploadId = /<UploadId>([^<]+)<\/UploadId>/.exec(await created.text())?.[1];
+    if (!uploadId) throw new Error(`R2 start ${key} failed: no upload id`);
+    try {
+      const etags: string[] = [];
+      for (let offset = 0; offset < size; offset += MULTIPART_PART_BYTES) {
+        const body = await readPart(offset, Math.min(MULTIPART_PART_BYTES, size - offset));
+        const query = { partNumber: String(etags.length + 1), uploadId };
+        const response = await check(
+          await send(config, { method: 'PUT', key, query, body }, 300_000),
+          `part ${etags.length + 1} of ${key}`,
+        );
+        const etag = response.headers.get('etag');
+        if (!etag) throw new Error(`R2 part ${etags.length + 1} of ${key}: no ETag`);
+        etags.push(etag);
+      }
+      const parts = etags
+        .map(
+          (etag, index) => `<Part><PartNumber>${index + 1}</PartNumber><ETag>${etag}</ETag></Part>`,
+        )
+        .join('');
+      await check(
+        await send(config, {
+          method: 'POST',
+          key,
+          query: { uploadId },
+          headers: { 'content-type': 'application/xml' },
+          body: Buffer.from(`<CompleteMultipartUpload>${parts}</CompleteMultipartUpload>`),
+        }),
+        `complete ${key}`,
+      );
+    } catch (error) {
+      await send(config, { method: 'DELETE', key, query: { uploadId } }).catch(() => undefined);
+      throw error;
+    }
+  } finally {
+    await file.close();
+  }
+}
+
 export function r2Store(config: S3Config): ImageStore {
   const keyOf = (storageKey: string, fileName: string) => `${storageKey}/${fileName}`;
   const valid = (storageKey: string, fileName: string) =>
@@ -199,6 +279,9 @@ export function r2Store(config: S3Config): ImageStore {
     },
     async saveFile(storageKey, fileName, data, contentType) {
       await putObject(config, keyOf(storageKey, fileName), data, contentType);
+    },
+    async saveFileFrom(storageKey, fileName, path, contentType) {
+      await putObjectFromFile(config, keyOf(storageKey, fileName), path, contentType);
     },
     async read(storageKey, fileName) {
       if (!valid(storageKey, fileName)) return null;

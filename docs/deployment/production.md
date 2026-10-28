@@ -280,8 +280,12 @@ teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed
   for a year, film byte ranges supported). The volume survives container recreation and updates;
   back it up with the database.
 - `deploy.sh` remembers which of the two the last deployment used and refuses to switch silently.
-- Upload limits: pictures 5 MB each (`UPLOAD_MAX_BYTES`), films 64 MB through the admin area.
-  Larger films are added on the server with the tools image (files mounted read-only):
+- Upload sizes (ADR-061): the admin area takes pictures and films of any size. Pictures are made
+  smaller in the browser when needed, so each reaches the API under 5 MB (`UPLOAD_MAX_BYTES`;
+  keep it at least 5 MB). Films go up in 8 MB pieces, kept in `.incoming/` on the uploads volume
+  until the film is complete, so the server's disk needs room for the largest film (an upload is
+  refused with "not enough space" otherwise; abandoned uploads are cleared after a day). Films can
+  also be added on the server with the tools image (files mounted read-only):
 
   ```bash
   teran run --rm -v /path/to/films:/import:ro migrate \
@@ -302,7 +306,7 @@ the site to work, its server block for the domain must:
 | `X-Forwarded-For` set to the client's address (`$remote_addr`)             | The API's rate limits read it after one trusted hop (`TRUST_PROXY_HOPS=1`); a forwarded value could be forged |
 | the `X-Internal-Key` request header removed                                | It exempts the storefront's own requests from rate limits; it must never come from the internet               |
 | `Host` and `X-Forwarded-Proto` passed on                                   | Redirects and absolute addresses are built from them                                                          |
-| request bodies up to 12 MB, and 70 MB on `/api/v1/admin/media/<id>/video`  | Two pictures of 5 MB in one request; films up to 64 MB (with longer read timeouts there)                      |
+| request bodies up to 12 MB on `/api/v1/`                                   | Two pictures of 5 MB in one request; films go up in pieces of 8 MB (ADR-061)                                  |
 | `proxy_read_timeout` of at least 50 s on `/api/v1/` (Nginx's default 60 s) | The chat's AI assistant waits up to 45 s for Gemini at busy times (ADR-055)                                   |
 | responses of the storefront not buffered                                   | Pages stream as they render                                                                                   |
 | `http://` and `www.` redirected to `PUBLIC_ORIGIN`, HSTS added             | Cookies are `Secure` and `__Host-` prefixed: the site works over HTTPS only                                   |
@@ -471,7 +475,7 @@ application depending on them:
 - **Vercel** (hosting, serverless functions, Cron, request caps, build branches): replaced by this
   Compose stack and the server's Nginx; the jobs run on the API's own timers.
 - **Vercel Blob** (suspended since 2026-10-19): replaced by R2 or the uploads volume; films go
-  through the API (64 MB) instead of direct browser uploads.
+  through the API (in pieces, ADR-061) instead of direct browser uploads.
 - **Neon**: replaced by the PostgreSQL container; the data moves once
   ([migration guide](migration-from-vercel.md)).
 - **Caddy**: replaced by the server's existing Nginx.
@@ -536,7 +540,7 @@ Getting this wrong either lets visitors spoof their IP or makes them share one r
 | `migrate` exits with an error                         | `teran logs migrate` or the script's output. The API and storefront keep running the previous release; the backup made just before is named in the output.                           |
 | API restarts with `Invalid environment configuration` | `teran logs api` lists every invalid variable.                                                                                                                                       |
 | `502 Bad Gateway` from Nginx                          | The containers are not up, or Nginx sends the site to other ports than `.deploy.env` (`./deploy.sh --status` shows both).                                                            |
-| `413 Request Entity Too Large` on an upload           | Nginx's `client_max_body_size` for that route (12 MB, films 70 MB).                                                                                                                  |
+| `413 Request Entity Too Large` on an upload           | Nginx's `client_max_body_size` on `/api/v1/` (12 MB; a film's pieces are 8 MB).                                                                                                      |
 | Pictures or films blocked in the browser console      | `R2_PUBLIC_URL` changed without rebuilding the web image (content security policy), or the bucket's CORS rules do not allow the site.                                                |
 | Pages load but admin changes appear late              | `REVALIDATE_SECRET` differs between services; restart both with the same value.                                                                                                      |
 | Every visitor gets `429 RATE_LIMITED`                 | A proxy in front of Nginx is not accounted for (see [Behind a CDN](#behind-a-cdn)).                                                                                                  |

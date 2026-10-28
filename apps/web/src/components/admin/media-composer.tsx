@@ -1,10 +1,11 @@
 'use client';
 
 import {
-  MAX_VIDEO_UPLOAD_BYTES,
   mediaUpsertSchema,
   type AdminMediaItem,
+  type Locale,
   type MediaKind,
+  type MediaUploadSession,
 } from '@teran/contracts';
 import {
   Check,
@@ -34,42 +35,63 @@ import { Notice } from '@/components/ui/notice';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link } from '@/i18n/navigation';
 import {
+  cancelFilmUpload,
+  FilmUploadInterrupted,
+  uploadFilm,
+  type FilmUploadProgress,
+} from '@/lib/admin/film-upload';
+import {
   captureCover,
   drawFrame,
-  preparePhoto,
+  GALLERY_MAX_SIDE,
+  prepareImageFile,
   readVideo,
   seekTo,
-  type PreparedPhoto,
+  type PreparedImage,
   type VideoFacts,
 } from '@/lib/admin/media-files';
-import { formatBytes, uploadFile, uploadFileWithProgress } from '@/lib/admin/uploads';
+import { uploadFile, uploadFileWithProgress } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { cn } from '@/lib/cn';
+import { formatFileSize } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { useAdminErrorMessage, useLocalImageProblem } from './admin-errors';
 import { renditionSrc } from './image-uploader';
 import { notify } from './toast';
+import { FilmTransfer } from './film-transfer';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
 
 const KEYS = ['title', 'caption'] as const;
 
-/** What is posted, chosen first (ADR-059): a photograph, a film, or a short for the home page. */
-const KINDS: { kind: MediaKind; icon: LucideIcon; accept: string }[] = [
-  { kind: 'PHOTO', icon: ImageIcon, accept: 'image/*' },
-  { kind: 'VIDEO', icon: Film, accept: 'video/mp4,video/webm' },
-  { kind: 'SHORT', icon: Smartphone, accept: 'video/mp4,video/webm' },
+/**
+ * What is posted, chosen first (ADR-059), each with where it appears: a photograph, a film for the
+ * gallery, or a short for the home page's feed.
+ */
+const KINDS: {
+  kind: MediaKind;
+  icon: LucideIcon;
+  accept: string;
+  where: 'wherePhoto' | 'whereVideo' | 'whereShort';
+}[] = [
+  { kind: 'PHOTO', icon: ImageIcon, accept: 'image/*', where: 'wherePhoto' },
+  { kind: 'VIDEO', icon: Film, accept: 'video/mp4,video/webm', where: 'whereVideo' },
+  { kind: 'SHORT', icon: Smartphone, accept: 'video/mp4,video/webm', where: 'whereShort' },
 ];
+/** The choosing area's words: dropping a file on a computer, tapping on a phone. */
 const DROP = { PHOTO: 'dropPhoto', VIDEO: 'dropVideo', SHORT: 'dropShort' } as const;
+const TAP = { PHOTO: 'tapPhoto', VIDEO: 'tapVideo', SHORT: 'tapShort' } as const;
 const HINT = { PHOTO: 'hintPhoto', VIDEO: 'hintVideo', SHORT: 'hintShort' } as const;
 
+/** A film over this size takes a while: the composer says so before it starts. */
+const BIG_FILM_BYTES = 200 * 1024 * 1024;
+
 type Picked =
-  | { type: 'photo'; url: string; photo: PreparedPhoto }
+  | { type: 'photo'; url: string; photo: PreparedImage }
   | { type: 'film'; url: string; file: File; facts: VideoFacts };
 
 type Problem =
   | 'unsupported'
   | 'mov'
-  | 'tooLargeVideo'
   | 'unreadableVideo'
   | 'heic'
   | 'too_small'
@@ -110,6 +132,11 @@ function clock(seconds: number): string {
   return `${Math.floor(whole / 60)}:${(whole % 60).toFixed(1).padStart(4, '0')}`;
 }
 
+/** Whether an error is the person's own "stop" (an aborted upload), not a failure. */
+function isAbort(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
 /**
  * "Joylash": a photograph, a film or a short posted in one go, as on Instagram (ADR-058, ADR-059).
  * The kind is chosen first (the list's tab opens it on its own kind): a short must be upright and
@@ -123,7 +150,7 @@ function clock(seconds: number): string {
  */
 export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   const t = useTranslations('Admin');
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const message = useValidationMessage();
   const explain = useAdminErrorMessage();
   const photoProblem = useLocalImageProblem();
@@ -149,7 +176,12 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   const [posted, setPosted] = useState<AdminMediaItem | null>(null);
   /** The draft a failed post left, to finish in the editor (also in `made`, for the steps). */
   const [draftId, setDraftId] = useState<string | null>(null);
-  const videoLimit = formatBytes(MAX_VIDEO_UPLOAD_BYTES, locale);
+  /** The film's upload on the server, kept to go on with it after a lost connection. */
+  const filmSession = useRef<MediaUploadSession | null>(null);
+  const stopUpload = useRef<AbortController | null>(null);
+  const [transfer, setTransfer] = useState<FilmUploadProgress | null>(null);
+  /** How the last post stopped: the connection went (it can go on), or the person stopped it. */
+  const [stopped, setStopped] = useState<'interrupted' | 'cancelled' | null>(null);
   const payload = {
     kind,
     status: 'DRAFT' as const,
@@ -163,6 +195,14 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
 
   // A chosen file's address is let go when another is chosen or the page closes.
   useEffect(() => () => (picked ? URL.revokeObjectURL(picked.url) : undefined), [picked]);
+
+  // Closing or leaving the page while a file goes up would lose it: the browser asks first.
+  useEffect(() => {
+    if (!sending) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [sending]);
 
   // The cover follows the slider, drawn from a hidden copy of the film (the preview stays free).
   useEffect(() => {
@@ -185,7 +225,24 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     };
   }, [picked, coverAt]);
 
+  /** Drops a film upload that will not go on (another file, another kind, a fresh post). */
+  function forgetUpload() {
+    const session = filmSession.current;
+    if (session && made.current.id) void cancelFilmUpload(made.current.id, session.id);
+    filmSession.current = null;
+    setTransfer(null);
+    setStopped(null);
+  }
+
+  /** Stops the film's upload: what was sent is removed; the draft stays, to post again later. */
+  function cancelUpload() {
+    stopUpload.current?.abort();
+    forgetUpload();
+    setStopped('cancelled');
+  }
+
   function reset() {
+    forgetUpload();
     setPicked(null);
     setProblem(null);
     setSuggest(null);
@@ -203,6 +260,7 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   async function choose(file: File | undefined, as: MediaKind = kind) {
     if (!file || reading || sending) return;
     form.reset();
+    forgetUpload();
     setRun(null);
     setCoverFailed(false);
     setSuggest(null);
@@ -221,9 +279,9 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
       if (video) return refuse('photoOnly');
       if (!image) return refuse('unsupported');
       setReading(true);
-      const photo = await preparePhoto(file);
+      const photo = await prepareImageFile(file, GALLERY_MAX_SIDE);
       setReading(false);
-      if (photo === 'unreadable' && /\.(heic|heif)$/.test(name)) return refuse('heic');
+      if (photo === 'unsupported_format') return refuse('heic');
       if (typeof photo === 'string') return refuse(photo);
       setPicked({ type: 'photo', url: URL.createObjectURL(photo.file), photo });
       return;
@@ -234,7 +292,6 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     if (!/^video\/(mp4|webm)$/.test(file.type) && !/\.(mp4|m4v|webm)$/.test(name)) {
       return refuse('unsupported');
     }
-    if (file.size > MAX_VIDEO_UPLOAD_BYTES) return refuse('tooLargeVideo');
     const url = URL.createObjectURL(file);
     setReading(true);
     const facts = await readVideo(url);
@@ -252,6 +309,7 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   /** Another kind: the chosen file (if any) is let go, since it was checked for the other one. */
   function switchKind(next: MediaKind) {
     if (next === kind || sending) return;
+    forgetUpload();
     setKind(next);
     setPicked(null);
     setProblem(null);
@@ -272,6 +330,7 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     event.preventDefault();
     if (!picked) return;
     setCoverFailed(false);
+    setStopped(null);
     const steps: Step[] = [
       'create',
       'file',
@@ -295,13 +354,47 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           setDraftId(created.id);
         }
         const id = made.current.id;
-        if (!made.current.file) {
+        if (!made.current.file && picked.type === 'photo') {
           at('file', 0);
           result.item = await uploadFileWithProgress<AdminMediaItem>(
-            `/admin/media/${id}/${picked.type === 'film' ? 'video' : 'image'}`,
-            picked.type === 'film' ? picked.file : picked.photo.file,
+            `/admin/media/${id}/image`,
+            picked.photo.file,
             (sent) => at('file', Math.round(sent * 100)),
           );
+          made.current.file = true;
+        }
+        if (!made.current.file && picked.type === 'film') {
+          // In pieces, any size (ADR-061); a lost connection leaves the upload to go on with.
+          at('file');
+          const stop = new AbortController();
+          stopUpload.current = stop;
+          try {
+            result.item = await uploadFilm(id, picked.file, {
+              session: filmSession.current,
+              onStart: (session) => {
+                filmSession.current = session;
+              },
+              onProgress: setTransfer,
+              signal: stop.signal,
+            });
+          } catch (caught) {
+            if (caught instanceof FilmUploadInterrupted) {
+              filmSession.current = caught.session;
+              setStopped('interrupted');
+              throw caught.reason;
+            }
+            if (isAbort(caught)) {
+              setStopped('cancelled');
+            } else {
+              // Refused (not a film the site plays): the next try starts from the beginning.
+              filmSession.current = null;
+            }
+            throw caught;
+          } finally {
+            stopUpload.current = null;
+          }
+          filmSession.current = null;
+          setTransfer(null);
           made.current.file = true;
         }
         if (picked.type === 'film' && !made.current.cover) {
@@ -400,9 +493,10 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     );
   }
 
+  // A stopped upload explains itself (below); other failures say what went wrong.
   const failure =
-    form.apiError?.status === 413
-      ? t('compose.serverLimit')
+    stopped !== null
+      ? null
       : coverFailed
         ? t('compose.coverFailed')
         : (explain(form.apiError) ?? form.apiErrorMessage);
@@ -411,41 +505,71 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
       ? null
       : problem === 'too_small' || problem === 'unreadable'
         ? photoProblem(problem)
-        : t(`compose.problems.${problem}`, { limit: videoLimit });
+        : t(`compose.problems.${problem}`);
 
   const accept = KINDS.find((entry) => entry.kind === kind)?.accept;
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
       <section aria-label={t('compose.file')} className="space-y-4">
         <fieldset>
-          <legend className="mb-2 text-label text-fg">{t('compose.kindLabel')}</legend>
-          <div className="inline-flex max-w-full gap-1 overflow-x-auto rounded-control border border-line bg-surface p-1">
-            {KINDS.map(({ kind: option, icon: Icon }) => (
-              <label
-                key={option}
-                className={cn(
-                  'inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-[calc(var(--radius-control)-0.125rem)] px-4 text-body-sm font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
-                  kind === option
-                    ? 'bg-brand text-fg-inverse'
-                    : 'text-fg-muted hover:bg-surface-muted hover:text-fg',
-                  sending && 'cursor-not-allowed opacity-60',
-                )}
-              >
-                <input
-                  type="radio"
-                  name="compose-kind"
-                  value={option}
-                  checked={kind === option}
-                  disabled={sending}
-                  onChange={() => switchKind(option)}
-                  className="sr-only"
-                />
-                <Icon aria-hidden className="h-4 w-4" />
-                {t(`media.kinds.${option}`)}
-              </label>
-            ))}
+          <legend className="mb-3 flex items-center gap-2.5 text-title-sm text-fg">
+            <StepNumber value={1} />
+            {t('compose.kindLabel')}
+          </legend>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {KINDS.map(({ kind: option, icon: Icon, where }) => {
+              const chosen = kind === option;
+              return (
+                <label
+                  key={option}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-card border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus sm:p-4',
+                    chosen
+                      ? 'border-brand bg-brand-soft shadow-[inset_0_0_0_1px_var(--color-brand)]'
+                      : 'border-line bg-surface hover:border-line-strong hover:bg-surface-muted',
+                    sending && 'cursor-not-allowed opacity-60',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="compose-kind"
+                    value={option}
+                    checked={chosen}
+                    disabled={sending}
+                    onChange={() => switchKind(option)}
+                    aria-label={t(`media.kinds.${option}`)}
+                    aria-describedby={`${inputId}-${option}`}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'grid h-10 w-10 shrink-0 place-items-center rounded-full',
+                      chosen ? 'bg-brand text-fg-inverse' : 'bg-surface-muted text-fg-muted',
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span aria-hidden className="block text-body font-semibold text-fg">
+                      {t(`media.kinds.${option}`)}
+                    </span>
+                    <span
+                      id={`${inputId}-${option}`}
+                      className="mt-0.5 block text-caption leading-snug text-fg-muted"
+                    >
+                      {t(`compose.${where}`)}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </fieldset>
+        <h2 className="flex items-center gap-2.5 text-title-sm text-fg">
+          <StepNumber value={2} />
+          {picked ? t('compose.stepCheck') : t('compose.stepFile')}
+        </h2>
         {picked ? (
           <ChosenFile
             picked={picked}
@@ -485,12 +609,22 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
               )}
             </span>
             <span className="text-title-lg text-fg">
-              {reading ? t('compose.reading') : t(`compose.${DROP[kind]}`)}
+              {reading ? (
+                t('compose.reading')
+              ) : (
+                <>
+                  <span className="pointer-coarse:hidden">{t(`compose.${DROP[kind]}`)}</span>
+                  <span className="hidden pointer-coarse:inline">{t(`compose.${TAP[kind]}`)}</span>
+                </>
+              )}
             </span>
             <span className={buttonClasses('primary', 'md')}>{t('compose.choose')}</span>
             <span className="max-w-md text-body-sm text-fg-muted">
-              {t(`compose.${HINT[kind]}`, { limit: videoLimit })}
+              {t(`compose.${HINT[kind]}`)}
             </span>
+            {kind !== 'PHOTO' ? (
+              <span className="max-w-md text-caption text-fg-subtle">{t('compose.inPieces')}</span>
+            ) : null}
             <input
               id={inputId}
               type="file"
@@ -534,6 +668,10 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
         noValidate
         className="space-y-5 rounded-card border border-line bg-surface p-5 sm:p-6 xl:sticky xl:top-6"
       >
+        <h2 className="flex items-center gap-2.5 text-title-sm text-fg">
+          <StepNumber value={3} />
+          {t('compose.stepDetails')}
+        </h2>
         <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
         <TranslationEditor
           value={translations}
@@ -567,9 +705,31 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           onChange={(event) => setPublish(event.target.checked)}
         />
         <p className="text-caption text-fg-subtle">{t('compose.first')}</p>
-        {run ? <Progress run={run} kind={kind} /> : null}
+        {picked?.type === 'film' && picked.file.size > BIG_FILM_BYTES && !run ? (
+          <Notice tone="info">
+            {t('compose.bigFile', { size: formatFileSize(picked.file.size, locale) })}
+          </Notice>
+        ) : null}
+        {run ? (
+          <Progress
+            run={run}
+            kind={kind}
+            transfer={transfer}
+            onStop={sending ? cancelUpload : undefined}
+          />
+        ) : null}
         <ApiAlert message={failure} />
-        {run?.failed && draftId ? (
+        {stopped === 'interrupted' ? (
+          <Notice tone="warning">
+            {t('compose.interrupted', {
+              sent: formatFileSize(transfer?.sent ?? 0, locale),
+              total: formatFileSize(transfer?.total ?? 0, locale),
+            })}
+          </Notice>
+        ) : stopped === 'cancelled' ? (
+          <Notice tone="info">{t('compose.cancelled')}</Notice>
+        ) : null}
+        {run?.failed && draftId && stopped === null ? (
           <Notice tone="info">
             {t('compose.retryHint')}{' '}
             <Link
@@ -583,13 +743,16 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
         {picked ? (
           <SubmitButton
             sending={sending}
-            label={t('compose.post')}
+            label={stopped === 'interrupted' ? t('compose.resume') : t('compose.post')}
             sendingLabel={t('compose.posting')}
           />
         ) : (
-          <Button className="w-full" disabled>
-            {t('compose.post')}
-          </Button>
+          <>
+            <Button className="w-full" disabled>
+              {t('compose.post')}
+            </Button>
+            <p className="text-center text-caption text-fg-subtle">{t('compose.needFile')}</p>
+          </>
         )}
       </form>
     </div>
@@ -617,7 +780,7 @@ function ChosenFile({
   onChange: () => void;
 }) {
   const t = useTranslations('Admin');
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const sliderId = useId();
   const change = (
     <Button size="sm" variant="ghost" onClick={onChange} disabled={disabled}>
@@ -642,11 +805,15 @@ function ChosenFile({
         </div>
         <p className="text-caption text-fg-subtle">
           {photo.file.name} · {photo.width} × {photo.height} px ·{' '}
-          {formatBytes(photo.file.size, locale)}
+          {formatFileSize(photo.file.size, locale)}
         </p>
-        {photo.converted ? (
+        {photo.original ? (
           <Notice tone="info">
-            {t('compose.converted', { width: photo.width, height: photo.height })}
+            {t('compose.converted', {
+              from: `${photo.original.width} × ${photo.original.height} px, ${formatFileSize(photo.original.bytes, locale)}`,
+              width: photo.width,
+              height: photo.height,
+            })}
           </Notice>
         ) : null}
         <p className="text-body-sm text-fg-muted">{t('compose.photo')}</p>
@@ -716,13 +883,24 @@ function ChosenFile({
         tabIndex={-1}
         className="pointer-events-none fixed top-0 left-0 h-px w-px opacity-0"
       />
-      <p className="text-caption text-fg-subtle">
-        {picked.file.name} · {facts.width} × {facts.height} ·{' '}
-        {facts.duration > 0 ? `${clock(facts.duration).replace(/\.\d$/, '')} · ` : ''}
-        {formatBytes(picked.file.size, locale)}
-      </p>
+      <ul aria-label={picked.file.name} className="flex flex-wrap gap-1.5">
+        {[
+          upright ? t('compose.upright') : t('compose.landscape'),
+          `${facts.width} × ${facts.height}`,
+          ...(facts.duration > 0 ? [clock(facts.duration).replace(/\.\d$/, '')] : []),
+          formatFileSize(picked.file.size, locale),
+        ].map((fact) => (
+          <li
+            key={fact}
+            className="rounded-full bg-surface-muted px-2.5 py-1 text-caption font-medium text-fg-muted tabular-nums"
+          >
+            {fact}
+          </li>
+        ))}
+      </ul>
+      <p className="truncate text-caption text-fg-subtle">{picked.file.name}</p>
       <p className="text-body-sm text-fg-muted">
-        {kind === 'SHORT' ? t('compose.upright') : t('compose.landscape')}
+        {kind === 'SHORT' ? t('compose.whereShortLong') : t('compose.whereVideoLong')}
       </p>
       {change}
     </div>
@@ -736,8 +914,33 @@ const STEP_LABELS = {
   order: 'compose.steps.order',
 } as const;
 
-/** The post's steps as they go, the file's upload with its share sent. */
-function Progress({ run, kind }: { run: Run; kind: MediaKind }) {
+/** A step's number beside its heading ("1", "2", "3"). */
+function StepNumber({ value }: { value: number }) {
+  return (
+    <span
+      aria-hidden
+      className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-caption font-bold text-fg-inverse tabular-nums"
+    >
+      {value}
+    </span>
+  );
+}
+
+/**
+ * The post's steps as they go; a film's upload shows how much has gone up of how much, how fast,
+ * about how long is left, and a button to stop it.
+ */
+function Progress({
+  run,
+  kind,
+  transfer,
+  onStop,
+}: {
+  run: Run;
+  kind: MediaKind;
+  transfer: FilmUploadProgress | null;
+  onStop?: () => void;
+}) {
   const t = useTranslations('Admin');
   const index = run.current ? run.steps.indexOf(run.current) : run.steps.length;
   return (
@@ -750,6 +953,9 @@ function Progress({ run, kind }: { run: Run; kind: MediaKind }) {
           step === 'file'
             ? t(kind === 'PHOTO' ? 'compose.steps.photo' : 'compose.steps.video')
             : t(STEP_LABELS[step]);
+        const film = step === 'file' && kind !== 'PHOTO' && transfer !== null;
+        // A photograph's share sent; a film shows its own numbers below.
+        const percent = step === 'file' && !film ? run.percent : null;
         return (
           <li key={step} className="space-y-1.5">
             <span
@@ -769,17 +975,20 @@ function Progress({ run, kind }: { run: Run; kind: MediaKind }) {
                 <span aria-hidden className="h-4 w-4 rounded-full border border-line-strong" />
               )}
               {label}
-              {step === 'file' && active && run.percent !== null ? (
-                <span className="ml-auto tabular-nums">{run.percent}%</span>
+              {active && percent !== null ? (
+                <span className="ml-auto tabular-nums">{percent}%</span>
               ) : null}
             </span>
-            {step === 'file' && active && run.percent !== null ? (
+            {active && percent !== null ? (
               <span aria-hidden className="block h-1.5 overflow-hidden rounded-full bg-line">
                 <span
                   className="block h-full rounded-full bg-brand transition-[width] duration-200"
-                  style={{ width: `${run.percent}%` }}
+                  style={{ width: `${percent}%` }}
                 />
               </span>
+            ) : null}
+            {film && (active || failed) ? (
+              <FilmTransfer transfer={transfer} active={active} onStop={onStop} />
             ) : null}
           </li>
         );

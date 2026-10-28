@@ -1067,7 +1067,8 @@ model MediaItem {
   /// Videos only: the file at <videoKey>/video.<mp4|webm>, as uploaded.
   videoKey             String?       @unique
   videoType            String?
-  videoBytes           Int?
+  /// Bytes (a film of any size, ADR-061).
+  videoBytes           BigInt?
   /// Videos only: the file has a sound track (read from it on upload); the feed offers its sound.
   videoHasAudio        Boolean       @default(false)
   videoDurationSeconds Int?

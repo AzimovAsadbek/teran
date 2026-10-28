@@ -14,7 +14,7 @@ import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { StoresForm } from '@/components/admin/stores-form';
 import { AccessDenied, AdminPageHeader, Panel } from '@/components/admin/ui';
-import { VisualsManager, type VisualPlace } from '@/components/admin/visuals-manager';
+import { VisualPlaces, type VisualPlace } from '@/components/admin/visuals-manager';
 import { Link } from '@/i18n/navigation';
 import { currentUser } from '@/lib/account';
 import { adminGet } from '@/lib/admin/server';
@@ -97,7 +97,7 @@ export default async function AdminStoresPage() {
         {pictures.length > 0 ? (
           <Panel title={t('stores.picturesTitle')}>
             <p className="mb-4 text-body-sm text-fg-subtle">{t('stores.picturesHint')}</p>
-            <VisualsManager places={pictures} />
+            <VisualPlaces places={pictures} />
           </Panel>
         ) : null}
       </div>

@@ -347,7 +347,7 @@ async function updateEarlierFilm(
     where: { id: item.id },
     select: { imageKey: true, videoKey: true, videoBytes: true },
   });
-  if (!row || row.videoBytes !== bytes) return false;
+  if (!row || Number(row.videoBytes) !== bytes) return false;
   const store = seedImageStore(uploadsDir);
   const poster = await storeImage(await readFile(item.file), store, mediaPrefix(item.id));
   const video = await storeDemoVideo(item, uploadsDir);

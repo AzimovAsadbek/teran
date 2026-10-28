@@ -18,6 +18,7 @@ function memoryStore() {
       files.push({ key, name, type, bytes: data.length });
       return Promise.resolve();
     },
+    saveFileFrom: () => Promise.resolve(),
     read: () => Promise.resolve(null),
     remove: () => Promise.resolve(),
   };

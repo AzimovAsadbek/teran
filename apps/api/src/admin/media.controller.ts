@@ -9,32 +9,43 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import {
   adminMediaListQuerySchema,
   idSchema,
-  MAX_VIDEO_UPLOAD_BYTES,
   mediaReorderSchema,
+  mediaUploadChunkQuerySchema,
+  mediaUploadStartSchema,
   mediaUpsertSchema,
   type AdminMediaItem,
+  type MediaUploadSession,
 } from '@teran/contracts';
-import type { z } from 'zod';
+import type { Request } from 'express';
+import { z } from 'zod';
 import { RequireStaff } from '../auth/auth.guard.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { CurrentActor, type Actor } from './admin-support.js';
+import { MediaUploadsService, UPLOAD_ID_PATTERN } from './media-uploads.service.js';
 import { AdminMediaService } from './media.service.js';
 
 type MediaPayload = z.output<typeof mediaUpsertSchema>;
+
+const uploadIdSchema = z.string().regex(UPLOAD_ID_PATTERN);
 
 @ApiTags('admin')
 @Controller('admin/media')
 @RequireStaff()
 export class AdminMediaController {
-  constructor(private readonly media: AdminMediaService) {}
+  constructor(
+    private readonly media: AdminMediaService,
+    private readonly uploads: MediaUploadsService,
+  ) {}
 
   @Get()
   @Header('Cache-Control', 'private, no-store')
@@ -109,23 +120,81 @@ export class AdminMediaController {
     return this.media.setImage(id, file.buffer, actor);
   }
 
-  @Post(':id/video')
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: MAX_VIDEO_UPLOAD_BYTES, files: 1, fields: 5 } }),
-  )
-  @ApiConsumes('multipart/form-data')
+  @Post(':id/video/uploads')
   @ApiOperation({
-    summary: 'Upload the video file (MP4 or WebM, up to 64 MB)',
-    description: 'Kept as uploaded; recognised by its first bytes, not its declared type.',
+    summary: "Start a film's upload in pieces (MP4 or WebM, any size)",
+    description:
+      'Answers the upload id and the piece size; refused with 507 when the server has not the room.',
+  })
+  @ApiOkResponse({ description: 'MediaUploadSession' })
+  startVideoUpload(
+    @Param('id', { schema: idSchema }) id: string,
+    @Body({ schema: mediaUploadStartSchema }) body: z.output<typeof mediaUploadStartSchema>,
+  ): Promise<MediaUploadSession> {
+    return this.media.startVideoUpload(id, body.size);
+  }
+
+  @Get(':id/video/uploads/:uploadId')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'How much of a film the API has (to go on after a lost connection)' })
+  @ApiOkResponse({ description: 'MediaUploadSession' })
+  videoUploadStatus(
+    @Param('id', { schema: idSchema }) id: string,
+    @Param('uploadId', { schema: uploadIdSchema }) uploadId: string,
+  ): Promise<MediaUploadSession> {
+    return this.uploads.status(id, uploadId);
+  }
+
+  @Put(':id/video/uploads/:uploadId')
+  // A film of a few gigabytes is hundreds of pieces; the rest of the API keeps its limit.
+  @Throttle({ default: { limit: 600, ttl: 60_000 } })
+  @ApiConsumes('application/octet-stream')
+  @ApiOperation({
+    summary: "Add the piece of a film that starts at ?offset= (the request's body, raw bytes)",
+    description:
+      'Accepted only where the file ends; otherwise 409 with `received`, where the next piece starts.',
+  })
+  @ApiOkResponse({ description: 'MediaUploadSession' })
+  appendVideoUpload(
+    @Param('id', { schema: idSchema }) id: string,
+    @Param('uploadId', { schema: uploadIdSchema }) uploadId: string,
+    @Query({ schema: mediaUploadChunkQuerySchema })
+    query: z.output<typeof mediaUploadChunkQuerySchema>,
+    @Req() request: Request,
+  ): Promise<MediaUploadSession> {
+    if (!request.is('application/octet-stream')) {
+      throw ApiException.badRequest('BAD_REQUEST', 'Send the piece as application/octet-stream');
+    }
+    return this.uploads.append(id, uploadId, query.offset, request);
+  }
+
+  @Post(':id/video/uploads/:uploadId/complete')
+  @ApiOperation({
+    summary: "Keep a fully uploaded film as the item's file",
+    description:
+      'Recognised by its first bytes, not its declared type; kept as uploaded. Asked again while ' +
+      'the film is being stored, it waits for that work; once stored, the upload is gone (404).',
   })
   @ApiOkResponse({ description: 'AdminMediaItem' })
-  setVideo(
+  completeVideoUpload(
     @Param('id', { schema: idSchema }) id: string,
-    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @Param('uploadId', { schema: uploadIdSchema }) uploadId: string,
     @CurrentActor() actor: Actor,
   ): Promise<AdminMediaItem> {
-    if (!file) throw ApiException.badRequest('BAD_REQUEST', 'Attach a video in the "file" field');
-    return this.media.setVideo(id, file.buffer, actor);
+    return this.media.setVideoFromUpload(id, uploadId, actor);
+  }
+
+  @Delete(':id/video/uploads/:uploadId')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: 'Cancel an upload and remove what was sent',
+    description: 'Refused with 409 `upload_storing` while the finished film is being stored.',
+  })
+  cancelVideoUpload(
+    @Param('id', { schema: idSchema }) id: string,
+    @Param('uploadId', { schema: uploadIdSchema }) uploadId: string,
+  ): Promise<void> {
+    return this.media.cancelVideoUpload(id, uploadId);
   }
 
   @Post(':id/captions')

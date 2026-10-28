@@ -190,7 +190,9 @@ test.describe('admin changes reach the storefront', () => {
   }) => {
     await signInAsAdmin(page);
     const store = await storefront(browser);
-    await page.goto('/en/admin/settings');
+    // Page pictures have a section of their own, grouped by where they appear (ADR-061).
+    await page.goto('/en/admin/settings?section=pictures');
+    await page.getByText('Catalogue and categories', { exact: true }).click();
     const card = page
       .getByRole('listitem')
       .filter({ has: page.getByRole('heading', { name: 'Catalogue banner', exact: true }) });

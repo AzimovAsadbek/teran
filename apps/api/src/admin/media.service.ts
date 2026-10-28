@@ -4,6 +4,7 @@ import {
   isFilmKind,
   type AdminMediaItem,
   type MediaKind,
+  type MediaUploadSession,
   type mediaUpsertSchema,
 } from '@teran/contracts';
 import type { z } from 'zod';
@@ -18,13 +19,14 @@ import {
   mediaPrefix,
   storeCaptions,
   storeImage,
-  storeVideo,
-  videoDurationSeconds,
+  VideoRejectedError,
   type ImageStore,
 } from '../media/image-processing.js';
+import { inspectVideoFile, storeVideoFile } from '../media/video-files.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
 import { nullable, toAdminTranslation, translationRows, type Actor } from './admin-support.js';
+import { MediaUploadsService } from './media-uploads.service.js';
 import { assertPublishable, mediaReadiness } from './readiness.js';
 import { uploadError } from './uploads.js';
 import { configuredImageStore } from '../media/configured-store.js';
@@ -44,11 +46,14 @@ const include = { translations: true } satisfies Prisma.MediaItemInclude;
 @Injectable()
 export class AdminMediaService {
   private readonly files: ImageStore;
+  /** Films being stored from their uploads, by item and upload. */
+  private readonly storing = new Map<string, Promise<AdminMediaItem>>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationService,
+    private readonly uploads: MediaUploadsService,
     config: ConfigService<Env, true>,
   ) {
     this.files = configuredImageStore(config);
@@ -234,19 +239,69 @@ export class AdminMediaService {
   }
 
   /** A video's file (MP4 or WebM, kept as uploaded); replaces the previous one. */
-  async setVideo(id: string, file: Buffer, actor: Actor): Promise<AdminMediaItem> {
+  /** Starts a film's upload in pieces (ADR-061): any size, as long as the server has the room. */
+  async startVideoUpload(id: string, size: number): Promise<MediaUploadSession> {
     const existing = await this.find(id);
     if (!isFilmKind(existing.kind)) {
       throw ApiException.badRequest('BAD_REQUEST', 'Only films and shorts have a video file');
     }
+    return this.uploads.start(id, size);
+  }
+
+  /**
+   * Keeps a fully uploaded film as the item's file. Storing a long film in R2 can outlast the
+   * gateway's patience (Nginx gives up after a minute) while the work goes on here: the browser
+   * asks again, and a second request for the same upload waits for the work under way instead of
+   * starting it twice.
+   */
+  setVideoFromUpload(id: string, uploadId: string, actor: Actor): Promise<AdminMediaItem> {
+    const key = `${id}/${uploadId}`;
+    let work = this.storing.get(key);
+    if (!work) {
+      work = this.keepUploadedFilm(id, uploadId, actor).finally(() => this.storing.delete(key));
+      this.storing.set(key, work);
+    }
+    return work;
+  }
+
+  /** Removes an upload and what was sent of it; a film already being stored is left to finish. */
+  async cancelVideoUpload(id: string, uploadId: string): Promise<void> {
+    await this.uploads.status(id, uploadId);
+    if (this.storing.has(`${id}/${uploadId}`)) {
+      throw ApiException.conflict('CONFLICT', 'The film is being stored', {
+        reason: 'upload_storing',
+      });
+    }
+    await this.uploads.discard(uploadId);
+  }
+
+  /**
+   * The film recognised by its first bytes (MP4 or WebM), its running time and sound read from the
+   * file, then stored as it is. The upload is discarded either way; a refused file has to be
+   * chosen again.
+   */
+  private async keepUploadedFilm(
+    id: string,
+    uploadId: string,
+    actor: Actor,
+  ): Promise<AdminMediaItem> {
+    const existing = await this.find(id);
+    if (!isFilmKind(existing.kind)) {
+      throw ApiException.badRequest('BAD_REQUEST', 'Only films and shorts have a video file');
+    }
+    const upload = await this.uploads.finished(id, uploadId);
     let stored;
+    let duration: number | null;
     try {
-      stored = await storeVideo(file, this.files, mediaPrefix(id));
+      const facts = await inspectVideoFile(upload.path);
+      if (!facts) throw new VideoRejectedError();
+      duration = facts.durationSeconds;
+      stored = await storeVideoFile(upload.path, facts, this.files, mediaPrefix(id));
     } catch (error) {
       uploadError(error);
+    } finally {
+      await this.uploads.discard(uploadId);
     }
-    // The running time is read from the file itself (when the file records it).
-    const duration = videoDurationSeconds(file, stored.type);
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.mediaItem.update({
@@ -256,6 +311,7 @@ export class AdminMediaService {
             videoType: stored.type,
             videoBytes: stored.bytes,
             videoHasAudio: stored.hasAudio,
+            // The running time is read from the file itself (when the file records it).
             ...(duration !== null ? { videoDurationSeconds: duration } : {}),
           },
         });
@@ -350,7 +406,12 @@ export class AdminMediaService {
       image: mediaImage(row, translations.uz.altText ?? translations.uz.title),
       video:
         src && row.videoType && row.videoBytes !== null
-          ? { src, type: row.videoType, bytes: row.videoBytes, hasAudio: row.videoHasAudio }
+          ? {
+              src,
+              type: row.videoType,
+              bytes: Number(row.videoBytes),
+              hasAudio: row.videoHasAudio,
+            }
           : null,
       videoDurationSeconds: row.videoDurationSeconds,
       captions: captions ? { src: captions } : null,

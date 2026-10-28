@@ -150,7 +150,7 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
                 </th>
                 {film ? (
                   <th scope="col" className={table.th}>
-                    {t('media.duration')}
+                    {t('media.length')}
                   </th>
                 ) : null}
                 {kind === 'SHORT' ? (
@@ -210,7 +210,7 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
                       )}
                     </Cell>
                     {film ? (
-                      <Cell label={t('media.duration')} className="whitespace-nowrap tabular-nums">
+                      <Cell label={t('media.length')} className="whitespace-nowrap tabular-nums">
                         <span className="inline-flex items-center gap-2">
                           {duration(item.videoDurationSeconds) ?? '—'}
                           {item.captions ? (

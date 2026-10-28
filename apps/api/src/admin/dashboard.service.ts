@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   buildPaginated,
+  MEDIA_KINDS,
   ORDER_STATUSES,
   type adminOrderListQuerySchema,
   type AdminAuditEntry,
@@ -22,6 +23,8 @@ import {
   toCsv,
   type Actor,
 } from './admin-support.js';
+import { visibleProductWhere } from '../catalog/product-visibility.js';
+import { VISIBLE_MEDIA_WHERE } from '../content/media.service.js';
 import { inventoryRowSelect, toInventoryRow } from './inventory.service.js';
 import { orderListSelect, toOrderListItem } from './orders.service.js';
 
@@ -108,6 +111,7 @@ export class AdminDashboardService {
           LIMIT 5`,
     ]);
 
+    const site = await this.siteCounts(today);
     const revenue = aggregate._sum.total ?? ZERO;
     const orders = aggregate._count._all;
     const byDay = new Map(daily.map((row) => [row.day, row]));
@@ -134,6 +138,46 @@ export class AdminDashboardService {
         quantity: row.quantity,
         revenue: toMoney(row.revenue),
       })),
+      site,
+    };
+  }
+
+  /**
+   * What the site shows now. While the shop takes orders by phone (ADR-027) these are the numbers
+   * the dashboard leads with: the catalogue, the gallery, the journal and the customers' reviews.
+   */
+  private async siteCounts(today: Date): Promise<AdminDashboard['site']> {
+    const now = new Date();
+    const [productsOnSale, products, media, articles, reviews, reviewsThisWeek] = await Promise.all(
+      [
+        this.prisma.product.count({ where: visibleProductWhere(now) }),
+        this.prisma.product.count({ where: { status: { not: 'ARCHIVED' } } }),
+        this.prisma.mediaItem.groupBy({
+          by: ['kind'],
+          where: VISIBLE_MEDIA_WHERE,
+          _count: { _all: true },
+        }),
+        this.prisma.article.count({ where: { status: 'PUBLISHED', publishedAt: { lte: now } } }),
+        this.prisma.productReview.count({ where: { status: 'PUBLISHED' } }),
+        this.prisma.productReview.count({
+          where: {
+            status: 'PUBLISHED',
+            createdAt: { gte: new Date(today.getTime() - 6 * DAY_MS) },
+          },
+        }),
+      ],
+    );
+    const byKind = new Map(media.map((row) => [row.kind, row._count._all]));
+    return {
+      productsOnSale,
+      products,
+      media: Object.fromEntries(MEDIA_KINDS.map((kind) => [kind, byKind.get(kind) ?? 0])) as Record<
+        (typeof MEDIA_KINDS)[number],
+        number
+      >,
+      articles,
+      reviews,
+      reviewsThisWeek,
     };
   }
 

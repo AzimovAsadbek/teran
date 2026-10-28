@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import sharp, { type Metadata } from 'sharp';
 import { r2Store, type S3Config } from './r2-store.js';
@@ -63,6 +63,16 @@ export interface ImageStore {
   save(storageKey: string, width: number, data: Buffer): Promise<void>;
   /** Stores a file as it is (a video) under the key, e.g. `<key>/video.mp4`. */
   saveFile(storageKey: string, fileName: string, data: Buffer, contentType: string): Promise<void>;
+  /**
+   * Stores a file from disk under the key without reading it into memory (a film of any size,
+   * ADR-061). The file at `path` may be moved by the call; the caller removes what is left.
+   */
+  saveFileFrom(
+    storageKey: string,
+    fileName: string,
+    path: string,
+    contentType: string,
+  ): Promise<void>;
   /** Reads a stored file back (e.g. a rendition to attach to a Telegram post); null if missing. */
   read(storageKey: string, fileName: string): Promise<Buffer | null>;
   /** Removes every rendition under the key. Unknown or malformed keys are ignored. */
@@ -106,6 +116,18 @@ function directoryStore(uploadsDir: string): ImageStore {
       const directory = storageDirectory(uploadsDir, storageKey);
       await mkdir(directory, { recursive: true });
       await writeFile(join(directory, fileName), data);
+    },
+    async saveFileFrom(storageKey, fileName, path) {
+      const directory = storageDirectory(uploadsDir, storageKey);
+      await mkdir(directory, { recursive: true });
+      const target = join(directory, fileName);
+      try {
+        // The incoming pieces are kept on the same volume: moving the file is instant.
+        await rename(path, target);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EXDEV') throw error;
+        await copyFile(path, target);
+      }
     },
     async read(storageKey, fileName) {
       if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) return null;
@@ -324,7 +346,8 @@ export async function storeVideo(
   return { storageKey, type, bytes: input.length, hasAudio: videoHasAudio(input, type) };
 }
 
-function videoType(input: Buffer): VideoType | null {
+/** MP4 or WebM, recognised by a file's first bytes (64 are enough); null for anything else. */
+export function videoType(input: Buffer): VideoType | null {
   if (input.length < 16) return null;
   // ISO base media: a "ftyp" box first; QuickTime's "qt  " brand is left out (browsers vary).
   if (input.toString('latin1', 4, 8) === 'ftyp' && input.toString('latin1', 8, 12) !== 'qt  ') {

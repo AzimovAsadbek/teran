@@ -1,4 +1,7 @@
-import { signS3Request } from './r2-store.js';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { MULTIPART_PART_BYTES, putObjectFromFile, signS3Request } from './r2-store.js';
 
 /*
  * The worked examples of AWS's "Authenticating Requests: Using the Authorization Header (AWS
@@ -66,5 +69,93 @@ describe('signS3Request (AWS Signature Version 4)', () => {
     expect(signatureOf(signed.headers.authorization)).toBe(
       '34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7',
     );
+  });
+});
+
+describe('putObjectFromFile (films of any size, ADR-061)', () => {
+  const config = {
+    endpoint: 'https://account.r2.cloudflarestorage.com',
+    accessKeyId: 'test-access-key-id-0000',
+    secretAccessKey: 'test-secret-access-key-not-a-secret-000000',
+    bucket: 'teran',
+  };
+  let directory: string;
+  let calls: { method: string; url: URL; bytes: number; body: string }[];
+
+  beforeEach(() => {
+    directory = mkdtempSync(join(tmpdir(), 'r2-'));
+    calls = [];
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  /** Answers like R2; `failPart` makes that part's upload fail. */
+  function stubR2(failPart?: number) {
+    vi.stubGlobal('fetch', (input: string, init: RequestInit) => {
+      const url = new URL(input);
+      const body = init.body ? Buffer.from(init.body as Uint8Array) : Buffer.alloc(0);
+      calls.push({
+        method: init.method ?? 'GET',
+        url,
+        bytes: body.length,
+        body: body.length < 4096 ? body.toString() : '',
+      });
+      if (url.searchParams.has('uploads')) {
+        return Promise.resolve(
+          new Response(
+            '<InitiateMultipartUploadResult><UploadId>u-1</UploadId></InitiateMultipartUploadResult>',
+          ),
+        );
+      }
+      const part = url.searchParams.get('partNumber');
+      if (part) {
+        return Promise.resolve(
+          Number(part) === failPart
+            ? new Response('slow down', { status: 503 })
+            : new Response('', { headers: { etag: `"etag-${part}"` } }),
+        );
+      }
+      return Promise.resolve(new Response(''));
+    });
+  }
+
+  it('sends a file up to one part in a single request', async () => {
+    stubR2();
+    const path = join(directory, 'small.mp4');
+    writeFileSync(path, Buffer.alloc(1000, 7));
+    await putObjectFromFile(config, 'media/x/abc/video.mp4', path, 'video/mp4');
+    expect(calls.map((call) => [call.method, call.url.pathname, call.bytes])).toEqual([
+      ['PUT', '/teran/media/x/abc/video.mp4', 1000],
+    ]);
+  });
+
+  it('sends a larger file as a multipart upload, part by part, then completes it in order', async () => {
+    stubR2();
+    const path = join(directory, 'large.mp4');
+    writeFileSync(path, Buffer.alloc(MULTIPART_PART_BYTES + 10, 1));
+    await putObjectFromFile(config, 'media/x/abc/video.mp4', path, 'video/mp4');
+    expect(calls.map((call) => [call.method, call.url.search, call.bytes])).toEqual([
+      ['POST', '?uploads=', 0],
+      ['PUT', '?partNumber=1&uploadId=u-1', MULTIPART_PART_BYTES],
+      ['PUT', '?partNumber=2&uploadId=u-1', 10],
+      ['POST', '?uploadId=u-1', expect.any(Number)],
+    ]);
+    expect(calls[3]?.body).toBe(
+      '<CompleteMultipartUpload><Part><PartNumber>1</PartNumber><ETag>"etag-1"</ETag></Part>' +
+        '<Part><PartNumber>2</PartNumber><ETag>"etag-2"</ETag></Part></CompleteMultipartUpload>',
+    );
+  });
+
+  it('aborts the upload when a part fails, so no stray parts stay in the bucket', async () => {
+    stubR2(2);
+    const path = join(directory, 'large.mp4');
+    writeFileSync(path, Buffer.alloc(MULTIPART_PART_BYTES + 10, 1));
+    await expect(
+      putObjectFromFile(config, 'media/x/abc/video.mp4', path, 'video/mp4'),
+    ).rejects.toThrow(/part 2/);
+    expect(calls.at(-1)).toMatchObject({ method: 'DELETE' });
+    expect(calls.at(-1)?.url.search).toBe('?uploadId=u-1');
   });
 });

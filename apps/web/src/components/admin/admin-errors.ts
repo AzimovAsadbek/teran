@@ -1,13 +1,14 @@
 'use client';
 
 import type { ReadinessCode } from '@teran/contracts';
-import { useLocale, useTranslations } from 'next-intl';
-import { formatBytes, MAX_UPLOAD_BYTES, type LocalImageProblem } from '@/lib/admin/uploads';
+import { useTranslations } from 'next-intl';
+import type { ImageProblem } from '@/lib/admin/media-files';
 import type { ApiError } from '@/lib/api/errors';
 import { useApiErrorMessage } from '@/lib/use-api-error-message';
 
 const REASONS = [
   'too_small',
+  'disk_full',
   'unsupported_format',
   'unreadable',
   'unsupported_video',
@@ -27,19 +28,15 @@ type Reason = (typeof REASONS)[number];
  */
 export function useAdminErrorMessage(): (error: ApiError | null) => string | null {
   const t = useTranslations('Admin');
-  const locale = useLocale();
   return (error) => {
     if (!error) return null;
     const details = (error.body?.details ?? {}) as { reason?: string; missing?: unknown };
     const reason = details.reason;
     if (reason && (REASONS as readonly string[]).includes(reason)) {
-      return t(`uploads.errors.${reason as Reason}`, {
-        limit: formatBytes(MAX_UPLOAD_BYTES, locale),
-      });
+      return t(`uploads.errors.${reason as Reason}`);
     }
-    if (error.status === 413) {
-      return t('uploads.errors.too_large', { limit: formatBytes(MAX_UPLOAD_BYTES, locale) });
-    }
+    // Nothing the admin area sends is this large (ADR-061): a proxy refused the request.
+    if (error.status === 413) return t('uploads.errors.too_large');
     if (error.code === 'PUBLICATION_BLOCKED' && Array.isArray(details.missing)) {
       const items = (details.missing as ReadinessCode[]).map((code) =>
         t(`readiness.codes.${code}`),
@@ -51,13 +48,9 @@ export function useAdminErrorMessage(): (error: ApiError | null) => string | nul
 }
 
 /** The same explanation for a problem found in the browser before uploading. */
-export function useLocalImageProblem(): (problem: LocalImageProblem) => string {
+export function useLocalImageProblem(): (problem: ImageProblem) => string {
   const t = useTranslations('Admin');
-  const locale = useLocale();
-  return (problem) =>
-    problem === 'too_large'
-      ? t('uploads.errors.too_large', { limit: formatBytes(MAX_UPLOAD_BYTES, locale) })
-      : t(`uploads.errors.${problem}`, { limit: formatBytes(MAX_UPLOAD_BYTES, locale) });
+  return (problem) => t(`uploads.errors.${problem}`);
 }
 
 /** The admin explanation when there is one, otherwise the general message for the error. */

@@ -18,6 +18,7 @@ import {
   EmptyState,
   FilterForm,
   FilterSelect,
+  Pill,
   ProductStatusPill,
   table,
 } from '@/components/admin/ui';
@@ -151,7 +152,12 @@ export default async function AdminProductsPage({
                     {price(product)}
                   </Cell>
                   <Cell label={t('products.stock')} className="text-right tabular-nums">
-                    {product.totalStock}
+                    {/* A product on sale with nothing left shows as sold out on the site. */}
+                    {product.totalStock === 0 && product.status === 'ACTIVE' ? (
+                      <Pill tone="danger">{t('dashboard.outOfStock')}</Pill>
+                    ) : (
+                      product.totalStock
+                    )}
                   </Cell>
                   <Cell label={t('common.status')}>
                     <span className="flex flex-col items-start gap-1">

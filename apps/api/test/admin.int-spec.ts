@@ -7,6 +7,7 @@ import {
   mediaItemSchema,
   type AdminAuditEntry,
   type AdminBadges,
+  type AdminDashboard,
   type AdminMediaItem,
   type AdminOrderDetail,
   type AdminOrderListItem,
@@ -18,6 +19,7 @@ import {
 } from '@teran/contracts';
 import type { Prisma } from '../src/generated/prisma/client.js';
 import { createTestApp, type TestApp } from './helpers/app.js';
+import { uploadFilm } from './helpers/publishing.js';
 import { TEST_ENV } from './test-env.js';
 import {
   TEST_PASSWORD,
@@ -163,6 +165,23 @@ describe('admin API', () => {
       const admin = await signedIn('ADMIN');
       await admin.agent.get(`${API}/admin/staff`).expect(200);
       await admin.agent.get(`${API}/admin/audit`).expect(200);
+    });
+
+    it('counts what the site shows on the dashboard: products on sale, gallery, articles, reviews', async () => {
+      await createProduct(ctx.prisma, { categoryId, slug: 'on-sale' });
+      await createProduct(ctx.prisma, { categoryId, slug: 'draft-tea', status: 'DRAFT' });
+      await createProduct(ctx.prisma, { categoryId, slug: 'old-tea', status: 'ARCHIVED' });
+      const { agent } = await signedIn('MANAGER');
+      const dashboard = (await agent.get(`${API}/admin/dashboard`).expect(200))
+        .body as AdminDashboard;
+      expect(dashboard.site).toEqual({
+        productsOnSale: 1,
+        products: 2,
+        media: { PHOTO: 0, VIDEO: 0, SHORT: 0 },
+        articles: 0,
+        reviews: 0,
+        reviewsThisWeek: 0,
+      });
     });
 
     it('rejects cross-site writes even with a valid staff session', async () => {
@@ -904,19 +923,14 @@ describe('admin API', () => {
       });
       const noFile = await agent.put(`${API}/admin/media/${film.id}`).send(filmPublish).expect(422);
       expect(noFile.body.details).toEqual({ missing: ['video'] });
-      await agent
-        .post(`${API}/admin/media/${film.id}/video`)
-        .attach('file', Buffer.from('<html>not a film</html>'.padEnd(64)), {
-          filename: 'film.mp4',
-          contentType: 'video/mp4',
-        })
-        .expect(415);
-      const withFile = (
-        await agent
-          .post(`${API}/admin/media/${film.id}/video`)
-          .attach('file', mp4, { filename: 'film.mp4', contentType: 'video/mp4' })
-          .expect(201)
-      ).body as AdminMediaItem;
+      expect(
+        (await uploadFilm(agent, film.id, Buffer.from('<html>not a film</html>'.padEnd(64))))
+          .status,
+      ).toBe(415);
+      // Sent in pieces, as the admin area sends a film of any size (ADR-061).
+      const uploaded = await uploadFilm(agent, film.id, mp4, 40);
+      expect(uploaded.status).toBe(201);
+      const withFile = uploaded.body as AdminMediaItem;
       expect(withFile.video).toMatchObject({
         type: 'video/mp4',
         bytes: mp4.length,
@@ -1000,10 +1014,7 @@ describe('admin API', () => {
           .expect(201)
       ).body as AdminMediaItem;
       expect(short).toMatchObject({ kind: 'SHORT', position: 0 });
-      await agent
-        .post(`${API}/admin/media/${short.id}/video`)
-        .attach('file', mp4, { filename: 'short.mp4', contentType: 'video/mp4' })
-        .expect(201);
+      expect((await uploadFilm(agent, short.id, mp4)).status).toBe(201);
       await agent
         .post(`${API}/admin/media/${short.id}/image`)
         .attach('file', await png(400), { filename: 'steam.png', contentType: 'image/png' })

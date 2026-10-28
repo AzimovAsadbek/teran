@@ -8,6 +8,7 @@ import {
   productDetailSchema,
   type AdminArticle,
   type AdminMediaItem,
+  type MediaUploadSession,
   type AdminProductDetail,
   type AdminTaxonomy,
   type ArticleUpsertInput,
@@ -17,7 +18,7 @@ import {
 } from '@teran/contracts';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { TEST_PASSWORD, createUser, resetDatabase } from './helpers/fixtures.js';
-import { testImage } from './helpers/publishing.js';
+import { testImage, uploadFilm } from './helpers/publishing.js';
 
 const API = '/api/v1';
 
@@ -570,13 +571,11 @@ describe('publishing workflow', () => {
           .expect(201)
       ).body as AdminMediaItem;
 
+      // Sent in pieces; its index (`moov`) comes after the pictures and is read from disk (ADR-061).
       const real = mp4(95);
-      const done = (
-        await admin
-          .post(`${API}/admin/media/${film.id}/video`)
-          .attach('file', real, { filename: 'film.mp4', contentType: 'video/mp4' })
-          .expect(201)
-      ).body as AdminMediaItem;
+      const uploaded = await uploadFilm(admin, film.id, real, 64 * 1024);
+      expect(uploaded.status).toBe(201);
+      const done = uploaded.body as AdminMediaItem;
       expect(done.video).toMatchObject({ type: 'video/mp4', bytes: real.length, hasAudio: false });
       expect(done.video?.src).toMatch(
         new RegExp(`^/uploads/media/${film.id}/[A-Za-z0-9_-]{12}/video\\.mp4$`),
@@ -584,16 +583,136 @@ describe('publishing workflow', () => {
       expect(done.videoDurationSeconds).toBe(95);
 
       // A film with a sound track says so (the feed then offers its sound, ADR-058).
-      const withSound = (
-        await admin
-          .post(`${API}/admin/media/${film.id}/video`)
-          .attach('file', mp4(95, true), { filename: 'film.mp4', contentType: 'video/mp4' })
-          .expect(201)
-      ).body as AdminMediaItem;
-      expect(withSound.video?.hasAudio).toBe(true);
+      const withSound = await uploadFilm(admin, film.id, mp4(95, true));
+      expect(withSound.status).toBe(201);
+      expect((withSound.body as AdminMediaItem).video?.hasAudio).toBe(true);
 
       const customer = await signedIn('CUSTOMER');
-      await customer.post(`${API}/admin/media/${film.id}/video`).expect(403);
+      await customer
+        .post(`${API}/admin/media/${film.id}/video/uploads`)
+        .send({ size: 10 })
+        .expect(403);
+    });
+
+    it('goes on after a lost piece, refuses pieces out of turn and keeps nothing it was not sent', async () => {
+      const admin = await signedIn();
+      const film = (
+        await admin
+          .post(`${API}/admin/media`)
+          .send({
+            kind: 'SHORT',
+            status: 'DRAFT',
+            isFeatured: false,
+            videoDurationSeconds: null,
+            translations: { uz: { title: 'Bugʻ' }, ru: null, en: null },
+          })
+          .expect(201)
+      ).body as AdminMediaItem;
+      const file = mp4(12);
+      const base = `${API}/admin/media/${film.id}/video/uploads`;
+      const piece = (id: string, offset: number, bytes: Buffer) =>
+        admin
+          .put(`${base}/${id}?offset=${offset}`)
+          .set('Content-Type', 'application/octet-stream')
+          .send(bytes);
+
+      const session = (await admin.post(base).send({ size: file.length }).expect(201))
+        .body as MediaUploadSession;
+      expect(session).toMatchObject({ size: file.length, received: 0 });
+      const half = Math.floor(file.length / 2);
+      await piece(session.id, 0, file.subarray(0, half)).expect(200);
+
+      // A piece sent again, or ahead of what the API has: refused, saying where to go on.
+      const twice = await piece(session.id, 0, file.subarray(0, half)).expect(409);
+      expect(twice.body.details).toEqual({ reason: 'upload_offset', received: half });
+      await piece(session.id, half + 10, file.subarray(half + 10)).expect(409);
+      // Not complete yet: nothing is kept.
+      const early = await admin.post(`${base}/${session.id}/complete`).expect(409);
+      expect(early.body.details).toEqual({ reason: 'upload_incomplete', received: half });
+
+      // After a lost connection the client asks how far it got, and sends the rest.
+      const status = (await admin.get(`${base}/${session.id}`).expect(200))
+        .body as MediaUploadSession;
+      expect(status.received).toBe(half);
+      await piece(session.id, half, file.subarray(half)).expect(200);
+      const kept = (await admin.post(`${base}/${session.id}/complete`).expect(201))
+        .body as AdminMediaItem;
+      expect(kept.video).toMatchObject({ bytes: file.length, type: 'video/mp4' });
+      expect(kept.videoDurationSeconds).toBe(12);
+      // A finished upload is gone; so is a cancelled one.
+      await admin.get(`${base}/${session.id}`).expect(404);
+      const cancelled = (await admin.post(base).send({ size: 100 }).expect(201))
+        .body as MediaUploadSession;
+      await admin.delete(`${base}/${cancelled.id}`).expect(204);
+      await admin.get(`${base}/${cancelled.id}`).expect(404);
+
+      // Pieces are bytes, and only a film has a file.
+      await admin
+        .put(`${base}/${cancelled.id}?offset=0`)
+        .set('Content-Type', 'application/json')
+        .send({ not: 'bytes' })
+        .expect(400);
+      const photo = (
+        await admin
+          .post(`${API}/admin/media`)
+          .send({
+            kind: 'PHOTO',
+            status: 'DRAFT',
+            isFeatured: false,
+            videoDurationSeconds: null,
+            translations: { uz: { title: 'Choy' }, ru: null, en: null },
+          })
+          .expect(201)
+      ).body as AdminMediaItem;
+      await admin
+        .post(`${API}/admin/media/${photo.id}/video/uploads`)
+        .send({ size: 10 })
+        .expect(400);
+    });
+
+    it('stores a film once when its completion is asked for twice', async () => {
+      const admin = await signedIn();
+      const film = (
+        await admin
+          .post(`${API}/admin/media`)
+          .send({
+            kind: 'VIDEO',
+            status: 'DRAFT',
+            isFeatured: false,
+            videoDurationSeconds: null,
+            translations: { uz: { title: 'Choy bogʻi' }, ru: null, en: null },
+          })
+          .expect(201)
+      ).body as AdminMediaItem;
+      const file = mp4(30, true);
+      const base = `${API}/admin/media/${film.id}/video/uploads`;
+      const session = (await admin.post(base).send({ size: file.length }).expect(201))
+        .body as MediaUploadSession;
+      await admin
+        .put(`${base}/${session.id}?offset=0`)
+        .set('Content-Type', 'application/octet-stream')
+        .send(file)
+        .expect(200);
+
+      // The browser asks again when the gateway stops waiting: the second request waits for the
+      // work under way, or finds the upload gone once the film is stored.
+      const answers = await Promise.all([
+        admin.post(`${base}/${session.id}/complete`),
+        admin.post(`${base}/${session.id}/complete`),
+      ]);
+      const statuses = answers.map((answer) => answer.status).sort();
+      expect([
+        [201, 201],
+        [201, 404],
+      ]).toContainEqual(statuses);
+      const kept = (await admin.get(`${API}/admin/media/${film.id}`).expect(200))
+        .body as AdminMediaItem;
+      expect(kept.video).toMatchObject({ bytes: file.length, hasAudio: true });
+      for (const answer of answers.filter(({ status }) => status === 201)) {
+        expect((answer.body as AdminMediaItem).video?.src).toBe(kept.video?.src);
+      }
+      // Stored: the upload is gone and can no longer be cancelled.
+      await admin.delete(`${base}/${session.id}`).expect(404);
     });
   });
 });

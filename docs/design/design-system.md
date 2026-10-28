@@ -468,11 +468,14 @@ Photographs, films and shorts (ADR-059) managed in Admin → Galereya, in three 
 their own "new" buttons and order (`MediaItem`: kind fixed when created, title, caption or
 description and image description in three languages, status, shown on the home page or not for
 shorts; a photo, or a film's poster, file, running time and sound read from the file and
-optional WebVTT subtitles). "Joylash" (ADR-058) posts one in a single screen: a three-way kind
-switch (Rasm · Video · Shorts, segments on a bordered bar, the chosen one in `brand`), a drop
-zone with an image-plus mark, then the file's preview (a film with its cover picked by a slider
-beside it), the texts and marks in a sticky panel at the right, the steps with the upload's
-percentage, and a success card with the cover.
+optional WebVTT subtitles). "Joylash" (ADR-058, ADR-061) posts one in a single screen of three
+numbered steps (white numerals on `brand` discs): the kind as three cards (Rasm · Video · Shorts,
+each with its mark and where it appears; the chosen one bordered in `brand`), a dashed drop zone
+with an image-plus mark ("tap" instead of "drop" on touch screens) and the note that a large
+video goes up in pieces, then the file's preview (a film with its cover picked by a slider beside
+it and its facts as small pills), the texts and marks in a panel (sticky at the right on wide
+screens), the steps with the upload's progress (for a film: sent of total, speed, time left and a
+stop button, then a note while the server stores it) and a success card with the cover.
 
 - **Home page — "Bir piyola, bir lavha" / "Sip & scroll"** (ADR-056, ADR-059), after the journal on
   `surface-muted`: the shorts marked for the home page (all, by default) as 9:16 cards (rounded 1.25
@@ -565,7 +568,7 @@ To keep the store consistent when photos arrive:
   instead.
 - **Gallery ("Galereya"):** real photographs and short films only — tea gardens, the packs,
   brewing, people at work with their permission. Landscape pictures at least 2000 px wide suit the
-  large tiles; films as web-ready MP4 (H.264/AAC) or WebM up to 64 MB, posted with "Joylash" (the
+  large tiles; films as web-ready MP4 (H.264/AAC) or WebM of any size, posted with "Joylash" (the
   cover is a frame of the film). Upright films play in the feed with their own sound when a visitor
   opens one, so the sound should be worth hearing: the room, the water, the pour.
 - **About and journal:** only real places, people and processes, with permission.

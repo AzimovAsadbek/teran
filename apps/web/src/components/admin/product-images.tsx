@@ -17,12 +17,8 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button, buttonClasses, iconButtonClasses } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 import { useRouter } from '@/i18n/navigation';
-import {
-  checkImageFile,
-  IMAGE_ACCEPT,
-  uploadFile,
-  type LocalImageCheck,
-} from '@/lib/admin/uploads';
+import { prepareImageFile, type ImageProblem, type PreparedImage } from '@/lib/admin/media-files';
+import { IMAGE_PICK, uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
 import { cn } from '@/lib/cn';
@@ -34,14 +30,16 @@ interface Queued {
   key: string;
   file: File;
   url: string;
-  check: LocalImageCheck | null;
+  /** The picture made ready to send: as chosen, or redrawn lighter (ADR-061). */
+  prepared: PreparedImage | null;
+  problem: ImageProblem | null;
   status: 'checking' | 'ready' | 'uploading' | 'done' | 'failed';
   error: ApiError | null;
 }
 
 /**
- * A product's pictures. Chosen files are previewed and checked in the browser first (type, size,
- * at least 200 × 200 px), then uploaded one by one; the API decodes, validates and re-encodes
+ * A product's pictures. Chosen files of any size are previewed and made ready in the browser first
+ * (at least 200 × 200 px; a large one redrawn lighter, ADR-061), then uploaded one by one; the API decodes, validates and re-encodes
  * each (a renamed file or a duplicate is refused with a clear reason). The first picture is the
  * main one shown everywhere in the store. Each picture can be moved, made the main one, replaced
  * in place, described (alternative text per language) or deleted.
@@ -82,19 +80,22 @@ export function ProductImages({
         key: `${file.name}-${file.size}-${Math.random()}`,
         file,
         url,
-        check: null,
+        prepared: null,
+        problem: null,
         status: 'checking',
         error: null,
       };
     });
     setQueue((current) => [...current.filter((item) => item.status !== 'done'), ...added]);
     for (const item of added) {
-      const check = await checkImageFile(item.file);
+      const prepared = await prepareImageFile(item.file);
       setQueue((current) =>
         current.map((entry) =>
-          entry.key === item.key
-            ? { ...entry, check, status: check.problem ? 'failed' : 'ready' }
-            : entry,
+          entry.key !== item.key
+            ? entry
+            : typeof prepared === 'string'
+              ? { ...entry, problem: prepared, status: 'failed' }
+              : { ...entry, prepared, status: 'ready' },
         ),
       );
     }
@@ -110,7 +111,7 @@ export function ProductImages({
         ),
       );
       try {
-        await uploadFile(base, item.file);
+        await uploadFile(base, item.prepared?.file ?? item.file);
         setQueue((current) =>
           current.map((entry) => (entry.key === item.key ? { ...entry, status: 'done' } : entry)),
         );
@@ -135,14 +136,15 @@ export function ProductImages({
   async function replace(imageId: string, file: File | undefined) {
     if (!file) return;
     setReplaceError(null);
-    const check = await checkImageFile(file);
-    if (check.problem) {
-      setReplaceError({ id: imageId, text: localProblem(check.problem) });
+    setReplacing(imageId);
+    const prepared = await prepareImageFile(file);
+    if (typeof prepared === 'string') {
+      setReplacing(null);
+      setReplaceError({ id: imageId, text: localProblem(prepared) });
       return;
     }
-    setReplacing(imageId);
     try {
-      await uploadFile(`${base}/${imageId}/file`, file);
+      await uploadFile(`${base}/${imageId}/file`, prepared.file);
       router.refresh();
     } catch (error) {
       const apiError = error instanceof ApiError ? error : new ApiError(0, null);
@@ -276,7 +278,7 @@ export function ProductImages({
                         <span className="sr-only">{t('uploads.replace')}</span>
                         <input
                           type="file"
-                          accept={IMAGE_ACCEPT}
+                          accept={IMAGE_PICK}
                           className="sr-only"
                           disabled={replacing !== null}
                           onChange={(event) => {
@@ -333,7 +335,7 @@ export function ProductImages({
           <p className="text-body-sm font-semibold text-fg">{t('uploads.pendingTitle')}</p>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {pendingQueue.map((item) => {
-              const problem = item.check?.problem ?? null;
+              const problem = item.problem;
               const failure = item.error
                 ? (explain(item.error) ?? t('uploads.failed'))
                 : problem
@@ -356,7 +358,7 @@ export function ProductImages({
                   </div>
                   <p className="truncate text-caption text-fg-subtle" title={item.file.name}>
                     {item.file.name}
-                    {item.check?.width ? ` · ${item.check.width}×${item.check.height}` : ''}
+                    {item.prepared ? ` · ${item.prepared.width}×${item.prepared.height}` : ''}
                   </p>
                   {failure ? (
                     <p className="text-caption font-medium text-danger">{failure}</p>
@@ -413,7 +415,7 @@ export function ProductImages({
           <input
             id={inputId}
             type="file"
-            accept={IMAGE_ACCEPT}
+            accept={IMAGE_PICK}
             multiple
             disabled={uploading || room <= 0}
             className="sr-only"

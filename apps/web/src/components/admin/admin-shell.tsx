@@ -255,14 +255,18 @@ export function AdminShell({
       >
         {tc('skipToContent')}
       </a>
-      <aside className="hidden border-r border-line bg-surface lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto">
+      {/* The menu scrolls on short screens; the account, the way to the store and signing out
+          stay in view at the bottom. */}
+      <aside className="hidden border-r border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
         <div className="px-5 pt-6 pb-2">
           <Link href="/admin" aria-label={t('brand')}>
             <Wordmark size="compact" />
           </Link>
         </div>
         {demoNote ? <div className="mx-5 mt-3">{demoNote}</div> : null}
-        <div className="px-3 py-5">{navigation}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5 [scrollbar-width:thin]">
+          {navigation}
+        </div>
         <div className="border-t border-line px-3 py-4">{account}</div>
       </aside>
 

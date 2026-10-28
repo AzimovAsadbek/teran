@@ -4,6 +4,7 @@ import {
   formatAmount,
   formatDate,
   formatDateTime,
+  formatFileSize,
   formatGrams,
   multiplyMoney,
   namesFormat,
@@ -75,5 +76,17 @@ describe('pack labels', () => {
       'GIFT_SET',
       'ACCESSORY',
     ]);
+  });
+});
+
+describe('file sizes', () => {
+  it('reads the same on the server and in the browser, in each language', () => {
+    expect(formatFileSize(2_202_009, 'uz')).toBe('2,1 MB');
+    expect(formatFileSize(2_202_009, 'en')).toBe('2.1 MB');
+    expect(formatFileSize(5 * 1024 * 1024, 'ru')).toBe('5 MB');
+    expect(formatFileSize(37_900, 'uz')).toBe('37 KB');
+    expect(formatFileSize(12, 'en')).toBe('1 KB');
+    expect(formatFileSize(3.25 * 1024 ** 3, 'uz')).toBe('3,3 GB');
+    expect(formatFileSize(1023.5 * 1024 ** 2, 'uz')).toBe('1\u00a0023,5 MB');
   });
 });

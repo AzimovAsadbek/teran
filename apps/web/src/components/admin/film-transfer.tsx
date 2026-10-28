@@ -10,8 +10,8 @@ import { formatFileSize } from '@/lib/format';
 /**
  * A film going up (ADR-061): how much of how much, how fast, about how long is left, and a button
  * to stop it. The bar is for the eye; the words say the same to everyone. Once every byte is
- * there the server stores the film, which nothing should interrupt: the stop button goes and a
- * note says to wait.
+ * there the server takes the film over (and makes it ready afterwards, ADR-062): the stop button
+ * goes and a note says so.
  */
 export function FilmTransfer({
   transfer,

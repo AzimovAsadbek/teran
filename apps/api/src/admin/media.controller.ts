@@ -21,6 +21,7 @@ import {
   idSchema,
   mediaReorderSchema,
   mediaUploadChunkQuerySchema,
+  mediaUploadCompleteSchema,
   mediaUploadStartSchema,
   mediaUpsertSchema,
   type AdminMediaItem,
@@ -122,7 +123,7 @@ export class AdminMediaController {
 
   @Post(':id/video/uploads')
   @ApiOperation({
-    summary: "Start a film's upload in pieces (MP4 or WebM, any size)",
+    summary: "Start a film's upload in pieces (MP4, QuickTime or WebM, any size)",
     description:
       'Answers the upload id and the piece size; refused with 507 when the server has not the room.',
   })
@@ -169,26 +170,30 @@ export class AdminMediaController {
   }
 
   @Post(':id/video/uploads/:uploadId/complete')
+  @HttpCode(202)
   @ApiOperation({
-    summary: "Keep a fully uploaded film as the item's file",
+    summary: 'Hand a fully uploaded film over to be made ready for the site (ADR-062)',
     description:
-      'Recognised by its first bytes, not its declared type; kept as uploaded. Asked again while ' +
-      'the film is being stored, it waits for that work; once stored, the upload is gone (404).',
+      'Answers the item at once; its `videoJob` says how the film goes: read by ffprobe, then ' +
+      'kept, copied into an MP4 or converted (an iPhone .MOV, HEVC), in the background. Asked ' +
+      'again, it answers the same; once the film is kept, the upload is gone (404). `poster`: ' +
+      'take the cover from the film if the item has none.',
   })
   @ApiOkResponse({ description: 'AdminMediaItem' })
   completeVideoUpload(
     @Param('id', { schema: idSchema }) id: string,
     @Param('uploadId', { schema: uploadIdSchema }) uploadId: string,
+    @Body({ schema: mediaUploadCompleteSchema }) body: z.output<typeof mediaUploadCompleteSchema>,
     @CurrentActor() actor: Actor,
   ): Promise<AdminMediaItem> {
-    return this.media.setVideoFromUpload(id, uploadId, actor);
+    return this.media.setVideoFromUpload(id, uploadId, actor, body.poster);
   }
 
   @Delete(':id/video/uploads/:uploadId')
   @HttpCode(204)
   @ApiOperation({
     summary: 'Cancel an upload and remove what was sent',
-    description: 'Refused with 409 `upload_storing` while the finished film is being stored.',
+    description: 'Refused with 409 `upload_storing` once the finished film has been handed over.',
   })
   cancelVideoUpload(
     @Param('id', { schema: idSchema }) id: string,

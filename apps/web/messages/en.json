@@ -1394,7 +1394,7 @@
       "imageHint": "JPEG, PNG, WebP, AVIF or HEIC, at least 200 × 200 px, any size: large ones are scaled down before they go up. Served on the site as WebP in several sizes.",
       "posterHint": "The frame shown until the video is started. JPEG, PNG, WebP, AVIF or HEIC.",
       "video": "Video file",
-      "videoHint": "MP4 or WebM, any size: a large video goes up in pieces. The length, and whether it has sound, are read from the file. Upright videos play by themselves in the feed: muted on the home page, with sound when opened.",
+      "videoHint": "MP4, MOV (iPhone) or WebM, any size: a large video goes up in pieces, and an iPhone video is converted to MP4. The length, and whether it has sound, are read from the file. Upright videos play by themselves in the feed: muted on the home page, with sound when opened.",
       "noImage": "No photo uploaded yet",
       "noVideo": "No video uploaded yet",
       "saveFirst": "Save it as a draft first — then you can upload the photo.",
@@ -1430,7 +1430,12 @@
       "uploadingVideo": "Uploading the video… A large file takes a while.",
       "withSound": "with sound",
       "silent": "no sound",
-      "length": "Length"
+      "length": "Length",
+      "filmWaiting": "The video is waiting its turn",
+      "filmPreparing": "The video is being prepared for the site",
+      "filmReady": "The video is ready for the site.",
+      "filmPreparingShort": "Preparing",
+      "filmRefusedShort": "Video refused"
     },
     "compose": {
       "title": "New post",
@@ -1457,7 +1462,8 @@
         "photo": "Uploading the photo",
         "cover": "Saving the cover",
         "publish": "Publishing on the site",
-        "order": "Putting it first in the list"
+        "order": "Putting it first in the list",
+        "prepare": "Preparing it for the site"
       },
       "done": "Posted",
       "doneText": "“{title}” is on the site. Its pages update within a few seconds.",
@@ -1469,22 +1475,21 @@
       "retryHint": "Press “Post” again: finished steps are not repeated.",
       "coverFailed": "The cover frame could not be taken. Move the slider and try again.",
       "problems": {
-        "unsupported": "This kind of file is not accepted: choose a photo (JPEG, PNG, WebP, AVIF, HEIC) or a video (MP4, WebM).",
-        "mov": "iPhone .MOV videos are not accepted. Save it as MP4 (for example by exporting from CapCut or InShot) and choose it again.",
-        "unreadableVideo": "The browser could not open this video (perhaps the HEVC codec). Save it as MP4 (H.264) and choose it again.",
+        "unsupported": "This kind of file is not accepted: choose a photo (JPEG, PNG, WebP, AVIF, HEIC) or a video (MP4, MOV, WebM).",
+        "unreadableVideo": "This video could not be opened: the file is damaged or not a video. Choose an MP4, MOV or WebM video.",
         "heic": "This browser cannot open HEIC. Post from Safari or save the photo as JPEG.",
         "notUpright": "A short is an upright video, and this one is landscape. Post it as a “Video”, or export it upright.",
         "notLandscape": "This is an upright video. Post it as a “Short”: it then appears in the home page’s feed.",
         "photoOnly": "This is for photos. For a video, choose “Video” or “Shorts” above.",
-        "videoOnly": "This is for videos (MP4 or WebM). For a photo, choose “Photo” above."
+        "videoOnly": "This is for videos (MP4, MOV or WebM). For a photo, choose “Photo” above."
       },
       "kindLabel": "What are you posting?",
       "dropPhoto": "Drop a photo here",
       "dropVideo": "Drop a video here",
       "dropShort": "Drop an upright video here",
       "hintPhoto": "JPEG, PNG, WebP, AVIF or HEIC, any size — large ones are scaled down before they go up.",
-      "hintVideo": "A landscape MP4 or WebM, any size — with its sound.",
-      "hintShort": "An upright MP4 or WebM, any size — with its sound.",
+      "hintVideo": "A landscape MP4, MOV (iPhone) or WebM, any size — with its sound.",
+      "hintShort": "An upright MP4, MOV (iPhone) or WebM, any size — with its sound.",
       "switchTo": "Post as “{kind}”",
       "viewOnHome": "See it on the home page",
       "whereShortLong": "Short: shown in the home page’s “Sip & scroll” feed and in the gallery’s “Short films”.",
@@ -1507,7 +1512,9 @@
       "stop": "Stop",
       "etaSeconds": "{count, plural, one {about # second left} other {about # seconds left}}",
       "etaMinutes": "{count, plural, one {about # minute left} other {about # minutes left}}",
-      "storing": "The video has gone up and the server is storing it. For a large video this can take a few minutes — keep this page open."
+      "storing": "The video has gone up — the server is taking it over.",
+      "preparing": "The video is being prepared for the site: an iPhone video is converted to MP4. Closing this page does not stop it — once ready, the video appears on the site by itself.",
+      "noPreview": "This browser can’t play this video (probably an iPhone’s HEVC). You can post it all the same: the site converts it to MP4 and takes its cover from the video itself."
     },
     "delivery": {
       "title": "Delivery methods",
@@ -1915,7 +1922,7 @@
         "too_large": "The server did not take this request: it is too large. Reload the page and try again.",
         "unsupported_format": "This picture could not be opened. Upload a JPEG, PNG, WebP or AVIF; upload an iPhone’s HEIC photo from Safari, or save it as a JPEG.",
         "unreadable": "The file couldn’t be read: it is damaged or not an image.",
-        "unsupported_video": "Only MP4 or WebM videos can be uploaded.",
+        "unsupported_video": "This file could not be read as a video. Upload an MP4, MOV or WebM video.",
         "unsupported_captions": "Subtitles must be a WebVTT (.vtt) file of up to 512 KB.",
         "duplicate_image": "This picture is already uploaded for this product.",
         "too_many_images": "A product can have up to 12 images.",
@@ -1923,7 +1930,9 @@
         "cover_of_published_article": "The cover of a published article can’t be removed: replace it or move the article back to draft.",
         "kind_fixed": "Photo or video is fixed when an item is created: create a new item of the other kind.",
         "unknown_media": "One of the chosen items is no longer in the gallery. Reload the page and choose again.",
-        "disk_full": "The server has not enough room for this file. Delete files you no longer need, or ask the server’s administrator."
+        "disk_full": "The server has not enough room for this file. Delete files you no longer need, or ask the server’s administrator.",
+        "video_conversion_failed": "The video could not be prepared for the site. Upload it again; if this happens again, save it as MP4 (H.264) and upload that.",
+        "video_conversion_unavailable": "This server cannot convert iPhone videos (MOV, HEVC) to MP4: ffmpeg is not installed on it. Upload an MP4, or ask the server’s administrator."
       },
       "resized": "The photo was large ({from}): it is uploaded at {width} × {height} px — the same quality on the site."
     },

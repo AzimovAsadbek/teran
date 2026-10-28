@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
@@ -20,6 +21,50 @@ export const PICTURES = {
  */
 export const REEL = fileURLToPath(new URL('./fixtures/reel.mp4', import.meta.url));
 
+const film = (name: string) =>
+  fileURLToPath(new URL(`../../../apps/api/test/fixtures/${name}`, import.meta.url));
+
+/**
+ * iPhone films, 2 s with a stereo tone (apps/api/scripts/make-iphone-films.swift): as the camera
+ * records them, HEVC in HLG ("High Efficiency", the default) or H.264 ("Most Compatible"), an
+ * upright one stored on its side; and what Safari hands a page for the upright HEVC one (H.264 in
+ * a QuickTime film). The test browser plays H.264 but not HEVC.
+ */
+export const IPHONE = {
+  hevcLandscape: film('iphone-hevc-landscape.mov'),
+  hevcUpright: film('iphone-hevc-upright.mov'),
+  h264Landscape: film('iphone-h264-landscape.mov'),
+  safariUpright: film('safari-upright.mov'),
+} as const;
+
+/**
+ * ffmpeg and ffprobe where the stack's API runs (FFMPEG_PATH and FFPROBE_PATH, or on the PATH):
+ * they make iPhone films into MP4s (ADR-062). CI installs them; elsewhere the tests that need them
+ * are skipped without them.
+ */
+export const VIDEO_TOOLS = [
+  process.env.FFMPEG_PATH ?? 'ffmpeg',
+  process.env.FFPROBE_PATH ?? 'ffprobe',
+].every((tool) => spawnSync(tool, ['-hide_banner', '-version']).status === 0);
+
+/** What the browser reads of the film at an address (it plays it): its picture's size, length. */
+export function plays(page: Page, src: string) {
+  return page.evaluate(
+    (url) =>
+      new Promise<{ width: number; height: number; duration: number }>((resolve, reject) => {
+        const video = document.createElement('video');
+        video.muted = true;
+        video.preload = 'metadata';
+        video.addEventListener('loadedmetadata', () =>
+          resolve({ width: video.videoWidth, height: video.videoHeight, duration: video.duration }),
+        );
+        video.addEventListener('error', () => reject(new Error(`The browser cannot play ${url}`)));
+        video.src = url;
+      }),
+    src,
+  );
+}
+
 /** A picture as a file payload (to mix with generated files in one selection). */
 export function pictureFile(picture: string) {
   return {
@@ -27,6 +72,12 @@ export function pictureFile(picture: string) {
     mimeType: 'image/webp',
     buffer: readFileSync(picture),
   };
+}
+
+/** Waits until the page's scripts run, so a click or a chosen file reaches React's handlers. */
+export async function hydrated(page: Page) {
+  await page.waitForFunction(() => document.readyState === 'complete');
+  await page.waitForLoadState('networkidle');
 }
 
 /** Next.js keeps visited pages mounted but hidden, so assertions target the visible match. */

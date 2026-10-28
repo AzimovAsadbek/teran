@@ -14,6 +14,7 @@ import { AdminInquiriesController } from './inquiries.controller.js';
 import { AdminInquiriesService } from './inquiries.service.js';
 import { AdminInventoryController } from './inventory.controller.js';
 import { AdminMediaController } from './media.controller.js';
+import { MediaFilmsService } from './media-films.service.js';
 import { MediaUploadsService } from './media-uploads.service.js';
 import { AdminMediaService } from './media.service.js';
 import { AdminInventoryService } from './inventory.service.js';
@@ -66,6 +67,7 @@ import { AdminTaxonomyService } from './taxonomy.service.js';
     AdminProductsService,
     AdminMediaService,
     MediaUploadsService,
+    MediaFilmsService,
     AdminProductTypesService,
     AdminTaxonomyService,
     AdminInventoryService,

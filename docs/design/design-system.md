@@ -475,7 +475,13 @@ with an image-plus mark ("tap" instead of "drop" on touch screens) and the note 
 video goes up in pieces, then the file's preview (a film with its cover picked by a slider beside
 it and its facts as small pills), the texts and marks in a panel (sticky at the right on wide
 screens), the steps with the upload's progress (for a film: sent of total, speed, time left and a
-stop button, then a note while the server stores it) and a success card with the cover.
+stop button, then a note while the server takes it over) and a success card with the cover. A film
+is then made ready on the server (ADR-062): the last step, "Saytga tayyorlanmoqda", shows its
+percentage with an `info` note that the page may close meanwhile. A film the browser cannot play
+(an iPhone's HEVC outside Safari) shows, in place of its preview, a quiet `surface-sunken` panel
+with a film mark saying the site converts it and takes its cover; its facts are read from the file.
+The list marks an item whose film is on its way with a blue "Tayyorlanmoqda" pill and a refused one
+with a red "Video qabul qilinmadi"; the editor shows the same progress under the film.
 
 - **Home page — "Bir piyola, bir lavha" / "Sip & scroll"** (ADR-056, ADR-059), after the journal on
   `surface-muted`: the shorts marked for the home page (all, by default) as 9:16 cards (rounded 1.25

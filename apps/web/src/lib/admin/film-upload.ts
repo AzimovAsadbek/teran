@@ -1,11 +1,17 @@
-import type { AdminMediaItem, ApiErrorBody, MediaUploadSession } from '@teran/contracts';
+import type {
+  AdminMediaItem,
+  AdminMediaVideoJob,
+  ApiErrorBody,
+  MediaUploadSession,
+} from '@teran/contracts';
 import { ApiError, readErrorBody } from '@/lib/api/errors';
 
 /*
  * Films of any size (ADR-061): a film goes to the API in pieces of a few megabytes, each its own
  * request, so no request is too large for the server and a lost connection costs one piece, not
  * the whole film. The API says where each piece must start; after a failure the upload asks how
- * far it got and goes on from there.
+ * far it got and goes on from there. Then the API makes the film ready for the site in the
+ * background (ADR-062): it keeps it, copies it into an MP4 or converts it (an iPhone's .MOV).
  */
 
 export interface FilmUploadProgress {
@@ -18,11 +24,25 @@ export interface FilmUploadProgress {
 
 /** Tries per piece before the upload stops and waits for the person to go on. */
 const ATTEMPTS = 5;
-/**
- * Times the finished film is handed over before giving up. Storing a film of several gigabytes in
- * R2 can take minutes, and the server's gateway answers 504 after one; each try waits again.
- */
-const COMPLETE_ATTEMPTS = 30;
+/** Times the finished film is handed over before giving up (the answer comes at once). */
+const COMPLETE_ATTEMPTS = 10;
+/** How often a film being made ready is asked after. */
+const POLL_MS = 2000;
+/** Questions about a film being made ready that may go unanswered in a row before giving up. */
+const POLL_FAILURES = 30;
+
+/** The film was refused after its upload (ADR-062): `reason` says why, as an upload error does. */
+export class FilmRefused extends ApiError {
+  constructor(readonly item: AdminMediaItem) {
+    super(415, {
+      statusCode: 415,
+      code: 'UNSUPPORTED_MEDIA_TYPE',
+      message: 'The film could not be made ready for the site',
+      details: { reason: item.videoJob?.reason ?? 'video_conversion_failed' },
+    });
+    this.name = 'FilmRefused';
+  }
+}
 
 /** The upload stopped (the connection is gone): `session` says where it can go on. */
 export class FilmUploadInterrupted extends Error {
@@ -125,20 +145,24 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 /**
- * Uploads a film to a gallery item and answers the item with it. Pass `session` (from a
+ * Uploads a film to a gallery item and hands it over to be made ready, answering the item (its
+ * `videoJob` says how that goes; waitForFilm waits for it). Pass `session` (from a
  * FilmUploadInterrupted) to go on with a stopped upload instead of starting again; `signal` stops
- * it (then cancelFilmUpload removes what was sent).
+ * it (then cancelFilmUpload removes what was sent). `poster`: the API takes the item's cover from
+ * the film when it has none (the browser could not show the film to take one).
  */
 export async function uploadFilm(
   mediaId: string,
   file: File,
   {
     session: previous,
+    poster = false,
     onStart,
     onProgress,
     signal,
   }: {
     session?: MediaUploadSession | null;
+    poster?: boolean;
     /** The upload's session as soon as it exists (to cancel it, or go on with it later). */
     onStart?: (session: MediaUploadSession) => void;
     onProgress?: (progress: FilmUploadProgress) => void;
@@ -214,34 +238,67 @@ export async function uploadFilm(
     report(received);
   }
   signal?.throwIfAborted();
-  return complete(mediaId, session, signal);
+  return complete(mediaId, session, poster, signal);
 }
 
 /**
- * Hands the finished film over to be stored. When the answer does not come (the gateway gave up
- * while the API was still storing a long film), asking again waits for the same work; once the
- * film is stored the upload is gone, and the item says whether it has the film.
+ * Hands the finished film over to be made ready; the API answers at once. When the answer does
+ * not come, asking again answers the same; if the film was kept in between, the upload is gone
+ * (404) and the item has it.
  */
 async function complete(
   mediaId: string,
   session: MediaUploadSession,
+  poster: boolean,
   signal?: AbortSignal,
 ): Promise<AdminMediaItem> {
   for (let attempt = 1; ; attempt += 1) {
     try {
       return await call<AdminMediaItem>(`${base(mediaId)}/${session.id}/complete`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poster }),
       });
     } catch (error) {
       if (error instanceof ApiError && error.status === 404 && attempt > 1) {
         const item = await call<AdminMediaItem>(`/api/v1/admin/media/${mediaId}`, {}).catch(
           () => null,
         );
-        if (item?.video?.bytes === session.size) return item;
+        if (item && (item.videoJob || item.video)) return item;
       }
       if (!passing(error) || attempt >= COMPLETE_ATTEMPTS) throw error;
     }
     await wait(Math.min(10_000, 2000 * attempt), signal);
+  }
+}
+
+/**
+ * Waits while the API makes an uploaded film ready (ADR-062), reporting how it goes, and answers
+ * the item once it has the film; a refused film throws FilmRefused. The work goes on on the server
+ * whether anyone waits or not.
+ */
+export async function waitForFilm(
+  mediaId: string,
+  {
+    onProgress,
+    signal,
+  }: { onProgress?: (job: AdminMediaVideoJob) => void; signal?: AbortSignal } = {},
+): Promise<AdminMediaItem> {
+  let failures = 0;
+  for (;;) {
+    signal?.throwIfAborted();
+    try {
+      const item = await call<AdminMediaItem>(`/api/v1/admin/media/${mediaId}`, {});
+      failures = 0;
+      if (!item.videoJob) return item;
+      if (item.videoJob.state === 'failed') throw new FilmRefused(item);
+      onProgress?.(item.videoJob);
+    } catch (error) {
+      if (error instanceof FilmRefused) throw error;
+      failures += 1;
+      if (!passing(error) || failures >= POLL_FAILURES) throw error;
+    }
+    await wait(POLL_MS, signal);
   }
 }
 

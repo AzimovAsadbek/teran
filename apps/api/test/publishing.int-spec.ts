@@ -1,4 +1,6 @@
+import './helpers/without-video-tools.js';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import request from 'supertest';
 import {
   articleDetailSchema,
@@ -18,7 +20,7 @@ import {
 } from '@teran/contracts';
 import { createTestApp, type TestApp } from './helpers/app.js';
 import { TEST_PASSWORD, createUser, resetDatabase } from './helpers/fixtures.js';
-import { testImage, uploadFilm } from './helpers/publishing.js';
+import { testImage, uploadFilm, waitForFilm } from './helpers/publishing.js';
 
 const API = '/api/v1';
 
@@ -573,9 +575,13 @@ describe('publishing workflow', () => {
 
       // Sent in pieces; its index (`moov`) comes after the pictures and is read from disk (ADR-061).
       const real = mp4(95);
-      const uploaded = await uploadFilm(admin, film.id, real, 64 * 1024);
-      expect(uploaded.status).toBe(201);
-      const done = uploaded.body as AdminMediaItem;
+      const uploaded = await uploadFilm(admin, film.id, real, { pieceBytes: 64 * 1024 });
+      // Handed over at once, then made ready in the background (ADR-062).
+      expect(uploaded.status).toBe(202);
+      // On its way: waiting its turn, or already taken by the worker.
+      expect(['waiting', 'working']).toContain((uploaded.body as AdminMediaItem).videoJob?.state);
+      const done = await waitForFilm(admin, film.id);
+      expect(done.videoJob).toBeNull();
       expect(done.video).toMatchObject({ type: 'video/mp4', bytes: real.length, hasAudio: false });
       expect(done.video?.src).toMatch(
         new RegExp(`^/uploads/media/${film.id}/[A-Za-z0-9_-]{12}/video\\.mp4$`),
@@ -583,15 +589,39 @@ describe('publishing workflow', () => {
       expect(done.videoDurationSeconds).toBe(95);
 
       // A film with a sound track says so (the feed then offers its sound, ADR-058).
-      const withSound = await uploadFilm(admin, film.id, mp4(95, true));
-      expect(withSound.status).toBe(201);
-      expect((withSound.body as AdminMediaItem).video?.hasAudio).toBe(true);
+      expect((await uploadFilm(admin, film.id, mp4(95, true))).status).toBe(202);
+      expect((await waitForFilm(admin, film.id)).video?.hasAudio).toBe(true);
 
       const customer = await signedIn('CUSTOMER');
       await customer
         .post(`${API}/admin/media/${film.id}/video/uploads`)
         .send({ size: 10 })
         .expect(403);
+    });
+
+    it('refuses an iPhone film where the server has no ffmpeg to make an MP4 of it', async () => {
+      const admin = await signedIn();
+      const short = (
+        await admin
+          .post(`${API}/admin/media`)
+          .send({
+            kind: 'SHORT',
+            status: 'DRAFT',
+            isFeatured: true,
+            videoDurationSeconds: null,
+            translations: { uz: { title: 'iPhone' }, ru: null, en: null },
+          })
+          .expect(201)
+      ).body as AdminMediaItem;
+      const quicktime = readFileSync(
+        new URL('./fixtures/iphone-h264-upright.mov', import.meta.url),
+      );
+      expect((await uploadFilm(admin, short.id, quicktime)).status).toBe(202);
+      expect((await waitForFilm(admin, short.id)).videoJob).toEqual({
+        state: 'failed',
+        percent: null,
+        reason: 'video_conversion_unavailable',
+      });
     });
 
     it('goes on after a lost piece, refuses pieces out of turn and keeps nothing it was not sent', async () => {
@@ -635,8 +665,8 @@ describe('publishing workflow', () => {
         .body as MediaUploadSession;
       expect(status.received).toBe(half);
       await piece(session.id, half, file.subarray(half)).expect(200);
-      const kept = (await admin.post(`${base}/${session.id}/complete`).expect(201))
-        .body as AdminMediaItem;
+      await admin.post(`${base}/${session.id}/complete`).expect(202);
+      const kept = await waitForFilm(admin, film.id);
       expect(kept.video).toMatchObject({ bytes: file.length, type: 'video/mp4' });
       expect(kept.videoDurationSeconds).toBe(12);
       // A finished upload is gone; so is a cancelled one.
@@ -670,7 +700,7 @@ describe('publishing workflow', () => {
         .expect(400);
     });
 
-    it('stores a film once when its completion is asked for twice', async () => {
+    it('makes a film ready once when its hand-over is asked for twice', async () => {
       const admin = await signedIn();
       const film = (
         await admin
@@ -694,24 +724,23 @@ describe('publishing workflow', () => {
         .send(file)
         .expect(200);
 
-      // The browser asks again when the gateway stops waiting: the second request waits for the
-      // work under way, or finds the upload gone once the film is stored.
+      // The browser asks again when an answer is lost: both answers say the film is on its way,
+      // and the film is made ready once.
       const answers = await Promise.all([
         admin.post(`${base}/${session.id}/complete`),
         admin.post(`${base}/${session.id}/complete`),
       ]);
-      const statuses = answers.map((answer) => answer.status).sort();
-      expect([
-        [201, 201],
-        [201, 404],
-      ]).toContainEqual(statuses);
-      const kept = (await admin.get(`${API}/admin/media/${film.id}`).expect(200))
-        .body as AdminMediaItem;
+      expect(answers.map((answer) => answer.status)).toEqual([202, 202]);
+      // Handed over: it can no longer be cancelled.
+      const late = await admin.delete(`${base}/${session.id}`);
+      expect([404, 409]).toContain(late.status);
+      const kept = await waitForFilm(admin, film.id);
       expect(kept.video).toMatchObject({ bytes: file.length, hasAudio: true });
-      for (const answer of answers.filter(({ status }) => status === 201)) {
-        expect((answer.body as AdminMediaItem).video?.src).toBe(kept.video?.src);
-      }
-      // Stored: the upload is gone and can no longer be cancelled.
+      const audit = await ctx.prisma.auditLog.count({
+        where: { action: 'media.video', entityId: film.id },
+      });
+      expect(audit).toBe(1);
+      // Kept: the upload is gone.
       await admin.delete(`${base}/${session.id}`).expect(404);
     });
   });

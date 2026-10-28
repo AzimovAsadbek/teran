@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import type { Agent, Response } from 'supertest';
 import {
   MEDIA_UPLOAD_CHUNK_BYTES,
+  type AdminMediaItem,
   type MediaUploadSession,
   type ProductUpsertInput,
 } from '@teran/contracts';
@@ -63,14 +64,14 @@ export async function createProductViaAdmin(
 
 /**
  * Uploads a film the way the admin area does (ADR-061): an upload started with the file's size,
- * the file sent in pieces, then completed. Answers the first response that is not a success, or
- * the completion's (the item, 201).
+ * the file sent in pieces, then handed over (ADR-062). Answers the first response that is not a
+ * success, or the hand-over's (the item with its `videoJob`, 202).
  */
 export async function uploadFilm(
   admin: Agent,
   mediaId: string,
   film: Buffer,
-  pieceBytes = MEDIA_UPLOAD_CHUNK_BYTES,
+  { pieceBytes = MEDIA_UPLOAD_CHUNK_BYTES, poster }: { pieceBytes?: number; poster?: boolean } = {},
 ): Promise<Response> {
   const base = `${API}/admin/media/${mediaId}/video/uploads`;
   const started = await admin.post(base).send({ size: film.length });
@@ -83,5 +84,26 @@ export async function uploadFilm(
       .send(film.subarray(offset, offset + pieceBytes));
     if (piece.status !== 200) return piece;
   }
-  return admin.post(`${base}/${session.id}/complete`);
+  const complete = admin.post(`${base}/${session.id}/complete`);
+  return poster === undefined ? complete : complete.send({ poster });
+}
+
+/**
+ * The item once the API is done with its uploaded film (ADR-062): kept, or refused (its
+ * `videoJob` then says why). Films are made ready in the background, so the test asks again.
+ */
+export async function waitForFilm(
+  admin: Agent,
+  mediaId: string,
+  timeoutMs = 60_000,
+): Promise<AdminMediaItem> {
+  const until = Date.now() + timeoutMs;
+  for (;;) {
+    const item = (await admin.get(`${API}/admin/media/${mediaId}`).expect(200))
+      .body as AdminMediaItem;
+    if (!item.videoJob || item.videoJob.state === 'failed') return item;
+    if (Date.now() > until)
+      throw new Error(`The film of ${mediaId} is still ${item.videoJob.state}`);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 }

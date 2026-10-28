@@ -1748,3 +1748,131 @@ cover the API's piece rules, out-of-turn and cut-short pieces, cancelling, a com
 twice, R2 multipart uploads and their abort, reading MP4 and WebM from disk, the dashboard's
 counts, and in the browser the retries, resuming and waiting while a film is stored; the
 end-to-end tests post films through the composer and the editor in pieces.
+
+## ADR-062: Films from iPhones become MP4s on the server, after their upload
+
+**Status.** Accepted on branch `feat/iphone-videos` (2026-10-28, from `feat/admin-uploads`, 5c7cf92),
+the follow-up ADR-061 left open. Amends ADR-061: `complete` no longer stores the film itself.
+
+**Context.** iPhones record QuickTime films. By default ("High Efficiency", "HDR Video") they are
+HEVC Main 10 in HLG with a Dolby Vision 8.4 record. With "Most Compatible" they are H.264 in SDR.
+An upright film's pictures are stored on their side, with a 90° display matrix. The sound is AAC
+(an iPhone 16 Pro adds a spatial APAC track). The files also carry timed metadata tracks, and the
+phone and the place in their header. The API kept only ISO MP4 and WebM, so staff were told to
+export an MP4 first (CapCut, InShot).
+
+What Safari hands a page was read in WebKit's source (`WKFileUploadPanel.mm`, main, 2026-10-28).
+Its photo picker runs in Photos' "compatible" mode whenever the input's `accept` lists types and
+none is an image type (`_preferredAssetRepresentationMode`). Photos then hands over the most
+compatible form: H.264. With no `accept`, or with images allowed, the picker runs in "current"
+mode, and WebKit re-encodes every chosen video itself with `AVAssetExportPresetHighestQuality`
+into a QuickTime movie (`WKFileUploadMediaTranscoder`, on for iOS). Films recorded from the input
+go through the same export. Either way the page gets **H.264 in a `.MOV`** (`video/quicktime`),
+and no `accept` value makes it an MP4. The Files app ("Choose File") and computers (AirDrop, a
+cable, a file sent in Telegram) hand over the **original, HEVC**. This was not tried on a device:
+the development Mac has no Xcode or simulator, and Apple's forums report devices transcoding in
+more cases than the documentation says. Both codecs are handled, whichever arrives.
+
+Visitors' browsers all play H.264 in an MP4. HEVC plays only where hardware decodes it: Safari,
+and Chrome or Edge on hardware that has it. Firefox on Linux does not, and neither does the
+headless test browser. The server has 2 vCPU and 4 GB RAM. The API container is read-only with a
+memory-backed `/tmp`, and the server's Nginx stops waiting after about a minute.
+
+**Decision.**
+
+- **After the upload, in the background.** `POST …/uploads/:uploadId/complete` only hands the
+  file over and answers at once (202, the item with its `videoJob`). The file moves to
+  `.processing/<uploadId>.source` on the uploads volume, and a `MediaVideoJob` row names it. There
+  is one row per item; it is waiting, working (with a percentage) or failed (with a reason).
+  `MediaFilmsService` takes one job at a time. ffprobe reads the film, then ffmpeg keeps it,
+  copies it or converts it at the lowest CPU priority, in the same folder (never `/tmp`). The film
+  is then stored like any other (moved, or sent to R2 in parts) and given to the item. The job row
+  goes, the old film's file is deleted and the storefront is refreshed.
+  - Asked again, `complete` answers the same. Once the film is kept the upload is gone (404).
+  - A newer upload, or deleting the item, stops a job: ffmpeg is killed and its files removed.
+  - A restart goes on with the work. A working job not touched for two minutes waits again; on a
+    clean stop it waits again at once. Stray work files go after ten minutes.
+- **What becomes of a film** (`media/video-plan.ts`).
+  - **Kept as it is** when every browser plays it: 8-bit 4:2:0 H.264 in an ISO MP4 with AAC, MP3
+    or no sound; VP8, VP9 or AV1 in a WebM with Opus, Vorbis or no sound.
+  - **Copied** into an MP4 without re-encoding when its pictures are 8-bit 4:2:0 H.264 in another
+    container. This is what Safari hands over; it takes seconds and almost no CPU, and the display
+    rotation is kept.
+  - **Converted** otherwise (HEVC, 10-bit or 4:2:2 H.264, ProRes): H.264 High with x264
+    `veryfast`, CRF 21 and at most 8 Mbit/s; at most 1920 px on its longer side and 60 frames a
+    second; a key frame every 2 s; turned upright. HLG and PQ are tone-mapped to SDR BT.709
+    (zscale with Hable's curve; where ffmpeg lacks zscale, only the colours are converted).
+  - The sound: an AAC track is copied (an iPhone 16's spatial APAC track is left out); other sound
+    becomes AAC at 160 kbit/s; sound ffmpeg cannot read is dropped.
+  - Every copied or converted film is a fast-start MP4 with one picture track and one sound track,
+    without the camera's metadata: the place, the phone, the timed tracks.
+  - Refusals: a file ffprobe cannot read, without pictures, or larger than 8K is
+    `unsupported_video`; a failed conversion is `video_conversion_failed`; a disk without room for
+    the converted film plus 512 MB is `disk_full`.
+  - ffmpeg never guesses the format. The reader is named from the file's first bytes (QuickTime/MP4
+    or Matroska/WebM, anything else refused unread), and only local files may be opened
+    (`-protocol_whitelist file`). An upload that is really a playlist (HLS, concat) cannot make it
+    read other files or addresses.
+- **Published while it is made ready.** A film on its way counts as uploaded, and as having its
+  cover when the API is to take one. So the composer publishes the item and puts it first at once,
+  and the storefront shows it when the file is there (`VISIBLE_MEDIA_WHERE`, unchanged). A refused
+  film sends an item published meanwhile back to a draft.
+- **The admin area.**
+  - The composer and the editor take `.MOV`. `accept` lists `video/quicktime` and the extensions,
+    so a computer's file dialog offers them; on an iPhone this changes nothing.
+  - A film this browser cannot play (HEVC outside Safari) is posted all the same. Its shape and
+    length are read from its header (`lib/admin/film-header.ts`), so the upright/landscape rule
+    still holds. The API takes its cover from the converted film (`poster`): a frame a third of the
+    way in, at most 1 s, where the composer's slider starts. The editor asks for the same when the
+    item has no cover yet.
+  - The composer's last step, "Saytga tayyorlanmoqda", shows the percentage. Closing the page then
+    loses nothing, and the browser no longer asks. The editor follows a film being made ready, also
+    after a reload. The list marks such an item "Tayyorlanmoqda" or "Video qabul qilinmadi".
+- **ffmpeg in the image.** The API's runtime image installs Alpine's `ffmpeg` package (libx264,
+  zimg). `FFMPEG_PATH` and `FFPROBE_PATH` name other binaries. Where they do not run (a developer's
+  Mac without ffmpeg), films are kept as uploaded, MP4 and WebM only as before, and a QuickTime film
+  is refused with `video_conversion_unavailable`. The start-up line says which (`films`).
+
+**Alternatives.**
+
+- **Converting in the browser before the upload** (WebCodecs with a demuxer and muxer such as
+  Mediabunny, or ffmpeg.wasm). It costs the server nothing and makes the upload smaller. But HEVC
+  decoding in WebCodecs depends on the browser and its hardware (Safari yes, Chrome only with
+  hardware decoding, Firefox and the headless test browser no). iOS suspends a tab sent to the
+  background mid-conversion. A long 4K film strains a phone's memory, tone mapping through a canvas
+  differs per browser, and ffmpeg.wasm is about 30 MB. Not chosen: in the common case, Safari on an
+  iPhone, the phone has already made the film H.264, and the server only copies it into an MP4.
+- **Keeping the `.MOV` as it is:** browsers differ on QuickTime, the place would be published, and
+  the film would not start fast.
+- **HEVC in an MP4:** not every browser plays it.
+- **A worker container of its own:** one more service on the owner's server, for a few films a
+  week.
+
+**Consequences.** Staff post iPhone films as they are, from Safari or from a computer. The API image
+grows by ffmpeg and its libraries: 184 MB uncompressed (Alpine 3.24's ffmpeg 8.1 on the same base,
+241 → 425 MB). A copy takes seconds. A conversion keeps the CPUs busy at the lowest priority, one
+film at a time, so a long film delays the next. Measured with the same ffmpeg, pinned to two cores
+of the development Mac (a 2018 Core i9), on noisy test pictures: a 1080p HDR film took 1.3 times its
+length, a 4K one 1.9 times (made 1080p); copying what Safari sends took half a second. A server's
+vCPUs may be slower. ffmpeg starts as many threads as it sees cores, so a CPU quota on the API
+container (Docker's `cpus`, which the Compose file does not set) slows it down: the 1080p film took
+45 s instead of 20 s under a two-CPU quota. During a conversion the disk holds the upload and its
+result; the room is checked first. Developers without ffmpeg post MP4 and WebM as before.
+
+The films the tests post are made with AVFoundation as an iPhone camera writes them
+(`apps/api/scripts/make-iphone-films.swift`). Safari's hand-over is the same export WebKit runs.
+No real iPhone has posted one yet.
+
+Tests:
+
+- unit: the plan for every kind of film (iPhone HEVC/HDR, Safari's H.264, MP4, WebM, 10-bit,
+  ProRes, 4K, odd sizes, other sound, cover pictures, rotation, 8K), ffmpeg's arguments, the
+  reader from the first bytes, the progress lines, the header reader in the browser, the hand-over
+  and the waiting;
+- integration with ffmpeg (CI installs it): conversion and copy checked with ffprobe (codec,
+  size, rotation, sound, fast start, no place), an MP4 kept byte for byte, publishing on the way
+  with a cover from the film, refusal and the return to a draft, replacement, deletion, recovery
+  after a restart; without ffmpeg: a QuickTime film refused, MP4 kept;
+- end to end: the composer posts HEVC and H.264 films (the HEVC ones without a preview) to the
+  gallery and the home page feed, where the browser plays them, and the editor posts an iPhone
+  film.

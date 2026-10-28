@@ -57,6 +57,13 @@ const envObjectSchema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().min(32).optional(),
   R2_BUCKET: z.string().min(3).max(63).optional(),
   R2_PUBLIC_URL: z.url().optional(),
+  /**
+   * ffmpeg and ffprobe (ADR-062): uploaded films that not every browser plays (an iPhone's HEVC or
+   * QuickTime .MOV) are converted to MP4 with them. Where they do not run, films are kept as
+   * uploaded and only MP4 and WebM are taken.
+   */
+  FFMPEG_PATH: z.string().min(1).default('ffmpeg'),
+  FFPROBE_PATH: z.string().min(1).default('ffprobe'),
 
   WEB_REVALIDATE_URL: z.url().optional(),
   REVALIDATE_SECRET: z.string().min(32).optional(),

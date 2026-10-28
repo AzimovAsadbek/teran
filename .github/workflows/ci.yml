@@ -73,6 +73,9 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
+      # Films from iPhones are made into MP4s with ffmpeg (ADR-062); its suite needs it in CI.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ffmpeg
       - run: pnpm generate
       - run: pnpm test:integration
 
@@ -111,6 +114,9 @@ jobs:
         run: pnpm --filter @teran/e2e build:stack
       - name: Install Chromium
         run: pnpm --filter @teran/e2e exec playwright install --with-deps chromium
+      # The stack's API makes posted iPhone films into MP4s with ffmpeg (ADR-062).
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ffmpeg
       - run: pnpm test:e2e
       - name: Keep the report of a failed run
         if: failure()

@@ -1394,7 +1394,7 @@
       "imageHint": "JPEG, PNG, WebP, AVIF yoki HEIC, kamida 200 × 200 px, hajmi cheklanmagan: katta rasm yuklashdan oldin kichraytiriladi. Saytda WebP shaklida bir necha oʻlchamda beriladi.",
       "posterHint": "Video ishga tushirilgunga qadar koʻrinadigan kadr. JPEG, PNG, WebP, AVIF yoki HEIC.",
       "video": "Video fayl",
-      "videoHint": "MP4 yoki WebM, hajmi cheklanmagan: katta video boʻlaklab yuklanadi. Davomiyligi va ovozi bor-yoʻqligi fayldan oʻzi aniqlanadi. Tik videolar lentada oʻzi oʻynaydi: bosh sahifada ovozsiz, ochilganda ovozi bilan.",
+      "videoHint": "MP4, MOV (iPhone) yoki WebM, hajmi cheklanmagan: katta video boʻlaklab yuklanadi, iPhone videosi esa MP4 ga aylantiriladi. Davomiyligi va ovozi bor-yoʻqligi fayldan oʻzi aniqlanadi. Tik videolar lentada oʻzi oʻynaydi: bosh sahifada ovozsiz, ochilganda ovozi bilan.",
       "noImage": "Surat hali yuklanmagan",
       "noVideo": "Video hali yuklanmagan",
       "saveFirst": "Avval qoralama sifatida saqlang — keyin rasmni yuklash mumkin.",
@@ -1430,7 +1430,12 @@
       "uploadingVideo": "Video yuklanmoqda… Katta fayl biroz vaqt oladi.",
       "withSound": "ovozi bor",
       "silent": "ovozsiz",
-      "length": "Davomiyligi"
+      "length": "Davomiyligi",
+      "filmWaiting": "Video navbatda turibdi",
+      "filmPreparing": "Video saytga tayyorlanmoqda",
+      "filmReady": "Video saytga tayyor.",
+      "filmPreparingShort": "Tayyorlanmoqda",
+      "filmRefusedShort": "Video qabul qilinmadi"
     },
     "compose": {
       "title": "Yangi joylash",
@@ -1457,7 +1462,8 @@
         "photo": "Rasm yuklanmoqda",
         "cover": "Muqova kadri saqlanmoqda",
         "publish": "Saytda eʼlon qilinmoqda",
-        "order": "Roʻyxatda birinchi qoʻyilmoqda"
+        "order": "Roʻyxatda birinchi qoʻyilmoqda",
+        "prepare": "Saytga tayyorlanmoqda"
       },
       "done": "Joylandi",
       "doneText": "“{title}” saytda. Sahifalar bir necha soniyada yangilanadi.",
@@ -1469,22 +1475,21 @@
       "retryHint": "“Joylash”ni yana bosing: bajarilgan qadamlar takrorlanmaydi.",
       "coverFailed": "Muqova kadrini olib boʻlmadi. Slayderni boshqa joyga surib, qayta urinib koʻring.",
       "problems": {
-        "unsupported": "Bu fayl turi qabul qilinmaydi: rasm (JPEG, PNG, WebP, AVIF, HEIC) yoki video (MP4, WebM) tanlang.",
-        "mov": "iPhone’ning .MOV videosi qabul qilinmaydi. Uni MP4 qilib saqlang (masalan, CapCut yoki InShot’dan eksport qiling) va qayta tanlang.",
-        "unreadableVideo": "Brauzer bu videoni ocha olmadi (ehtimol HEVC kodeki). Uni MP4 (H.264) qilib saqlang va qayta tanlang.",
+        "unsupported": "Bu fayl turi qabul qilinmaydi: rasm (JPEG, PNG, WebP, AVIF, HEIC) yoki video (MP4, MOV, WebM) tanlang.",
+        "unreadableVideo": "Bu videoni ochib boʻlmadi: fayl buzilgan yoki video emas. MP4, MOV yoki WebM video tanlang.",
         "heic": "Bu brauzer HEIC rasmni ocha olmaydi. Safari’da joylang yoki rasmni JPEG qilib saqlang.",
         "notUpright": "Shorts tik (telefon formatidagi) video boʻlishi kerak, bu esa gorizontal. Uni “Video” sifatida joylang yoki tik qilib eksport qiling.",
         "notLandscape": "Bu tik video. Uni “Shorts” sifatida joylang — shunda bosh sahifadagi lentaga chiqadi.",
         "photoOnly": "Bu yerga rasm joylanadi. Video uchun yuqorida “Video” yoki “Shorts”ni tanlang.",
-        "videoOnly": "Bu yerga video joylanadi (MP4 yoki WebM). Rasm uchun yuqorida “Rasm”ni tanlang."
+        "videoOnly": "Bu yerga video joylanadi (MP4, MOV yoki WebM). Rasm uchun yuqorida “Rasm”ni tanlang."
       },
       "kindLabel": "Nima joylaysiz?",
       "dropPhoto": "Rasmni shu yerga tashlang",
       "dropVideo": "Videoni shu yerga tashlang",
       "dropShort": "Shorts videosini shu yerga tashlang",
       "hintPhoto": "JPEG, PNG, WebP, AVIF yoki HEIC, hajmi cheklanmagan — katta rasm yuklashdan oldin kichraytiriladi.",
-      "hintVideo": "Gorizontal MP4 yoki WebM, hajmi cheklanmagan — ovozi bilan saqlanadi.",
-      "hintShort": "Tik (telefon formatidagi) MP4 yoki WebM, hajmi cheklanmagan — ovozi bilan saqlanadi.",
+      "hintVideo": "Gorizontal MP4, MOV (iPhone) yoki WebM, hajmi cheklanmagan — ovozi bilan saqlanadi.",
+      "hintShort": "Tik (telefon formatidagi) MP4, MOV (iPhone) yoki WebM, hajmi cheklanmagan — ovozi bilan saqlanadi.",
       "switchTo": "“{kind}” sifatida joylash",
       "viewOnHome": "Bosh sahifada koʻrish",
       "whereShortLong": "Shorts: bosh sahifadagi “Bir piyola, bir lavha” lentasida va galereyaning “Qisqa lavhalar” boʻlimida chiqadi.",
@@ -1507,7 +1512,9 @@
       "stop": "Toʻxtatish",
       "etaSeconds": "taxminan {count} soniya qoldi",
       "etaMinutes": "taxminan {count} daqiqa qoldi",
-      "storing": "Video yuklandi, server uni saqlamoqda. Katta videoda bu bir necha daqiqa olishi mumkin — sahifani yopmang."
+      "storing": "Video yuklandi — server uni qabul qilib olmoqda.",
+      "preparing": "Video saytga tayyorlanmoqda: iPhone videosi MP4 ga aylantiriladi. Sahifani yopsangiz ham ish toʻxtamaydi — tayyor boʻlgach, video saytda oʻzi chiqadi.",
+      "noPreview": "Bu brauzer videoni koʻrsata olmaydi (ehtimol, iPhone’ning HEVC formati). Uni baribir joylash mumkin: sayt videoni MP4 ga aylantiradi va muqovasini videoning oʻzidan oladi."
     },
     "delivery": {
       "title": "Yetkazib berish usullari",
@@ -1915,7 +1922,7 @@
         "too_large": "Server bu soʻrovni qabul qilmadi: u juda katta. Sahifani yangilab, qayta urinib koʻring.",
         "unsupported_format": "Bu rasmni ochib boʻlmadi. JPEG, PNG, WebP yoki AVIF yuklang; iPhone’ning HEIC rasmini Safari’da yuklang yoki JPEG qilib saqlang.",
         "unreadable": "Faylni oʻqib boʻlmadi: u buzilgan yoki rasm emas.",
-        "unsupported_video": "Faqat MP4 yoki WebM video yuklash mumkin.",
+        "unsupported_video": "Bu faylni video sifatida oʻqib boʻlmadi. MP4, MOV yoki WebM video yuklang.",
         "unsupported_captions": "Subtitrlar WebVTT (.vtt) faylida va 512 KB gacha boʻlishi kerak.",
         "duplicate_image": "Bu rasm ushbu mahsulotga allaqachon yuklangan.",
         "too_many_images": "Bitta mahsulotga 12 tagacha rasm yuklash mumkin.",
@@ -1923,7 +1930,9 @@
         "cover_of_published_article": "Eʼlon qilingan maqolaning muqovasini olib tashlab boʻlmaydi: uni almashtiring yoki maqolani qoralamaga oʻtkazing.",
         "kind_fixed": "Rasm yoki video turi yaratilgandan keyin oʻzgarmaydi: kerakli turdagi yangi yozuv yarating.",
         "unknown_media": "Tanlangan lavhalardan biri galereyada topilmadi. Sahifani yangilab, qayta tanlang.",
-        "disk_full": "Serverda bu fayl uchun joy yetarli emas. Keraksiz fayllarni oʻchiring yoki server administratoriga murojaat qiling."
+        "disk_full": "Serverda bu fayl uchun joy yetarli emas. Keraksiz fayllarni oʻchiring yoki server administratoriga murojaat qiling.",
+        "video_conversion_failed": "Videoni saytga tayyorlab boʻlmadi. Uni qayta yuklang; yana shunday boʻlsa, MP4 (H.264) qilib saqlab yuklang.",
+        "video_conversion_unavailable": "Bu server iPhone videolarini (MOV, HEVC) MP4 ga aylantira olmaydi: unda ffmpeg oʻrnatilmagan. MP4 video yuklang yoki server administratoriga murojaat qiling."
       },
       "resized": "Rasm katta edi ({from}): {width} × {height} px qilib yuklanadi — saytdagi sifati bir xil."
     },

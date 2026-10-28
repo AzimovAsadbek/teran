@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   isFilmKind,
   type AdminMediaItem,
+  type AdminMediaVideoJob,
   type MediaKind,
   type MediaUploadSession,
   type mediaUpsertSchema,
@@ -19,41 +20,51 @@ import {
   mediaPrefix,
   storeCaptions,
   storeImage,
-  VideoRejectedError,
   type ImageStore,
 } from '../media/image-processing.js';
-import { inspectVideoFile, storeVideoFile } from '../media/video-files.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
 import { nullable, toAdminTranslation, translationRows, type Actor } from './admin-support.js';
+import { MediaFilmsService } from './media-films.service.js';
 import { MediaUploadsService } from './media-uploads.service.js';
 import { assertPublishable, mediaReadiness } from './readiness.js';
 import { uploadError } from './uploads.js';
 import { configuredImageStore } from '../media/configured-store.js';
 
 type MediaPayload = z.output<typeof mediaUpsertSchema>;
-type MediaRow = Prisma.MediaItemGetPayload<{ include: { translations: true } }>;
+type MediaRow = Prisma.MediaItemGetPayload<{ include: { translations: true; videoJob: true } }>;
 
-const include = { translations: true } satisfies Prisma.MediaItemInclude;
+const include = { translations: true, videoJob: true } satisfies Prisma.MediaItemInclude;
+
+/**
+ * A film being made ready counts as having its file, and its cover when it is to be taken from the
+ * film (ADR-062): it may be published; the storefront shows it once both exist.
+ */
+function preparing(job: { state: string; makePoster: boolean } | null) {
+  const active = job !== null && job.state !== 'FAILED';
+  return { video: active, poster: active && job.makePoster };
+}
 
 /**
  * "Lavhalar" in the admin area: photographs and short films, managed separately (a photograph never
  * becomes a film or the other way round; each kind has its own order). Titles, captions and
  * alternative text are translated; any item can be chosen for the home page. An item is saved as
  * a draft first; its photograph (or a film's poster and file, and optional subtitles) is uploaded
- * to it, and only then can it be published. Every change refreshes the storefront's cache.
+ * to it, and only then can it be published (a film still being made ready counts as uploaded,
+ * ADR-062). Every change refreshes the storefront's cache.
  */
 @Injectable()
 export class AdminMediaService {
   private readonly files: ImageStore;
-  /** Films being stored from their uploads, by item and upload. */
-  private readonly storing = new Map<string, Promise<AdminMediaItem>>();
+  /** Uploads being handed over, by item and upload (a second request joins the first). */
+  private readonly handing = new Map<string, Promise<AdminMediaItem>>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationService,
     private readonly uploads: MediaUploadsService,
+    private readonly films: MediaFilmsService,
     config: ConfigService<Env, true>,
   ) {
     this.files = configuredImageStore(config);
@@ -82,7 +93,10 @@ export class AdminMediaService {
     const savedId = await this.prisma.$transaction(async (tx) => {
       let mediaId: string;
       if (id) {
-        const existing = await tx.mediaItem.findUnique({ where: { id } });
+        const existing = await tx.mediaItem.findUnique({
+          where: { id },
+          include: { videoJob: true },
+        });
         if (!existing) throw ApiException.notFound('Media item not found');
         if (existing.kind !== input.kind) {
           throw ApiException.conflict('CONFLICT', 'A photograph cannot become a film or back', {
@@ -90,11 +104,12 @@ export class AdminMediaService {
           });
         }
         if (input.status === 'PUBLISHED') {
+          const coming = preparing(existing.videoJob);
           assertPublishable(
             mediaReadiness({
               kind: existing.kind,
-              hasImage: existing.imageKey !== null,
-              hasVideo: existing.videoKey !== null,
+              hasImage: existing.imageKey !== null || coming.poster,
+              hasVideo: existing.videoKey !== null || coming.video,
               hasCaptions: existing.captionsKey !== null,
               durationSeconds: existing.videoDurationSeconds,
               translations: rows,
@@ -171,12 +186,14 @@ export class AdminMediaService {
 
   async remove(id: string, actor: Actor): Promise<void> {
     const row = await this.prisma.$transaction(async (tx) => {
-      const found = await tx.mediaItem.findUnique({ where: { id } });
+      const found = await tx.mediaItem.findUnique({ where: { id }, include: { videoJob: true } });
       if (!found) throw ApiException.notFound('Media item not found');
       await tx.mediaItem.delete({ where: { id } });
       await this.record(tx, actor, 'media.delete', id, { kind: found.kind });
       return found;
     });
+    // A film being made ready for it is stopped and its file removed.
+    if (row.videoJob) await this.films.letGo(row.videoJob.uploadId);
     // Files go only after the row is gone, so the storefront never references a missing file.
     for (const key of [row.imageKey, row.videoKey, row.captionsKey]) {
       if (key) await deleteStoredImage(this.files, key);
@@ -238,7 +255,6 @@ export class AdminMediaService {
     return this.get(id);
   }
 
-  /** A video's file (MP4 or WebM, kept as uploaded); replaces the previous one. */
   /** Starts a film's upload in pieces (ADR-061): any size, as long as the server has the room. */
   async startVideoUpload(id: string, size: number): Promise<MediaUploadSession> {
     const existing = await this.find(id);
@@ -249,80 +265,69 @@ export class AdminMediaService {
   }
 
   /**
-   * Keeps a fully uploaded film as the item's file. Storing a long film in R2 can outlast the
-   * gateway's patience (Nginx gives up after a minute) while the work goes on here: the browser
-   * asks again, and a second request for the same upload waits for the work under way instead of
-   * starting it twice.
+   * Hands a fully uploaded film over to be made ready for the site (ADR-062) and answers the item
+   * at once, its `videoJob` saying how that goes; the film replaces the item's own when it is
+   * ready. Asked again (the answer was lost), it answers the same; once the film is kept, the
+   * upload is gone (404). `poster`: take the cover from the film if the item has none.
    */
-  setVideoFromUpload(id: string, uploadId: string, actor: Actor): Promise<AdminMediaItem> {
+  setVideoFromUpload(
+    id: string,
+    uploadId: string,
+    actor: Actor,
+    poster: boolean,
+  ): Promise<AdminMediaItem> {
     const key = `${id}/${uploadId}`;
-    let work = this.storing.get(key);
+    let work = this.handing.get(key);
     if (!work) {
-      work = this.keepUploadedFilm(id, uploadId, actor).finally(() => this.storing.delete(key));
-      this.storing.set(key, work);
+      work = this.handOver(id, uploadId, actor, poster).finally(() => this.handing.delete(key));
+      this.handing.set(key, work);
     }
     return work;
   }
 
-  /** Removes an upload and what was sent of it; a film already being stored is left to finish. */
+  /** Removes an upload and what was sent of it; a film already handed over is left to finish. */
   async cancelVideoUpload(id: string, uploadId: string): Promise<void> {
-    await this.uploads.status(id, uploadId);
-    if (this.storing.has(`${id}/${uploadId}`)) {
-      throw ApiException.conflict('CONFLICT', 'The film is being stored', {
+    const job = await this.prisma.mediaVideoJob.findUnique({ where: { uploadId } });
+    if (job?.mediaItemId === id || this.handing.has(`${id}/${uploadId}`)) {
+      throw ApiException.conflict('CONFLICT', 'The film is being made ready', {
         reason: 'upload_storing',
       });
     }
+    await this.uploads.status(id, uploadId);
     await this.uploads.discard(uploadId);
   }
 
-  /**
-   * The film recognised by its first bytes (MP4 or WebM), its running time and sound read from the
-   * file, then stored as it is. The upload is discarded either way; a refused file has to be
-   * chosen again.
-   */
-  private async keepUploadedFilm(
+  private async handOver(
     id: string,
     uploadId: string,
     actor: Actor,
+    poster: boolean,
   ): Promise<AdminMediaItem> {
     const existing = await this.find(id);
     if (!isFilmKind(existing.kind)) {
       throw ApiException.badRequest('BAD_REQUEST', 'Only films and shorts have a video file');
     }
-    const upload = await this.uploads.finished(id, uploadId);
-    let stored;
-    let duration: number | null;
-    try {
-      const facts = await inspectVideoFile(upload.path);
-      if (!facts) throw new VideoRejectedError();
-      duration = facts.durationSeconds;
-      stored = await storeVideoFile(upload.path, facts, this.files, mediaPrefix(id));
-    } catch (error) {
-      uploadError(error);
-    } finally {
-      await this.uploads.discard(uploadId);
-    }
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.mediaItem.update({
-          where: { id },
-          data: {
-            videoKey: stored.storageKey,
-            videoType: stored.type,
-            videoBytes: stored.bytes,
-            videoHasAudio: stored.hasAudio,
-            // The running time is read from the file itself (when the file records it).
-            ...(duration !== null ? { videoDurationSeconds: duration } : {}),
-          },
-        });
-        await this.record(tx, actor, 'media.video', id, { bytes: stored.bytes });
-      });
-    } catch (error) {
-      await deleteStoredImage(this.files, stored.storageKey);
-      throw error;
-    }
-    if (existing.videoKey) await deleteStoredImage(this.files, existing.videoKey);
-    this.revalidation.notify('content');
+    if (existing.videoJob?.uploadId === uploadId) return this.toAdmin(existing);
+    // The file moves into the work folder first, then the job names it.
+    const { size } = await this.uploads.handOver(id, uploadId, this.films.sourcePath(uploadId));
+    const job = {
+      uploadId,
+      state: 'WAITING' as const,
+      percent: null,
+      reason: null,
+      makePoster: poster,
+      bytes: size,
+      actorUserId: actor.userId,
+      ipAddress: actor.ipAddress,
+    };
+    await this.prisma.mediaVideoJob.upsert({
+      where: { mediaItemId: id },
+      create: { mediaItemId: id, ...job },
+      update: { ...job, createdAt: new Date() },
+    });
+    // An earlier film still on its way for this item gives way to this one.
+    if (existing.videoJob) await this.films.letGo(existing.videoJob.uploadId);
+    this.films.kick();
     return this.get(id);
   }
 
@@ -390,6 +395,7 @@ export class AdminMediaService {
   }
 
   private toAdmin(row: MediaRow): AdminMediaItem {
+    const coming = preparing(row.videoJob);
     const translations = toAdminTranslation(row.translations, (translation) => ({
       title: translation.title,
       caption: translation.caption ?? undefined,
@@ -415,17 +421,26 @@ export class AdminMediaService {
           : null,
       videoDurationSeconds: row.videoDurationSeconds,
       captions: captions ? { src: captions } : null,
+      videoJob: row.videoJob ? videoJob(row.videoJob) : null,
       publishedAt: row.publishedAt?.toISOString() ?? null,
       updatedAt: row.updatedAt.toISOString(),
       translations,
       readiness: mediaReadiness({
         kind: row.kind,
-        hasImage: row.imageKey !== null,
-        hasVideo: row.videoKey !== null,
+        hasImage: row.imageKey !== null || coming.poster,
+        hasVideo: row.videoKey !== null || coming.video,
         hasCaptions: row.captionsKey !== null,
         durationSeconds: row.videoDurationSeconds,
         translations: row.translations,
       }),
     };
   }
+}
+
+function videoJob(job: NonNullable<MediaRow['videoJob']>): AdminMediaVideoJob {
+  return {
+    state: job.state === 'WAITING' ? 'waiting' : job.state === 'WORKING' ? 'working' : 'failed',
+    percent: job.state === 'WORKING' ? job.percent : null,
+    reason: job.state === 'FAILED' ? job.reason : null,
+  };
 }

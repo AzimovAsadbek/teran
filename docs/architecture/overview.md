@@ -279,6 +279,7 @@ Each application validates its own environment; examples with placeholders only 
   and uploads are on a local volume; running several instances needs shared stores.
 - No online payments, discounts or refunds yet; cash on delivery only.
 - Search is substring matching on normalised text (trigram index), without relevance ranking.
-- Films in the media gallery are kept as uploaded (MP4 or WebM, any size, sent in pieces): no
-  transcoding, no adaptive streaming and no captions track. Staff upload a web-ready file and a
-  poster frame; an iPhone `.MOV` has to be exported as MP4 first.
+- Films in the media gallery go up in pieces, any size. A film every browser plays (H.264 in an
+  MP4, WebM) is kept as uploaded; an iPhone's QuickTime or HEVC film is made into an H.264 MP4 by
+  the API after the upload, one film at a time (ADR-062). No adaptive streaming and no captions
+  track.

@@ -12,6 +12,19 @@ export const MIN_IMAGE_SIDE = 200;
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif';
 /** What the file pickers offer: any picture (a phone's HEIC, a camera's large JPEG…). */
 export const IMAGE_PICK = 'image/*';
+/**
+ * The films the admin area takes: MP4, WebM and QuickTime (an iPhone's .MOV, which the API makes
+ * into an MP4, ADR-062). Safari on an iPhone hands a film from the photo picker over as a
+ * QuickTime H.264 film whatever is listed here; the extensions let a computer's file dialog offer
+ * .MOV files.
+ */
+export const FILM_ACCEPT = 'video/mp4,video/quicktime,video/webm,.mp4,.m4v,.mov,.webm';
+/** A film the admin area takes, by its declared type or its name. */
+export function isFilmFile(file: File): boolean {
+  return (
+    /^video\/(mp4|webm|quicktime)$/.test(file.type) || /\.(mp4|m4v|webm|mov|qt)$/i.test(file.name)
+  );
+}
 
 /** A same-origin multipart upload (the session cookie authenticates it). */
 export async function uploadFile<T = unknown>(path: string, file: File): Promise<T> {

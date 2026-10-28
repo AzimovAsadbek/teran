@@ -1,10 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
   API,
+  IPHONE,
   PICTURES,
   REEL,
+  VIDEO_TOOLS,
   field,
+  hydrated,
   pictureFile,
+  plays,
   publishProduct,
   signInAsAdmin,
   staffRequest,
@@ -17,27 +21,6 @@ const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
   'base64',
 );
-
-/**
- * An MP4 whose movie box (95 s) follows the media data; enough for the API's checks. `mediaBytes`
- * pads the media data (a film over 10 MB crosses the storefront's default request buffer).
- */
-function mp4(seconds: number, mediaBytes = 64 * 1024): Buffer {
-  const box = (type: string, content: Buffer) => {
-    const header = Buffer.alloc(8);
-    header.writeUInt32BE(content.length + 8, 0);
-    header.write(type, 4, 'latin1');
-    return Buffer.concat([header, content]);
-  };
-  const mvhd = Buffer.alloc(100);
-  mvhd.writeUInt32BE(1000, 12);
-  mvhd.writeUInt32BE(seconds * 1000, 16);
-  return Buffer.concat([
-    box('ftyp', Buffer.from('isom\0\0\x02\0isomiso2', 'latin1')),
-    box('mdat', Buffer.alloc(mediaBytes)),
-    box('moov', box('mvhd', mvhd)),
-  ]);
-}
 
 const VTT = Buffer.from('WEBVTT\n\n00:00.000 --> 00:03.000\nTongda choy bogʻi\n', 'utf8');
 
@@ -321,18 +304,17 @@ test.describe('publishing workflow', () => {
     const status = field(page, 'Status');
     await expect(status.locator('option[value="PUBLISHED"]')).toBeDisabled();
 
-    // The video is played here before it is sent; its length is read from the file. At 11 MB it
-    // is larger than the 10 MB the storefront's rewrites buffered by default: it must arrive whole.
-    await page.locator('input[type="file"][accept^="video/"]').setInputFiles({
-      name: 'garden.mp4',
-      mimeType: 'video/mp4',
-      buffer: mp4(95, 11 * 1024 * 1024),
-    });
+    // The video is played here before it is sent; once the API has it ready (ADR-062), its length
+    // is read from the file.
+    await page.locator('input[type="file"][accept^="video/"]').setInputFiles(REEL);
     await expect(visible(page.getByText('Not uploaded yet'))).toBeVisible();
     await expect(page.locator('#media-files video[src^="blob:"]')).toHaveCount(1);
     await visible(page.getByRole('button', { name: 'Upload', exact: true })).click();
-    await expect(field(page, /^Length/)).toHaveValue('95');
-    await expect(page.locator('#media-files video source[src*="/uploads/media/"]')).toHaveCount(1);
+    await expect(field(page, /^Length/)).toHaveValue('2', { timeout: 30_000 });
+    await expect(page.locator('#media-files video source[src*="/uploads/media/"]')).toHaveAttribute(
+      'src',
+      /\/video\.mp4$/,
+    );
 
     // Poster and subtitles.
     await page
@@ -358,7 +340,7 @@ test.describe('publishing workflow', () => {
       await page.goto('/en/media/videos');
       await expect(tile()).toHaveCount(1, { timeout: 1_000 });
     }).toPass({ timeout: 20_000 });
-    await expect(tile()).toContainText('1:35');
+    await expect(tile()).toContainText('0:02');
     await expect(
       page.getByRole('navigation', { name: 'Kind of media' }).getByRole('link', { name: /Videos/ }),
     ).toHaveAttribute('aria-current', 'page');
@@ -466,6 +448,151 @@ test.describe('publishing workflow', () => {
     // Clean up: the stack's other journeys expect no films.
     for (const id of [shorts.items[0]!.id, photos.items[0]!.id]) {
       expect((await page.request.delete(`${API}/admin/media/${id}`)).status()).toBe(204);
+    }
+  });
+
+  test('iPhone films post to the gallery as MP4s with their sound, HEVC and H.264 alike', async ({
+    page,
+  }) => {
+    test.skip(!VIDEO_TOOLS && !process.env.CI, 'The stack needs ffmpeg to make iPhone films MP4s');
+    test.setTimeout(180_000);
+    type Listed = {
+      items: { id: string; title: string; video: { src: string; hasAudio: boolean } | null }[];
+    };
+    await signInAsAdmin(page);
+    const main = page.getByRole('main');
+    const posted: string[] = [];
+    for (const [file, played] of [
+      [IPHONE.hevcLandscape, false],
+      [IPHONE.h264Landscape, true],
+    ] as const) {
+      await page.goto('/en/admin/media/post?kind=videos');
+      await expect(visible(main.getByRole('radio', { name: 'Video' }))).toBeChecked();
+      await main.locator('input[type="file"]').first().setInputFiles(file);
+      if (played) {
+        // H.264 in a QuickTime film: played here, its cover a frame picked here.
+        await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
+      } else {
+        // HEVC, which this browser cannot play: its shape is read from the file, and the film is
+        // posted all the same; the server converts it and takes its cover (ADR-062).
+        await expect(visible(main.getByText(/^This browser can’t play this video/))).toBeVisible();
+        await expect(main.locator('video[controls]')).toHaveCount(0);
+      }
+      await expect(visible(main.getByText('640 × 360', { exact: true }))).toBeVisible();
+      const title = `E2E iPhone film ${Date.now().toString(36)}`;
+      await field(page, 'Title').fill(title);
+      await page.getByRole('button', { name: 'Post', exact: true }).click();
+      await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
+        timeout: 60_000,
+      });
+      posted.push(title);
+    }
+
+    // Both are MP4s with their sound, and this browser plays them (it could not play the HEVC).
+    const films = (await (
+      await page.request.get(`${API}/content/media?locale=en&kind=VIDEO`)
+    ).json()) as Listed;
+    for (const title of posted) {
+      const film = films.items.find((entry) => entry.title === title);
+      expect(film?.video).toMatchObject({
+        src: expect.stringMatching(/\/video\.mp4$/),
+        hasAudio: true,
+      });
+      expect(await plays(page, film!.video!.src)).toMatchObject({ width: 640, height: 360 });
+    }
+    const tile = (title: string) => page.getByRole('button', { name: `Watch the video: ${title}` });
+    await expect(async () => {
+      await page.goto('/en/media/videos');
+      await expect(tile(posted[0]!)).toHaveCount(1, { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+    await hydrated(page);
+    await tile(posted[0]!).click();
+    await expect(
+      page.getByRole('dialog', { name: posted[0] }).locator('video source[type="video/mp4"]'),
+    ).toHaveAttribute('src', /\/video\.mp4$/);
+    await page.keyboard.press('Escape');
+
+    // The editor takes an iPhone film too: it replaces the first one once the API has it ready.
+    const first = films.items.find((entry) => entry.title === posted[0])!;
+    await page.goto(`/en/admin/media/${first.id}`);
+    const source = page.locator('#media-files video source[src*="/uploads/media/"]');
+    await expect(source).toHaveAttribute('src', first.video!.src);
+    await hydrated(page);
+    await page.locator('input[type="file"][accept^="video/"]').setInputFiles(IPHONE.h264Landscape);
+    await expect(visible(page.getByText('Not uploaded yet'))).toBeVisible();
+    await visible(page.getByRole('button', { name: 'Upload', exact: true })).click();
+    await expect(source).not.toHaveAttribute('src', first.video!.src, { timeout: 30_000 });
+    await expect(source).toHaveAttribute('src', /\/video\.mp4$/);
+
+    // Clean up: the stack's other journeys expect no films.
+    for (const title of posted) {
+      const id = films.items.find((entry) => entry.title === title)!.id;
+      expect((await page.request.delete(`${API}/admin/media/${id}`)).status()).toBe(204);
+    }
+  });
+
+  test('iPhone shorts reach the home page feed as MP4s with their sound', async ({ page }) => {
+    test.skip(!VIDEO_TOOLS && !process.env.CI, 'The stack needs ffmpeg to make iPhone films MP4s');
+    test.setTimeout(180_000);
+    type Listed = { items: { id: string; title: string; video: { src: string } | null }[] };
+    await signInAsAdmin(page);
+    const main = page.getByRole('main');
+
+    // An upright HEVC film offered as a "Video": its shape is read from the file even though this
+    // browser cannot play it, and it is offered as a short instead.
+    await page.goto('/en/admin/media/post?kind=videos');
+    await main.locator('input[type="file"]').first().setInputFiles(IPHONE.hevcUpright);
+    await expect(visible(main.getByText(/^This is an upright video/))).toBeVisible();
+    await visible(main.getByRole('button', { name: 'Post as “Shorts”' })).click();
+    await expect(visible(main.getByRole('radio', { name: 'Shorts' }))).toBeChecked();
+    await expect(visible(main.getByText(/^This browser can’t play this video/))).toBeVisible();
+    const hevc = `E2E iPhone short ${Date.now().toString(36)}`;
+    await field(page, 'Title').fill(hevc);
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
+      timeout: 60_000,
+    });
+
+    // What Safari hands over from an iPhone's photo picker: H.264 in a QuickTime film.
+    await page.getByRole('button', { name: 'Post another' }).click();
+    await main.locator('input[type="file"]').first().setInputFiles(IPHONE.safariUpright);
+    await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
+    await expect(
+      visible(main.getByRole('slider', { name: 'Time of the cover frame' })),
+    ).toBeVisible();
+    const safari = `E2E Safari short ${Date.now().toString(36)}`;
+    await field(page, 'Title').fill(safari);
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const shorts = (await (
+      await page.request.get(`${API}/content/media?locale=en&kind=SHORT&featured=true`)
+    ).json()) as Listed;
+    expect(shorts.items.slice(0, 2).map((item) => item.title)).toEqual([safari, hevc]);
+    for (const item of shorts.items.slice(0, 2)) {
+      expect(await plays(page, item.video!.src)).toMatchObject({ width: 360, height: 640 });
+    }
+    // In the feed, each opens with its sound offered.
+    const card = (title: string) =>
+      page
+        .getByRole('region', { name: 'Sip & scroll' })
+        .getByRole('button', { name: `Watch the video: ${title}` });
+    await expect(async () => {
+      await page.goto('/en');
+      await expect(card(hevc)).toHaveCount(1, { timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+    await hydrated(page);
+    await card(hevc).click();
+    const feed = page.getByRole('dialog', { name: hevc });
+    await expect(feed.getByRole('button', { name: /^(Mute|Unmute)$/ })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(feed).toBeHidden();
+
+    // Clean up: the stack's other journeys expect no films.
+    for (const item of shorts.items.slice(0, 2)) {
+      expect((await page.request.delete(`${API}/admin/media/${item.id}`)).status()).toBe(204);
     }
   });
 

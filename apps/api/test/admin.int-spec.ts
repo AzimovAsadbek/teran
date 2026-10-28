@@ -1,3 +1,4 @@
+import './helpers/without-video-tools.js';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,7 +20,7 @@ import {
 } from '@teran/contracts';
 import type { Prisma } from '../src/generated/prisma/client.js';
 import { createTestApp, type TestApp } from './helpers/app.js';
-import { uploadFilm } from './helpers/publishing.js';
+import { uploadFilm, waitForFilm } from './helpers/publishing.js';
 import { TEST_ENV } from './test-env.js';
 import {
   TEST_PASSWORD,
@@ -923,14 +924,19 @@ describe('admin API', () => {
       });
       const noFile = await agent.put(`${API}/admin/media/${film.id}`).send(filmPublish).expect(422);
       expect(noFile.body.details).toEqual({ missing: ['video'] });
-      expect(
-        (await uploadFilm(agent, film.id, Buffer.from('<html>not a film</html>'.padEnd(64))))
-          .status,
-      ).toBe(415);
+      // Handed over, then refused once read (ADR-062): the item says why.
+      const page = Buffer.from('<html>not a film</html>'.padEnd(64));
+      expect((await uploadFilm(agent, film.id, page)).status).toBe(202);
+      expect((await waitForFilm(agent, film.id)).videoJob).toEqual({
+        state: 'failed',
+        percent: null,
+        reason: 'unsupported_video',
+      });
       // Sent in pieces, as the admin area sends a film of any size (ADR-061).
-      const uploaded = await uploadFilm(agent, film.id, mp4, 40);
-      expect(uploaded.status).toBe(201);
-      const withFile = uploaded.body as AdminMediaItem;
+      const uploaded = await uploadFilm(agent, film.id, mp4, { pieceBytes: 40 });
+      expect(uploaded.status).toBe(202);
+      const withFile = await waitForFilm(agent, film.id);
+      expect(withFile.videoJob).toBeNull();
       expect(withFile.video).toMatchObject({
         type: 'video/mp4',
         bytes: mp4.length,
@@ -1014,7 +1020,8 @@ describe('admin API', () => {
           .expect(201)
       ).body as AdminMediaItem;
       expect(short).toMatchObject({ kind: 'SHORT', position: 0 });
-      expect((await uploadFilm(agent, short.id, mp4)).status).toBe(201);
+      expect((await uploadFilm(agent, short.id, mp4)).status).toBe(202);
+      expect((await waitForFilm(agent, short.id)).video).not.toBeNull();
       await agent
         .post(`${API}/admin/media/${short.id}/image`)
         .attach('file', await png(400), { filename: 'steam.png', contentType: 'image/png' })

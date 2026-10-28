@@ -197,7 +197,14 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
                       <ArticleStatusPill status={item.status} />
                     </Cell>
                     <Cell label={t('readiness.title')}>
-                      {missing.length === 0 ? (
+                      {item.videoJob ? (
+                        // A film on its way to the site (ADR-062), or refused on the way.
+                        item.videoJob.state === 'failed' ? (
+                          <Pill tone="danger">{t('media.filmRefusedShort')}</Pill>
+                        ) : (
+                          <Pill tone="blue">{t('media.filmPreparingShort')}</Pill>
+                        )
+                      ) : missing.length === 0 ? (
                         <Pill tone="leaf">{t('readiness.ready')}</Pill>
                       ) : (
                         <span

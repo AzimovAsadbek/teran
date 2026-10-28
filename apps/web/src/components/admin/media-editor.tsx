@@ -4,6 +4,7 @@ import {
   ARTICLE_STATUSES,
   mediaUpsertSchema,
   type AdminMediaItem,
+  type AdminMediaVideoJob,
   type ArticleStatus,
   type Locale,
   type MediaKind,
@@ -20,11 +21,13 @@ import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
 import {
   cancelFilmUpload,
+  FilmRefused,
   FilmUploadInterrupted,
   uploadFilm,
+  waitForFilm,
   type FilmUploadProgress,
 } from '@/lib/admin/film-upload';
-import { uploadFile } from '@/lib/admin/uploads';
+import { FILM_ACCEPT, isFilmFile, uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
 import { formatFileSize } from '@/lib/format';
@@ -38,7 +41,6 @@ import { notify } from './toast';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
 
 const KEYS = ['title', 'caption', 'altText'] as const;
-const VIDEO_TYPES = new Set(['video/mp4', 'video/webm']);
 const MAX_CAPTIONS_BYTES = 512 * 1024;
 
 /** Required items that only an upload can satisfy (the form itself cannot fix them). */
@@ -358,8 +360,9 @@ function ItemActions({ item }: { item: AdminMediaItem }) {
 /**
  * The film's file: what is there now (playable here, never automatically), a chosen file played
  * locally before it is sent, and the upload in pieces through the API (any size, ADR-061), which
- * checks the real content and reads the running time from it. A lost connection leaves the upload
- * to go on with; leaving the page while it goes up asks first.
+ * checks the real content, reads the running time from it and makes it ready for the site
+ * (ADR-062: an iPhone's .MOV becomes an MP4), shown here as it goes. A lost connection leaves the
+ * upload to go on with; leaving the page while it goes up asks first.
  */
 function VideoSlot({ item }: { item: AdminMediaItem }) {
   const t = useTranslations('Admin');
@@ -371,9 +374,37 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
   const [failure, setFailure] = useState<ApiError | null>(null);
   const [transfer, setTransfer] = useState<FilmUploadProgress | null>(null);
   const [interrupted, setInterrupted] = useState(false);
+  /** The uploaded film being made ready, as the API last said (followed while it lasts). */
+  const [job, setJob] = useState<AdminMediaVideoJob | null>(item.videoJob);
+  const [jobOf, setJobOf] = useState(item.videoJob);
+  if (jobOf !== item.videoJob) {
+    // The item was refreshed: its own word on the film is where following starts again.
+    setJobOf(item.videoJob);
+    setJob(item.videoJob);
+  }
   const session = useRef<MediaUploadSession | null>(null);
   const stop = useRef<AbortController | null>(null);
-  const failureMessage = useAdminOrApiMessage(interrupted ? null : failure);
+  const refused = item.videoJob?.state === 'failed' && !chosen ? new FilmRefused(item) : null;
+  const failureMessage = useAdminOrApiMessage(interrupted ? null : (failure ?? refused));
+  const active = item.videoJob !== null && item.videoJob.state !== 'failed';
+
+  // A film being made ready (ADR-062) is followed until it is; then the page shows it.
+  useEffect(() => {
+    if (!active) return;
+    const following = new AbortController();
+    void waitForFilm(item.id, { onProgress: setJob, signal: following.signal }).then(
+      () => {
+        notify(t('media.filmReady'));
+        router.refresh();
+      },
+      (caught: unknown) => {
+        if (caught instanceof FilmRefused) router.refresh();
+      },
+    );
+    return () => following.abort();
+    // The item's job is followed from its start; the answers themselves update `job`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, active]);
 
   useEffect(() => () => (chosen ? URL.revokeObjectURL(chosen.url) : undefined), [chosen]);
 
@@ -396,7 +427,7 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
     if (!file) return;
     forget();
     setFailure(null);
-    const playable = VIDEO_TYPES.has(file.type) || /\.(mp4|webm)$/i.test(file.name);
+    const playable = isFilmFile(file);
     setChosen({ file, url: URL.createObjectURL(file), playable });
   }
 
@@ -410,6 +441,8 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
     try {
       await uploadFilm(item.id, chosen.file, {
         session: session.current,
+        // Without a cover yet, the API takes one from the film (ADR-062).
+        poster: item.image === null,
         onStart: (started) => {
           session.current = started;
         },
@@ -419,7 +452,7 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
       session.current = null;
       setTransfer(null);
       setChosen(null);
-      notify(t('common.saved'));
+      // The API makes it ready now; the refreshed item says how that goes.
       router.refresh();
     } catch (caught) {
       if (caught instanceof FilmUploadInterrupted) {
@@ -496,6 +529,29 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
           {` · ${item.video.hasAudio ? t('media.withSound') : t('media.silent')}`}
         </p>
       ) : null}
+      {active && job && job.state !== 'failed' ? (
+        <div
+          aria-live="polite"
+          className="max-w-xl space-y-1.5 rounded-control bg-surface-muted px-4 py-3"
+        >
+          <p className="flex items-center gap-2 text-body-sm text-fg">
+            <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+            {job.state === 'waiting' ? t('media.filmWaiting') : t('media.filmPreparing')}
+            {job.percent !== null ? (
+              <span className="ml-auto tabular-nums">{job.percent}%</span>
+            ) : null}
+          </p>
+          {job.percent !== null ? (
+            <span aria-hidden className="block h-1.5 overflow-hidden rounded-full bg-line">
+              <span
+                className="block h-full rounded-full bg-brand transition-[width] duration-200"
+                style={{ width: `${job.percent}%` }}
+              />
+            </span>
+          ) : null}
+          <p className="text-caption text-fg-subtle">{t('compose.preparing')}</p>
+        </div>
+      ) : null}
       {chosen ? (
         <div className="space-y-2">
           <p className="text-caption text-fg-subtle">
@@ -553,7 +609,7 @@ function VideoSlot({ item }: { item: AdminMediaItem }) {
           <input
             id={inputId}
             type="file"
-            accept="video/mp4,video/webm"
+            accept={FILM_ACCEPT}
             className="sr-only"
             onChange={(event) => {
               choose(event.target.files?.[0]);

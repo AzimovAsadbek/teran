@@ -12,6 +12,8 @@ const REASONS = [
   'unsupported_format',
   'unreadable',
   'unsupported_video',
+  'video_conversion_failed',
+  'video_conversion_unavailable',
   'unsupported_captions',
   'duplicate_image',
   'too_many_images',

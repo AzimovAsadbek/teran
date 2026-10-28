@@ -48,3 +48,12 @@ export const TEST_ENV: Record<string, string> = {
   // Never the developer's own key from apps/api/.env: suites that need Gemini point it at a mock.
   GEMINI_API_KEY: '',
 };
+
+/**
+ * No ffmpeg or ffprobe (a developer's machine without them): films are kept as uploaded, MP4 and
+ * WebM only (ADR-061), and a QuickTime film is refused (ADR-062).
+ */
+export const WITHOUT_VIDEO_TOOLS: Record<string, string> = {
+  FFMPEG_PATH: '/nonexistent/teran-test/ffmpeg',
+  FFPROBE_PATH: '/nonexistent/teran-test/ffprobe',
+};

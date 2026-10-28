@@ -1,7 +1,17 @@
 import { randomBytes } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readdir, readFile, rm, stat, statfs, truncate, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+  statfs,
+  truncate,
+  writeFile,
+} from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { Transform, type Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { HttpStatus, Injectable } from '@nestjs/common';
@@ -30,8 +40,8 @@ class PieceTooLargeError extends Error {}
  * volume (`.incoming/<id>.part`, never served: dot folders are refused) and a small record of the
  * item and the expected size. A piece is accepted only where the file ends, so a piece sent twice
  * or out of turn changes nothing and the answer says where to go on; a piece cut short is taken
- * back, so the upload continues from the last whole piece. The finished file is handed to the
- * media service, which stores it and then discards the upload.
+ * back, so the upload continues from the last whole piece. The finished file is handed over to be
+ * made ready for the site (ADR-062), which ends the upload.
  */
 @Injectable()
 export class MediaUploadsService {
@@ -113,17 +123,25 @@ export class MediaUploadsService {
     });
   }
 
-  /** The finished file, for storing; an incomplete upload is refused with how much there is. */
-  async finished(mediaId: string, id: string): Promise<{ path: string; size: number }> {
-    const record = await this.load(mediaId, id);
-    const received = await this.received(id);
-    if (received !== record.size) {
-      throw ApiException.conflict('CONFLICT', 'The upload is not complete yet', {
-        reason: 'upload_incomplete',
-        received,
-      });
-    }
-    return { path: this.dataPath(id), size: record.size };
+  /**
+   * Moves the finished file to `to` (on the same volume: instant) and ends the upload, for the film
+   * to be made ready (ADR-062); an incomplete upload is refused with how much there is.
+   */
+  handOver(mediaId: string, id: string, to: string): Promise<{ size: number }> {
+    return this.serialized(id, async () => {
+      const record = await this.load(mediaId, id);
+      const received = await this.received(id);
+      if (received !== record.size) {
+        throw ApiException.conflict('CONFLICT', 'The upload is not complete yet', {
+          reason: 'upload_incomplete',
+          received,
+        });
+      }
+      await mkdir(dirname(to), { recursive: true });
+      await rename(this.dataPath(id), to);
+      await rm(this.recordPath(id), { force: true });
+      return { size: record.size };
+    });
   }
 
   /** Removes an upload (finished, abandoned or cancelled); unknown ones are ignored. */

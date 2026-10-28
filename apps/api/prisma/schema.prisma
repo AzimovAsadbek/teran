@@ -156,6 +156,13 @@ enum MediaKind {
   SHORT
 }
 
+/// Where an uploaded film is on its way to the site (ADR-062).
+enum MediaVideoJobState {
+  WAITING
+  WORKING
+  FAILED
+}
+
 /// What a Telegram channel post announces.
 enum TelegramEntity {
   PRODUCT
@@ -1080,8 +1087,37 @@ model MediaItem {
 
   translations MediaItemTranslation[]
   articles     ArticleMedia[]
+  videoJob     MediaVideoJob?
 
   @@index([status, position])
+}
+
+/// An uploaded film being made ready for the site (ADR-062). The finished upload waits on the
+/// uploads volume (`.processing/<uploadId>.source`) until the API has read it and kept it as it
+/// is, copied it into an MP4 or converted it; then the row goes. A refused one stays, with its
+/// reason, until the next upload. One per item: a newer upload replaces it.
+model MediaVideoJob {
+  mediaItemId String             @id @db.Uuid
+  mediaItem   MediaItem          @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  /// The upload whose file this is (its pieces' id, ADR-061).
+  uploadId    String             @unique
+  state       MediaVideoJobState @default(WAITING)
+  /// A conversion under way: how far, 0–100.
+  percent     Int?
+  /// Why it was refused: a reason the admin area explains.
+  reason      String?
+  /// Take the item's cover from the film if it has none (the browser could not show the film).
+  makePoster  Boolean            @default(false)
+  /// The uploaded file's size, in bytes.
+  bytes       BigInt
+  /// Who uploaded it, for the audit record written when the film is kept.
+  actorUserId String?            @db.Uuid
+  ipAddress   String?
+  createdAt   DateTime           @default(now())
+  /// Touched while the work goes on: a WORKING row left untouched belongs to a stopped process.
+  updatedAt   DateTime           @updatedAt
+
+  @@index([state, createdAt])
 }
 
 model MediaItemTranslation {

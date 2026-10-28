@@ -34,10 +34,13 @@ import { CheckboxField, FormErrorSummary } from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link } from '@/i18n/navigation';
+import { readFilmHeader } from '@/lib/admin/film-header';
 import {
   cancelFilmUpload,
+  FilmRefused,
   FilmUploadInterrupted,
   uploadFilm,
+  waitForFilm,
   type FilmUploadProgress,
 } from '@/lib/admin/film-upload';
 import {
@@ -50,7 +53,7 @@ import {
   type PreparedImage,
   type VideoFacts,
 } from '@/lib/admin/media-files';
-import { uploadFile, uploadFileWithProgress } from '@/lib/admin/uploads';
+import { FILM_ACCEPT, isFilmFile, uploadFile, uploadFileWithProgress } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
@@ -74,8 +77,8 @@ const KINDS: {
   where: 'wherePhoto' | 'whereVideo' | 'whereShort';
 }[] = [
   { kind: 'PHOTO', icon: ImageIcon, accept: 'image/*', where: 'wherePhoto' },
-  { kind: 'VIDEO', icon: Film, accept: 'video/mp4,video/webm', where: 'whereVideo' },
-  { kind: 'SHORT', icon: Smartphone, accept: 'video/mp4,video/webm', where: 'whereShort' },
+  { kind: 'VIDEO', icon: Film, accept: FILM_ACCEPT, where: 'whereVideo' },
+  { kind: 'SHORT', icon: Smartphone, accept: FILM_ACCEPT, where: 'whereShort' },
 ];
 /** The choosing area's words: dropping a file on a computer, tapping on a phone. */
 const DROP = { PHOTO: 'dropPhoto', VIDEO: 'dropVideo', SHORT: 'dropShort' } as const;
@@ -87,11 +90,14 @@ const BIG_FILM_BYTES = 200 * 1024 * 1024;
 
 type Picked =
   | { type: 'photo'; url: string; photo: PreparedImage }
-  | { type: 'film'; url: string; file: File; facts: VideoFacts };
+  /**
+   * `preview`: this browser plays the film (its cover is a frame picked here); without it (an
+   * iPhone's HEVC in Chrome or Firefox) its header says its shape and the API takes the cover.
+   */
+  | { type: 'film'; url: string; file: File; facts: VideoFacts; preview: boolean };
 
 type Problem =
   | 'unsupported'
-  | 'mov'
   | 'unreadableVideo'
   | 'heic'
   | 'too_small'
@@ -101,13 +107,13 @@ type Problem =
   | 'photoOnly'
   | 'videoOnly';
 
-type Step = 'create' | 'file' | 'cover' | 'publish' | 'order';
+type Step = 'create' | 'file' | 'cover' | 'publish' | 'order' | 'prepare';
 
 interface Run {
   steps: Step[];
   current: Step | null;
   failed: Step | null;
-  /** The file's upload, 0 to 100. */
+  /** The photograph's upload, or the film's making ready on the server, 0 to 100. */
   percent: number | null;
 }
 
@@ -145,8 +151,11 @@ function isAbort(error: unknown): boolean {
  * sound and its cover is a frame picked with a slider; a photograph too heavy or too large for the
  * site is scaled down in the browser. Then the title (other languages optional), the home page
  * mark for shorts, and "Post": the item is created, its files uploaded (the film with its
- * progress), it is published and put first in its list. A step that fails leaves a draft; pressing
- * "Post" again finishes it.
+ * progress), it is published and put first in its list. A film is then made ready by the API
+ * (ADR-062: an iPhone's .MOV becomes an MP4) and appears on the site by itself once it is; the
+ * composer shows how far that is, and nothing is lost if the page is closed meanwhile. A film this
+ * browser cannot play is posted all the same: its shape is read from its header and the API takes
+ * its cover. A step that fails leaves a draft; pressing "Post" again finishes it.
  */
 export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   const t = useTranslations('Admin');
@@ -196,17 +205,19 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   // A chosen file's address is let go when another is chosen or the page closes.
   useEffect(() => () => (picked ? URL.revokeObjectURL(picked.url) : undefined), [picked]);
 
-  // Closing or leaving the page while a file goes up would lose it: the browser asks first.
+  // Closing or leaving the page while a file goes up would lose it: the browser asks first. Once
+  // the film is with the API, it is made ready whether the page stays open or not.
+  const preparing = run?.current === 'prepare';
   useEffect(() => {
-    if (!sending) return;
+    if (!sending || preparing) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [sending]);
+  }, [sending, preparing]);
 
   // The cover follows the slider, drawn from a hidden copy of the film (the preview stays free).
   useEffect(() => {
-    if (picked?.type !== 'film') return;
+    if (picked?.type !== 'film' || !picked.preview) return;
     const video = captureRef.current;
     const canvas = coverRef.current;
     if (!video || !canvas) return;
@@ -273,7 +284,7 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
       if (otherKind) setSuggest({ file, kind: otherKind });
     };
     setProblem(null);
-    const video = file.type.startsWith('video/') || /\.(mp4|m4v|webm|mov)$/.test(name);
+    const video = file.type.startsWith('video/') || /\.(mp4|m4v|webm|mov|qt)$/.test(name);
     const image = file.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|heic|heif)$/.test(name);
     if (as === 'PHOTO') {
       if (video) return refuse('photoOnly');
@@ -288,14 +299,15 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     }
     if (image && !video) return refuse('videoOnly');
     if (!video) return refuse('unsupported');
-    if (file.type === 'video/quicktime' || name.endsWith('.mov')) return refuse('mov');
-    if (!/^video\/(mp4|webm)$/.test(file.type) && !/\.(mp4|m4v|webm)$/.test(name)) {
-      return refuse('unsupported');
-    }
+    if (!isFilmFile(file)) return refuse('unsupported');
     const url = URL.createObjectURL(file);
     setReading(true);
-    const facts = await readVideo(url);
+    const played = await readVideo(url);
+    // A film this browser cannot play (an iPhone's HEVC in Chrome or Firefox) says its shape and
+    // length in its header; the API converts it (ADR-062).
+    const header = played ? null : await readFilmHeader(file);
     setReading(false);
+    const facts = played ?? header;
     const upright = facts !== null && facts.height > facts.width;
     if (!facts || (as === 'SHORT') !== upright) {
       URL.revokeObjectURL(url);
@@ -303,7 +315,13 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
       return as === 'SHORT' ? refuse('notUpright', 'VIDEO') : refuse('notLandscape', 'SHORT');
     }
     setCoverAt(Math.min(1, facts.duration / 3));
-    setPicked({ type: 'film', url, file, facts });
+    setPicked({
+      type: 'film',
+      url,
+      file,
+      facts: { width: facts.width, height: facts.height, duration: facts.duration },
+      preview: played !== null,
+    });
   }
 
   /** Another kind: the chosen file (if any) is let go, since it was checked for the other one. */
@@ -331,12 +349,14 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     if (!picked) return;
     setCoverFailed(false);
     setStopped(null);
+    const film = picked.type === 'film';
     const steps: Step[] = [
       'create',
       'file',
-      ...(picked.type === 'film' ? (['cover'] as const) : []),
+      ...(film && picked.preview ? (['cover'] as const) : []),
       ...(publish ? (['publish'] as const) : []),
       'order',
+      ...(film ? (['prepare'] as const) : []),
     ];
     const result: { item: AdminMediaItem | null } = { item: null };
     const ok = await form.submit(mediaUpsertSchema, payload, async (data) => {
@@ -371,6 +391,8 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           try {
             result.item = await uploadFilm(id, picked.file, {
               session: filmSession.current,
+              // Without a frame of the film here, the API takes the cover from the film.
+              poster: !picked.preview,
               onStart: (session) => {
                 filmSession.current = session;
               },
@@ -397,7 +419,7 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           setTransfer(null);
           made.current.file = true;
         }
-        if (picked.type === 'film' && !made.current.cover) {
+        if (picked.type === 'film' && picked.preview && !made.current.cover) {
           at('cover');
           const video = captureRef.current;
           const cover = video ? await captureCover(video, coverAt) : null;
@@ -428,6 +450,22 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           });
           result.item = ordered.find((entry) => entry.id === id) ?? result.item;
           made.current.ordered = true;
+        }
+        if (picked.type === 'film') {
+          // The API makes the film ready for the site (ADR-062); the page may close meanwhile.
+          at('prepare');
+          try {
+            result.item = await waitForFilm(id, {
+              onProgress: (job) => at('prepare', job.percent),
+            });
+          } catch (caught) {
+            if (caught instanceof FilmRefused) {
+              // Refused: a published film went back to a draft; posting again sends a file anew.
+              made.current.file = false;
+              made.current.published = false;
+            }
+            throw caught;
+          }
         }
       } catch (caught) {
         setRun((previous) => previous && { ...previous, failed: previous.current });
@@ -718,6 +756,7 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
             onStop={sending ? cancelUpload : undefined}
           />
         ) : null}
+        {preparing && !run?.failed ? <Notice tone="info">{t('compose.preparing')}</Notice> : null}
         <ApiAlert message={failure} />
         {stopped === 'interrupted' ? (
           <Notice tone="warning">
@@ -826,63 +865,73 @@ function ChosenFile({
   const upright = facts.height > facts.width;
   return (
     <div className="space-y-4 rounded-card border border-line bg-surface p-4 sm:p-5">
-      <div
-        className={cn(
-          'grid gap-4',
-          upright ? 'sm:grid-cols-[minmax(0,1fr)_11rem]' : 'lg:grid-cols-[minmax(0,1fr)_14rem]',
-        )}
-      >
-        <video
-          src={picked.url}
-          controls
-          playsInline
-          preload="metadata"
-          className={cn(
-            'w-full rounded-control bg-black',
-            upright ? 'mx-auto max-h-[65vh] w-auto max-w-full' : 'aspect-video',
-          )}
-        />
-        <div className="space-y-2">
-          <h3 className="text-label text-fg">{t('compose.cover')}</h3>
-          <canvas
-            ref={coverRef}
-            aria-hidden
-            className="w-full rounded-control border border-line bg-black"
-            style={{ aspectRatio: `${facts.width} / ${facts.height}` }}
-          />
-          {facts.duration > 0 ? (
-            <>
-              <label htmlFor={sliderId} className="sr-only">
-                {t('compose.coverAt')}
-              </label>
-              <input
-                id={sliderId}
-                type="range"
-                min={0}
-                max={Math.max(0, facts.duration - 0.05)}
-                step={0.1}
-                value={coverAt}
-                disabled={disabled}
-                onChange={(event) => onCover(Number(event.target.value))}
-                className="w-full accent-brand"
+      {picked.preview ? (
+        <>
+          <div
+            className={cn(
+              'grid gap-4',
+              upright ? 'sm:grid-cols-[minmax(0,1fr)_11rem]' : 'lg:grid-cols-[minmax(0,1fr)_14rem]',
+            )}
+          >
+            <video
+              src={picked.url}
+              controls
+              playsInline
+              preload="metadata"
+              className={cn(
+                'w-full rounded-control bg-black',
+                upright ? 'mx-auto max-h-[65vh] w-auto max-w-full' : 'aspect-video',
+              )}
+            />
+            <div className="space-y-2">
+              <h3 className="text-label text-fg">{t('compose.cover')}</h3>
+              <canvas
+                ref={coverRef}
+                aria-hidden
+                className="w-full rounded-control border border-line bg-black"
+                style={{ aspectRatio: `${facts.width} / ${facts.height}` }}
               />
-              <p className="text-caption text-fg-subtle tabular-nums">{clock(coverAt)}</p>
-            </>
-          ) : null}
-          <p className="text-caption text-fg-subtle">{t('compose.coverHint')}</p>
+              {facts.duration > 0 ? (
+                <>
+                  <label htmlFor={sliderId} className="sr-only">
+                    {t('compose.coverAt')}
+                  </label>
+                  <input
+                    id={sliderId}
+                    type="range"
+                    min={0}
+                    max={Math.max(0, facts.duration - 0.05)}
+                    step={0.1}
+                    value={coverAt}
+                    disabled={disabled}
+                    onChange={(event) => onCover(Number(event.target.value))}
+                    className="w-full accent-brand"
+                  />
+                  <p className="text-caption text-fg-subtle tabular-nums">{clock(coverAt)}</p>
+                </>
+              ) : null}
+              <p className="text-caption text-fg-subtle">{t('compose.coverHint')}</p>
+            </div>
+          </div>
+          {/* A hidden copy of the film, where the cover's frames are taken from. */}
+          <video
+            ref={captureRef}
+            src={picked.url}
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden
+            tabIndex={-1}
+            className="pointer-events-none fixed top-0 left-0 h-px w-px opacity-0"
+          />
+        </>
+      ) : (
+        // An iPhone's HEVC in a browser that cannot play it: posted all the same (ADR-062).
+        <div className="flex flex-col items-center gap-3 rounded-control bg-surface-sunken px-6 py-10 text-center">
+          <Film aria-hidden className="h-8 w-8 text-fg-subtle" />
+          <p className="max-w-md text-body-sm text-fg-muted">{t('compose.noPreview')}</p>
         </div>
-      </div>
-      {/* A hidden copy of the film, where the cover's frames are taken from. */}
-      <video
-        ref={captureRef}
-        src={picked.url}
-        muted
-        playsInline
-        preload="auto"
-        aria-hidden
-        tabIndex={-1}
-        className="pointer-events-none fixed top-0 left-0 h-px w-px opacity-0"
-      />
+      )}
       <ul aria-label={picked.file.name} className="flex flex-wrap gap-1.5">
         {[
           upright ? t('compose.upright') : t('compose.landscape'),
@@ -912,6 +961,7 @@ const STEP_LABELS = {
   cover: 'compose.steps.cover',
   publish: 'compose.steps.publish',
   order: 'compose.steps.order',
+  prepare: 'compose.steps.prepare',
 } as const;
 
 /** A step's number beside its heading ("1", "2", "3"). */
@@ -928,7 +978,7 @@ function StepNumber({ value }: { value: number }) {
 
 /**
  * The post's steps as they go; a film's upload shows how much has gone up of how much, how fast,
- * about how long is left, and a button to stop it.
+ * about how long is left, and a button to stop it; its making ready on the server, how far it is.
  */
 function Progress({
   run,
@@ -954,8 +1004,8 @@ function Progress({
             ? t(kind === 'PHOTO' ? 'compose.steps.photo' : 'compose.steps.video')
             : t(STEP_LABELS[step]);
         const film = step === 'file' && kind !== 'PHOTO' && transfer !== null;
-        // A photograph's share sent; a film shows its own numbers below.
-        const percent = step === 'file' && !film ? run.percent : null;
+        // A photograph's share sent, or how far the API is with a film; an upload has its own.
+        const percent = (step === 'file' && !film) || step === 'prepare' ? run.percent : null;
         return (
           <li key={step} className="space-y-1.5">
             <span

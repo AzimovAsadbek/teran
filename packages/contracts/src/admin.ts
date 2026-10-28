@@ -476,6 +476,16 @@ export const mediaUploadChunkQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
 });
 
+/**
+ * Hands a finished upload over to be made ready for the site (ADR-062). `poster`: the browser could
+ * not show the film (HEVC in a browser without it), so it has no frame to make a cover of; the API
+ * takes the cover from the film itself when the item has none.
+ */
+export const mediaUploadCompleteSchema = z
+  .object({ poster: z.boolean().default(false) })
+  .default({ poster: false });
+export type MediaUploadCompleteInput = z.input<typeof mediaUploadCompleteSchema>;
+
 /** A film being uploaded: how much of it the API has. */
 export interface MediaUploadSession {
   id: string;
@@ -858,10 +868,25 @@ export interface AdminMediaItem {
   videoDurationSeconds: number | null;
   /** Subtitles (WebVTT) for a video, when uploaded. */
   captions: { src: string } | null;
+  /** The film being made ready after its upload, or why it could not be; null when there is none. */
+  videoJob: AdminMediaVideoJob | null;
   publishedAt: string | null;
   updatedAt: string;
   translations: AdminTranslation<z.output<typeof mediaTranslationInputSchema>>;
   readiness: Readiness;
+}
+
+/**
+ * What happens to an uploaded film (ADR-062): it waits its turn, then the API reads it and keeps it
+ * as it is, copies it into an MP4 or converts it (an iPhone's HEVC or QuickTime film); or it was
+ * refused, with the reason (`unsupported_video`, `video_conversion_failed`,
+ * `video_conversion_unavailable`, `disk_full`). Once the film is kept, the item has no job.
+ */
+export interface AdminMediaVideoJob {
+  state: 'waiting' | 'working' | 'failed';
+  /** How far a conversion is, 0–100; null while waiting, or when the film's length is unknown. */
+  percent: number | null;
+  reason: string | null;
 }
 
 export interface SalesDay {

@@ -1,16 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
-import { PICTURES, publishProduct, signInAsAdmin, visible } from './support/admin.ts';
+import { expect, test } from '@playwright/test';
+import { PICTURES, hydrated, publishProduct, signInAsAdmin, visible } from './support/admin.ts';
 
 /*
  * Pictures do what they show: a product's picture opens the zoomed gallery, a pack opens its tea,
  * and a picture beside a link leads where the link does (the home page's pair).
  */
-
-/** Waits until the page's scripts run, so a click reaches React's handlers. */
-async function hydrated(page: Page) {
-  await page.waitForFunction(() => document.readyState === 'complete');
-  await page.waitForLoadState('networkidle');
-}
 
 test.describe('pictures', () => {
   test("a product's picture opens the zoomed gallery, which Escape closes", async ({ page }) => {

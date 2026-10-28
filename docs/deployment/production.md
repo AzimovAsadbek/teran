@@ -45,8 +45,9 @@ ports the server's Nginx already uses for the site) and kept in `.deploy.env`.
 - **Server.** Linux (x86-64 or arm64) with Docker Engine and the Compose plugin (v2.24 or newer),
   Git, `curl` (or `wget`) and Bash, run by a user allowed to use Docker (no root needed). 2 vCPU and
   4 GB RAM are enough to build and run the stack; building the web image is the most memory-hungry
-  step. Leave room on disk for the images (about 2.5 GB per release kept), the database, the uploads
-  volume (without R2) and the backups.
+  step. A film converted from an iPhone (ADR-062) keeps one CPU busy, at the lowest priority, while
+  it lasts. Leave room on disk for the images (about 2.7 GB per release kept; ffmpeg adds 184 MB to the API's), the database, the
+  uploads volume (films are made ready on it even with R2) and the backups.
 - **Ports.** Two free TCP ports on 127.0.0.1 (1024–65535), one for the storefront and one for the
   API; `deploy.sh` checks them. Nothing else is published.
 - **Firewall.** Inbound TCP 80 and 443 plus SSH only. Docker publishes on 127.0.0.1, so the
@@ -293,6 +294,13 @@ teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed
     --title-uz '…' --title-ru '…' --title-en '…'
   ```
 
+- Films from iPhones (ADR-062): the API image includes ffmpeg (Alpine's package). A finished upload
+  is made ready in the background, one film at a time, in `.processing/` on the uploads volume: an
+  MP4 every browser plays is kept as it is, an iPhone's H.264 QuickTime film (what Safari sends) is
+  copied into an MP4 in seconds, and an HEVC film is converted to H.264 at the lowest CPU priority.
+  While that lasts the disk holds the upload and the result. The admin area shows the percentage;
+  the film appears on the site by itself when it is ready. A restart goes on with it.
+
 ## 7. Nginx
 
 The server's Nginx is configured by its administrator; nothing in this repository writes it. For
@@ -362,7 +370,9 @@ facts behind it. Every request gets one line when its answer is complete:
   Nginx's id, so its access log matches too.
 - **Other lines** have a `context`: the part of the API that wrote them (`OrdersService` "Order
   placed", `PaymentConfig` the payment mode at start, `Bootstrap` "TERAN API listening on …" with
-  the media store, mail transport, Telegram mode and checkout switch).
+  the media store, how films are made ready (`films`: the ffmpeg version, or
+  `mp4-webm-as-uploaded` without it), mail transport, Telegram mode and checkout switch;
+  `MediaFilmsService` "Film ready" or "Film refused" with the reason and ffmpeg's last words).
 - **Left out:** health checks, stored files and CORS preflights that worked, and Nest's list of
   modules and routes at start (`LOG_LEVEL=debug` shows it). Never logged: cookies, passwords,
   request bodies, IP addresses, and the `token` / `accessToken` values in addresses (`[redacted]`).
@@ -542,6 +552,7 @@ Getting this wrong either lets visitors spoof their IP or makes them share one r
 | `502 Bad Gateway` from Nginx                          | The containers are not up, or Nginx sends the site to other ports than `.deploy.env` (`./deploy.sh --status` shows both).                                                            |
 | `413 Request Entity Too Large` on an upload           | Nginx's `client_max_body_size` on `/api/v1/` (12 MB; a film's pieces are 8 MB).                                                                                                      |
 | Pictures or films blocked in the browser console      | `R2_PUBLIC_URL` changed without rebuilding the web image (content security policy), or the bucket's CORS rules do not allow the site.                                                |
+| A film stays "Tayyorlanmoqda", or is refused          | `teran logs api \| grep -E 'Film (ready\|refused)'`; the start-up line's `films` says whether ffmpeg runs (`mp4-webm-as-uploaded`: it does not, rebuild the API image).              |
 | Pages load but admin changes appear late              | `REVALIDATE_SECRET` differs between services; restart both with the same value.                                                                                                      |
 | Every visitor gets `429 RATE_LIMITED`                 | A proxy in front of Nginx is not accounted for (see [Behind a CDN](#behind-a-cdn)).                                                                                                  |
 | Every unprefixed (Uzbek) page redirects to itself     | The Next.js server was started with `HOSTNAME=127.0.0.1`. Use `0.0.0.0` (as the image does) or `localhost`; with `127.0.0.1`, Next.js 16 treats its own locale rewrites as external. |

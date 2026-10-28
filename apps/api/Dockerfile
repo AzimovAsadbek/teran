@@ -61,6 +61,9 @@ ENV NODE_ENV=production \
     PORT=4000 \
     UPLOADS_DIR=/data/uploads
 WORKDIR /app
+# ffmpeg and ffprobe make films from iPhones (QuickTime .MOV, HEVC) into MP4s that every browser
+# plays (ADR-062). Alpine's own package, signed like the base image; this layer stays cached.
+RUN apk add --no-cache ffmpeg
 # Code and dependencies stay owned by root, so the server cannot modify them. The pnpm layout
 # (node_modules/.pnpm plus per-package symlinks) is kept as installed.
 COPY --from=prod-deps /repo/node_modules ./node_modules
@@ -70,8 +73,9 @@ COPY --from=build /repo/packages/contracts/package.json ./packages/contracts/
 COPY --from=build /repo/packages/contracts/dist ./packages/contracts/dist
 COPY --from=build /repo/apps/api/package.json ./apps/api/
 COPY --from=build /repo/apps/api/dist ./apps/api/dist
-# Package managers are not needed at runtime. Uploaded images are the only files the server
-# writes; mount a persistent volume at /data/uploads.
+# Package managers are not needed at runtime. Uploaded images and films are the only files the
+# server writes (films are made ready in /data/uploads/.processing); mount a persistent volume at
+# /data/uploads.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-* \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn \
       /usr/local/bin/yarnpkg \

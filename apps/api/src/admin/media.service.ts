@@ -157,9 +157,11 @@ export class AdminMediaService {
             input.kind === 'PHOTO' ? 'photograph' : 'film',
           );
         }
-        const { _max } = await tx.mediaItem.aggregate({
+        // The newest comes first in its list (and on the site), whichever way it was added; the
+        // others keep their order behind it.
+        await tx.mediaItem.updateMany({
           where: { kind: input.kind },
-          _max: { position: true },
+          data: { position: { increment: 1 } },
         });
         const created = await tx.mediaItem.create({
           data: {
@@ -167,7 +169,7 @@ export class AdminMediaService {
             status: 'DRAFT',
             isFeatured: input.isFeatured,
             videoDurationSeconds: input.videoDurationSeconds,
-            position: (_max.position ?? -1) + 1,
+            position: 0,
             translations: { create: rows },
           },
           select: { id: true },

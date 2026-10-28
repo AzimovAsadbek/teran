@@ -962,7 +962,11 @@
       "clearFilters": "Clear filters",
       "open": "Open",
       "viewAll": "View all",
-      "advanced": "Advanced settings"
+      "advanced": "Advanced settings",
+      "leaveTitle": "Leave this page?",
+      "leaveNew": "What you entered and the files you chose will not be kept.",
+      "leave": "Leave",
+      "stay": "Stay"
     },
     "roles": {
       "CUSTOMER": "Customer",
@@ -1164,7 +1168,6 @@
       "removeVariant": "Remove pack size",
       "images": "Images",
       "imagesHint": "JPEG, PNG, WebP, AVIF or HEIC, at least 200 × 200 px, at most 12; large photos are scaled down before they go up. The first image is the main one shown in the catalogue.",
-      "imagesAfterSave": "You add images once the product is created: press Create below first.",
       "upload": "Upload images",
       "uploading": "Uploading…",
       "moveUp": "Move earlier",
@@ -1195,14 +1198,21 @@
       "mainImage": "Main image",
       "makeMain": "Make main image",
       "imagePosition": "Image {index}",
-      "createdDraft": "It is a draft for now. Upload its main image, then set the status to Active and save — a product without an image can’t go on sale.",
-      "createdActive": "It is now in the store. Now add its images.",
+      "createdDraft": "It is a draft for now: the store does not show it.",
+      "createdActive": "It is now in the store.",
       "otherLanguages": "Other languages",
       "otherLanguagesHint": "Russian and English name and descriptions. When empty, the Uzbek text is shown.",
       "listHint": "Select a row to open the product.",
       "brewTimeRange": "Enter 0.2 to 60 minutes",
       "saveDraftHint": "Drafts are not shown in the store.",
-      "formatOther": "Other (not shown)"
+      "formatOther": "Other (not shown)",
+      "uploadingImages": "Uploading photo {current} of {total}",
+      "publishing": "Putting it on sale…",
+      "imagesNeeded": "To put the product on sale, choose at least one photo, or set the status to Draft.",
+      "createActive": "Create and put on sale",
+      "createdImagesFailed": "{count, plural, one {# photo did not upload} other {# photos did not upload}} — upload them again under Photos.",
+      "createdNotPublished": "It could not go on sale, so it stays a draft. The list on the right shows what is missing: fill it in and save with the status Active.",
+      "createdOnSale": "Product created and put on sale."
     },
     "taxonomy": {
       "categories": "Categories",
@@ -1221,11 +1231,11 @@
       "cover": "Cover image",
       "coverEmpty": "No picture: a neutral TERAN mark is shown",
       "coverHint": "Shown in the menu, on the category page and on cards. At least 200 × 200 px; JPEG, PNG, WebP, AVIF or HEIC, large ones scaled down.",
-      "coverAfterSave": "The picture can be uploaded once it is saved.",
       "imageAlt": "Picture description",
       "imageAltHint": "When empty, the name is used.",
       "viewOnSite": "Open on the site",
-      "emptyOnSite": "Shown on the site as “Coming soon”"
+      "emptyOnSite": "Shown on the site as “Coming soon”",
+      "savedCoverFailed": "Saved, but the picture did not upload — upload it again when editing."
     },
     "inventory": {
       "title": "Inventory",
@@ -1341,7 +1351,6 @@
       "cover": "Cover image",
       "coverEmpty": "No cover: the article’s illustration is shown",
       "coverHint": "A landscape picture (16:9), ideally at least 1200 px wide. JPEG, PNG, WebP, AVIF or HEIC, large ones scaled down.",
-      "coverAfterSave": "The cover can be uploaded once the article is saved.",
       "excerptHint": "Shown in lists, on social networks and in the Telegram post.",
       "coverAlt": "Cover description",
       "coverAltHint": "Briefly describe what the cover shows (for screen readers).",
@@ -1362,11 +1371,19 @@
       "mediaDone": "Done",
       "mediaRemove": "Remove: {title}",
       "mediaMoveUp": "Move earlier: {title}",
-      "mediaMoveDown": "Move later: {title}"
+      "mediaMoveDown": "Move later: {title}",
+      "created": "Article created.",
+      "createdPublished": "It is published and shows on the site from its set time.",
+      "createdDraft": "It is a draft for now: the site does not show it.",
+      "createdCoverFailed": "The cover did not upload — upload it again here.",
+      "createdNotPublished": "It could not be published, so it stays a draft. The list on the right shows what is missing: fill it in and save with the status Published.",
+      "coverNeeded": "To publish the article, choose a cover, or set the status to Draft.",
+      "createPublished": "Create and publish",
+      "createdPublishedShort": "Article created and published."
     },
     "media": {
       "title": "Gallery",
-      "intro": "Photos and videos are managed separately: each kind has its own page on the site and its own order. For a quick post, press “Post”.",
+      "intro": "Photos and videos are managed separately: each kind has its own page on the site and its own order. A new one is added with its file on one page.",
       "newItem": "New item",
       "editItem": "Edit item",
       "item": "Item",
@@ -1397,7 +1414,6 @@
       "videoHint": "MP4, MOV (iPhone) or WebM, any size: a large video goes up in pieces, and an iPhone video is converted to MP4. The length, and whether it has sound, are read from the file. Upright videos play by themselves in the feed: muted on the home page, with sound when opened.",
       "noImage": "No photo uploaded yet",
       "noVideo": "No video uploaded yet",
-      "saveFirst": "Save it as a draft first — then you can upload the photo.",
       "order": "Order",
       "moveUp": "Move earlier",
       "moveDown": "Move later",
@@ -1416,7 +1432,6 @@
       "emptyVideos": "No videos yet. Add the first one.",
       "emptyShorts": "No shorts yet. Post the first one: it appears on the home page.",
       "hasCaptions": "Has subtitles",
-      "saveFirstVideo": "Save it as a draft first — then you can upload the video, its poster and subtitles.",
       "featuredVideoHint": "When ticked, it appears in the home page’s “Sip & scroll” feed (the gallery always has it).",
       "description": "Description",
       "posterAlt": "Poster description",
@@ -1462,17 +1477,11 @@
         "photo": "Uploading the photo",
         "cover": "Saving the cover",
         "publish": "Publishing on the site",
-        "order": "Putting it first in the list",
-        "prepare": "Preparing it for the site"
+        "captions": "Uploading subtitles"
       },
       "done": "Posted",
-      "doneText": "“{title}” is on the site. Its pages update within a few seconds.",
       "doneDraft": "Draft saved",
-      "doneDraftText": "“{title}” is not on the site yet: publish it from its edit page.",
-      "edit": "Edit",
-      "again": "Post another",
-      "openDraft": "Open the draft",
-      "retryHint": "Press “Post” again: finished steps are not repeated.",
+      "retryHint": "Press “Post” again: the steps already done are not repeated.",
       "coverFailed": "The cover frame could not be taken. Move the slider and try again.",
       "problems": {
         "unsupported": "This kind of file is not accepted: choose a photo (JPEG, PNG, WebP, AVIF, HEIC) or a video (MP4, MOV, WebM).",
@@ -1491,7 +1500,6 @@
       "hintVideo": "A landscape MP4, MOV (iPhone) or WebM, any size — with its sound.",
       "hintShort": "An upright MP4, MOV (iPhone) or WebM, any size — with its sound.",
       "switchTo": "Post as “{kind}”",
-      "viewOnHome": "See it on the home page",
       "whereShortLong": "Short: shown in the home page’s “Sip & scroll” feed and in the gallery’s “Short films”.",
       "whereVideoLong": "Video: shown in the gallery’s “Videos”.",
       "wherePhoto": "In the gallery’s “Photos”",
@@ -1514,7 +1522,9 @@
       "etaMinutes": "{count, plural, one {about # minute left} other {about # minutes left}}",
       "storing": "The video has gone up — the server is taking it over.",
       "preparing": "The video is being prepared for the site: an iPhone video is converted to MP4. Closing this page does not stop it — once ready, the video appears on the site by itself.",
-      "noPreview": "This browser can’t play this video (probably an iPhone’s HEVC). You can post it all the same: the site converts it to MP4 and takes its cover from the video itself."
+      "noPreview": "This browser can’t play this video (probably an iPhone’s HEVC). You can post it all the same: the site converts it to MP4 and takes its cover from the video itself.",
+      "leaveTitle": "Delete the unfinished post?",
+      "leaveDraft": "It was not posted in full. If you leave, the upload stops and the unfinished post is deleted."
     },
     "delivery": {
       "title": "Delivery methods",
@@ -1934,7 +1944,10 @@
         "video_conversion_failed": "The video could not be prepared for the site. Upload it again; if this happens again, save it as MP4 (H.264) and upload that.",
         "video_conversion_unavailable": "This server cannot convert iPhone videos (MOV, HEVC) to MP4: ffmpeg is not installed on it. Upload an MP4, or ask the server’s administrator."
       },
-      "resized": "The photo was large ({from}): it is uploaded at {width} × {height} px — the same quality on the site."
+      "resized": "The photo was large ({from}): it is uploaded at {width} × {height} px — the same quality on the site.",
+      "withItem": "Uploads when saved",
+      "withProduct": "The photos go up with the product when it is created.",
+      "removeChosen": "Remove “{name}”"
     },
     "images": {
       "altPresent": "Description added",

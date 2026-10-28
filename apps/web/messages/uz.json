@@ -962,7 +962,11 @@
       "clearFilters": "Filtrlarni tozalash",
       "open": "Ochish",
       "viewAll": "Hammasini koʻrish",
-      "advanced": "Qoʻshimcha sozlamalar"
+      "advanced": "Qoʻshimcha sozlamalar",
+      "leaveTitle": "Sahifadan chiqasizmi?",
+      "leaveNew": "Kiritilgan maʼlumotlar va tanlangan fayllar saqlanmaydi.",
+      "leave": "Chiqish",
+      "stay": "Qolish"
     },
     "roles": {
       "CUSTOMER": "Xaridor",
@@ -1164,7 +1168,6 @@
       "removeVariant": "Qadoqni olib tashlash",
       "images": "Rasmlar",
       "imagesHint": "JPEG, PNG, WebP, AVIF yoki HEIC, kamida 200 × 200 px, 12 tagacha; katta rasm yuklashdan oldin kichraytiriladi. Birinchi rasm asosiy: katalogda shu koʻrinadi.",
-      "imagesAfterSave": "Rasmlarni mahsulot yaratilgandan keyin qoʻshasiz: avval pastdagi «Yaratish» tugmasini bosing.",
       "upload": "Rasm yuklash",
       "uploading": "Yuklanmoqda…",
       "moveUp": "Oldinga surish",
@@ -1195,14 +1198,21 @@
       "mainImage": "Asosiy rasm",
       "makeMain": "Asosiy qilish",
       "imagePosition": "{index}-rasm",
-      "createdDraft": "U hozircha qoralama. Endi asosiy rasmni yuklang, soʻng holatni «Sotuvda» qilib saqlang — rasmsiz mahsulot sotuvga chiqmaydi.",
-      "createdActive": "U doʻkonda koʻrinadi. Endi rasmlarini qoʻshing.",
+      "createdDraft": "U hozircha qoralama: doʻkonda koʻrinmaydi.",
+      "createdActive": "U doʻkonda koʻrinadi.",
       "otherLanguages": "Boshqa tillar",
       "otherLanguagesHint": "Ruscha va inglizcha nom hamda tavsiflar. Boʻsh qolsa, oʻzbekchasi koʻrsatiladi.",
       "listHint": "Qatorni bosing — mahsulot ochiladi.",
       "brewTimeRange": "0,2 dan 60 daqiqagacha kiriting",
       "saveDraftHint": "Qoralama doʻkonda koʻrinmaydi.",
-      "formatOther": "Boshqa (koʻrsatilmaydi)"
+      "formatOther": "Boshqa (koʻrsatilmaydi)",
+      "uploadingImages": "Rasm yuklanmoqda: {current} / {total}",
+      "publishing": "Sotuvga chiqarilmoqda…",
+      "imagesNeeded": "Sotuvga chiqarish uchun kamida bitta rasm tanlang yoki holatni «Qoralama» qiling.",
+      "createActive": "Yaratish va sotuvga chiqarish",
+      "createdImagesFailed": "{count} ta rasm yuklanmadi — ularni «Rasmlar» boʻlimida qayta yuklang.",
+      "createdNotPublished": "Sotuvga chiqarib boʻlmadi, mahsulot qoralama boʻlib turibdi. Oʻngdagi roʻyxat nima yetishmayotganini koʻrsatadi: toʻldirib, holatni «Sotuvda» qilib saqlang.",
+      "createdOnSale": "Mahsulot yaratildi va sotuvga chiqarildi."
     },
     "taxonomy": {
       "categories": "Turkumlar",
@@ -1221,11 +1231,11 @@
       "cover": "Muqova rasmi",
       "coverEmpty": "Rasm yoʻq: neytral TERAN belgisi koʻrsatiladi",
       "coverHint": "Menyu, turkum sahifasi va kartochkalarda koʻrinadi. Kamida 200 × 200 px; JPEG, PNG, WebP, AVIF yoki HEIC, katta rasm kichraytiriladi.",
-      "coverAfterSave": "Rasmni saqlangandan keyin yuklash mumkin.",
       "imageAlt": "Rasm tavsifi",
       "imageAltHint": "Boʻsh qolsa, nomi ishlatiladi.",
       "viewOnSite": "Saytda ochish",
-      "emptyOnSite": "Saytda «Tez orada» bilan koʻrinadi"
+      "emptyOnSite": "Saytda «Tez orada» bilan koʻrinadi",
+      "savedCoverFailed": "Saqlandi, lekin rasm yuklanmadi — uni tahrirlash oynasida qayta yuklang."
     },
     "inventory": {
       "title": "Ombor",
@@ -1341,7 +1351,6 @@
       "cover": "Muqova rasmi",
       "coverEmpty": "Muqova yoʻq: maqola illyustratsiyasi koʻrsatiladi",
       "coverHint": "Gorizontal surat (16:9), kengligi kamida 1200 px tavsiya etiladi. JPEG, PNG, WebP, AVIF yoki HEIC, katta rasm kichraytiriladi.",
-      "coverAfterSave": "Muqovani maqola saqlangandan keyin yuklash mumkin.",
       "excerptHint": "Roʻyxatlarda, ijtimoiy tarmoqlarda va Telegram postida koʻrinadi.",
       "coverAlt": "Muqova tavsifi",
       "coverAltHint": "Muqovada nima tasvirlanganini qisqa yozing (ekran oʻqish dasturlari uchun).",
@@ -1362,11 +1371,19 @@
       "mediaDone": "Tayyor",
       "mediaRemove": "Olib tashlash: {title}",
       "mediaMoveUp": "Oldinga surish: {title}",
-      "mediaMoveDown": "Orqaga surish: {title}"
+      "mediaMoveDown": "Orqaga surish: {title}",
+      "created": "Maqola yaratildi.",
+      "createdPublished": "U eʼlon qilindi va belgilangan vaqtdan saytda koʻrinadi.",
+      "createdDraft": "U hozircha qoralama: saytda koʻrinmaydi.",
+      "createdCoverFailed": "Muqova yuklanmadi — uni shu yerda qayta yuklang.",
+      "createdNotPublished": "Eʼlon qilib boʻlmadi, maqola qoralama boʻlib turibdi. Oʻngdagi roʻyxat nima yetishmayotganini koʻrsatadi: toʻldirib, holatni «Eʼlon qilingan» qilib saqlang.",
+      "coverNeeded": "Eʼlon qilish uchun muqova rasmini tanlang yoki holatni «Qoralama» qiling.",
+      "createPublished": "Yaratish va eʼlon qilish",
+      "createdPublishedShort": "Maqola yaratildi va eʼlon qilindi."
     },
     "media": {
       "title": "Galereya",
-      "intro": "Rasmlar va videolar alohida boshqariladi: har birining saytda oʻz sahifasi va tartibi bor. Tez joylash uchun “Joylash” tugmasini bosing.",
+      "intro": "Rasmlar va videolar alohida boshqariladi: har birining saytda oʻz sahifasi va tartibi bor. Yangisi fayli bilan birga bitta sahifada joylanadi.",
       "newItem": "Yangi lavha",
       "editItem": "Lavhani tahrirlash",
       "item": "Lavha",
@@ -1397,7 +1414,6 @@
       "videoHint": "MP4, MOV (iPhone) yoki WebM, hajmi cheklanmagan: katta video boʻlaklab yuklanadi, iPhone videosi esa MP4 ga aylantiriladi. Davomiyligi va ovozi bor-yoʻqligi fayldan oʻzi aniqlanadi. Tik videolar lentada oʻzi oʻynaydi: bosh sahifada ovozsiz, ochilganda ovozi bilan.",
       "noImage": "Surat hali yuklanmagan",
       "noVideo": "Video hali yuklanmagan",
-      "saveFirst": "Avval qoralama sifatida saqlang — keyin rasmni yuklash mumkin.",
       "order": "Tartib",
       "moveUp": "Oldinga surish",
       "moveDown": "Keyinga surish",
@@ -1416,7 +1432,6 @@
       "emptyVideos": "Hali video yoʻq. Birinchi videoni qoʻshing.",
       "emptyShorts": "Hali shorts yoʻq. Birinchisini joylang — u bosh sahifada chiqadi.",
       "hasCaptions": "Subtitrlar bor",
-      "saveFirstVideo": "Avval qoralama sifatida saqlang — keyin video, poster va subtitrlarni yuklash mumkin.",
       "featuredVideoHint": "Belgilansa, bosh sahifadagi “Bir piyola, bir lavha” lentasida chiqadi (galereyada har doim turadi).",
       "description": "Tavsif",
       "posterAlt": "Poster tavsifi",
@@ -1462,16 +1477,10 @@
         "photo": "Rasm yuklanmoqda",
         "cover": "Muqova kadri saqlanmoqda",
         "publish": "Saytda eʼlon qilinmoqda",
-        "order": "Roʻyxatda birinchi qoʻyilmoqda",
-        "prepare": "Saytga tayyorlanmoqda"
+        "captions": "Subtitrlar yuklanmoqda"
       },
       "done": "Joylandi",
-      "doneText": "“{title}” saytda. Sahifalar bir necha soniyada yangilanadi.",
       "doneDraft": "Qoralama saqlandi",
-      "doneDraftText": "“{title}” hali saytda koʻrinmaydi: uni tahrirlash sahifasida eʼlon qiling.",
-      "edit": "Tahrirlash",
-      "again": "Yana joylash",
-      "openDraft": "Qoralamani ochish",
       "retryHint": "“Joylash”ni yana bosing: bajarilgan qadamlar takrorlanmaydi.",
       "coverFailed": "Muqova kadrini olib boʻlmadi. Slayderni boshqa joyga surib, qayta urinib koʻring.",
       "problems": {
@@ -1491,7 +1500,6 @@
       "hintVideo": "Gorizontal MP4, MOV (iPhone) yoki WebM, hajmi cheklanmagan — ovozi bilan saqlanadi.",
       "hintShort": "Tik (telefon formatidagi) MP4, MOV (iPhone) yoki WebM, hajmi cheklanmagan — ovozi bilan saqlanadi.",
       "switchTo": "“{kind}” sifatida joylash",
-      "viewOnHome": "Bosh sahifada koʻrish",
       "whereShortLong": "Shorts: bosh sahifadagi “Bir piyola, bir lavha” lentasida va galereyaning “Qisqa lavhalar” boʻlimida chiqadi.",
       "whereVideoLong": "Video: galereyaning “Videolar” boʻlimida chiqadi.",
       "wherePhoto": "Galereyaning “Rasmlar” boʻlimida",
@@ -1514,7 +1522,9 @@
       "etaMinutes": "taxminan {count} daqiqa qoldi",
       "storing": "Video yuklandi — server uni qabul qilib olmoqda.",
       "preparing": "Video saytga tayyorlanmoqda: iPhone videosi MP4 ga aylantiriladi. Sahifani yopsangiz ham ish toʻxtamaydi — tayyor boʻlgach, video saytda oʻzi chiqadi.",
-      "noPreview": "Bu brauzer videoni koʻrsata olmaydi (ehtimol, iPhone’ning HEVC formati). Uni baribir joylash mumkin: sayt videoni MP4 ga aylantiradi va muqovasini videoning oʻzidan oladi."
+      "noPreview": "Bu brauzer videoni koʻrsata olmaydi (ehtimol, iPhone’ning HEVC formati). Uni baribir joylash mumkin: sayt videoni MP4 ga aylantiradi va muqovasini videoning oʻzidan oladi.",
+      "leaveTitle": "Yaratilayotgan joylanma oʻchirilsinmi?",
+      "leaveDraft": "U toʻliq joylanmadi. Chiqsangiz, yuklash toʻxtatiladi va yaratilayotgan joylanma oʻchiriladi."
     },
     "delivery": {
       "title": "Yetkazib berish usullari",
@@ -1934,7 +1944,10 @@
         "video_conversion_failed": "Videoni saytga tayyorlab boʻlmadi. Uni qayta yuklang; yana shunday boʻlsa, MP4 (H.264) qilib saqlab yuklang.",
         "video_conversion_unavailable": "Bu server iPhone videolarini (MOV, HEVC) MP4 ga aylantira olmaydi: unda ffmpeg oʻrnatilmagan. MP4 video yuklang yoki server administratoriga murojaat qiling."
       },
-      "resized": "Rasm katta edi ({from}): {width} × {height} px qilib yuklanadi — saytdagi sifati bir xil."
+      "resized": "Rasm katta edi ({from}): {width} × {height} px qilib yuklanadi — saytdagi sifati bir xil.",
+      "withItem": "Saqlashda yuklanadi",
+      "withProduct": "Rasmlar mahsulot yaratilganda u bilan birga yuklanadi.",
+      "removeChosen": "«{name}» ni olib tashlash"
     },
     "images": {
       "altPresent": "Tavsif bor",

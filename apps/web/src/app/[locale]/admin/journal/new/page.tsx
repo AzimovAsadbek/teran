@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { ArticleEditor } from '@/components/admin/article-editor';
+import { FreshEachVisit } from '@/components/admin/fresh-each-visit';
 import { AdminPageHeader } from '@/components/admin/ui';
 import { adminGet, getTelegramSettings } from '@/lib/admin/server';
 
@@ -21,7 +22,9 @@ export default async function NewArticlePage() {
   return (
     <>
       <AdminPageHeader title={t('journal.newArticle')} />
-      <ArticleEditor article={null} telegram={telegram} gallery={gallery ?? []} />
+      <FreshEachVisit>
+        <ArticleEditor article={null} telegram={telegram} gallery={gallery ?? []} />
+      </FreshEachVisit>
     </>
   );
 }

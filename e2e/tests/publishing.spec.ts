@@ -209,6 +209,10 @@ test.describe('publishing workflow', () => {
       .fill('The first spring leaves were picked this week.\n\nThey are being dried now.');
     await field(page, 'URL slug').fill(slug);
     await page.getByRole('button', { name: 'Create' }).click();
+    // Saved as a draft, then back to the list, where it comes first; it is opened from there.
+    await expect(page).toHaveURL(/\/en\/admin\/journal$/);
+    await expect(visible(page.getByText('Article created.', { exact: true }))).toBeVisible();
+    await visible(page.getByRole('link', { name: title })).click();
     await expect(page).toHaveURL(/\/en\/admin\/journal\/[0-9a-f-]{36}$/);
 
     // A draft without a cover cannot be published: the editor says what is missing.
@@ -217,12 +221,17 @@ test.describe('publishing workflow', () => {
     await expect(visible(page.getByText(/Can’t publish yet — missing: Cover image/))).toBeVisible();
     await field(page, 'Status').selectOption('DRAFT');
 
-    await page.locator('#article-cover input[type="file"]').setInputFiles(PICTURES.terraces);
-    await page
-      .locator('#article-cover')
-      .getByRole('button', { name: 'Upload', exact: true })
-      .click();
-    await expect(page.locator('#article-cover img[src*="/uploads/articles/"]')).toBeVisible();
+    // (The new article's form, visited before, stays in the document, hidden: only what is on
+    // screen counts.)
+    await visible(page.locator('#article-cover input[type="file"]')).setInputFiles(
+      PICTURES.terraces,
+    );
+    await visible(
+      page.locator('#article-cover').getByRole('button', { name: 'Upload', exact: true }),
+    ).click();
+    await expect(
+      visible(page.locator('#article-cover img[src*="/uploads/articles/"]')),
+    ).toBeVisible();
 
     // The preview shows the real page while it is still a draft.
     const previewPromise = context.waitForEvent('page');
@@ -290,17 +299,61 @@ test.describe('publishing workflow', () => {
     await reader.close();
   });
 
+  test('an article is created with its cover and published in one go', async ({ page }) => {
+    await signInAsAdmin(page);
+    await page.goto('/en/admin/journal/new');
+    const slug = `e2e-one-go-${Date.now().toString(36)}`;
+    const title = `E2E first flush ${slug}`;
+    await page.locator('[name="uz-title"]').fill(title);
+    await page
+      .locator('[name="uz-body"]')
+      .fill('Picked, dried and packed in the same week of the spring.');
+    await field(page, 'URL slug').fill(slug);
+    await field(page, 'Status').selectOption('PUBLISHED');
+
+    // Publishing needs a cover: the editor says so before anything is created.
+    await page.getByRole('button', { name: 'Create and publish' }).click();
+    await expect(visible(page.getByText(/^To publish the article, choose a cover/))).toBeVisible();
+    await page.locator('#article-cover input[type="file"]').setInputFiles(PICTURES.terraces);
+    await expect(
+      visible(page.locator('#article-cover').getByText('Uploads when saved', { exact: true })),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Create and publish' }).click();
+    // Then back to the list, where it comes first, published with its cover.
+    await expect(page).toHaveURL(/\/en\/admin\/journal$/);
+    await expect(visible(page.getByText('Article created and published.'))).toBeVisible();
+    await expect(visible(page.locator('main tbody tr'))).toContainText(title);
+
+    const reader = await page.context().newPage();
+    await expect(async () => {
+      await reader.goto(`/en/journal/${slug}`);
+      await expect(visible(reader.getByRole('heading', { level: 1, name: title }))).toBeVisible({
+        timeout: 1_000,
+      });
+    }).toPass({ timeout: 20_000 });
+    await reader.close();
+  });
+
   test('photos and videos have separate pages; a video gets its poster, length and subtitles', async ({
     page,
   }) => {
     test.setTimeout(120_000);
     await signInAsAdmin(page);
-    await page.goto('/en/admin/media?kind=videos');
-    await page.getByRole('link', { name: 'New video' }).click();
+    // New films are posted with their files in one go (ADR-063); the editor takes a film's file,
+    // poster and subtitles one by one, to replace them later. A draft made through the API stands
+    // in for a film posted earlier.
     const title = `E2E garden film ${Date.now().toString(36)}`;
-    await field(page, 'Title').fill(title);
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(page).toHaveURL(/\/en\/admin\/media\/[0-9a-f-]{36}$/);
+    const created = await page.request.post(`${API}/admin/media`, {
+      data: {
+        kind: 'VIDEO',
+        status: 'DRAFT',
+        isFeatured: false,
+        videoDurationSeconds: null,
+        translations: { uz: { title }, ru: null, en: null },
+      },
+    });
+    expect(created.status()).toBe(201);
+    await page.goto(`/en/admin/media/${((await created.json()) as { id: string }).id}`);
     const status = field(page, 'Status');
     await expect(status.locator('option[value="PUBLISHED"]')).toBeDisabled();
 
@@ -377,19 +430,26 @@ test.describe('publishing workflow', () => {
     page,
   }) => {
     test.setTimeout(120_000);
-    type Listed = { items: { id: string; title: string; video: { hasAudio: boolean } | null }[] };
+    type Listed = {
+      items: {
+        id: string;
+        title: string;
+        video: { hasAudio: boolean; captions: { src: string } | null } | null;
+      }[];
+    };
     const listed = async (kind: 'PHOTO' | 'VIDEO' | 'SHORT') =>
       (await (
         await page.request.get(`${API}/content/media?locale=en&kind=${kind}`)
       ).json()) as Listed;
     await signInAsAdmin(page);
     await page.goto('/en/admin/media?kind=shorts');
-    await page.getByRole('link', { name: 'Post', exact: true }).click();
+    await visible(page.getByRole('link', { name: 'New short' })).click();
     await expect(page).toHaveURL(/\/en\/admin\/media\/post\?kind=shorts$/);
     const main = page.getByRole('main');
     await expect(visible(main.getByRole('radio', { name: 'Shorts' }))).toBeChecked();
 
-    // A short: played here with its sound, its cover one of its frames, then posted in one go.
+    // A short: played here with its sound, its cover one of its frames, its texts and subtitles,
+    // then posted in one go (ADR-063).
     await main.locator('input[type="file"]').first().setInputFiles(REEL);
     await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
     await expect(visible(main.getByText(/^Short: shown in the home page/))).toBeVisible();
@@ -398,12 +458,28 @@ test.describe('publishing workflow', () => {
     ).toBeVisible();
     const film = `E2E short ${Date.now().toString(36)}`;
     await field(page, 'Title').fill(film);
-    await page.getByRole('button', { name: 'Post', exact: true }).click();
-    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
-      timeout: 30_000,
+    await field(page, 'Poster description').fill('Steam over a cup at dawn');
+    await main.locator('input[type="file"][accept*=".vtt"]').setInputFiles({
+      name: 'dawn.vtt',
+      mimeType: 'text/vtt',
+      buffer: VTT,
     });
+    await expect(visible(main.getByText('dawn.vtt', { exact: true }))).toBeVisible();
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    // Then back to the shorts, where it comes first; the site has it once the API has read it.
+    await expect(page).toHaveURL(/\/en\/admin\/media\?kind=shorts$/);
+    await expect(visible(page.locator('main tbody tr'))).toContainText(film);
+    await expect
+      .poll(async () => (await listed('SHORT')).items[0]?.title, { timeout: 30_000 })
+      .toBe(film);
     const shorts = await listed('SHORT');
-    expect(shorts.items[0]).toMatchObject({ title: film, video: { hasAudio: true } });
+    expect(shorts.items[0]).toMatchObject({
+      title: film,
+      video: {
+        hasAudio: true,
+        captions: { src: expect.stringMatching(/captions\.vtt$/) as unknown },
+      },
+    });
     expect((await listed('VIDEO')).items.map((item) => item.title)).not.toContain(film);
 
     // On the home page it is first in the feed, and opens with its sound offered.
@@ -430,20 +506,20 @@ test.describe('publishing workflow', () => {
     await expect(visible(main.getByRole('radio', { name: 'Shorts' }))).toBeChecked();
     await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
 
-    // A photograph, then "Post another".
+    // A photograph posts the same way; opened again, the page is empty, nothing of the last post.
     await page.goto('/en/admin/media/post?kind=photos');
     await main.locator('input[type="file"]').first().setInputFiles(PICTURES.lake);
     await expect(visible(main.getByRole('img', { name: /lake\.webp/ }))).toBeVisible();
     const photo = `E2E photo ${Date.now().toString(36)}`;
     await field(page, 'Title').fill(photo);
     await page.getByRole('button', { name: 'Post', exact: true }).click();
-    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
-      timeout: 30_000,
-    });
+    await expect(page).toHaveURL(/\/en\/admin\/media$/);
+    await expect(visible(page.locator('main tbody tr'))).toContainText(photo);
     const photos = await listed('PHOTO');
     expect(photos.items[0]).toMatchObject({ title: photo, video: null });
-    await page.getByRole('button', { name: 'Post another' }).click();
+    await visible(page.getByRole('link', { name: 'New photo' })).click();
     await expect(visible(main.getByText('Drop a photo here'))).toBeVisible();
+    await expect(field(page, 'Title')).toHaveValue('');
 
     // Clean up: the stack's other journeys expect no films.
     for (const id of [shorts.items[0]!.id, photos.items[0]!.id]) {
@@ -482,16 +558,36 @@ test.describe('publishing workflow', () => {
       const title = `E2E iPhone film ${Date.now().toString(36)}`;
       await field(page, 'Title').fill(title);
       await page.getByRole('button', { name: 'Post', exact: true }).click();
-      await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
+      // Back on the list at once, first; the film is made ready behind it (ADR-062), and the list
+      // says so until it is, looking again by itself.
+      await expect(page).toHaveURL(/\/en\/admin\/media\?kind=videos$/);
+      await expect(visible(page.locator('main tbody tr'))).toContainText(title);
+      await expect(visible(page.locator('main tbody tr'))).toContainText('Ready', {
         timeout: 60_000,
       });
       posted.push(title);
     }
 
-    // Both are MP4s with their sound, and this browser plays them (it could not play the HEVC).
-    const films = (await (
-      await page.request.get(`${API}/content/media?locale=en&kind=VIDEO`)
-    ).json()) as Listed;
+    // Both are MP4s with their sound once made ready, and this browser plays them (it could not
+    // play the HEVC).
+    const listedFilms = async () =>
+      (await (
+        await page.request.get(`${API}/content/media?locale=en&kind=VIDEO`)
+      ).json()) as Listed;
+    await expect
+      .poll(
+        async () => {
+          const listed = await listedFilms();
+          return posted.filter((title) =>
+            /\/video\.mp4$/.test(
+              listed.items.find((entry) => entry.title === title)?.video?.src ?? '',
+            ),
+          ).length;
+        },
+        { timeout: 120_000, intervals: [1000] },
+      )
+      .toBe(posted.length);
+    const films = await listedFilms();
     for (const title of posted) {
       const film = films.items.find((entry) => entry.title === title);
       expect(film?.video).toMatchObject({
@@ -531,6 +627,45 @@ test.describe('publishing workflow', () => {
     }
   });
 
+  test('leaving the composer asks first, and an unfinished post is deleted', async ({ page }) => {
+    test.setTimeout(120_000);
+    await signInAsAdmin(page);
+    const main = page.getByRole('main');
+    const menu = page.getByRole('navigation', { name: 'Administration' });
+    await page.goto('/en/admin/media/post?kind=shorts');
+    await main.locator('input[type="file"]').first().setInputFiles(REEL);
+    await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
+    const title = `E2E unfinished short ${Date.now().toString(36)}`;
+    await field(page, 'Title').fill(title);
+
+    // Entries only: a link asks first, and staying keeps them.
+    await menu.getByRole('link', { name: 'Dashboard' }).click();
+    const ask = page.getByRole('dialog', { name: 'Leave this page?' });
+    await expect(ask).toBeVisible();
+    await ask.getByRole('button', { name: 'Stay' }).click();
+    await expect(page).toHaveURL(/\/en\/admin\/media\/post\?kind=shorts$/);
+    await expect(field(page, 'Title')).toHaveValue(title);
+
+    // A post stopped half way (the film's pieces never arrive): leaving says the unfinished item
+    // goes, and deletes it.
+    await page.route('**/video/uploads/**', (route) =>
+      route.request().method() === 'PUT' ? route.abort() : route.continue(),
+    );
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    await expect(visible(main.getByRole('button', { name: 'Continue' }))).toBeVisible({
+      timeout: 60_000,
+    });
+    await menu.getByRole('link', { name: 'Dashboard' }).click();
+    const drop = page.getByRole('dialog', { name: 'Delete the unfinished post?' });
+    await expect(drop).toBeVisible();
+    await drop.getByRole('button', { name: 'Leave' }).click();
+    await expect(page).toHaveURL(/\/en\/admin$/);
+    const shorts = (await (await page.request.get(`${API}/admin/media?kind=SHORT`)).json()) as {
+      translations: { uz: { title: string } };
+    }[];
+    expect(shorts.map((item) => item.translations.uz.title)).not.toContain(title);
+  });
+
   test('iPhone shorts reach the home page feed as MP4s with their sound', async ({ page }) => {
     test.skip(!VIDEO_TOOLS && !process.env.CI, 'The stack needs ffmpeg to make iPhone films MP4s');
     test.setTimeout(180_000);
@@ -549,13 +684,13 @@ test.describe('publishing workflow', () => {
     const hevc = `E2E iPhone short ${Date.now().toString(36)}`;
     await field(page, 'Title').fill(hevc);
     await page.getByRole('button', { name: 'Post', exact: true }).click();
-    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
-      timeout: 60_000,
-    });
+    await expect(page).toHaveURL(/\/en\/admin\/media\?kind=shorts$/);
+    await expect(visible(page.locator('main tbody tr'))).toContainText(hevc);
 
     // What Safari hands over from an iPhone's photo picker: H.264 in a QuickTime film.
-    await page.getByRole('button', { name: 'Post another' }).click();
-    await main.locator('input[type="file"]').first().setInputFiles(IPHONE.safariUpright);
+    await visible(page.getByRole('link', { name: 'New short' })).click();
+    // (The first post's page, visited before, stays in the document, hidden.)
+    await visible(main.locator('input[type="file"]')).setInputFiles(IPHONE.safariUpright);
     await expect(visible(main.locator('video[controls][src^="blob:"]'))).toBeVisible();
     await expect(
       visible(main.getByRole('slider', { name: 'Time of the cover frame' })),
@@ -563,13 +698,25 @@ test.describe('publishing workflow', () => {
     const safari = `E2E Safari short ${Date.now().toString(36)}`;
     await field(page, 'Title').fill(safari);
     await page.getByRole('button', { name: 'Post', exact: true }).click();
-    await expect(visible(page.getByRole('heading', { name: 'Posted' }))).toBeVisible({
-      timeout: 60_000,
-    });
+    await expect(page).toHaveURL(/\/en\/admin\/media\?kind=shorts$/);
+    await expect(visible(page.locator('main tbody tr'))).toContainText(safari);
 
-    const shorts = (await (
-      await page.request.get(`${API}/content/media?locale=en&kind=SHORT&featured=true`)
-    ).json()) as Listed;
+    // Both are made ready behind the list (ADR-062): the home page's feed has them, newest first.
+    const featured = async () =>
+      (await (
+        await page.request.get(`${API}/content/media?locale=en&kind=SHORT&featured=true`)
+      ).json()) as Listed;
+    await expect
+      .poll(
+        async () =>
+          (await featured()).items
+            .slice(0, 2)
+            .filter((item) => /\/video\.mp4$/.test(item.video?.src ?? ''))
+            .map((item) => item.title),
+        { timeout: 120_000, intervals: [1000] },
+      )
+      .toEqual([safari, hevc]);
+    const shorts = await featured();
     expect(shorts.items.slice(0, 2).map((item) => item.title)).toEqual([safari, hevc]);
     for (const item of shorts.items.slice(0, 2)) {
       expect(await plays(page, item.video!.src)).toMatchObject({ width: 360, height: 640 });

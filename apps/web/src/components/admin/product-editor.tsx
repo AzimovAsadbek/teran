@@ -3,6 +3,7 @@
 import {
   CAFFEINE_LEVELS,
   ILLUSTRATION_KEYS,
+  MAX_PRODUCT_IMAGES,
   PRODUCT_FORMATS,
   PRODUCT_STATUSES,
   productUpsertSchema,
@@ -11,10 +12,12 @@ import {
   type AdminTaxonomy,
   type Locale,
   type ProductAttributeInput,
+  type ProductUpsertInput,
   type TelegramMode,
 } from '@teran/contracts';
-import { Eye, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { Eye, ExternalLink, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter as useNextRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ApiAlert, SubmitButton } from '@/components/account/auth-forms';
 import { buttonClasses } from '@/components/ui/button';
@@ -27,11 +30,14 @@ import {
 } from '@/components/ui/field';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
+import { uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { formatMoney } from '@/lib/format';
 import { slugify, suggestSku } from '@/lib/slugify';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { useAdminErrorMessage } from './admin-errors';
+import { ConfirmDialog } from './confirm-dialog';
+import { PendingImages } from './pending-images';
 import { ReadinessChecklist } from './readiness-checklist';
 import { TelegramPanel } from './telegram-panel';
 import { notify } from './toast';
@@ -41,6 +47,7 @@ import {
   TranslationEditor,
   type LocalizedValue,
 } from './translation-editor';
+import { useLeaveGuard } from './use-leave-guard';
 
 const TEXT_KEYS = [
   'name',
@@ -344,7 +351,7 @@ export function ProductEditor({
   categories: AdminTaxonomy[];
   collections: AdminTaxonomy[];
   productTypes: AdminProductType[];
-  /** The photo manager (existing products only: photos are added after the first save). */
+  /** The photo manager of an existing product; a new one chooses its photos here (ADR-063). */
   images?: ReactNode;
   /** How the channel is configured (announcements are switched per product). */
   telegram: { mode: TelegramMode; channel: string | null };
@@ -355,11 +362,20 @@ export function ProductEditor({
   const tp = useTranslations('Product');
   const locale = useLocale() as Locale;
   const router = useRouter();
+  const nextRouter = useNextRouter();
   const message = useValidationMessage();
   const explain = useAdminErrorMessage();
   const formRef = useRef<HTMLFormElement>(null);
+  const imagesRef = useRef<HTMLDivElement>(null);
   const form = useFormSubmission(formRef);
   const [draft, setDraft] = useState<Draft>(() => withAuto(toDraft(product)));
+  /** A new product's photos, sent right after it is created. */
+  const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [imagesNeeded, setImagesNeeded] = useState(false);
+  /** What creating a product is doing now (its photos go up one by one). */
+  const [progress, setProgress] = useState<string | null>(null);
+  /** Where staff were going when a new product's unsaved entries made the page ask first. */
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
   const [initialPayload] = useState(() =>
     JSON.stringify(toPayload(withAuto(toDraft(product)), productTypes)),
   );
@@ -375,6 +391,8 @@ export function ProductEditor({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+  // A new product's entries are not kept when its page is left (ADR-063): a link asks first.
+  useLeaveGuard(product === null && (dirty || pendingImages.length > 0), setLeaveTo);
 
   const name = (row: AdminTaxonomy) => row.translations[locale]?.name ?? row.translations.uz.name;
   // Subcategories are shown with their parent: "Tea › Green tea".
@@ -497,18 +515,69 @@ export function ProductEditor({
         router.refresh();
       }
     } else {
-      const created: { id?: string } = {};
-      const saved = await form.submit(productUpsertSchema, payload, async (data) => {
-        const result = await apiRequest<AdminProductDetail>('/admin/products', {
-          method: 'POST',
-          body: data,
-        });
-        created.id = result.id;
-      });
-      if (saved && created.id) {
-        notify(t('products.created'));
-        router.replace(`/admin/products/${created.id}?created=1`);
+      // Created in one go (ADR-063): saved as a draft first (the API checks the photos before a
+      // product goes on sale), its photos uploaded, then saved with the status chosen here. What
+      // could not be done is said on the product's page, where the draft waits.
+      if (draft.status === 'ACTIVE' && pendingImages.length === 0) {
+        setImagesNeeded(true);
+        imagesRef.current?.scrollIntoView({ block: 'center' });
+        return;
       }
+      setImagesNeeded(false);
+      const outcome = { id: '', failedImages: 0, published: true };
+      const saved = await form.submit(productUpsertSchema, payload, async (valid) => {
+        const data = valid as ProductUpsertInput;
+        const created = await apiRequest<AdminProductDetail>('/admin/products', {
+          method: 'POST',
+          body: { ...data, status: 'DRAFT' },
+        });
+        outcome.id = created.id;
+        for (const [index, file] of pendingImages.entries()) {
+          setProgress(
+            t('products.uploadingImages', { current: index + 1, total: pendingImages.length }),
+          );
+          try {
+            await uploadFile(`/admin/products/${created.id}/images`, file);
+          } catch {
+            outcome.failedImages += 1;
+          }
+        }
+        if (data.status === 'DRAFT') return;
+        outcome.published = false;
+        if (outcome.failedImages > 0) return;
+        setProgress(t('products.publishing'));
+        try {
+          // The pack sizes are sent back with the ids they were given, as the edit page does.
+          await apiRequest(`/admin/products/${created.id}`, {
+            method: 'PUT',
+            body: {
+              ...data,
+              variants: data.variants.map((variant) => ({
+                ...variant,
+                id: created.variants.find((saved) => saved.sku === variant.sku)?.id,
+                initialStock: undefined,
+              })),
+            },
+          });
+          outcome.published = true;
+        } catch {
+          // Not ready to go on sale (the checklist on its page says why): it stays a draft.
+        }
+      });
+      setProgress(null);
+      if (!saved || !outcome.id) return;
+      if (outcome.failedImages === 0 && outcome.published) {
+        // All done: back to the list, where the newest product comes first (ADR-063).
+        notify(draft.status === 'ACTIVE' ? t('products.createdOnSale') : t('products.created'));
+        router.replace('/admin/products');
+        return;
+      }
+      // Something is left to finish: the product's page says what, and the draft waits there.
+      notify(t('products.created'));
+      const query = new URLSearchParams({ created: '1' });
+      if (outcome.failedImages > 0) query.set('failedImages', String(outcome.failedImages));
+      if (!outcome.published) query.set('notPublished', '1');
+      router.replace(`/admin/products/${outcome.id}?${query.toString()}`);
     }
   }
 
@@ -572,9 +641,14 @@ export function ProductEditor({
           </Section>
 
           <Section id="section-images" title={t('products.images')}>
-            {images ?? (
-              <p className="text-body-sm text-fg-muted">{t('products.imagesAfterSave')}</p>
-            )}
+            <div ref={imagesRef}>
+              {images ?? <PendingImages max={MAX_PRODUCT_IMAGES} onChange={setPendingImages} />}
+              {imagesNeeded && pendingImages.length === 0 ? (
+                <p role="alert" className="mt-3 text-body-sm font-medium text-danger">
+                  {t('products.imagesNeeded')}
+                </p>
+              ) : null}
+            </div>
           </Section>
 
           <Section
@@ -1165,7 +1239,12 @@ export function ProductEditor({
         <ApiAlert message={explain(form.apiError) ?? form.apiErrorMessage} />
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 pt-0.5">
           <p className="mr-auto flex items-center gap-2 text-body-sm text-fg-muted">
-            {dirty ? (
+            {progress ? (
+              <>
+                <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+                {progress}
+              </>
+            ) : dirty ? (
               <>
                 <span aria-hidden className="h-2 w-2 rounded-full bg-warning" />
                 {t('common.unsaved')}
@@ -1196,12 +1275,32 @@ export function ProductEditor({
           ) : null}
           <SubmitButton
             sending={form.status === 'sending'}
-            label={product ? t('common.save') : t('common.create')}
+            label={
+              product
+                ? t('common.save')
+                : draft.status === 'ACTIVE'
+                  ? t('products.createActive')
+                  : t('common.create')
+            }
             sendingLabel={t('common.saving')}
             className="min-w-40"
           />
         </div>
       </div>
+      <ConfirmDialog
+        open={leaveTo !== null}
+        title={t('common.leaveTitle')}
+        description={t('common.leaveNew')}
+        confirmLabel={t('common.leave')}
+        cancelLabel={t('common.stay')}
+        tone="danger"
+        onClose={() => setLeaveTo(null)}
+        onConfirm={() => {
+          const href = leaveTo;
+          setLeaveTo(null);
+          if (href) nextRouter.push(href);
+        }}
+      />
     </form>
   );
 }

@@ -26,7 +26,13 @@ export function ReadinessChecklist({
 
   const jump = (item: ReadinessItem) => {
     const id = item.field ? sections[item.field] : undefined;
-    const target = id ? document.getElementById(id) : null;
+    // Pages visited before stay in the document, hidden, with the same section ids: the one on
+    // screen is the one that has a box.
+    const target = id
+      ? Array.from(document.querySelectorAll<HTMLElement>(`[id="${id}"]`)).find(
+          (element) => element.getClientRects().length > 0,
+        )
+      : undefined;
     if (!target) return;
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const field = target.querySelector<HTMLElement>(

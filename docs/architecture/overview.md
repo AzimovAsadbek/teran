@@ -118,6 +118,10 @@ How it is meant to read for a shop owner:
   inquiries, each a link to the filtered list; then what the site shows now (products on sale,
   the gallery by kind, published articles, reviews of the week). Sales figures appear only while
   prices are shown (ADR-027, ADR-061).
+- **Created in one go** (ADR-063): a new product, article, category, collection or gallery item is
+  filled in, given its pictures or film and published (when chosen) on one form with one button;
+  the browser creates it as a draft, uploads its files and then saves the chosen status, so the
+  API's readiness rules still decide. Its editor is for later changes.
 - **Lists** are tables from 768 px and cards below it (each value repeats its column name); a whole
   row opens the record. Filters live in the URL and apply as soon as an option is chosen; the order
   list has status tabs with counts and a payment filter.

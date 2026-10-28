@@ -42,7 +42,7 @@ export default async function EditMediaPage({ params }: PageProps<'/[locale]/adm
         }
       />
       {/* Keyed by item, not by version: uploading a file refreshes the page without wiping edits. */}
-      <MediaEditor key={item.id} item={item} kind={item.kind} />
+      <MediaEditor key={item.id} item={item} />
     </>
   );
 }

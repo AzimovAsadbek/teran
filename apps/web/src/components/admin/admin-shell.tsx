@@ -259,8 +259,9 @@ export function AdminShell({
           stay in view at the bottom. */}
       <aside className="hidden border-r border-line bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
         <div className="px-5 pt-6 pb-2">
+          {/* Often the largest thing on a page of text and figures: loaded at once. */}
           <Link href="/admin" aria-label={t('brand')}>
-            <Wordmark size="compact" />
+            <Wordmark size="compact" eager />
           </Link>
         </div>
         {demoNote ? <div className="mx-5 mt-3">{demoNote}</div> : null}
@@ -280,7 +281,7 @@ export function AdminShell({
             aria-haspopup="dialog"
           />
           <Link href="/admin" aria-label={t('brand')}>
-            <Wordmark size="compact" />
+            <Wordmark size="compact" eager />
           </Link>
           {isDemoContent ? <Badge tone="new">{t('demoBadge')}</Badge> : null}
         </header>

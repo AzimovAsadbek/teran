@@ -7,7 +7,6 @@ import {
   type AdminMediaVideoJob,
   type ArticleStatus,
   type Locale,
-  type MediaKind,
   type MediaUploadSession,
 } from '@teran/contracts';
 import { Captions, ExternalLink, Film, Loader2, Trash2, Upload, X } from 'lucide-react';
@@ -27,7 +26,7 @@ import {
   waitForFilm,
   type FilmUploadProgress,
 } from '@/lib/admin/film-upload';
-import { FILM_ACCEPT, isFilmFile, uploadFile } from '@/lib/admin/uploads';
+import { FILM_ACCEPT, isCaptionsFile, isFilmFile, uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
 import { formatFileSize } from '@/lib/format';
@@ -41,7 +40,6 @@ import { notify } from './toast';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
 
 const KEYS = ['title', 'caption', 'altText'] as const;
-const MAX_CAPTIONS_BYTES = 512 * 1024;
 
 /** Required items that only an upload can satisfy (the form itself cannot fix them). */
 const FILE_CODES = new Set(['image', 'video', 'poster']);
@@ -52,25 +50,24 @@ function duration(seconds: number | null): string | null {
 }
 
 /**
- * A photograph ("Rasm") or a film ("Video"); the kind is chosen when it is created and stays
- * fixed, so the two are managed apart. Texts in three languages, status, home-page featuring and,
- * once saved, the files: a photograph, or a film with its poster and optional subtitles. Every
- * file is previewed before it is sent, the checklist says what publishing still needs, and the
- * API checks the same rules.
+ * A posted photograph ("Rasm"), film ("Video") or short, edited later (items are created with
+ * their files in one go by the composer, ADR-063); the kind stays fixed, so they are managed apart.
+ * Texts in three languages, status, home-page featuring and the files: a photograph, or a film
+ * with its poster and optional subtitles. Every file is previewed before it is sent, the
+ * checklist says what publishing still needs, and the API checks the same rules.
  */
-export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind: MediaKind }) {
+export function MediaEditor({ item }: { item: AdminMediaItem }) {
+  const kind = item.kind;
   const t = useTranslations('Admin');
   const router = useRouter();
   const message = useValidationMessage();
   const explain = useAdminErrorMessage();
   const formRef = useRef<HTMLFormElement>(null);
   const form = useFormSubmission(formRef);
-  const [status, setStatus] = useState<ArticleStatus>(item?.status ?? 'DRAFT');
-  const [isFeatured, setFeatured] = useState(item?.isFeatured ?? true);
-  const [seconds, setSeconds] = useState(item?.videoDurationSeconds?.toString() ?? '');
-  const [translations, setTranslations] = useState(() =>
-    fromTranslation(item?.translations ?? null, KEYS),
-  );
+  const [status, setStatus] = useState<ArticleStatus>(item.status);
+  const [isFeatured, setFeatured] = useState(item.isFeatured);
+  const [seconds, setSeconds] = useState(item.videoDurationSeconds?.toString() ?? '');
+  const [translations, setTranslations] = useState(() => fromTranslation(item.translations, KEYS));
   const payload = {
     kind,
     status,
@@ -81,9 +78,9 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
   const [initial, setInitial] = useState(() => JSON.stringify(payload));
   // The API reads an uploaded film's running time from the file: take it over when it changes
   // (as saved, so the form does not count it as an unsaved edit).
-  const [knownSeconds, setKnownSeconds] = useState(item?.videoDurationSeconds ?? null);
-  if ((item?.videoDurationSeconds ?? null) !== knownSeconds) {
-    const next = item?.videoDurationSeconds ?? null;
+  const [knownSeconds, setKnownSeconds] = useState(item.videoDurationSeconds);
+  if (item.videoDurationSeconds !== knownSeconds) {
+    const next = item.videoDurationSeconds;
     setKnownSeconds(next);
     setSeconds(next?.toString() ?? '');
     setInitial((previous) =>
@@ -93,7 +90,7 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
   const dirty = JSON.stringify(payload) !== initial;
   const visible = form.errorsFor(payload);
   const error = (path: string, value?: string) => message(visible[path], value);
-  const missingFiles = (item?.readiness.items ?? []).filter(
+  const missingFiles = item.readiness.items.filter(
     (entry) => entry.required && !entry.ok && FILE_CODES.has(entry.code),
   );
 
@@ -106,18 +103,13 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const created: { id?: string } = {};
-    const saved = await form.submit(mediaUpsertSchema, payload, async (data) => {
-      const result = item
-        ? await apiRequest<AdminMediaItem>(`/admin/media/${item.id}`, { method: 'PUT', body: data })
-        : await apiRequest<AdminMediaItem>('/admin/media', { method: 'POST', body: data });
-      created.id = result.id;
-    });
-    if (saved && created.id) {
+    const saved = await form.submit(mediaUpsertSchema, payload, (data) =>
+      apiRequest<AdminMediaItem>(`/admin/media/${item.id}`, { method: 'PUT', body: data }),
+    );
+    if (saved) {
       notify(t('common.saved'));
       setInitial(JSON.stringify(payload));
-      if (item) router.refresh();
-      else router.replace(`/admin/media/${created.id}`);
+      router.refresh();
     }
   }
 
@@ -125,44 +117,42 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
       <div className="space-y-6">
-        {item ? (
-          <section
-            id="media-files"
-            aria-labelledby="media-files-title"
-            className="scroll-mt-24 space-y-6 rounded-card border border-line bg-surface p-5 sm:p-6"
-          >
-            <h2 id="media-files-title" className="text-body-lg font-semibold text-fg">
-              {t('media.files')}
-            </h2>
-            {video ? (
-              <>
-                <VideoSlot item={item} />
-                <div className="space-y-2">
-                  <h3 className="text-label text-fg">{t('media.poster')}</h3>
-                  <ImageUploader
-                    image={item.image}
-                    uploadPath={`/admin/media/${item.id}/image`}
-                    removePath={null}
-                    emptyText={t('media.noImage')}
-                    hint={t('media.posterHint')}
-                  />
-                </div>
-                <CaptionsSlot item={item} />
-              </>
-            ) : (
+        <section
+          id="media-files"
+          aria-labelledby="media-files-title"
+          className="scroll-mt-24 space-y-6 rounded-card border border-line bg-surface p-5 sm:p-6"
+        >
+          <h2 id="media-files-title" className="text-body-lg font-semibold text-fg">
+            {t('media.files')}
+          </h2>
+          {video ? (
+            <>
+              <VideoSlot item={item} />
               <div className="space-y-2">
-                <h3 className="text-label text-fg">{t('media.image')}</h3>
+                <h3 className="text-label text-fg">{t('media.poster')}</h3>
                 <ImageUploader
                   image={item.image}
                   uploadPath={`/admin/media/${item.id}/image`}
                   removePath={null}
                   emptyText={t('media.noImage')}
-                  hint={t('media.imageHint')}
+                  hint={t('media.posterHint')}
                 />
               </div>
-            )}
-          </section>
-        ) : null}
+              <CaptionsSlot item={item} />
+            </>
+          ) : (
+            <div className="space-y-2">
+              <h3 className="text-label text-fg">{t('media.image')}</h3>
+              <ImageUploader
+                image={item.image}
+                uploadPath={`/admin/media/${item.id}/image`}
+                removePath={null}
+                emptyText={t('media.noImage')}
+                hint={t('media.imageHint')}
+              />
+            </div>
+          )}
+        </section>
 
         <form
           method="post"
@@ -173,35 +163,30 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
           className="scroll-mt-24 space-y-5 rounded-card border border-line bg-surface p-5 sm:p-6"
         >
           <FormErrorSummary message={Object.keys(visible).length > 0 ? form.summary : null} />
-          {item ? null : (
-            <Notice tone="info">{video ? t('media.saveFirstVideo') : t('media.saveFirst')}</Notice>
-          )}
           <div className="grid gap-4 sm:grid-cols-2">
-            {item ? (
-              <SelectField
-                label={t('common.status')}
-                name="status"
-                required
-                options={ARTICLE_STATUSES.map((value) => ({
-                  value,
-                  label: t(`articleStatus.${value}`),
-                  // A missing file cannot be fixed here: publishing waits for the upload.
-                  disabled:
-                    value === 'PUBLISHED' && missingFiles.length > 0 && status !== 'PUBLISHED',
-                }))}
-                value={status}
-                hint={
-                  missingFiles.length > 0
-                    ? t('readiness.blocked', {
-                        items: missingFiles
-                          .map((entry) => t(`readiness.codes.${entry.code}`))
-                          .join(', '),
-                      })
-                    : undefined
-                }
-                onChange={(event) => setStatus(event.target.value as ArticleStatus)}
-              />
-            ) : null}
+            <SelectField
+              label={t('common.status')}
+              name="status"
+              required
+              options={ARTICLE_STATUSES.map((value) => ({
+                value,
+                label: t(`articleStatus.${value}`),
+                // A missing file cannot be fixed here: publishing waits for the upload.
+                disabled:
+                  value === 'PUBLISHED' && missingFiles.length > 0 && status !== 'PUBLISHED',
+              }))}
+              value={status}
+              hint={
+                missingFiles.length > 0
+                  ? t('readiness.blocked', {
+                      items: missingFiles
+                        .map((entry) => t(`readiness.codes.${entry.code}`))
+                        .join(', '),
+                    })
+                  : undefined
+              }
+              onChange={(event) => setStatus(event.target.value as ArticleStatus)}
+            />
             {video ? (
               <div id="media-duration" className="scroll-mt-24">
                 <TextField
@@ -263,30 +248,26 @@ export function MediaEditor({ item, kind }: { item: AdminMediaItem | null; kind:
           ) : null}
           <SubmitButton
             sending={form.status === 'sending'}
-            label={item ? t('common.save') : t('common.create')}
+            label={t('common.save')}
             sendingLabel={t('common.saving')}
           />
         </form>
       </div>
 
       <div className="space-y-4 xl:sticky xl:top-6">
-        {item ? (
-          <>
-            <ReadinessChecklist
-              readiness={item.readiness}
-              sections={{
-                image: 'media-files',
-                video: 'media-files',
-                captions: 'media-files',
-                title: 'media-texts',
-                caption: 'media-texts',
-                altText: 'media-texts',
-                duration: 'media-duration',
-              }}
-            />
-            <ItemActions item={item} />
-          </>
-        ) : null}
+        <ReadinessChecklist
+          readiness={item.readiness}
+          sections={{
+            image: 'media-files',
+            video: 'media-files',
+            captions: 'media-files',
+            title: 'media-texts',
+            caption: 'media-texts',
+            altText: 'media-texts',
+            duration: 'media-duration',
+          }}
+        />
+        <ItemActions item={item} />
       </div>
     </div>
   );
@@ -646,7 +627,7 @@ function CaptionsSlot({ item }: { item: AdminMediaItem }) {
     if (!file) return;
     setFailure(null);
     setLocalProblem(null);
-    if (!/\.vtt$/i.test(file.name) || file.size > MAX_CAPTIONS_BYTES) {
+    if (!isCaptionsFile(file)) {
       setLocalProblem(t('uploads.errors.unsupported_captions'));
       return;
     }

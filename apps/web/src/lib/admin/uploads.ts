@@ -26,6 +26,12 @@ export function isFilmFile(file: File): boolean {
   );
 }
 
+/** Subtitles the API takes: a WebVTT file of at most 512 KB. */
+export const MAX_CAPTIONS_BYTES = 512 * 1024;
+export function isCaptionsFile(file: File): boolean {
+  return /\.vtt$/i.test(file.name) && file.size <= MAX_CAPTIONS_BYTES;
+}
+
 /** A same-origin multipart upload (the session cookie authenticates it). */
 export async function uploadFile<T = unknown>(path: string, file: File): Promise<T> {
   const body = new FormData();

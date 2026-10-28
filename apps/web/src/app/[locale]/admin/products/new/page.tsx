@@ -2,6 +2,7 @@ import type { AdminProductType, AdminTaxonomy, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
+import { FreshEachVisit } from '@/components/admin/fresh-each-visit';
 import { ProductEditor } from '@/components/admin/product-editor';
 import { AccessDenied, AdminPageHeader } from '@/components/admin/ui';
 import { adminGet, getTelegramSettings } from '@/lib/admin/server';
@@ -24,13 +25,15 @@ export default async function NewProductPage() {
   return (
     <>
       <AdminPageHeader title={t('products.newProduct')} />
-      <ProductEditor
-        product={null}
-        categories={categories}
-        collections={collections}
-        productTypes={productTypes}
-        telegram={telegram}
-      />
+      <FreshEachVisit>
+        <ProductEditor
+          product={null}
+          categories={categories}
+          collections={collections}
+          productTypes={productTypes}
+          telegram={telegram}
+        />
+      </FreshEachVisit>
     </>
   );
 }

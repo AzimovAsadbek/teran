@@ -94,31 +94,28 @@ test.describe('administration', () => {
     await field(page, /^Weight/).fill('100');
     await field(page, 'Initial stock').fill('5');
 
-    // It cannot go on sale without a picture, and the editor says what is missing.
+    // It cannot go on sale without a picture: the editor says so before anything is created.
     await field(page, 'Status').selectOption('ACTIVE');
-    await page.getByRole('button', { name: 'Create' }).click();
+    await page.getByRole('button', { name: 'Create and put on sale' }).click();
     await expect(
-      visible(page.getByText(/Can’t publish yet — missing: .*Main image/)),
+      visible(page.getByText(/^To put the product on sale, choose at least one photo/)),
     ).toBeVisible();
-    await field(page, 'Status').selectOption('DRAFT');
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(visible(page.getByText('Product created.'))).toBeVisible();
-    await expect(page).toHaveURL(/\/en\/admin\/products\/[0-9a-f-]{36}\?created=1$/);
 
-    // The picture is previewed before it is sent, then becomes the main image.
+    // Everything in one go (ADR-063): the picture is chosen here, previewed and made ready, and
+    // goes up with the product, which is created on sale and announced on Telegram — in this
+    // stack a dry run that sends nothing.
     await page.locator('input[type="file"][multiple]').setInputFiles(PHOTO);
-    await expect(visible(page.getByText('Ready', { exact: true }))).toBeVisible();
-    await page.getByRole('button', { name: 'Upload 1 image' }).click();
-    await expect(visible(page.locator('main ol img[src*="/uploads/"]'))).toBeVisible();
     await expect(visible(page.getByText('Main image', { exact: true }))).toBeVisible();
-
-    // Published, and announced on Telegram — in this stack a dry run that sends nothing.
-    await field(page, 'Status').selectOption('ACTIVE');
     await page
       .getByRole('checkbox', { name: 'Announce on the Telegram channel when it goes on sale' })
       .check();
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
-    await expect(visible(page.getByText('Saved', { exact: true }))).toBeVisible();
+    await page.getByRole('button', { name: 'Create and put on sale' }).click();
+    // Then back to the list, where the newest product comes first.
+    await expect(page).toHaveURL(/\/en\/admin\/products$/);
+    await expect(visible(page.getByText('Product created and put on sale.'))).toBeVisible();
+    await visible(page.getByRole('link', { name: 'E2E Admin Tea' })).click();
+    await expect(page).toHaveURL(/\/en\/admin\/products\/[0-9a-f-]{36}$/);
+    await expect(visible(page.locator('main ol img[src*="/uploads/"]'))).toBeVisible();
     await expect(async () => {
       await page.reload();
       await expect(visible(page.getByText('Test: not sent'))).toBeVisible({ timeout: 1_000 });
@@ -173,23 +170,20 @@ test.describe('administration', () => {
     await expect(
       visible(page.getByRole('navigation', { name: 'Type' }).getByRole('link', { name: /Photos/ })),
     ).toHaveAttribute('aria-current', 'page');
-    await page.getByRole('link', { name: 'New photo' }).click();
+    // One page for a new one (ADR-063): the photograph, previewed before it is sent, its title
+    // and description, published in one go.
+    await visible(page.getByRole('link', { name: 'New photo' })).click();
+    await expect(page).toHaveURL(/\/en\/admin\/media\/post\?kind=photos$/);
+    const main = page.getByRole('main');
+    await main.locator('input[type="file"]').first().setInputFiles(PHOTO);
+    await expect(visible(main.getByRole('img', { name: /terraces\.webp/ }))).toBeVisible();
     const title = `E2E photograph ${Date.now()}`;
     await field(page, 'Title').fill(title);
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(page).toHaveURL(/\/en\/admin\/media\/[0-9a-f-]{36}$/);
-
-    // Publishing waits for the photograph, which is previewed before it is uploaded.
-    const status = field(page, 'Status');
-    await expect(status.locator('option[value="PUBLISHED"]')).toBeDisabled();
-    await page.locator('input[type="file"][accept^="image/"]').setInputFiles(PHOTO);
-    await expect(visible(page.getByText('Not uploaded yet'))).toBeVisible();
-    await visible(page.getByRole('button', { name: 'Upload', exact: true })).click();
-    // (Pages visited before stay in the document, hidden: only the visible preview counts.)
-    await expect(visible(page.locator('main img[src*="/uploads/media/"]'))).toBeVisible();
-    await expect(status.locator('option[value="PUBLISHED"]')).toBeEnabled();
-    await status.selectOption('PUBLISHED');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await field(page, 'Image description').fill('A cup of tea on the terrace');
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    // Then back to the photos, where it comes first.
+    await expect(page).toHaveURL(/\/en\/admin\/media$/);
+    await expect(visible(page.locator('main tbody tr'))).toContainText(title);
 
     const store = await page.context().newPage();
     const tile = () => store.getByRole('button', { name: `${title} — enlarge` });
@@ -207,8 +201,11 @@ test.describe('administration', () => {
     await store.keyboard.press('Escape');
 
     // Back to the admin tab, as a person would: a tab behind another one is not painted, so its
-    // confirmation dialog would never finish opening.
+    // confirmation dialog would never finish opening. The editor deletes it.
     await page.bringToFront();
+    await visible(page.getByRole('link', { name: title })).click();
+    await expect(page).toHaveURL(/\/en\/admin\/media\/[0-9a-f-]{36}$/);
+    await expect(field(page, 'Image description')).toHaveValue('A cup of tea on the terrace');
     await page.getByRole('button', { name: 'Delete item' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Delete item' }).click();
     await expect(page).toHaveURL(/\/en\/admin\/media$/);

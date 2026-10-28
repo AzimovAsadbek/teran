@@ -8,6 +8,7 @@ import {
   type MediaUploadSession,
 } from '@teran/contracts';
 import {
+  Captions,
   Check,
   Film,
   ImageIcon,
@@ -19,6 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter as useNextRouter } from 'next/navigation';
 import {
   useEffect,
   useId,
@@ -29,18 +31,16 @@ import {
   type RefObject,
 } from 'react';
 import { ApiAlert, SubmitButton } from '@/components/account/auth-forms';
-import { Button, ButtonLink, buttonClasses } from '@/components/ui/button';
+import { Button, buttonClasses } from '@/components/ui/button';
 import { CheckboxField, FormErrorSummary } from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
-import { Link } from '@/i18n/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { readFilmHeader } from '@/lib/admin/film-header';
 import {
   cancelFilmUpload,
-  FilmRefused,
   FilmUploadInterrupted,
   uploadFilm,
-  waitForFilm,
   type FilmUploadProgress,
 } from '@/lib/admin/film-upload';
 import {
@@ -53,18 +53,25 @@ import {
   type PreparedImage,
   type VideoFacts,
 } from '@/lib/admin/media-files';
-import { FILM_ACCEPT, isFilmFile, uploadFile, uploadFileWithProgress } from '@/lib/admin/uploads';
+import {
+  FILM_ACCEPT,
+  isCaptionsFile,
+  isFilmFile,
+  uploadFile,
+  uploadFileWithProgress,
+} from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { useAdminErrorMessage, useLocalImageProblem } from './admin-errors';
-import { renditionSrc } from './image-uploader';
+import { ConfirmDialog } from './confirm-dialog';
 import { notify } from './toast';
 import { FilmTransfer } from './film-transfer';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
+import { useLeaveGuard } from './use-leave-guard';
 
-const KEYS = ['title', 'caption'] as const;
+const KEYS = ['title', 'caption', 'altText'] as const;
 
 /**
  * What is posted, chosen first (ADR-059), each with where it appears: a photograph, a film for the
@@ -84,6 +91,13 @@ const KINDS: {
 const DROP = { PHOTO: 'dropPhoto', VIDEO: 'dropVideo', SHORT: 'dropShort' } as const;
 const TAP = { PHOTO: 'tapPhoto', VIDEO: 'tapVideo', SHORT: 'tapShort' } as const;
 const HINT = { PHOTO: 'hintPhoto', VIDEO: 'hintVideo', SHORT: 'hintShort' } as const;
+
+/** Each kind's list in the admin area: where a post goes back to, with the new item first. */
+const LISTS = {
+  PHOTO: '/admin/media',
+  VIDEO: '/admin/media?kind=videos',
+  SHORT: '/admin/media?kind=shorts',
+} as const satisfies Record<MediaKind, string>;
 
 /** A film over this size takes a while: the composer says so before it starts. */
 const BIG_FILM_BYTES = 200 * 1024 * 1024;
@@ -107,7 +121,7 @@ type Problem =
   | 'photoOnly'
   | 'videoOnly';
 
-type Step = 'create' | 'file' | 'cover' | 'publish' | 'order' | 'prepare';
+type Step = 'create' | 'file' | 'cover' | 'captions' | 'publish';
 
 interface Run {
   steps: Step[];
@@ -122,15 +136,15 @@ interface Made {
   id: string | null;
   file: boolean;
   cover: boolean;
+  captions: boolean;
   published: boolean;
-  ordered: boolean;
 }
 const NOTHING_MADE: Made = {
   id: null,
   file: false,
   cover: false,
+  captions: false,
   published: false,
-  ordered: false,
 };
 
 function clock(seconds: number): string {
@@ -150,16 +164,18 @@ function isAbort(error: unknown): boolean {
  * other shape is refused with a way to post it as the other kind. A film is previewed with its
  * sound and its cover is a frame picked with a slider; a photograph too heavy or too large for the
  * site is scaled down in the browser. Then the title (other languages optional), the home page
- * mark for shorts, and "Post": the item is created, its files uploaded (the film with its
- * progress), it is published and put first in its list. A film is then made ready by the API
- * (ADR-062: an iPhone's .MOV becomes an MP4) and appears on the site by itself once it is; the
- * composer shows how far that is, and nothing is lost if the page is closed meanwhile. A film this
- * browser cannot play is posted all the same: its shape is read from its header and the API takes
- * its cover. A step that fails leaves a draft; pressing "Post" again finishes it.
+ * mark for shorts, and "Post": the item is created (first in its list), its files uploaded (the
+ * film with its progress) and it is published; then the page goes back to the list (ADR-063). A
+ * film is made ready by the API afterwards (ADR-062: an iPhone's .MOV becomes an MP4) and the list
+ * shows it as being prepared until it is. A film this browser cannot play is posted all the same:
+ * its shape is read from its header and the API takes its cover. A step that fails leaves a draft;
+ * pressing "Post" again finishes it, and leaving the page removes it after asking first.
  */
 export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   const t = useTranslations('Admin');
   const locale = useLocale() as Locale;
+  const router = useRouter();
+  const nextRouter = useNextRouter();
   const message = useValidationMessage();
   const explain = useAdminErrorMessage();
   const photoProblem = useLocalImageProblem();
@@ -169,6 +185,8 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   const captureRef = useRef<HTMLVideoElement>(null);
   const coverRef = useRef<HTMLCanvasElement>(null);
   const made = useRef<Made>({ ...NOTHING_MADE });
+  /** Posted in full: nothing of it is removed when the page goes back to the list. */
+  const finished = useRef(false);
   const [kind, setKind] = useState<MediaKind>(initialKind);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -179,12 +197,17 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   const [coverAt, setCoverAt] = useState(0);
   const [coverFailed, setCoverFailed] = useState(false);
   const [translations, setTranslations] = useState(() => fromTranslation(null, KEYS));
+  /** A film's subtitles (WebVTT, optional), sent with it: nothing is left for the editor. */
+  const [captions, setCaptions] = useState<File | null>(null);
+  const [captionsRefused, setCaptionsRefused] = useState(false);
   const [isFeatured, setFeatured] = useState(true);
   const [publish, setPublish] = useState(true);
   const [run, setRun] = useState<Run | null>(null);
-  const [posted, setPosted] = useState<AdminMediaItem | null>(null);
-  /** The draft a failed post left, to finish in the editor (also in `made`, for the steps). */
+  /** The draft a post that stopped left, to finish here (also in `made`, for the steps). */
   const [draftId, setDraftId] = useState<string | null>(null);
+  /** Where staff were going when the page asked first, and whether it is clearing up to go. */
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
   /** The film's upload on the server, kept to go on with it after a lost connection. */
   const filmSession = useRef<MediaUploadSession | null>(null);
   const stopUpload = useRef<AbortController | null>(null);
@@ -205,15 +228,32 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
   // A chosen file's address is let go when another is chosen or the page closes.
   useEffect(() => () => (picked ? URL.revokeObjectURL(picked.url) : undefined), [picked]);
 
-  // Closing or leaving the page while a file goes up would lose it: the browser asks first. Once
-  // the film is with the API, it is made ready whether the page stays open or not.
-  const preparing = run?.current === 'prepare';
+  // Leaving with a file chosen, texts written, an upload under way or a draft not finished asks
+  // first (ADR-063): a link waits for the answer, closing or reloading the tab gets the browser's.
+  const entered = picked !== null || translations.uz.title.trim() !== '';
+  const halfDone = sending || draftId !== null;
+  useLeaveGuard(halfDone || entered, setLeaveTo, halfDone);
+
+  // Left by other means (the browser's back button, a closed tab), a post that was not finished
+  // is removed all the same, as the page says it will be.
   useEffect(() => {
-    if (!sending || preparing) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [sending, preparing]);
+    const drop = () => {
+      const id = made.current.id;
+      if (!id || finished.current) return;
+      stopUpload.current?.abort();
+      const session = filmSession.current;
+      const leave = { method: 'DELETE', credentials: 'same-origin', keepalive: true } as const;
+      if (session) void fetch(`/api/v1/admin/media/${id}/video/uploads/${session.id}`, leave);
+      void fetch(`/api/v1/admin/media/${id}`, leave);
+      made.current = { ...NOTHING_MADE };
+      filmSession.current = null;
+    };
+    window.addEventListener('pagehide', drop);
+    return () => {
+      window.removeEventListener('pagehide', drop);
+      drop();
+    };
+  }, []);
 
   // The cover follows the slider, drawn from a hidden copy of the film (the preview stays free).
   useEffect(() => {
@@ -252,20 +292,25 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     setStopped('cancelled');
   }
 
-  function reset() {
+  /** Removes the draft of a post that was not finished, and what was sent of its film. */
+  async function discardDraft() {
+    const id = made.current.id;
+    stopUpload.current?.abort();
     forgetUpload();
-    setPicked(null);
-    setProblem(null);
-    setSuggest(null);
-    setRun(null);
-    setPosted(null);
-    setCoverFailed(false);
-    setTranslations(fromTranslation(null, KEYS));
-    setFeatured(true);
-    setPublish(true);
     made.current = { ...NOTHING_MADE };
     setDraftId(null);
-    form.reset();
+    if (id) await apiRequest(`/admin/media/${id}`, { method: 'DELETE' }).catch(() => undefined);
+  }
+
+  /** Leaves as asked: an upload under way stops and a draft that was not finished goes. */
+  async function leave() {
+    const href = leaveTo;
+    setLeaving(true);
+    await discardDraft();
+    finished.current = true;
+    setLeaving(false);
+    setLeaveTo(null);
+    if (href) nextRouter.push(href);
   }
 
   async function choose(file: File | undefined, as: MediaKind = kind) {
@@ -350,13 +395,13 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
     setCoverFailed(false);
     setStopped(null);
     const film = picked.type === 'film';
+    const withCaptions = film && captions !== null;
     const steps: Step[] = [
       'create',
       'file',
       ...(film && picked.preview ? (['cover'] as const) : []),
+      ...(withCaptions ? (['captions'] as const) : []),
       ...(publish ? (['publish'] as const) : []),
-      'order',
-      ...(film ? (['prepare'] as const) : []),
     ];
     const result: { item: AdminMediaItem | null } = { item: null };
     const ok = await form.submit(mediaUpsertSchema, payload, async (data) => {
@@ -430,6 +475,11 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           result.item = await uploadFile<AdminMediaItem>(`/admin/media/${id}/image`, cover);
           made.current.cover = true;
         }
+        if (withCaptions && !made.current.captions) {
+          at('captions');
+          result.item = await uploadFile<AdminMediaItem>(`/admin/media/${id}/captions`, captions);
+          made.current.captions = true;
+        }
         if (publish && !made.current.published) {
           at('publish');
           result.item = await apiRequest<AdminMediaItem>(`/admin/media/${id}`, {
@@ -438,97 +488,18 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           });
           made.current.published = true;
         }
-        if (!made.current.ordered) {
-          at('order');
-          const list = await apiRequest<AdminMediaItem[]>(`/admin/media?kind=${kind}`);
-          const ordered = await apiRequest<AdminMediaItem[]>('/admin/media/order', {
-            method: 'PUT',
-            body: {
-              kind,
-              ids: [id, ...list.map((entry) => entry.id).filter((other) => other !== id)],
-            },
-          });
-          result.item = ordered.find((entry) => entry.id === id) ?? result.item;
-          made.current.ordered = true;
-        }
-        if (picked.type === 'film') {
-          // The API makes the film ready for the site (ADR-062); the page may close meanwhile.
-          at('prepare');
-          try {
-            result.item = await waitForFilm(id, {
-              onProgress: (job) => at('prepare', job.percent),
-            });
-          } catch (caught) {
-            if (caught instanceof FilmRefused) {
-              // Refused: a published film went back to a draft; posting again sends a file anew.
-              made.current.file = false;
-              made.current.published = false;
-            }
-            throw caught;
-          }
-        }
       } catch (caught) {
         setRun((previous) => previous && { ...previous, failed: previous.current });
         throw caught;
       }
     });
     if (ok && result.item) {
-      setRun(null);
-      setPosted(result.item);
+      // Posted: back to its list, where the newest comes first (ADR-063). A film the API still
+      // makes ready (ADR-062) shows there as being prepared, and the page may go meanwhile.
+      finished.current = true;
       notify(publish ? t('compose.done') : t('compose.doneDraft'));
+      router.replace(LISTS[kind]);
     }
-  }
-
-  if (posted) {
-    const title = posted.translations.uz.title;
-    const live = posted.status === 'PUBLISHED';
-    return (
-      <section
-        aria-labelledby="compose-done"
-        className="mx-auto flex max-w-xl flex-col items-center gap-4 rounded-card border border-line bg-surface px-6 py-10 text-center"
-      >
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-success-soft text-success">
-          <Check aria-hidden className="h-7 w-7" />
-        </span>
-        <h2 id="compose-done" className="text-display-sm text-fg">
-          {live ? t('compose.done') : t('compose.doneDraft')}
-        </h2>
-        {posted.image ? (
-          // eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009)
-          <img
-            src={renditionSrc(posted.image, 480)}
-            alt=""
-            width={posted.image.width}
-            height={posted.image.height}
-            className="max-h-72 w-auto rounded-control border border-line object-contain"
-          />
-        ) : null}
-        <p className="max-w-md text-body text-fg-muted">
-          {live ? t('compose.doneText', { title }) : t('compose.doneDraftText', { title })}
-        </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {live ? (
-            <ButtonLink
-              href={
-                posted.kind === 'SHORT'
-                  ? '/'
-                  : posted.kind === 'VIDEO'
-                    ? '/media/videos'
-                    : '/media/photos'
-              }
-              target="_blank"
-              variant="secondary"
-            >
-              {posted.kind === 'SHORT' ? t('compose.viewOnHome') : t('media.viewOnSite')}
-            </ButtonLink>
-          ) : null}
-          <ButtonLink href={`/admin/media/${posted.id}`} variant="secondary">
-            {t('compose.edit')}
-          </ButtonLink>
-          <Button onClick={reset}>{t('compose.again')}</Button>
-        </div>
-      </section>
-    );
   }
 
   // A stopped upload explains itself (below); other failures say what went wrong.
@@ -724,8 +695,31 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
               rows: 3,
               maxLength: 400,
             },
+            {
+              key: 'altText',
+              label: kind === 'PHOTO' ? t('media.altText') : t('media.posterAlt'),
+              maxLength: 200,
+              hint: t('media.altTextHint'),
+            },
           ]}
         />
+        {kind !== 'PHOTO' ? (
+          <CaptionsChoice
+            file={captions}
+            refused={captionsRefused}
+            disabled={sending}
+            onChoose={(file) => {
+              const fits = isCaptionsFile(file);
+              setCaptionsRefused(!fits);
+              setCaptions(fits ? file : null);
+              made.current.captions = false;
+            }}
+            onClear={() => {
+              setCaptions(null);
+              setCaptionsRefused(false);
+            }}
+          />
+        ) : null}
         {kind === 'SHORT' ? (
           <CheckboxField
             label={t('media.featured')}
@@ -756,7 +750,6 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
             onStop={sending ? cancelUpload : undefined}
           />
         ) : null}
-        {preparing && !run?.failed ? <Notice tone="info">{t('compose.preparing')}</Notice> : null}
         <ApiAlert message={failure} />
         {stopped === 'interrupted' ? (
           <Notice tone="warning">
@@ -769,15 +762,7 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           <Notice tone="info">{t('compose.cancelled')}</Notice>
         ) : null}
         {run?.failed && draftId && stopped === null ? (
-          <Notice tone="info">
-            {t('compose.retryHint')}{' '}
-            <Link
-              href={`/admin/media/${draftId}`}
-              className="font-semibold underline underline-offset-2"
-            >
-              {t('compose.openDraft')}
-            </Link>
-          </Notice>
+          <Notice tone="info">{t('compose.retryHint')}</Notice>
         ) : null}
         {picked ? (
           <SubmitButton
@@ -794,6 +779,17 @@ export function MediaComposer({ initialKind }: { initialKind: MediaKind }) {
           </>
         )}
       </form>
+      <ConfirmDialog
+        open={leaveTo !== null}
+        title={halfDone ? t('compose.leaveTitle') : t('common.leaveTitle')}
+        description={halfDone ? t('compose.leaveDraft') : t('common.leaveNew')}
+        confirmLabel={t('common.leave')}
+        cancelLabel={t('common.stay')}
+        tone="danger"
+        pending={leaving}
+        onClose={() => setLeaveTo(null)}
+        onConfirm={() => void leave()}
+      />
     </div>
   );
 }
@@ -959,10 +955,80 @@ function ChosenFile({
 const STEP_LABELS = {
   create: 'compose.steps.create',
   cover: 'compose.steps.cover',
+  captions: 'compose.steps.captions',
   publish: 'compose.steps.publish',
-  order: 'compose.steps.order',
-  prepare: 'compose.steps.prepare',
 } as const;
+
+/**
+ * A film's subtitles, chosen with it (optional): a WebVTT file, in any language staff have one for.
+ * They are uploaded with the film, so nothing is left for the editor afterwards (ADR-063).
+ */
+function CaptionsChoice({
+  file,
+  refused,
+  disabled,
+  onChoose,
+  onClear,
+}: {
+  file: File | null;
+  refused: boolean;
+  disabled: boolean;
+  onChoose: (file: File) => void;
+  onClear: () => void;
+}) {
+  const t = useTranslations('Admin');
+  const tc = useTranslations('Common');
+  const inputId = useId();
+  return (
+    <div className="space-y-2">
+      <p className="text-label text-fg">
+        {t('media.captions')}
+        <span className="font-normal text-fg-subtle"> ({tc('optional')})</span>
+      </p>
+      {file ? (
+        <p className="flex items-center gap-2 text-body-sm text-fg">
+          <Captions aria-hidden className="h-4 w-4 shrink-0 text-fg-muted" />
+          <span className="min-w-0 truncate">{file.name}</span>
+          <Button size="sm" variant="ghost" onClick={onClear} disabled={disabled}>
+            <X aria-hidden className="h-4 w-4" />
+            {t('uploads.remove')}
+          </Button>
+        </p>
+      ) : (
+        <label
+          htmlFor={inputId}
+          className={buttonClasses(
+            'secondary',
+            'sm',
+            'cursor-pointer has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus',
+          )}
+        >
+          <Captions aria-hidden className="h-4 w-4" />
+          {t('media.uploadCaptions')}
+          <input
+            id={inputId}
+            type="file"
+            accept=".vtt,text/vtt"
+            disabled={disabled}
+            className="sr-only"
+            onChange={(event) => {
+              const chosen = event.target.files?.[0];
+              if (chosen) onChoose(chosen);
+              event.target.value = '';
+            }}
+          />
+        </label>
+      )}
+      {refused ? (
+        <p role="alert" className="text-caption font-medium text-danger">
+          {t('uploads.errors.unsupported_captions')}
+        </p>
+      ) : (
+        <p className="text-caption text-fg-subtle">{t('media.captionsHint')}</p>
+      )}
+    </div>
+  );
+}
 
 /** A step's number beside its heading ("1", "2", "3"). */
 function StepNumber({ value }: { value: number }) {
@@ -1005,7 +1071,7 @@ function Progress({
             : t(STEP_LABELS[step]);
         const film = step === 'file' && kind !== 'PHOTO' && transfer !== null;
         // A photograph's share sent, or how far the API is with a film; an upload has its own.
-        const percent = (step === 'file' && !film) || step === 'prepare' ? run.percent : null;
+        const percent = step === 'file' && !film ? run.percent : null;
         return (
           <li key={step} className="space-y-1.5">
             <span

@@ -8,6 +8,7 @@ import { SuccessMessage } from '@/components/account/auth-forms';
 import { ProductEditor } from '@/components/admin/product-editor';
 import { ProductImages } from '@/components/admin/product-images';
 import { AdminPageHeader, ProductStatusPill } from '@/components/admin/ui';
+import { Notice } from '@/components/ui/notice';
 import { Link } from '@/i18n/navigation';
 import { adminGet, getTelegramSettings } from '@/lib/admin/server';
 
@@ -48,11 +49,20 @@ export default async function EditProductPage({
         description={<ProductStatusPill status={product.status} />}
       />
       {query.created === '1' ? (
-        <div className="mb-6">
+        <div className="mb-6 space-y-3">
           <SuccessMessage>
             {t('products.created')}{' '}
             {product.status === 'ACTIVE' ? t('products.createdActive') : t('products.createdDraft')}
           </SuccessMessage>
+          {/* What creating it in one go could not finish (ADR-063): the draft waits here. */}
+          {Number(query.failedImages) > 0 ? (
+            <Notice tone="warning" role="alert">
+              {t('products.createdImagesFailed', { count: Number(query.failedImages) })}
+            </Notice>
+          ) : null}
+          {query.notPublished === '1' && product.status !== 'ACTIVE' ? (
+            <Notice tone="warning">{t('products.createdNotPublished')}</Notice>
+          ) : null}
         </div>
       ) : null}
       <ProductEditor

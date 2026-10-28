@@ -4,8 +4,10 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
+import { SuccessMessage } from '@/components/account/auth-forms';
 import { ArticleEditor } from '@/components/admin/article-editor';
 import { AdminPageHeader, ArticleStatusPill } from '@/components/admin/ui';
+import { Notice } from '@/components/ui/notice';
 import { Link } from '@/i18n/navigation';
 import { adminGet, getTelegramSettings } from '@/lib/admin/server';
 
@@ -19,8 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EditArticlePage({
   params,
+  searchParams,
 }: PageProps<'/[locale]/admin/journal/[id]'>) {
-  const [{ id }, t] = await Promise.all([params, getTranslations('Admin')]);
+  const [{ id }, query, t] = await Promise.all([params, searchParams, getTranslations('Admin')]);
   if (!UUID.test(id)) notFound();
   const [article, telegram, gallery] = await Promise.all([
     adminGet<AdminArticle>(`/articles/${id}`).catch(() => null),
@@ -41,6 +44,25 @@ export default async function EditArticlePage({
         title={article.translations.uz.title}
         description={<ArticleStatusPill status={article.status} />}
       />
+      {query.created === '1' ? (
+        <div className="mb-6 space-y-3">
+          <SuccessMessage>
+            {t('journal.created')}{' '}
+            {article.status === 'PUBLISHED'
+              ? t('journal.createdPublished')
+              : t('journal.createdDraft')}
+          </SuccessMessage>
+          {/* What creating it in one go could not finish (ADR-063): the draft waits here. */}
+          {query.coverFailed === '1' ? (
+            <Notice tone="warning" role="alert">
+              {t('journal.createdCoverFailed')}
+            </Notice>
+          ) : null}
+          {query.notPublished === '1' && article.status !== 'PUBLISHED' ? (
+            <Notice tone="warning">{t('journal.createdNotPublished')}</Notice>
+          ) : null}
+        </div>
+      ) : null}
       {/* Keyed by article, not by version: uploading the cover refreshes the page without wiping edits. */}
       <ArticleEditor
         key={article.id}

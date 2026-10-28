@@ -944,10 +944,11 @@ describe('admin API', () => {
       });
       await agent.put(`${API}/admin/media/${film.id}`).send(filmPublish).expect(200);
 
-      // A second photograph, then the photographs reordered (films keep their own order).
+      // A second photograph comes first (the newest leads its list), then the photographs are
+      // reordered (films keep their own order).
       const noon = (await agent.post(`${API}/admin/media`).send(media('Noon')).expect(201))
         .body as AdminMediaItem;
-      expect(noon.position).toBe(1);
+      expect(noon.position).toBe(0);
       await agent
         .post(`${API}/admin/media/${noon.id}/image`)
         .attach('file', await png(420), { filename: 'noon.png', contentType: 'image/png' })
@@ -957,8 +958,8 @@ describe('admin API', () => {
         .send(media('Noon', { status: 'PUBLISHED' }))
         .expect(200);
       expect((await visible('&kind=PHOTO')).map((item) => item.title)).toEqual([
-        'Dawn (en)',
         'Noon (en)',
+        'Dawn (en)',
       ]);
       await agent
         .put(`${API}/admin/media/order`)
@@ -967,13 +968,13 @@ describe('admin API', () => {
       const photos = (
         await agent
           .put(`${API}/admin/media/order`)
-          .send({ kind: 'PHOTO', ids: [noon.id, photo.id] })
+          .send({ kind: 'PHOTO', ids: [photo.id, noon.id] })
           .expect(200)
       ).body as AdminMediaItem[];
       expect(photos.map((item) => item.kind)).toEqual(['PHOTO', 'PHOTO']);
       expect((await visible('&kind=PHOTO')).map((item) => item.title)).toEqual([
-        'Noon (en)',
         'Dawn (en)',
+        'Noon (en)',
       ]);
       const films = await visible('&kind=VIDEO');
       expect(films.map((item) => item.title)).toEqual(['Harvest (en)']);

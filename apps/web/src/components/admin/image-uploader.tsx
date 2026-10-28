@@ -33,6 +33,8 @@ type Chosen = {
  * One picture of an item (a category's or collection's cover, an article's cover, a page picture):
  * shows the current one, previews a chosen file of any size (made light enough in the browser,
  * ADR-061), uploads it (the API validates and re-encodes it) and removes it after a confirmation.
+ * For an item not created yet, `onDefer` keeps the chosen picture here and hands it over, to be
+ * sent together with the item (ADR-063).
  */
 export function ImageUploader({
   image,
@@ -42,6 +44,7 @@ export function ImageUploader({
   hint,
   shape = 'wide',
   disabledText,
+  onDefer,
 }: {
   image: ImageDto | null;
   /** POST target (multipart, field "file"); null while the item is not saved yet. */
@@ -54,6 +57,8 @@ export function ImageUploader({
   shape?: 'wide' | 'square';
   /** Why uploading is not possible yet (e.g. "save first"). */
   disabledText?: string;
+  /** No item yet: the picture ready to send, or null when there is none (or it cannot be sent). */
+  onDefer?: (file: File | null) => void;
 }) {
   const t = useTranslations('Admin');
   const locale = useLocale() as Locale;
@@ -69,12 +74,15 @@ export function ImageUploader({
 
   useEffect(() => () => (chosen ? URL.revokeObjectURL(chosen.url) : undefined), [chosen]);
 
+  const deferred = uploadPath === null && onDefer !== undefined;
+
   async function choose(file: File | undefined) {
     if (!file) return;
     setError(null);
     setPreparing(true);
     const prepared = await prepareImageFile(file);
     setPreparing(false);
+    if (deferred) onDefer?.(typeof prepared === 'string' ? null : prepared.file);
     setChosen(
       typeof prepared === 'string'
         ? { url: URL.createObjectURL(file), name: file.name, prepared: null, problem: prepared }
@@ -146,7 +154,7 @@ export function ImageUploader({
         )}
         {chosen ? (
           <span className="absolute top-2 left-2 rounded-full bg-surface-inverse px-2 py-0.5 text-caption font-semibold text-fg-inverse">
-            {t('uploads.notUploaded')}
+            {deferred ? t('uploads.withItem') : t('uploads.notUploaded')}
           </span>
         ) : null}
       </div>
@@ -174,22 +182,32 @@ export function ImageUploader({
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
+            {deferred ? null : (
+              <Button
+                size="sm"
+                onClick={() => void upload()}
+                loading={pending}
+                disabled={problem !== null}
+              >
+                <Upload aria-hidden className="h-4 w-4" />
+                {t('uploads.uploadOne')}
+              </Button>
+            )}
             <Button
               size="sm"
-              onClick={() => void upload()}
-              loading={pending}
-              disabled={problem !== null}
+              variant="ghost"
+              onClick={() => {
+                setChosen(null);
+                if (deferred) onDefer?.(null);
+              }}
+              disabled={pending}
             >
-              <Upload aria-hidden className="h-4 w-4" />
-              {t('uploads.uploadOne')}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setChosen(null)} disabled={pending}>
               <X aria-hidden className="h-4 w-4" />
-              {t('uploads.cancel')}
+              {deferred ? t('uploads.remove') : t('uploads.cancel')}
             </Button>
           </div>
         </div>
-      ) : uploadPath ? (
+      ) : uploadPath || deferred ? (
         <div className="flex flex-wrap gap-2">
           <label
             htmlFor={inputId}

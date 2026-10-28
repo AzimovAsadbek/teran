@@ -15,6 +15,7 @@ import { CheckboxField, FormErrorSummary, SelectField, TextField } from '@/compo
 import { Sheet } from '@/components/ui/sheet';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
+import { uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { cn } from '@/lib/cn';
 import { slugify } from '@/lib/slugify';
@@ -56,6 +57,8 @@ function TaxonomyForm({
   const [slugAuto, setSlugAuto] = useState(item === null);
   const [position, setPosition] = useState(String(item?.position ?? 0));
   const [isActive, setIsActive] = useState(item?.isActive ?? true);
+  /** A new one's picture, sent right after it is created (ADR-063). */
+  const [pendingCover, setPendingCover] = useState<File | null>(null);
   const [illustrationKey, setIllustrationKey] = useState<string>(item?.illustrationKey ?? '');
   const [parentId, setParentId] = useState<string>(item?.parentId ?? '');
   const [productTypeId, setProductTypeId] = useState<string>(item?.productTypeId ?? '');
@@ -89,13 +92,27 @@ function TaxonomyForm({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const saved = await form.submit(taxonomyUpsertSchema, payload, (data) =>
-      item
-        ? apiRequest(`/admin/${kind}/${item.id}`, { method: 'PUT', body: data })
-        : apiRequest(`/admin/${kind}`, { method: 'POST', body: data }),
-    );
+    // A new one is created with its picture in one go (ADR-063); a picture that does not go up
+    // leaves it without one, to add when it is edited.
+    const outcome = { coverFailed: false };
+    const saved = await form.submit(taxonomyUpsertSchema, payload, async (data) => {
+      if (item) {
+        await apiRequest(`/admin/${kind}/${item.id}`, { method: 'PUT', body: data });
+        return;
+      }
+      const created = await apiRequest<AdminTaxonomy>(`/admin/${kind}`, {
+        method: 'POST',
+        body: data,
+      });
+      if (!pendingCover) return;
+      try {
+        await uploadFile(`/admin/${kind}/${created.id}/image`, pendingCover);
+      } catch {
+        outcome.coverFailed = true;
+      }
+    });
     if (saved) {
-      notify(t('taxonomy.saved'));
+      notify(outcome.coverFailed ? t('taxonomy.savedCoverFailed') : t('taxonomy.saved'));
       router.refresh();
       onDone();
     }
@@ -119,7 +136,7 @@ function TaxonomyForm({
           emptyText={t('taxonomy.coverEmpty')}
           hint={t('taxonomy.coverHint')}
           shape="square"
-          disabledText={t('taxonomy.coverAfterSave')}
+          onDefer={item ? undefined : setPendingCover}
         />
       </div>
       <TextField

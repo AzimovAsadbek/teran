@@ -104,7 +104,7 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
       '/en/admin/journal/new',
       '/en/admin/media',
       '/en/admin/media?kind=videos',
-      '/en/admin/media/new?kind=videos',
+      '/en/admin/media/post?kind=videos',
       '/en/admin/media?kind=shorts',
       '/en/admin/media/post?kind=shorts',
       '/en/admin/telegram',

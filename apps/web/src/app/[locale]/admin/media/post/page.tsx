@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
+import { FreshEachVisit } from '@/components/admin/fresh-each-visit';
 import { MediaComposer } from '@/components/admin/media-composer';
 import { AdminPageHeader } from '@/components/admin/ui';
 import { Link } from '@/i18n/navigation';
@@ -17,8 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
 const KIND_OF_PARAM: Record<string, MediaKind> = { photos: 'PHOTO', videos: 'VIDEO' };
 
 /**
- * "Joylash": a photograph, a film or a short posted in one go (ADR-058, ADR-059), opened on the
- * kind of the list it was reached from; the composer can switch kinds.
+ * "Joylash": a photograph, a film or a short posted in one go (ADR-058, ADR-059, ADR-063), opened
+ * on the kind of the list it was reached from; the composer can switch kinds. It is empty each
+ * time it is opened, and goes back to the list once the item is posted.
  */
 export default async function PostMediaPage({
   searchParams,
@@ -40,7 +42,9 @@ export default async function PostMediaPage({
         {t('media.title')}
       </Link>
       <AdminPageHeader title={t('compose.title')} description={t('compose.intro')} />
-      <MediaComposer key={kind} initialKind={kind} />
+      <FreshEachVisit>
+        <MediaComposer key={kind} initialKind={kind} />
+      </FreshEachVisit>
     </>
   );
 }

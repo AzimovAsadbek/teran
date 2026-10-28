@@ -468,16 +468,19 @@ Photographs, films and shorts (ADR-059) managed in Admin → Galereya, in three 
 their own "new" buttons and order (`MediaItem`: kind fixed when created, title, caption or
 description and image description in three languages, status, shown on the home page or not for
 shorts; a photo, or a film's poster, file, running time and sound read from the file and
-optional WebVTT subtitles). "Joylash" (ADR-058, ADR-061) posts one in a single screen of three
+optional WebVTT subtitles). "Yangi rasm / video / shorts" opens the composer, the one way to add an
+item (ADR-063); its texts take the image (or poster) description too, and a film's optional
+subtitles are chosen beside them. It posts one in a single screen of three
 numbered steps (white numerals on `brand` discs): the kind as three cards (Rasm · Video · Shorts,
 each with its mark and where it appears; the chosen one bordered in `brand`), a dashed drop zone
 with an image-plus mark ("tap" instead of "drop" on touch screens) and the note that a large
 video goes up in pieces, then the file's preview (a film with its cover picked by a slider beside
 it and its facts as small pills), the texts and marks in a panel (sticky at the right on wide
-screens), the steps with the upload's progress (for a film: sent of total, speed, time left and a
-stop button, then a note while the server takes it over) and a success card with the cover. A film
-is then made ready on the server (ADR-062): the last step, "Saytga tayyorlanmoqda", shows its
-percentage with an `info` note that the page may close meanwhile. A film the browser cannot play
+screens) and the steps with the upload's progress (for a film: sent of total, speed, time left and
+a stop button, then a note while the server takes it over). Once posted, the page goes back to the
+list with a toast, the new item first (ADR-063); leaving before that asks in a `danger` dialog
+("Chiqish" / "Qolish") and deletes an unfinished item. A film is then made ready on the server
+(ADR-062), the list showing it meanwhile and looking again by itself. A film the browser cannot play
 (an iPhone's HEVC outside Safari) shows, in place of its preview, a quiet `surface-sunken` panel
 with a film mark saying the site converts it and takes its cover; its facts are read from the file.
 The list marks an item whose film is on its way with a blue "Tayyorlanmoqda" pill and a refused one

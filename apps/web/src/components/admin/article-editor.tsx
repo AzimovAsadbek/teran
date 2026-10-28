@@ -6,25 +6,30 @@ import {
   articleUpsertSchema,
   type AdminArticle,
   type AdminMediaItem,
+  type ArticleUpsertInput,
   type TelegramMode,
 } from '@teran/contracts';
 import { ExternalLink, Eye } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useRouter as useNextRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiAlert, SubmitButton } from '@/components/account/auth-forms';
 import { CheckboxField, FormErrorSummary, SelectField, TextField } from '@/components/ui/field';
 import { useFormSubmission } from '@/features/forms/use-form-submission';
 import { Link, useRouter } from '@/i18n/navigation';
+import { uploadFile } from '@/lib/admin/uploads';
 import { apiRequest } from '@/lib/api/client';
 import { slugify } from '@/lib/slugify';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { useAdminErrorMessage } from './admin-errors';
 import { ArticleMediaPicker } from './article-media-picker';
+import { ConfirmDialog } from './confirm-dialog';
 import { ImageUploader } from './image-uploader';
 import { ReadinessChecklist } from './readiness-checklist';
 import { TelegramPanel } from './telegram-panel';
 import { fromTranslation, toTranslationPayload, TranslationEditor } from './translation-editor';
 import { notify } from './toast';
+import { useLeaveGuard } from './use-leave-guard';
 
 const KEYS = ['title', 'excerpt', 'body', 'seoTitle', 'seoDescription', 'coverAlt'] as const;
 
@@ -58,9 +63,11 @@ export function ArticleEditor({
 }) {
   const t = useTranslations('Admin');
   const router = useRouter();
+  const nextRouter = useNextRouter();
   const message = useValidationMessage();
   const explain = useAdminErrorMessage();
   const formRef = useRef<HTMLFormElement>(null);
+  const coverRef = useRef<HTMLElement>(null);
   const form = useFormSubmission(formRef);
   const [slug, setSlug] = useState(article?.slug ?? '');
   const [status, setStatus] = useState<string>(article?.status ?? 'DRAFT');
@@ -74,6 +81,11 @@ export function ArticleEditor({
   const [translations, setTranslations] = useState(() =>
     fromTranslation(article?.translations ?? null, KEYS),
   );
+  /** A new article's cover, sent right after it is created (ADR-063). */
+  const [pendingCover, setPendingCover] = useState<File | null>(null);
+  const [coverNeeded, setCoverNeeded] = useState(false);
+  /** Where staff were going when a new article's unsaved entries made the page ask first. */
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
   // A new article's address follows its Uzbek title until staff edit the address themselves.
   const [slugAuto, setSlugAuto] = useState(article === null);
   const payload = {
@@ -98,25 +110,69 @@ export function ArticleEditor({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+  // A new article's entries are not kept when its page is left (ADR-063): a link asks first.
+  useLeaveGuard(article === null && (dirty || pendingCover !== null), setLeaveTo);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const created: { id?: string } = {};
-    const saved = await form.submit(articleUpsertSchema, payload, async (data) => {
-      const result = article
-        ? await apiRequest<AdminArticle>(`/admin/articles/${article.id}`, {
-            method: 'PUT',
-            body: data,
-          })
-        : await apiRequest<AdminArticle>('/admin/articles', { method: 'POST', body: data });
-      created.id = result.id;
-    });
-    if (saved && created.id) {
-      notify(t('common.saved'));
-      setInitial(JSON.stringify(payload));
-      if (article) router.refresh();
-      else router.replace(`/admin/journal/${created.id}`);
+    if (article) {
+      const saved = await form.submit(articleUpsertSchema, payload, (data) =>
+        apiRequest<AdminArticle>(`/admin/articles/${article.id}`, { method: 'PUT', body: data }),
+      );
+      if (saved) {
+        notify(t('common.saved'));
+        setInitial(JSON.stringify(payload));
+        router.refresh();
+      }
+      return;
     }
+    // Created in one go (ADR-063): saved as a draft first (the API checks the cover before an
+    // article is published), its cover uploaded, then saved with the status chosen here. What
+    // could not be done is said on the article's page, where the draft waits.
+    if (status === 'PUBLISHED' && !pendingCover) {
+      setCoverNeeded(true);
+      coverRef.current?.scrollIntoView({ block: 'center' });
+      return;
+    }
+    setCoverNeeded(false);
+    const outcome = { id: '', coverFailed: false, published: true };
+    const saved = await form.submit(articleUpsertSchema, payload, async (valid) => {
+      const data = valid as ArticleUpsertInput;
+      const created = await apiRequest<AdminArticle>('/admin/articles', {
+        method: 'POST',
+        body: { ...data, status: 'DRAFT' },
+      });
+      outcome.id = created.id;
+      if (pendingCover) {
+        try {
+          await uploadFile(`/admin/articles/${created.id}/cover`, pendingCover);
+        } catch {
+          outcome.coverFailed = true;
+        }
+      }
+      if (data.status === 'DRAFT') return;
+      outcome.published = false;
+      if (outcome.coverFailed) return;
+      try {
+        await apiRequest(`/admin/articles/${created.id}`, { method: 'PUT', body: data });
+        outcome.published = true;
+      } catch {
+        // Not ready to publish (the checklist on its page says why): it stays a draft.
+      }
+    });
+    if (!saved || !outcome.id) return;
+    if (!outcome.coverFailed && outcome.published) {
+      // All done: back to the list, where the newest article comes first (ADR-063).
+      notify(status === 'PUBLISHED' ? t('journal.createdPublishedShort') : t('journal.created'));
+      router.replace('/admin/journal');
+      return;
+    }
+    // Something is left to finish: the article's page says what, and the draft waits there.
+    notify(t('journal.created'));
+    const query = new URLSearchParams({ created: '1' });
+    if (outcome.coverFailed) query.set('coverFailed', '1');
+    if (!outcome.published) query.set('notPublished', '1');
+    router.replace(`/admin/journal/${outcome.id}?${query.toString()}`);
   }
 
   const scheduled = isFuture(publishedAt);
@@ -132,6 +188,7 @@ export function ArticleEditor({
       <div className="space-y-6">
         <section
           id="article-cover"
+          ref={coverRef}
           className="scroll-mt-24 space-y-3 rounded-card border border-line bg-surface p-5 sm:p-6"
         >
           <h2 className="text-body-lg font-semibold text-fg">{t('journal.cover')}</h2>
@@ -145,8 +202,13 @@ export function ArticleEditor({
             }
             emptyText={t('journal.coverEmpty')}
             hint={t('journal.coverHint')}
-            disabledText={t('journal.coverAfterSave')}
+            onDefer={article ? undefined : setPendingCover}
           />
+          {coverNeeded && !pendingCover ? (
+            <p role="alert" className="text-body-sm font-medium text-danger">
+              {t('journal.coverNeeded')}
+            </p>
+          ) : null}
         </section>
         <div
           id="article-texts"
@@ -271,7 +333,13 @@ export function ArticleEditor({
           <div className="flex flex-wrap items-center gap-3">
             <SubmitButton
               sending={form.status === 'sending'}
-              label={article ? t('common.save') : t('common.create')}
+              label={
+                article
+                  ? t('common.save')
+                  : status === 'PUBLISHED'
+                    ? t('journal.createPublished')
+                    : t('common.create')
+              }
               sendingLabel={t('common.saving')}
             />
             {article ? (
@@ -320,6 +388,20 @@ export function ArticleEditor({
           channel={telegram.channel}
         />
       </div>
+      <ConfirmDialog
+        open={leaveTo !== null}
+        title={t('common.leaveTitle')}
+        description={t('common.leaveNew')}
+        confirmLabel={t('common.leave')}
+        cancelLabel={t('common.stay')}
+        tone="danger"
+        onClose={() => setLeaveTo(null)}
+        onConfirm={() => {
+          const href = leaveTo;
+          setLeaveTo(null);
+          if (href) nextRouter.push(href);
+        }}
+      />
     </form>
   );
 }

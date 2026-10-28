@@ -1876,3 +1876,58 @@ Tests:
 - end to end: the composer posts HEVC and H.264 films (the HEVC ones without a preview) to the
   gallery and the home page feed, where the browser plays them, and the editor posts an iPhone
   film.
+
+## ADR-063: An item is created with its files in one go
+
+**Status.** Accepted on the design-refinement branch (2026-10-28, from `feat/iphone-videos`,
+0f57787), on the owner's request of 2026-10-28. Amends ADR-058 and ADR-061.
+
+**Context.** The owner asked that adding something to the site take one step: not a draft first,
+then its editor to add the pictures, then another save to publish it. A new product could only be
+saved as a draft and given its photos on its edit page; an article's cover, a category's or
+collection's picture and a gallery item's file waited the same way ("save it as a draft first"),
+because the API takes files for an item that exists and refuses to publish an item without its
+required files (ADR-021).
+
+**Decision.**
+
+- **The files are chosen on the "new" form itself**, previewed and made ready in the browser
+  (ADR-061), and kept there until the form is sent: a product's photos in their order (the first is
+  the main one, `PendingImages`), an article's cover and a category's or collection's picture
+  (`ImageUploader` with `onDefer`).
+- **One press does the rest**, in the browser, with the API as it is: the item is created as a
+  draft, its files are uploaded, and if staff chose to publish it ("Sotuvda" for a product,
+  "Eʼlon qilingan" for an article) it is saved again with that status, so the API's readiness rules
+  still decide. The button says what it will do ("Yaratish va sotuvga chiqarish", "Yaratish va
+  eʼlon qilish"), and a product's save bar counts its photos as they go up.
+- **A required file is asked for before anything is created**: a product put on sale without a
+  photo, or an article published without a cover, is stopped on the form with a note beside the
+  picture.
+- **Then back to the list**, where the new item comes first: a confirmation says it was created
+  (and put on sale, or published). Only what could not be finished opens the item's page instead,
+  with `?created=1` and a warning that names it (a file that did not go up, publishing refused);
+  the item stays a draft there and the checklist shows what is missing. A category's or
+  collection's picture that did not go up is said in the confirmation.
+- **A "new" form is empty each time it is opened.** Next.js keeps a page visited before in the
+  document, hidden, with its state (cacheComponents), so the last entries came back with it;
+  `FreshEachVisit` puts the form back together when its page is left. Leaving a new form with
+  entries asks first (`useLeaveGuard`: a link waits for the answer). Leaving the composer while a
+  film goes up, or after a post stopped half way, says the unfinished item will be deleted, and
+  deletes it; left by the browser's back button or a closed tab, it is deleted all the same.
+- **The newest comes first.** The API puts a new gallery item at the head of its kind's list
+  (products and articles were already listed by their last change), so the composer no longer
+  reorders the list itself. While a film is being made ready (ADR-062) the list looks again every
+  few seconds, and its mark turns to "ready" by itself. The readiness checklist's links go to the
+  section on screen, not to the same id on a hidden page.
+- **The gallery has one way in**: "Yangi rasm", "Yangi video" and "Yangi shorts" open the composer
+  (ADR-058) on their kind, which now also takes the image (or poster) description and, for films,
+  optional WebVTT subtitles, uploaded with the film. The former form for a new item, which saved a
+  draft first, is gone; its address leads to the composer. The editor stays for later changes.
+
+**Consequences.** Adding a product, an article, a category, a collection or a gallery item no longer
+needs its editor afterwards, and the composer no longer waits on the page while a film is made
+ready. The API is unchanged: an item is still a draft until its files are in,
+for the moment the upload takes, so a lost connection leaves a draft to finish, never a published
+item without its picture. End-to-end tests create a product on sale with its photo and an article
+published with its cover in one go, each back on its list; post a short with its subtitles and
+poster description; and open the composer again to find it empty.

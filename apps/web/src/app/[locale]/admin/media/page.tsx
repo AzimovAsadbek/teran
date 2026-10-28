@@ -4,12 +4,13 @@ import {
   type Locale,
   type MediaKind,
 } from '@teran/contracts';
-import { Captions, Film, ImageIcon, ImagePlus, Plus, Smartphone } from 'lucide-react';
+import { Captions, Film, ImageIcon, Plus, Smartphone } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { MediaOrder } from '@/components/admin/media-order';
 import { Pill } from '@/components/admin/pill';
+import { RefreshWhilePreparing } from '@/components/admin/refresh-while-preparing';
 import {
   AccessDenied,
   AdminPageHeader,
@@ -89,6 +90,7 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
   const ids = items.map((item) => item.id);
   const Icon = list.icon;
   const film = kind !== 'PHOTO';
+  const preparing = items.some((item) => item.videoJob && item.videoJob.state !== 'failed');
 
   return (
     <>
@@ -96,18 +98,14 @@ export default async function AdminMediaPage({ searchParams }: PageProps<'/[loca
         title={t('media.title')}
         description={t('media.intro')}
         actions={
-          <>
-            <ButtonLink href={`/admin/media/new?kind=${list.param}`} variant="secondary">
-              <Plus aria-hidden className="h-4 w-4" />
-              {t(`media.${list.new}`)}
-            </ButtonLink>
-            <ButtonLink href={`/admin/media/post?kind=${list.param}`}>
-              <ImagePlus aria-hidden className="h-4 w-4" />
-              {t('compose.post')}
-            </ButtonLink>
-          </>
+          // One way to add an item, with its files in one go (ADR-063).
+          <ButtonLink href={`/admin/media/post?kind=${list.param}`}>
+            <Plus aria-hidden className="h-4 w-4" />
+            {t(`media.${list.new}`)}
+          </ButtonLink>
         }
       />
+      <RefreshWhilePreparing active={preparing} />
       <StatusTabs
         label={t('media.kind')}
         tabs={[

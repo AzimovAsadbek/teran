@@ -1,45 +1,17 @@
-import type { Locale, MediaKind } from '@teran/contracts';
-import { ArrowLeft } from 'lucide-react';
-import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import type { Locale } from '@teran/contracts';
+import { redirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
-import { MediaEditor } from '@/components/admin/media-editor';
-import { AdminPageHeader } from '@/components/admin/ui';
-import { Link } from '@/i18n/navigation';
-
-export async function generateMetadata(): Promise<Metadata> {
-  const locale = (await rootParams.locale()) as Locale;
-  const t = await getTranslations({ locale, namespace: 'Admin' });
-  return { title: t('media.newItem') };
-}
-
-const NEW = {
-  PHOTO: { list: '/admin/media', title: 'newPhoto' },
-  VIDEO: { list: '/admin/media?kind=videos', title: 'newVideo' },
-  SHORT: { list: '/admin/media?kind=shorts', title: 'newShort' },
-} as const satisfies Record<MediaKind, object>;
+import { getPathname } from '@/i18n/navigation';
 
 /**
- * A new photograph (?kind=photos, the default), film (?kind=videos) or short (?kind=shorts, the
- * home page's feed); the kind stays fixed.
+ * The earlier form for a new photograph, film or short saved a draft before its files could be
+ * added. They are now posted with their files in one go by the composer (ADR-063), which this
+ * address leads to, on the same kind.
  */
 export default async function NewMediaPage({
   searchParams,
 }: PageProps<'/[locale]/admin/media/new'>) {
-  const [params, t] = await Promise.all([searchParams, getTranslations('Admin')]);
-  const kind: MediaKind =
-    params.kind === 'videos' ? 'VIDEO' : params.kind === 'shorts' ? 'SHORT' : 'PHOTO';
-  return (
-    <>
-      <Link
-        href={NEW[kind].list}
-        className="mb-4 inline-flex items-center gap-2 text-body-sm font-semibold text-fg hover:underline"
-      >
-        <ArrowLeft aria-hidden className="h-4 w-4" />
-        {t(`media.kinds.${kind}_PLURAL`)}
-      </Link>
-      <AdminPageHeader title={t(`media.${NEW[kind].title}`)} />
-      <MediaEditor item={null} kind={kind} />
-    </>
-  );
+  const [params, locale] = await Promise.all([searchParams, rootParams.locale()]);
+  const kind = params.kind === 'videos' || params.kind === 'shorts' ? params.kind : 'photos';
+  redirect(getPathname({ href: `/admin/media/post?kind=${kind}`, locale: locale as Locale }));
 }

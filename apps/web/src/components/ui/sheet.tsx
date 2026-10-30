@@ -3,6 +3,7 @@
 import { X } from 'lucide-react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { quietPageBelow, wakePage } from '@/lib/quiet-page';
 import { IconButton } from './button';
 
 type Side = 'left' | 'right' | 'top';
@@ -49,7 +50,8 @@ interface SheetProps {
 /**
  * Drawer on top of the native <dialog> element: top layer, inert background, Esc to close and
  * focus containment come from the browser. Focus returns to the opener. Used for the bag, the
- * mobile menu, filters, search and admin side panels.
+ * mobile menu, filters, search and admin side panels. While it is open, the page's blocks wholly
+ * below the screen stop rendering, so making the page inert stays quick (lib/quiet-page.ts).
  */
 export function Sheet({
   open,
@@ -68,6 +70,7 @@ export function Sheet({
 }: SheetProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
+  const quietRef = useRef(false);
   const titleId = useId();
 
   useEffect(() => {
@@ -77,6 +80,8 @@ export function Sheet({
       const active = document.activeElement;
       // Focus returns here on close (nothing to return to if focus was on the page itself).
       openerRef.current = active instanceof HTMLElement && active !== document.body ? active : null;
+      quietPageBelow(dialog);
+      quietRef.current = true;
       dialog.showModal();
       // As in Modal: a control marked data-autofocus (e.g. a form's first field) takes focus.
       dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
@@ -85,11 +90,22 @@ export function Sheet({
     }
   }, [open]);
 
+  // A drawer removed while open (its page left) wakes the page too.
+  useEffect(
+    () => () => {
+      if (quietRef.current) wakePage();
+      quietRef.current = false;
+    },
+    [],
+  );
+
   return (
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
       onClose={() => {
+        if (quietRef.current) wakePage();
+        quietRef.current = false;
         onClose();
         openerRef.current?.focus();
       }}

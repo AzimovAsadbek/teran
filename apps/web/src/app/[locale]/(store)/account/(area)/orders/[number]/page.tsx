@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Link, getPathname } from '@/i18n/navigation';
 import { ApiError } from '@/lib/api/errors';
 import { apiFindAsVisitor } from '@/lib/api/server';
+import { ClientMessages } from '@/i18n/client-messages';
 
 const ORDER_NUMBER = /^TRN-[0-9A-Z]{8}$/;
 
@@ -63,7 +64,10 @@ async function AccountOrder({
           {t('orderTitle', { number: order.number })}
         </h1>
       </div>
-      <OrderStatusView order={order} locale={locale} token={null} account />
+      {/* Paying again, checking again and ordering again read the checkout's texts. */}
+      <ClientMessages pick={['Checkout']}>
+        <OrderStatusView order={order} locale={locale} token={null} account />
+      </ClientMessages>
     </div>
   );
 }

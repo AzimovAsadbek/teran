@@ -65,10 +65,14 @@ WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
-# Package managers are not needed at runtime.
+# Package managers are not needed at runtime. The image optimiser's folder is made here, owned by
+# `node`, because the compose file keeps it on the `web-image-cache` volume and a new volume takes
+# the owner of the folder it is mounted on (ADR-067).
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-* \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn \
-      /usr/local/bin/yarnpkg
+      /usr/local/bin/yarnpkg \
+    && mkdir -p apps/web/.next/cache/images \
+    && chown -R node:node apps/web/.next/cache
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \

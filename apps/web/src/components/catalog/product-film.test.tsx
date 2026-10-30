@@ -66,8 +66,40 @@ function scrollToFilm(width = 240) {
   });
 }
 
+/** Takes the film off the screen again. */
+function leaveFilm() {
+  act(() => {
+    for (const callback of observers) {
+      callback(
+        [
+          {
+            isIntersecting: false,
+            intersectionRatio: 0,
+            boundingClientRect: { width: 240 } as DOMRectReadOnly,
+          } as IntersectionObserverEntry,
+        ],
+        {} as IntersectionObserver,
+      );
+    }
+  });
+}
+
 describe('ProductFilm', () => {
-  it('plays the cards copy once near and on screen, and stops while the films are paused', async () => {
+  it('fetches nothing for a card only scrolled past', () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<ProductFilm film={film} size="card" />);
+      scrollToFilm();
+      act(() => vi.advanceTimersByTime(300));
+      leaveFilm();
+      act(() => vi.advanceTimersByTime(2000));
+      expect(container.querySelector('video')).not.toHaveAttribute('src');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('plays the cards copy once it has stayed on screen, and stops while the films are paused', async () => {
     const { container } = render(<ProductFilm film={film} size="card" />);
     const video = container.querySelector('video')!;
     expect(video).not.toHaveAttribute('src');
@@ -96,6 +128,18 @@ describe('ProductFilm', () => {
     expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
     rerender(<ProductFilm film={film} size="full" active />);
     await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
+  });
+
+  it('keeps the picture still on a slow connection', () => {
+    const connection = Object.assign(new EventTarget(), { effectiveType: '3g', saveData: false });
+    Object.defineProperty(navigator, 'connection', { configurable: true, value: connection });
+    try {
+      const { container } = render(<ProductFilm film={film} size="full" />);
+      scrollToFilm();
+      expect(container.querySelector('video')).toBeNull();
+    } finally {
+      delete (navigator as Navigator & { connection?: unknown }).connection;
+    }
   });
 
   it('keeps the picture still with reduced motion, and without a cards copy', () => {

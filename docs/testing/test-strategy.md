@@ -95,11 +95,12 @@ Desktop Chrome runs everything except `@mobile` tests; a Pixel 7 profile runs th
 | `account.spec.ts`       | Register, edit profile, sign out and in; text typed before the page is interactive still reaches the form; off-site `next` ignored; contact and wholesale forms                                                                                                                                                                                       |
 | `catalogue.spec.ts`     | Search by collection identifier and name, empty result; stock, format and price filters and sort kept in the URL and restored on reload; clearing keeps the sort; a pack size changes price and URL; a TERAN pack product shows its pack's facts (400 g, the "How to brew" panel) and images                                                          |
 | `admin.spec.ts`         | Admin closed to visitors and customers; staff create a product, see it in the store, restock it, fulfil a guest order and record the cash                                                                                                                                                                                                             |
-| `mobile.spec.ts`        | Phone: menu drawer, catalogue, sticky purchase bar, bag, checkout — failing on any sideways scrolling                                                                                                                                                                                                                                                 |
+| `mobile.spec.ts`        | Phone: menu drawer, catalogue, sticky purchase bar, bag, checkout — failing on any sideways scrolling; a drawer leaves the page below the screen unrendered while open and renders it again after (ADR-066), and the filters drawer applies its choices                                                                                               |
 | `accessibility.spec.ts` | axe-core with WCAG 2.0/2.1/2.2 A and AA rules on storefront pages in three languages (including category pages), the open bag, checkout and form errors, the account area and menu, the demonstration payment page, an order awaiting payment, admin pages (including categories and product types), and the phone menu and filters                   |
 | `journey.spec.ts`       | The full customer journey with demo payments (13 stages, see [customer journeys](customer-journeys.md)); private account pages redirect visitors to sign-in                                                                                                                                                                                           |
 | `categories.spec.ts`    | Category pages direct and refreshed, attribute filter in the URL, legacy addresses answer 308, a new category appears in the Shop menu only while active, catalogue changes need staff                                                                                                                                                                |
 | `publishing.spec.ts`    | Pictures, covers, articles and the gallery; the composer posts iPhone films (HEVC without a preview, H.264 with one) to the gallery and the home page feed, where the browser plays the MP4s; the editor replaces a film with an iPhone `.MOV` (ADR-062). These need ffmpeg where the stack's API runs (CI installs it; skipped elsewhere without it) |
+| `performance.spec.ts`   | A light first visit (ADR-064): the home page, the catalogue and a TERAN tea's page load no validation library; the tea's pouch is preloaded and never lazy; the for-business and about pages' front pack takes no part in the arrival; product cards point at the one shared icon set                                                                 |
 
 Notes for writing tests:
 
@@ -165,7 +166,8 @@ restore commands of the deployment guide brought the data back after a simulated
   (skip link, mega menu, search, showcase tabs, pack sizes, bag drawer, price popover, filter
   drawer) are listed in the [redesign checklist](../design/redesign-checklist.md).
 - Real phones (iOS Safari and Android Chrome) for the sticky purchase bar and drawers.
-- Lighthouse on the home, catalogue and product pages of a production build.
+- Lighthouse on the home, catalogue and product pages of a production build, as in the
+  [performance audit](../performance-audit.md) (method, budgets and the last results).
 
 ## Not covered yet
 

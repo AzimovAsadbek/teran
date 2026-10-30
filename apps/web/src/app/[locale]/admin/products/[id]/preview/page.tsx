@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { AdminPageHeader, ProductStatusPill } from '@/components/admin/ui';
 import { Badge } from '@/components/ui/badge';
+import { CardIconSprite } from '@/components/catalog/card-icons';
 import { ProductCard } from '@/components/catalog/product-card';
 import { ProductGallery } from '@/components/product/product-gallery';
 import { AttributeRows, ProductTabsSection } from '@/components/product/product-info';
@@ -119,6 +120,7 @@ export default async function ProductPreviewPage({
       <h2 className="mt-10 text-title-lg text-fg">{t('preview.asCard')}</h2>
       <p className="mt-1 text-body-sm text-fg-muted">{t('preview.asCardHint')}</p>
       <div inert className="mt-4 w-64 max-w-full">
+        <CardIconSprite />
         <ProductCard product={product} />
       </div>
     </>

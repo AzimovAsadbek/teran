@@ -16,7 +16,7 @@ const FADE_IN_MS = 800;
  *
  * It is fetched whole once the page has loaded and the place comes near the screen, then fades
  * in over the poster; it plays only while on screen, and never with reduced motion, on a
- * data-saving connection or while the visitor has paused the films (the footer's switch,
+ * data-saving or slow connection or while the visitor has paused the films (the footer's switch,
  * lib/motion). It has no button of its own (the owner's choice). Phones (under `phoneBelow`, as
  * the poster's taller crop) get their own film when there is one.
  *

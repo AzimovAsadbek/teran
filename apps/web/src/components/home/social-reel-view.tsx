@@ -167,7 +167,9 @@ export function SocialReelView({
                   width={film.image.width}
                   height={film.image.height}
                   alt=""
-                  loading={index < 3 ? 'eager' : 'lazy'}
+                  // Lazy, the first cards too: the feed sits far down the page, and eager posters
+                  // were fetched beside the first view's picture on slow connections (ADR-067).
+                  loading="lazy"
                   decoding="async"
                   className="absolute inset-0 h-full w-full object-cover"
                 />

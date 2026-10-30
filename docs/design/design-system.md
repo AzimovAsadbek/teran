@@ -299,7 +299,8 @@ and business its centre ([ADR-050](../architecture/decisions.md)), with the iden
   (`components/catalog/product-family.ts`); tea keeps its film and leaves.
 - **Motion vocabulary:** `--ease-out-expo` `cubic-bezier(0.16, 1, 0.3, 1)` for arrivals and
   wipes, `--ease-scene` for scrubbed scenes; arrivals 800–1100 ms (`arrive-line`, `arrive-rise`,
-  `arrive-pack`, `arrive-settle`, staggered by `--i`), wipes 1000 ms (`.wipe-layer`), the card
+  `arrive-pack`, `arrive-settle`, staggered by `--i`; a page's largest picture takes no part, so a
+  fan's front pack stands from the first frame, ADR-064), wipes 1000 ms (`.wipe-layer`), the card
   light 1200 ms (`.card-sheen`). Scroll-scrubbed depth (GSAP + ScrollTrigger, loaded on the first
   scroll, never with reduced motion) only in the first view and the signature stage. Nothing pins; reduced motion stills
   everything.
@@ -366,9 +367,10 @@ desktop, in the drawer and on the home page's cards. No category is named in cod
 - **Desktop panels** open full width under the header, aligned to the page grid (WAI-ARIA
   disclosure buttons; click, Enter/Space or a short hover; Esc closes and returns focus; a click
   outside or on a link closes). They fade and slide 6 px in 200 ms and the page dims behind them
-  (`forest-950` at 25 %); a panel taller than the window scrolls inside itself. Like the drawer's,
-  their contents are rendered the first time they open (no page carries the menus in its HTML)
-  and kept afterwards.
+  (`forest-950` at 25 %); a panel taller than the window scrolls inside itself. Their contents are
+  rendered the first time they open (no page carries the menus in its HTML) and kept afterwards;
+  the drawer's are put together on phones and tablets while the page is idle, so its button only
+  shows it (ADR-066).
   - _Catalogue_: the top-level categories on the left (illustration, name, count; the active one
     marked with a gold bar). Pointing at or focusing one shows, in the middle, its count, name,
     description, its subcategories in two columns and a "Barchasi: …" link, and on the right its
@@ -383,7 +385,10 @@ desktop, in the drawer and on the home page's cards. No category is named in cod
   counts (the first starts open while there are at most three top-level categories), the others
   are links — then "All products", collections as tiles, "The world of TERAN", "Help" and the
   account; the account link and language switch stay in the footer. Rows are at least 48 px
-  tall; long names wrap; the close button stays in the header row.
+  tall; long names wrap; the close button stays in the header row. While any drawer is open
+  (`Sheet`: the menu, filters, bag, search), the page's blocks wholly below the screen are not
+  rendered, as they cannot be seen behind it and the page is inert; they render again as it
+  closes (ADR-066).
 
 ### Home hero
 

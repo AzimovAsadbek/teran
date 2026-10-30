@@ -14,7 +14,7 @@ import {
 import type { CaffeineLevel, Locale, ProductFormat } from './constants.js';
 import { mediaKindSchema, type MediaKind } from './content.js';
 import type { AdminTelegramStatus, Readiness, ReadinessCode } from './publishing.js';
-import { inquiryStatusSchema, type BusinessType, type InquiryStatus } from './inquiries.js';
+import { inquiryStatusSchema, type InquiryStatus } from './inquiries.js';
 import {
   orderStatusSchema,
   paymentStatusSchema,
@@ -24,7 +24,7 @@ import {
   type PaymentStatus,
 } from './orders.js';
 import { passwordSchema, type UserRole } from './auth.js';
-import { REGION_CODES } from './uzbekistan.js';
+import { REGION_CODES, type BusinessType } from './constants.js';
 
 export const PRODUCT_STATUSES = ['DRAFT', 'ACTIVE', 'ARCHIVED'] as const;
 export const productStatusSchema = z.enum(PRODUCT_STATUSES);

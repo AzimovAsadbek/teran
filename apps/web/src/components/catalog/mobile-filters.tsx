@@ -3,7 +3,7 @@
 import type { FacetsDto } from '@teran/contracts';
 import { SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useId, useState, type FormEvent, type ReactNode } from 'react';
+import { memo, useCallback, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox, inputClasses, radioDotClasses } from '@/components/ui/field';
 import { Sheet } from '@/components/ui/sheet';
@@ -37,7 +37,6 @@ export function MobileFilters({
 }) {
   const t = useTranslations('Catalog');
   const tc = useTranslations('Common');
-  const tp = useTranslations('Product');
   const formId = useId();
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -49,21 +48,24 @@ export function MobileFilters({
     Object.keys(filters.attributes).length;
 
   // With JavaScript, build a clean URL (no empty or default values); without it the GET form still works.
-  function applyFilters(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const raw: RawSearchParams = {};
-    for (const [key, value] of new FormData(event.currentTarget)) {
-      if (typeof value !== 'string' || value === '') continue;
-      const existing = raw[key];
-      raw[key] =
-        existing === undefined
-          ? value
-          : [...(Array.isArray(existing) ? existing : [existing]), value];
-    }
-    const query = toSearchParams({ ...parseCatalogFilters(raw), page: 1 });
-    setOpen(false);
-    router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
-  }
+  const applyFilters = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const raw: RawSearchParams = {};
+      for (const [key, value] of new FormData(event.currentTarget)) {
+        if (typeof value !== 'string' || value === '') continue;
+        const existing = raw[key];
+        raw[key] =
+          existing === undefined
+            ? value
+            : [...(Array.isArray(existing) ? existing : [existing]), value];
+      }
+      const query = toSearchParams({ ...parseCatalogFilters(raw), page: 1 });
+      setOpen(false);
+      router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
+    },
+    [router, basePath],
+  );
 
   return (
     <div className="lg:hidden">
@@ -92,194 +94,217 @@ export function MobileFilters({
           </Button>
         }
       >
-        <form
+        <FilterForm
           id={formId}
           action={formAction}
-          method="get"
-          onSubmit={(event) => applyFilters(event)}
-          className="divide-y divide-line-subtle px-5 sm:px-6"
-        >
-          <Group legend={t('sort')}>
-            {VISIBLE_SORTS.map((sort) => (
-              <label
-                key={sort}
-                className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
-              >
-                <input
-                  type="radio"
-                  name="sort"
-                  value={sort}
-                  defaultChecked={filters.sort === sort}
-                  className={radioDotClasses}
-                />
-                {t(`sortOptions.${sort}`)}
-              </label>
-            ))}
-          </Group>
+          filters={filters}
+          facets={facets}
+          onApply={applyFilters}
+        />
+      </Sheet>
+    </div>
+  );
+}
 
-          {facets.formats.length > 0 ? (
-            <Group legend={t('format')}>
-              {facets.formats.map(({ value, count }) => (
-                <label
-                  key={value}
-                  className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
-                >
-                  {/* Checkboxes submit repeated values; the catalogue parser accepts both forms. */}
-                  <Checkbox
-                    name="format"
-                    value={value}
-                    defaultChecked={filters.format.includes(value)}
-                  />
-                  <span className="flex-1">{t(`formats.${value}`)}</span>
-                  <span className="text-body-sm text-fg-subtle">{count}</span>
-                </label>
-              ))}
-            </Group>
-          ) : null}
+/**
+ * The drawer's form. It is the same element while the drawer opens and closes, so the tap on
+ * "Filters" renders only the drawer around it (ADR-066).
+ */
+const FilterForm = memo(function FilterForm({
+  id,
+  action,
+  filters,
+  facets,
+  onApply,
+}: {
+  id: string;
+  action: string;
+  filters: CatalogFilters;
+  facets: FacetsDto;
+  onApply: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const t = useTranslations('Catalog');
+  const tp = useTranslations('Product');
+  return (
+    <form
+      id={id}
+      action={action}
+      method="get"
+      onSubmit={onApply}
+      className="divide-y divide-line-subtle px-5 sm:px-6"
+    >
+      <Group legend={t('sort')}>
+        {VISIBLE_SORTS.map((sort) => (
+          <label key={sort} className="flex min-h-11 cursor-pointer items-center gap-3 text-body">
+            <input
+              type="radio"
+              name="sort"
+              value={sort}
+              defaultChecked={filters.sort === sort}
+              className={radioDotClasses}
+            />
+            {t(`sortOptions.${sort}`)}
+          </label>
+        ))}
+      </Group>
 
-          {facets.caffeine.length > 0 ? (
-            <Group legend={tp('caffeine')}>
-              {facets.caffeine.map(({ value, count }) => (
-                <label
-                  key={value}
-                  className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
-                >
-                  <Checkbox
-                    name="caffeine"
-                    value={value}
-                    defaultChecked={filters.caffeine.includes(value)}
-                  />
-                  <span className="flex-1">{tp(`caffeineLevels.${value}`)}</span>
-                  <span className="text-body-sm text-fg-subtle">{count}</span>
-                </label>
-              ))}
-            </Group>
-          ) : null}
+      {facets.formats.length > 0 ? (
+        <Group legend={t('format')}>
+          {facets.formats.map(({ value, count }) => (
+            <label
+              key={value}
+              className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
+            >
+              {/* Checkboxes submit repeated values; the catalogue parser accepts both forms. */}
+              <Checkbox
+                name="format"
+                value={value}
+                defaultChecked={filters.format.includes(value)}
+              />
+              <span className="flex-1">{t(`formats.${value}`)}</span>
+              <span className="text-body-sm text-fg-subtle">{count}</span>
+            </label>
+          ))}
+        </Group>
+      ) : null}
 
-          {showPrices ? (
-            <Group legend={t('price')}>
+      {facets.caffeine.length > 0 ? (
+        <Group legend={tp('caffeine')}>
+          {facets.caffeine.map(({ value, count }) => (
+            <label
+              key={value}
+              className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
+            >
+              <Checkbox
+                name="caffeine"
+                value={value}
+                defaultChecked={filters.caffeine.includes(value)}
+              />
+              <span className="flex-1">{tp(`caffeineLevels.${value}`)}</span>
+              <span className="text-body-sm text-fg-subtle">{count}</span>
+            </label>
+          ))}
+        </Group>
+      ) : null}
+
+      {showPrices ? (
+        <Group legend={t('price')}>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <label className="text-helper text-fg-muted">
+              {t('priceMinLabel')}
+              <input
+                name="minPrice"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                defaultValue={filters.minPrice}
+                placeholder={
+                  facets.priceRange ? String(Math.floor(Number(facets.priceRange.min))) : undefined
+                }
+                className={inputClasses({ className: 'mt-1.5' })}
+              />
+            </label>
+            <label className="text-helper text-fg-muted">
+              {t('priceMaxLabel')}
+              <input
+                name="maxPrice"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                defaultValue={filters.maxPrice}
+                placeholder={
+                  facets.priceRange ? String(Math.ceil(Number(facets.priceRange.max))) : undefined
+                }
+                className={inputClasses({ className: 'mt-1.5' })}
+              />
+            </label>
+          </div>
+        </Group>
+      ) : null}
+
+      {facets.attributes.map((facet) => {
+        const selected = filters.attributes[facet.key] ?? [];
+        if (facet.kind === 'NUMBER') {
+          if (!facet.range) return null;
+          const [min = '', max = ''] = (selected[0] ?? '').split('~');
+          return (
+            <Group
+              key={facet.key}
+              legend={facet.unit ? `${facet.label}, ${facet.unit}` : facet.label}
+            >
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <label className="text-helper text-fg-muted">
-                  {t('priceMinLabel')}
+                  {t('rangeFrom')}
                   <input
-                    name="minPrice"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    name={`attrmin.${facet.key}`}
+                    inputMode="decimal"
                     autoComplete="off"
-                    defaultValue={filters.minPrice}
-                    placeholder={
-                      facets.priceRange
-                        ? String(Math.floor(Number(facets.priceRange.min)))
-                        : undefined
-                    }
+                    defaultValue={min}
+                    placeholder={facet.range.min}
                     className={inputClasses({ className: 'mt-1.5' })}
                   />
                 </label>
                 <label className="text-helper text-fg-muted">
-                  {t('priceMaxLabel')}
+                  {t('rangeTo')}
                   <input
-                    name="maxPrice"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    name={`attrmax.${facet.key}`}
+                    inputMode="decimal"
                     autoComplete="off"
-                    defaultValue={filters.maxPrice}
-                    placeholder={
-                      facets.priceRange
-                        ? String(Math.ceil(Number(facets.priceRange.max)))
-                        : undefined
-                    }
+                    defaultValue={max}
+                    placeholder={facet.range.max}
                     className={inputClasses({ className: 'mt-1.5' })}
                   />
                 </label>
               </div>
             </Group>
-          ) : null}
+          );
+        }
+        if (facet.kind === 'BOOLEAN') {
+          const option = facet.options.find((entry) => entry.key === 'true');
+          if (!option) return null;
+          return (
+            <div key={facet.key} className="py-5">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
+                <Checkbox
+                  name={`attr.${facet.key}`}
+                  value="true"
+                  defaultChecked={selected.includes('true')}
+                />
+                <span className="flex-1">{facet.label}</span>
+                <span className="text-body-sm font-normal text-fg-subtle">{option.count}</span>
+              </label>
+            </div>
+          );
+        }
+        return (
+          <Group key={facet.key} legend={facet.label}>
+            {facet.options.map((option) => (
+              <label
+                key={option.key}
+                className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
+              >
+                <Checkbox
+                  name={`attr.${facet.key}`}
+                  value={option.key}
+                  defaultChecked={selected.includes(option.key)}
+                />
+                <span className="flex-1">{option.label}</span>
+                <span className="text-body-sm text-fg-subtle">{option.count}</span>
+              </label>
+            ))}
+          </Group>
+        );
+      })}
 
-          {facets.attributes.map((facet) => {
-            const selected = filters.attributes[facet.key] ?? [];
-            if (facet.kind === 'NUMBER') {
-              if (!facet.range) return null;
-              const [min = '', max = ''] = (selected[0] ?? '').split('~');
-              return (
-                <Group
-                  key={facet.key}
-                  legend={facet.unit ? `${facet.label}, ${facet.unit}` : facet.label}
-                >
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <label className="text-helper text-fg-muted">
-                      {t('rangeFrom')}
-                      <input
-                        name={`attrmin.${facet.key}`}
-                        inputMode="decimal"
-                        autoComplete="off"
-                        defaultValue={min}
-                        placeholder={facet.range.min}
-                        className={inputClasses({ className: 'mt-1.5' })}
-                      />
-                    </label>
-                    <label className="text-helper text-fg-muted">
-                      {t('rangeTo')}
-                      <input
-                        name={`attrmax.${facet.key}`}
-                        inputMode="decimal"
-                        autoComplete="off"
-                        defaultValue={max}
-                        placeholder={facet.range.max}
-                        className={inputClasses({ className: 'mt-1.5' })}
-                      />
-                    </label>
-                  </div>
-                </Group>
-              );
-            }
-            if (facet.kind === 'BOOLEAN') {
-              const option = facet.options.find((entry) => entry.key === 'true');
-              if (!option) return null;
-              return (
-                <div key={facet.key} className="py-5">
-                  <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
-                    <Checkbox
-                      name={`attr.${facet.key}`}
-                      value="true"
-                      defaultChecked={selected.includes('true')}
-                    />
-                    <span className="flex-1">{facet.label}</span>
-                    <span className="text-body-sm font-normal text-fg-subtle">{option.count}</span>
-                  </label>
-                </div>
-              );
-            }
-            return (
-              <Group key={facet.key} legend={facet.label}>
-                {facet.options.map((option) => (
-                  <label
-                    key={option.key}
-                    className="flex min-h-11 cursor-pointer items-center gap-3 text-body"
-                  >
-                    <Checkbox
-                      name={`attr.${facet.key}`}
-                      value={option.key}
-                      defaultChecked={selected.includes(option.key)}
-                    />
-                    <span className="flex-1">{option.label}</span>
-                    <span className="text-body-sm text-fg-subtle">{option.count}</span>
-                  </label>
-                ))}
-              </Group>
-            );
-          })}
-
-          <div className="py-5">
-            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
-              <Checkbox name="inStock" value="true" defaultChecked={filters.inStock} />
-              {t('inStockOnly')}
-            </label>
-          </div>
-        </form>
-      </Sheet>
-    </div>
+      <div className="py-5">
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
+          <Checkbox name="inStock" value="true" defaultChecked={filters.inStock} />
+          {t('inStockOnly')}
+        </label>
+      </div>
+    </form>
   );
-}
+});
 
 function Group({ legend, children }: { legend: string; children: ReactNode }) {
   return (

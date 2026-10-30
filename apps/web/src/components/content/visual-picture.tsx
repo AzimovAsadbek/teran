@@ -20,6 +20,7 @@ const PHONE_POSITION: Record<number, string> = {
 export function VisualPicture({
   visual,
   sizes,
+  phoneSizes = '100vw',
   priority = false,
   phoneBelow = 750,
   position,
@@ -28,6 +29,11 @@ export function VisualPicture({
 }: {
   visual: PublicVisualDto;
   sizes: string;
+  /**
+   * The width the taller crop is drawn at under `phoneBelow`: the whole screen unless its frame
+   * sits inside the page's margins, where saying so lets a phone take a smaller file (ADR-067).
+   */
+  phoneSizes?: string;
   priority?: boolean;
   /** The width under which the taller crop is shown, where the frame keeps its proportions. */
   phoneBelow?: number;
@@ -48,7 +54,7 @@ export function VisualPicture({
       preload(phone.src, {
         as: 'image',
         imageSrcSet: phone.srcSet,
-        imageSizes: '100vw',
+        imageSizes: phoneSizes,
         fetchPriority: 'high',
         media: phoneMedia,
       });
@@ -67,7 +73,7 @@ export function VisualPicture({
   } as CSSProperties;
   return (
     <picture>
-      {phone ? <source media={phoneMedia} srcSet={phone.srcSet} sizes="100vw" /> : null}
+      {phone ? <source media={phoneMedia} srcSet={phone.srcSet} sizes={phoneSizes} /> : null}
       <img
         src={wide.src}
         srcSet={wide.srcSet}

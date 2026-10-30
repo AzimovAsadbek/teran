@@ -24,7 +24,7 @@ ports the server's Nginx already uses for the site) and kept in `.deploy.env`.
 | `postgres` | `postgres:18.6-alpine3.24`    | data      | never                              | `postgres-data` volume                       |
 | `migrate`  | `apps/api/Dockerfile` `tools` | data, app | never                              | — (mounts `uploads` for the one-off scripts) |
 | `api`      | `apps/api/Dockerfile` runtime | data, app | `127.0.0.1:${TERAN_API_HOST_PORT}` | `uploads` volume (files when R2 is not used) |
-| `web`      | `apps/web/Dockerfile`         | app       | `127.0.0.1:${TERAN_WEB_HOST_PORT}` | — (Next.js caches inside the container)      |
+| `web`      | `apps/web/Dockerfile`         | app       | `127.0.0.1:${TERAN_WEB_HOST_PORT}` | `web-image-cache` volume (resized pictures)  |
 
 - The `data` network is internal: PostgreSQL has no route to or from the internet and is never
   published. The API and the storefront are published on the loopback interface only, for Nginx.
@@ -293,6 +293,37 @@ teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed
     tsx scripts/add-gallery-film.ts --film /import/film.mp4 --poster /import/poster.jpg \
     --title-uz '…' --title-ru '…' --title-en '…'
   ```
+
+- Picture widths (ADR-065, ADR-067): every picture is kept as WebP files at fixed widths, and a
+  release can add a width (800 px for phones; 1080 px for page pictures, journal covers and the
+  gallery). New uploads get it at once; pictures stored before get it from the tools image, which
+  makes each missing file from a wider one of the same picture, adds it beside the others (never
+  replacing or deleting a file) and records it in the database, keeping each row's last-change
+  date (the sitemap's `lastmod` does not move). It writes to R2 when R2 is configured: an approved
+  operator step, never run without the owner. In order:
+
+  1. Back up the database (section 10, "Manual") and keep the file's name.
+  2. List what it would add; nothing is written:
+
+     ```bash
+     teran run --rm migrate tsx scripts/add-renditions.ts
+     ```
+
+     Its last line counts the pictures, the files to make and the widths only a new upload can give. On the development copy of the shop's data (2026-10-30, the same pictures as the live bucket on 2026-10-23 plus two gallery items) it listed 243 files for 174 pictures: 162 of 800 px (ADR-065) and 81 of 1080 px (ADR-067), about 18.5 MB, and 14 widths only a new upload can give (small product photos). The live count is that, plus two files for each picture uploaded since that has the old widths.
+
+  3. If the list is what was expected, add them:
+
+     ```bash
+     teran run --rm migrate tsx scripts/add-renditions.ts --apply
+     ```
+
+  4. Run the listing again: it should find 0 renditions to make.
+
+  A run can be repeated: it only adds what is still missing, a file found already there is only
+  recorded, and the storefront's cache is refreshed when it has recorded something. **Undo:** the
+  added files are new keys (`…/1080.webp`) beside the old ones, so nothing a visitor had is lost;
+  restoring the database backup (section 10) takes the widths off the pictures, and the storefront
+  stops offering the files (they stay in the bucket, unused, until removed by hand).
 
 - Films from iPhones (ADR-062): the API image includes ffmpeg (Alpine's package). A finished upload
   is made ready in the background, one film at a time, in `.processing/` on the uploads volume: an

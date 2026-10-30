@@ -7,6 +7,7 @@ import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
 import { UnsubscribeForm } from '@/components/forms/unsubscribe-form';
 import { ButtonLink } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
+import { ClientMessages } from '@/i18n/client-messages';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -32,7 +33,9 @@ async function Unsubscribe({
   return (
     <AuthCard title={t('unsubscribeTitle')} intro={id && token ? t('unsubscribeText') : undefined}>
       {id && token ? (
-        <UnsubscribeForm id={id} token={token} />
+        <ClientMessages pick={['Validation.fixErrors']}>
+          <UnsubscribeForm id={id} token={token} />
+        </ClientMessages>
       ) : (
         // A link without its id or token: say so as a warning, and offer the way to write.
         <div className="space-y-6">

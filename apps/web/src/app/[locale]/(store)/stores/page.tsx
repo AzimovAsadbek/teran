@@ -1,6 +1,5 @@
 import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
-import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
@@ -8,7 +7,7 @@ import { Suspense } from 'react';
 import { preconnect } from 'react-dom';
 import { PageHeader } from '@/components/content/page-header';
 import { StoreLocator } from '@/components/stores/store-locator';
-import { pickMessages, STORE_CLIENT_NAMESPACES, type Messages } from '@/i18n/messages';
+import { ClientMessages } from '@/i18n/client-messages';
 import { getPublicSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
 
@@ -27,17 +26,12 @@ export async function generateMetadata(): Promise<Metadata> {
 async function Locator() {
   await connection();
   const locale = await getLocale();
-  const [settings, messages] = await Promise.all([
-    getPublicSettings(locale).catch(() => null),
-    getMessages() as Promise<Messages>,
-  ]);
+  const settings = await getPublicSettings(locale).catch(() => null);
   // The locator's own texts reach the browser on this page only.
   return (
-    <NextIntlClientProvider
-      messages={pickMessages(messages, [...STORE_CLIENT_NAMESPACES, 'Stores'])}
-    >
+    <ClientMessages pick={['Stores']}>
       <StoreLocator stores={settings ? settings.stores : null} />
-    </NextIntlClientProvider>
+    </ClientMessages>
   );
 }
 

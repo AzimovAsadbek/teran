@@ -1,6 +1,6 @@
 'use client';
 
-import { BUSINESS_TYPES, type BusinessType } from '@teran/contracts';
+import { BUSINESS_TYPES, type BusinessType } from '@teran/contracts/constants';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useSyncExternalStore } from 'react';
 

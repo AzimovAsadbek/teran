@@ -23,6 +23,7 @@ import { COLLECTION_CODES, PREMIUM_COLLECTION_SLUG, teaCodeOf } from '@/content/
 import { gridFor } from './catalog-grid';
 import { FamilyShelves } from './family-shelves';
 import { ProductCard } from './product-card';
+import { ClientMessages } from '@/i18n/client-messages';
 
 const PAGE_SIZE = 24;
 
@@ -103,7 +104,14 @@ export async function CatalogResults({
   if (shelves && !hasRefinements(filters) && filters.page === 1 && list.total > 0) {
     return (
       <>
-        <FilterBar basePath={basePath} filters={filters} facets={list.facets} total={list.total} />
+        <ClientMessages pick={['Catalog']}>
+          <FilterBar
+            basePath={basePath}
+            filters={filters}
+            facets={list.facets}
+            total={list.total}
+          />
+        </ClientMessages>
         <FamilyShelves locale={locale as Locale} />
       </>
     );
@@ -130,8 +138,16 @@ export async function CatalogResults({
 
   return (
     <>
+      {/* The bar's sort menu, price and range popovers and phone drawer are client components. */}
       {awaitingProducts ? null : (
-        <FilterBar basePath={basePath} filters={filters} facets={list.facets} total={list.total} />
+        <ClientMessages pick={['Catalog']}>
+          <FilterBar
+            basePath={basePath}
+            filters={filters}
+            facets={list.facets}
+            total={list.total}
+          />
+        </ClientMessages>
       )}
       {awaitingProducts ? (
         <div className="flex flex-col items-center py-16 text-center sm:py-20">

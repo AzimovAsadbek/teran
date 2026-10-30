@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start --port 3000",
     "typecheck": "next typegen && tsc --noEmit",
-    "lint": "eslint . && node scripts/check-messages.mjs",
+    "lint": "eslint . && node scripts/check-messages.mjs && node scripts/check-client-messages.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

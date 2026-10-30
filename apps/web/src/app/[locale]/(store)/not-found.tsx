@@ -1,52 +1,19 @@
-import { getLocale, getTranslations } from 'next-intl/server';
-import { connection } from 'next/server';
-import { Suspense } from 'react';
-import { ProductRail } from '@/components/home/product-rail';
+import { getTranslations } from 'next-intl/server';
+import { NotFoundSuggestions } from '@/components/home/not-found-suggestions';
 import { RailFallback } from '@/components/home/rail-sections';
 import { StateMessage } from '@/components/ui/state-message';
-import { getProductList } from '@/lib/data/catalog';
 
-/** "Discover something new" under the missing page: TERAN's featured teas. */
-async function Suggestions() {
-  await connection();
-  const locale = await getLocale();
+/**
+ * The missing page on the one state pattern (components/ui/state-message.tsx): what happened, the
+ * way home and the way to the teas, then a row of TERAN's teas to discover, fetched by the browser
+ * once this page shows (not with every page, whose payload carries this element).
+ */
+export default async function NotFound() {
   const [t, th, tn] = await Promise.all([
     getTranslations('Errors'),
     getTranslations('Home'),
     getTranslations('Nav'),
   ]);
-  const list = await getProductList(locale, 'featured=true&pageSize=8&sort=featured').catch(
-    () => null,
-  );
-  if (!list || list.items.length === 0) return null;
-  return (
-    <ProductRail
-      tabs={[
-        {
-          id: 'discover',
-          label: t('discoverNew'),
-          products: list.items,
-          href: '/catalog',
-          cta: tn('shopAll'),
-        },
-      ]}
-      labels={{
-        tabList: th('showcaseTabs'),
-        previous: th('showcasePrevious'),
-        next: th('showcaseNext'),
-      }}
-      heading="condensed"
-      frame="content"
-    />
-  );
-}
-
-/**
- * The missing page on the one state pattern (components/ui/state-message.tsx): what happened, the
- * way home and the way to the teas, then a row of TERAN's teas to discover.
- */
-export default async function NotFound() {
-  const [t, tn] = await Promise.all([getTranslations('Errors'), getTranslations('Nav')]);
   return (
     <>
       <StateMessage
@@ -56,9 +23,16 @@ export default async function NotFound() {
         primary={{ href: '/', label: t('backHome') }}
         secondary={{ href: '/catalog', label: tn('allTeas') }}
       />
-      <Suspense fallback={<RailFallback />}>
-        <Suggestions />
-      </Suspense>
+      <NotFoundSuggestions
+        fallback={<RailFallback />}
+        label={t('discoverNew')}
+        cta={tn('shopAll')}
+        labels={{
+          tabList: th('showcaseTabs'),
+          previous: th('showcasePrevious'),
+          next: th('showcaseNext'),
+        }}
+      />
       <div className="pb-section-sm" />
     </>
   );

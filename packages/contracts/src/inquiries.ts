@@ -1,17 +1,9 @@
 import { z } from 'zod';
 import { emailSchema, localeSchema, optionalText } from './common.js';
+import { BUSINESS_TYPES } from './constants.js';
 import { normalizeUzPhone, regionCodeSchema } from './uzbekistan.js';
 
-export const BUSINESS_TYPES = [
-  'CAFE_RESTAURANT',
-  'HOTEL',
-  'RETAIL',
-  'DISTRIBUTOR',
-  'CORPORATE',
-  'OTHER',
-] as const;
 export const businessTypeSchema = z.enum(BUSINESS_TYPES);
-export type BusinessType = z.infer<typeof businessTypeSchema>;
 
 export const INQUIRY_STATUSES = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'SPAM'] as const;
 export const inquiryStatusSchema = z.enum(INQUIRY_STATUSES);

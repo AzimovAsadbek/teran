@@ -575,6 +575,54 @@
     text-decoration-color: currentcolor;
   }
 }
+/* Product card parts (components/catalog/product-card.tsx). A listing repeats every card, and the
+   page carries each card twice (its HTML and its React payload), so the card's long utility lists
+   are named once here instead of written out on every copy. The styles are the same utilities. */
+@utility card-shell {
+  @apply relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-shadow duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)];
+}
+@utility card-swatch {
+  @apply pointer-events-none absolute bottom-2 left-2 z-[2] block aspect-square overflow-hidden rounded-full border-4 bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0;
+}
+@utility card-badges {
+  @apply pointer-events-none absolute inset-x-2 top-2 z-[2] flex items-start justify-between gap-2 min-[46.875rem]:inset-x-3 min-[46.875rem]:top-3;
+}
+@utility card-pill {
+  @apply rounded-[0.625rem] border-[0.75px] px-1.5 py-[3px] text-[0.6875rem] leading-4 font-medium min-[46.875rem]:rounded-[0.75rem] min-[46.875rem]:px-2 min-[46.875rem]:py-[4.5px] min-[46.875rem]:text-[0.875rem] min-[46.875rem]:leading-[1.3125rem];
+}
+@utility card-body {
+  @apply flex flex-col px-3 pt-3 pb-3 min-[46.875rem]:px-4 min-[46.875rem]:pt-3.5 min-[46.875rem]:pb-4;
+}
+@utility card-family {
+  @apply flex h-5 min-w-0 items-center gap-1.5 text-[0.8125rem] leading-5 font-medium;
+}
+@utility card-family-icon {
+  @apply h-3.5 w-3.5 shrink-0 transition-[rotate,scale] duration-500 ease-[var(--ease-out-expo)] pointer-fine:group-hover/card:scale-110 pointer-fine:group-hover/card:-rotate-12;
+}
+@utility card-title {
+  @apply text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6;
+}
+@utility card-rating {
+  @apply relative z-[1] mt-2 inline-flex min-h-6 w-fit items-center gap-1.5 text-[0.8125rem] leading-5 hover:underline hover:underline-offset-2;
+}
+@utility card-origin {
+  @apply mt-1 flex min-w-0 items-center gap-1 text-[0.8125rem] leading-5 text-fg-subtle;
+}
+@utility card-chip {
+  @apply inline-flex h-[1.375rem] items-center gap-0.5 rounded-full bg-jade-100 px-1.5 text-[0.6875rem] leading-none font-medium whitespace-nowrap text-teal-ink min-[46.875rem]:h-6 min-[46.875rem]:gap-1 min-[46.875rem]:px-2 min-[46.875rem]:text-[0.75rem];
+}
+@utility card-chip-icon {
+  @apply h-3 w-3 shrink-0 min-[46.875rem]:h-3.5 min-[46.875rem]:w-3.5;
+}
+@utility card-order {
+  @apply relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50;
+}
+/* A row of five stars (components/catalog/stars.tsx) drawn by one mask image repeated across the
+   row: a few bytes per row instead of ten inline SVGs, which product listings repeat per card. */
+@utility star-row {
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.6l2.83 5.94 6.53.79-4.8 4.5 1.22 6.47L12 17.15l-5.78 3.15 1.22-6.47-4.8-4.5 6.53-.79z'/%3E%3C/svg%3E")
+    left / 1em 1em repeat-x;
+}
 @utility picture-hover {
   transition: filter var(--hover-picture-duration) var(--hover-ease);
   :is(a, button):hover > &,
@@ -615,7 +663,9 @@
   /* ── Arrivals (the motion system's first-view moments) ─────────────────────────────────────
      Each starts from its final, readable layout: lines of a headline rise out of their own mask,
      packs rise onto the shelf one after another, a picture settles from a slight zoom. They play
-     once, on load; with reduced motion nothing moves. */
+     once, on load; with reduced motion nothing moves. A page's largest picture takes no part: one
+     that fades in counts as painted only when its fade ends, and one that zooms in can be
+     outgrown by a later picture, which then counts as the page's largest paint (ADR-064). */
   @media (prefers-reduced-motion: no-preference) {
     .arrive-line {
       animation: arrive-line var(--duration-reveal) var(--ease-out-expo) both;

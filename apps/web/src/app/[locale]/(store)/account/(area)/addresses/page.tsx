@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { requireUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { pageMetadata } from '@/lib/seo';
+import { ClientMessages } from '@/i18n/client-messages';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -26,7 +27,10 @@ async function Addresses() {
     <div className="space-y-6">
       <AccountPageHeader title={t('addresses')} text={t('addressesText')} />
       {addresses ? (
-        <AddressBook initial={addresses} />
+        // The address form shares the checkout's field labels.
+        <ClientMessages pick={['Checkout']}>
+          <AddressBook initial={addresses} />
+        </ClientMessages>
       ) : (
         <Notice tone="danger" role="alert">
           {tc('loadError')}

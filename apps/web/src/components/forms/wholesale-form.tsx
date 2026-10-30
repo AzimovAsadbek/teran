@@ -1,17 +1,24 @@
 'use client';
 
-import { BUSINESS_TYPES, REGIONS, wholesaleInquirySchema, type Locale } from '@teran/contracts';
+import { BUSINESS_TYPES, REGIONS, type Locale } from '@teran/contracts/constants';
 import { Send } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
 import { FormErrorSummary, SelectField, TextAreaField, TextField } from '@/components/ui/field';
-import { useFormSubmission } from '@/features/forms/use-form-submission';
+import { prepareContract, useFormSubmission } from '@/features/forms/use-form-submission';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { useLinkedBusinessType } from './business-type-link';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
 import { usePrimaryAction } from '@/lib/floating';
+
+/**
+ * The form's contract, loaded once the form is used (or on the first submission), not with the
+ * page: Zod stays out of its first bundle (ADR-067).
+ */
+const wholesaleContract = () =>
+  import('@teran/contracts').then((contracts) => contracts.wholesaleInquirySchema);
 
 const EMPTY = {
   companyName: '',
@@ -53,7 +60,7 @@ export function WholesaleForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await form.submit(
-      wholesaleInquirySchema,
+      wholesaleContract,
       { ...values, locale, website: honeypotValue(event.currentTarget) },
       '/inquiries/wholesale',
     );
@@ -71,7 +78,15 @@ export function WholesaleForm() {
   }
 
   return (
-    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
+    <form
+      // Its contract starts loading as soon as the form is used, so sending validates at once.
+      onFocus={() => void prepareContract(wholesaleContract).catch(() => {})}
+      method="post"
+      ref={formRef}
+      onSubmit={onSubmit}
+      noValidate
+      className="space-y-5"
+    >
       <FormErrorSummary message={form.summary} />
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField

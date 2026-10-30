@@ -29,6 +29,7 @@ import { packLabel } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { visualFor } from '@/lib/visuals';
 import terraces from '../../../../../public/brand/art/terraces.webp';
+import { ClientMessages } from '@/i18n/client-messages';
 
 type SearchParams = PageProps<'/[locale]/contact'>['searchParams'];
 
@@ -239,7 +240,8 @@ async function ContactPicture() {
   await connection();
   const locale = await getLocale();
   const visual = visualFor(await getPublicSettings(locale).catch(() => null), 'contact.picture');
-  const sizes = '(min-width: 53.0625rem) min(40vw, 36rem), 100vw';
+  // A band 1rem in from each edge while the form is the only column.
+  const sizes = '(min-width: 53.0625rem) min(40vw, 36rem), calc(100vw - 2rem)';
   return (
     <div
       className={`relative aspect-[16/9] overflow-hidden rounded-[1.5rem] bg-surface-muted @min-[48.0625rem]/desk:aspect-[4/5] ${ASIDE_STICKY}`}
@@ -387,7 +389,9 @@ export default async function ContactPage({ searchParams }: PageProps<'/[locale]
                   <Suspense fallback={null}>
                     <OrderSummary searchParams={searchParams} />
                   </Suspense>
-                  <ContactForm />
+                  <ClientMessages pick={['Forms', 'Validation']}>
+                    <ContactForm />
+                  </ClientMessages>
                 </div>
               </div>
               <Suspense

@@ -51,6 +51,32 @@ test.describe('phone', () => {
     await expectNoSidewaysScroll(page);
   });
 
+  test('a drawer leaves the page below the screen unrendered while open; the filters drawer applies its choices @mobile', async ({
+    page,
+  }) => {
+    await page.goto('/en/catalog?sort=newest');
+    // While a drawer is open, the blocks wholly below the screen stop rendering, so making the
+    // page inert stays quick (ADR-066); they render again once it has closed.
+    const footer = page.locator('footer');
+    const filters = visible(page.getByRole('button', { name: 'Filters' }));
+    const drawer = page.getByRole('dialog', { name: 'Sort and filter' });
+    await filters.click();
+    await expect(drawer).toBeVisible();
+    await expect(footer).toHaveCSS('content-visibility', 'hidden');
+    await drawer.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(drawer).toBeHidden();
+    await expect(footer).toHaveCSS('content-visibility', 'visible');
+    await expect(filters).toBeFocused();
+
+    // The drawer's one form applies its choices together and closes.
+    await filters.click();
+    await drawer.getByRole('checkbox', { name: 'In stock only' }).check();
+    await drawer.getByRole('button', { name: /^Show \d+ products?$/ }).click();
+    await expect(page).toHaveURL(/[?&]inStock=true/);
+    await expect(drawer).toBeHidden();
+    await expectNoSidewaysScroll(page);
+  });
+
   test('the hero is one view: TERAN’s words and a pill to the teas, without rotation @mobile', async ({
     page,
   }) => {

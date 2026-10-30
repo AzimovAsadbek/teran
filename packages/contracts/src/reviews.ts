@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { localeSchema, paginationQuerySchema } from './common.js';
+import { REVIEW_COMMENT_MAX } from './constants.js';
 
 /*
  * Product ratings and reviews (ADR-042): a signed-in customer gives a product 1 to 5 stars, with
@@ -7,7 +8,6 @@ import { localeSchema, paginationQuerySchema } from './common.js';
  * or delete it. Nothing here is ever written on a customer's behalf.
  */
 
-export const REVIEW_COMMENT_MAX = 1000;
 export const REVIEW_STATUSES = ['PUBLISHED', 'HIDDEN'] as const;
 export const reviewStatusSchema = z.enum(REVIEW_STATUSES);
 export type ReviewStatus = z.infer<typeof reviewStatusSchema>;

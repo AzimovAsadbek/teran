@@ -93,15 +93,16 @@ function Media({
  * upright as the frame or more, else as wide as the frame's height times its own proportions (a
  * landscape picture in an upright frame is cut at its sides and drawn wider than the frame). The
  * window is up to 40rem wide and 48rem high (wide screens, about 0.85 : 1); a step's frame is 4 : 5
- * and up to 28rem wide.
+ * and up to 28rem wide, the page's width less its margins on phones.
  */
 function coverSizes(aspect: number, frame: 'window' | 'step'): string {
   if (frame === 'window') {
     return aspect <= 0.85 ? '(min-width: 1440px) 40rem, 45vw' : `${Math.ceil(48 * aspect)}rem`;
   }
+  // Under 750 px the frame is the page's width less its margins (1.5rem a side).
   return aspect <= 0.8
-    ? '(min-width: 750px) 28rem, 100vw'
-    : `(min-width: 750px) ${Math.ceil(35 * aspect)}rem, ${Math.ceil(125 * aspect)}vw`;
+    ? '(min-width: 750px) 28rem, calc(100vw - 3rem)'
+    : `(min-width: 750px) ${Math.ceil(35 * aspect)}rem, calc((100vw - 3rem) * ${Math.ceil(125 * aspect) / 100})`;
 }
 
 /**

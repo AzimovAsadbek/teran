@@ -176,9 +176,11 @@ export async function RangeExplorer() {
                     {tile.visual ? (
                       <>
                         <span className="absolute inset-0 -z-30">
+                          {/* Inside the page's margins on phones (1.5rem a side). */}
                           <VisualPicture
                             visual={tile.visual}
-                            sizes="(min-width: 1024px) 50vw, 100vw"
+                            sizes="(min-width: 1024px) 50vw, calc(100vw - 3rem)"
+                            phoneSizes="calc(100vw - 3rem)"
                             position={filmPosition(tile.visual.video)}
                           />
                         </span>

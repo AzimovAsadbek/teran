@@ -1,7 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
+import { flushSync } from 'react-dom';
 import type { z } from 'zod';
 import { focusFirstInvalid } from '@/components/ui/field';
 import { apiRequest } from '@/lib/api/client';
@@ -10,6 +11,28 @@ import { fieldErrorsFromApi, fieldErrorsFromZod, type FieldErrors } from '@/lib/
 import { useApiErrorMessage } from '@/lib/use-api-error-message';
 
 type Request = string | ((data: unknown) => Promise<unknown>);
+/**
+ * The shared contract, or a loader for it: a form whose page should not carry the schemas (and
+ * Zod) in its first bundle loads them on its first submission (ADR-067).
+ */
+type Schema = z.ZodType | (() => Promise<z.ZodType>);
+type ContractLoader = () => Promise<z.ZodType>;
+
+/** Contracts already loaded, by their loader (a stable, module-level function). */
+const loadedContracts = new WeakMap<ContractLoader, z.ZodType>();
+
+/**
+ * Loads a form's contract ahead of its submission (the forms call it when they are first used), so
+ * the submission validates at once, as with a contract in the bundle.
+ */
+export function prepareContract(load: ContractLoader): Promise<z.ZodType> {
+  const ready = loadedContracts.get(load);
+  if (ready) return Promise.resolve(ready);
+  return load().then((contract) => {
+    loadedContracts.set(load, contract);
+    return contract;
+  });
+}
 
 export interface FormSubmission {
   errors: FieldErrors;
@@ -21,10 +44,11 @@ export interface FormSubmission {
   /**
    * Validates `input` with the shared contract (plus `extraErrors`, e.g. a password confirmation),
    * then sends the parsed value: a path is POSTed, a function receives the parsed data. Resolves to
-   * true when the request succeeded.
+   * true when the request succeeded. A press while one is under way sends nothing; a contract that
+   * cannot be loaded is reported as a connection failure, with every field kept.
    */
   submit: (
-    schema: z.ZodType,
+    schema: Schema,
     input: unknown,
     request: Request,
     extraErrors?: FieldErrors,
@@ -62,6 +86,9 @@ export function useFormSubmission(formRef: RefObject<HTMLElement | null>): FormS
   const [apiError, setApiError] = useState<ApiError | null>(null);
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [submitted, setSubmitted] = useState<unknown>(undefined);
+  // Set at once, not on the next render: a second press while the contract loads or the request
+  // runs sends nothing.
+  const busy = useRef(false);
   const apiErrorMessage = useApiErrorMessage(apiError);
 
   function showErrors(next: FieldErrors) {
@@ -71,22 +98,57 @@ export function useFormSubmission(formRef: RefObject<HTMLElement | null>): FormS
   }
 
   async function submit(
-    schema: z.ZodType,
+    schema: Schema,
     input: unknown,
     request: Request,
     extraErrors: FieldErrors = {},
   ): Promise<boolean> {
-    if (status === 'sending') return false;
+    if (busy.current) return false;
+    busy.current = true;
+    try {
+      return await validateAndSend(schema, input, request, extraErrors);
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  async function validateAndSend(
+    schema: Schema,
+    input: unknown,
+    request: Request,
+    extraErrors: FieldErrors,
+  ): Promise<boolean> {
     setApiError(null);
     setSubmitted(input);
-    const parsed = schema.safeParse(input);
+    let contract = typeof schema === 'function' ? loadedContracts.get(schema) : schema;
+    const late = !contract;
+    if (!contract) {
+      // Shown as sending only when loading takes a moment, so a quick load does not flash it.
+      const pending = window.setTimeout(() => setStatus('sending'), 150);
+      try {
+        contract = await prepareContract(schema as ContractLoader);
+      } catch {
+        setStatus('idle');
+        setApiError(new ApiError(0, null));
+        return false;
+      } finally {
+        window.clearTimeout(pending);
+      }
+    }
+    const parsed = contract.safeParse(input);
     const fieldErrors = {
       ...extraErrors,
       ...(parsed.success ? {} : fieldErrorsFromZod(parsed.error)),
     };
     if (!parsed.success || Object.keys(fieldErrors).length > 0) {
-      setStatus('idle');
-      showErrors(fieldErrors);
+      const refuse = () => {
+        setStatus('idle');
+        showErrors(fieldErrors);
+      };
+      // After a contract that came late the press is over: commit at once, so the first invalid
+      // field is marked when it is focused (the next frame), as on a press.
+      if (late) flushSync(refuse);
+      else refuse();
       return false;
     }
     setErrors({});

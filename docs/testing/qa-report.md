@@ -731,3 +731,13 @@ Later the same night the owner asked for the panel to leave the product and bag 
 tea's page now shows no ordering panel, a card's "Order" button leads to the contact page, and the
 bag (offered nowhere while prices are hidden, the chat panel's bag link included) shows the ordinary
 empty bag when its address is typed. On the live site no page shows the panel.
+
+## Performance audit (2026-10-29)
+
+The owner's performance brief: a production build measured with Lighthouse's phone profile and
+applied throttling (processor 4× slower, 1.47 Mbit/s, 562 ms per request), before and after, on
+the same machine. Product cards no longer repeat their icons and stars as inline drawings; films
+stay pictures with data saving or on 3G and slower; the picture each page paints first is fetched
+at high priority; the for-business page's front pack no longer fades in; the product and store
+pages no longer load the validation library on first view. Method, budgets, results and
+follow-ups: [performance audit](../performance-audit.md); decision: ADR-064.

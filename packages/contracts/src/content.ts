@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { localeSchema, translatedLocalesSchema } from './common.js';
 import { illustrationKeySchema, imageSchema, videoTypeSchema } from './catalog.js';
+import { STORE_KINDS } from './constants.js';
 
 const localizedText = (max: number) =>
   z.object({
@@ -75,8 +76,7 @@ export type ContactSetting = z.infer<typeof contactSettingSchema>;
 
 // ─── Stores ─────────────────────────────────────────────────────────────────
 
-/** Kinds of TERAN point of sale: the store locator's filter, as the reference's "experiences". */
-export const STORE_KINDS = ['SHOP', 'DEALER', 'WHOLESALE'] as const;
+/** Kinds of TERAN point of sale; the list itself is in constants.ts, for the Zod-free locator. */
 export const storeKindSchema = z.enum(STORE_KINDS);
 export type StoreKind = z.infer<typeof storeKindSchema>;
 

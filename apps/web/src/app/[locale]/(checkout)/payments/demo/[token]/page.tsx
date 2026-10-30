@@ -7,6 +7,7 @@ import { DemoPayment } from '@/components/payments/demo-payment';
 import { ButtonLink } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiFindAsVisitor } from '@/lib/api/server';
+import { ClientMessages } from '@/i18n/client-messages';
 
 const TOKEN = /^[A-Za-z0-9_-]{20,200}$/;
 
@@ -40,7 +41,11 @@ async function DemoPaymentLoader({
       </div>
     );
   }
-  return <DemoPayment token={token} initial={payment} />;
+  return (
+    <ClientMessages pick={['Payment']}>
+      <DemoPayment token={token} initial={payment} />
+    </ClientMessages>
+  );
 }
 
 /** The demonstration provider's payment page (demo mode only; no money moves). */

@@ -4,10 +4,10 @@ import type { ImageStore } from './image-processing.js';
 
 /**
  * Cloudflare R2 (or any S3-compatible object storage) through its S3 API, signed with AWS
- * Signature Version 4 by hand, so no SDK is needed: the operations used are PUT, GET, DELETE, a
- * prefix listing and multipart uploads for large files. Files are public through the bucket's
- * public address (R2_PUBLIC_URL), which the storefront and the API's picture addresses point at
- * (ADR-043).
+ * Signature Version 4 by hand, so no SDK is needed: the operations used are PUT (also only where
+ * no object is yet), GET, HEAD, DELETE, a prefix listing and multipart uploads for large files.
+ * Files are public through the bucket's public address (R2_PUBLIC_URL), which the storefront and
+ * the API's picture addresses point at (ADR-043).
  */
 export interface S3Config {
   /** The account's S3 endpoint, e.g. https://<account id>.r2.cloudflarestorage.com */
@@ -120,7 +120,7 @@ export function signS3Request(
 async function send(
   config: S3Config,
   request: {
-    method: 'GET' | 'PUT' | 'POST' | 'DELETE';
+    method: 'GET' | 'HEAD' | 'PUT' | 'POST' | 'DELETE';
     key?: string;
     query?: Record<string, string>;
     headers?: Record<string, string>;
@@ -194,6 +194,39 @@ export async function putObject(
     ),
     `put ${key}`,
   );
+}
+
+/**
+ * Stores a file at `key` only if no object is there (a conditional PUT, `If-None-Match: *`), so an
+ * existing object is never replaced, even one written at the same moment: false when one was.
+ */
+export async function putObjectIfAbsent(
+  config: S3Config,
+  key: string,
+  data: Buffer,
+  contentType: string,
+): Promise<boolean> {
+  if (!KEY_PATTERN.test(key)) throw new Error(`Refusing an unsafe key: ${key}`);
+  const response = await send(config, {
+    method: 'PUT',
+    key,
+    body: data,
+    headers: { 'content-type': contentType, 'cache-control': ONE_YEAR, 'if-none-match': '*' },
+  });
+  // 412 Precondition Failed: the object exists. (A 409 means another write to it is under way:
+  // an error like any other, so a later run looks again.)
+  if (response.status === 412) return false;
+  await check(response, `put ${key}`);
+  return true;
+}
+
+/** Whether an object is stored at `key` (HEAD). */
+export async function objectExists(config: S3Config, key: string): Promise<boolean> {
+  if (!KEY_PATTERN.test(key)) throw new Error(`Refusing an unsafe key: ${key}`);
+  const response = await send(config, { method: 'HEAD', key });
+  if (response.status === 404) return false;
+  await check(response, `head ${key}`);
+  return true;
 }
 
 /**
@@ -289,6 +322,16 @@ export function r2Store(config: S3Config): ImageStore {
       if (response.status === 404) return null;
       await check(response, 'read');
       return Buffer.from(await response.arrayBuffer());
+    },
+    async exists(storageKey, fileName) {
+      if (!valid(storageKey, fileName)) return false;
+      return objectExists(config, keyOf(storageKey, fileName));
+    },
+    async saveNew(storageKey, fileName, data, contentType) {
+      if (!valid(storageKey, fileName)) {
+        throw new Error(`Refusing an unsafe file name: ${storageKey}/${fileName}`);
+      }
+      return putObjectIfAbsent(config, keyOf(storageKey, fileName), data, contentType);
     },
     async remove(storageKey) {
       if (!KEY_PATTERN.test(storageKey)) return;

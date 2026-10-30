@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from 'react';
 
 /*
- * When the storefront's films may move: never with reduced motion or on a data-saving connection,
- * and not while the visitor has paused them with the footer's switch, which is remembered on this
- * device. That switch is the WCAG 2.2.2 mechanism for every film on the storefront (none has a
- * button of its own) and for the home page's moving ribbons (components/home/marquee.tsx).
+ * When the storefront's films may move: never with reduced motion or on a data-saving or slow
+ * connection, and not while the visitor has paused them with the footer's switch, which is
+ * remembered on this device. That switch is the WCAG 2.2.2 mechanism for every film on the
+ * storefront (none has a button of its own) and for the home page's moving ribbons
+ * (components/home/marquee.tsx).
  */
 
 const KEY = 'teran.motion';
@@ -65,16 +66,33 @@ function useMatches(query: string): boolean | null {
   );
 }
 
-const noSubscription = () => () => {};
+/** What the browser says of its connection (Chrome, mostly; absent elsewhere). */
+type Connection = EventTarget & { saveData?: boolean; effectiveType?: string };
 
-/** A data-saving connection (Chrome on Android, mostly): films stay pictures there. */
-function useSaveData(): boolean {
+function connection(): Connection | undefined {
+  return (navigator as Navigator & { connection?: Connection }).connection;
+}
+
+function subscribeToConnection(onChange: () => void) {
+  const current = connection();
+  current?.addEventListener('change', onChange);
+  return () => current?.removeEventListener('change', onChange);
+}
+
+/**
+ * A connection where films would cost more than they give: data saving on, or one the browser
+ * rates 3G or slower (a film is a few megabytes; on such a link it would hold up the pictures and
+ * the visitor's data). Films stay pictures there; a 4G link plays them as everywhere else.
+ */
+export function isLightConnection(current: Connection | undefined): boolean {
+  if (!current) return false;
+  return Boolean(current.saveData) || ['slow-2g', '2g', '3g'].includes(current.effectiveType ?? '');
+}
+
+function useLightConnection(): boolean {
   return useSyncExternalStore(
-    noSubscription,
-    () =>
-      Boolean(
-        (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData,
-      ),
+    subscribeToConnection,
+    () => isLightConnection(connection()),
     () => false,
   );
 }
@@ -82,8 +100,8 @@ function useSaveData(): boolean {
 /** Whether films may load and play at all here (false on the server and before hydration). */
 export function useFilmsAllowed(): boolean {
   const reducedMotion = useMatches('(prefers-reduced-motion: reduce)');
-  const saveData = useSaveData();
-  return reducedMotion === false && !saveData;
+  const light = useLightConnection();
+  return reducedMotion === false && !light;
 }
 
 /** Whether a media query matches (null on the server and before hydration). */

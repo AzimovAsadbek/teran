@@ -4,13 +4,18 @@ import { ArrowLeft, ArrowRight, ChevronRight, Menu, UserRound } from 'lucide-rea
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import {
+  memo,
+  startTransition,
   Suspense,
   use,
+  useCallback,
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
   type MouseEvent,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { CategoryArt } from '@/components/catalog/category-art';
 import { buttonClasses, IconButton } from '@/components/ui/button';
@@ -26,6 +31,7 @@ import {
   type Navigation,
 } from '@/lib/navigation';
 import type { HeaderAccount } from '@/lib/session';
+import { whenIdle } from '@/lib/when-idle';
 import lake from '../../../public/brand/art/lake.webp';
 import { LanguageSwitcherSlot } from './language-switcher';
 
@@ -61,6 +67,8 @@ const LINK_ROW =
  * the language. The tree is the one the
  * desktop panels use. The button and drawer work before the data arrives; only the lists stream
  * in. Esc, the close button and following a link close it; focus returns to the menu button.
+ * The drawer's content is put together while the page is idle and kept as it is while the drawer
+ * opens and closes, so the tap on the button only shows it (ADR-066).
  */
 export function MobileMenu({
   navigation,
@@ -75,19 +83,32 @@ export function MobileMenu({
   const [level, setLevel] = useState<Level | null>(null);
   const backRef = useRef<HTMLButtonElement>(null);
   if (open && !opened) setOpened(true);
+  // In the background and interruptible (a tap that comes first still opens it at once), and only
+  // where the button shows (below 1280 px).
+  useEffect(
+    () =>
+      whenIdle(() => {
+        if (window.matchMedia('(width < 80rem)').matches) startTransition(() => setOpened(true));
+      }),
+    [],
+  );
 
-  const close = () => {
+  const close = useCallback(() => {
     setOpen(false);
     setLevel(null);
-  };
+  }, []);
   // Following any link closes the drawer (no need to watch the URL).
-  const closeOnLink = (event: MouseEvent) => {
-    if ((event.target as HTMLElement).closest('a')) close();
-  };
-  const enter = (next: Level) => {
+  const closeOnLink = useCallback(
+    (event: MouseEvent) => {
+      if ((event.target as HTMLElement).closest('a')) close();
+    },
+    [close],
+  );
+  const enter = useCallback((next: Level) => {
     setLevel(next);
     requestAnimationFrame(() => backRef.current?.focus());
-  };
+  }, []);
+  const back = useCallback(() => setLevel(null), []);
 
   return (
     <>
@@ -107,72 +128,110 @@ export function MobileMenu({
         title={t('explore')}
         hideTitle
         closeLabel={t('closeMenu')}
-        footer={
-          opened ? (
-            <div className="flex items-center justify-between gap-3">
-              <Suspense fallback={<AccountLink user={null} onDone={close} />}>
-                <StreamedAccountLink account={account} onDone={close} />
-              </Suspense>
-              <LanguageSwitcherSlot tone="light" placement="up" />
-            </div>
-          ) : null
-        }
+        footer={opened ? <MenuFooter account={account} onDone={close} /> : null}
       >
         {opened ? (
-          <div className="px-5 pt-6 pb-8" onClick={closeOnLink}>
-            {level ? (
-              <div>
-                <button
-                  ref={backRef}
-                  type="button"
-                  onClick={() => setLevel(null)}
-                  className="-ml-1 inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-body font-semibold text-fg"
-                >
-                  <ArrowLeft aria-hidden className="h-5 w-5" />
-                  {t('backTo')}
-                </button>
-                <Suspense fallback={null}>
-                  <LevelLinks level={level} navigation={navigation} />
-                </Suspense>
-              </div>
-            ) : (
-              <>
-                <p className="font-headline text-[2rem] text-jade-700">{t('explore')}</p>
-                <Suspense fallback={<Tiles navigation={EMPTY_NAVIGATION} />}>
-                  <StreamedTiles navigation={navigation} />
-                </Suspense>
-                <ul className="mt-6 space-y-3">
-                  {(
-                    [
-                      ['categories', t('shop')],
-                      ['learn', t('learn')],
-                      ['about', t('about')],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <li key={id}>
-                      <button type="button" onClick={() => enter(id)} className={ROW}>
-                        {label}
-                        <ChevronRight aria-hidden className="h-5 w-5 shrink-0" />
-                      </button>
-                    </li>
-                  ))}
-                  {/* TERAN's way in for businesses, straight to its page (the header's link on
-                      wide screens). */}
-                  <li>
-                    <Link href="/wholesale" className={BUSINESS_ROW}>
-                      {t('wholesale')}
-                      <ArrowRight aria-hidden className="h-5 w-5 shrink-0" />
-                    </Link>
-                  </li>
-                </ul>
-              </>
-            )}
-          </div>
+          <MenuBody
+            level={level}
+            navigation={navigation}
+            backRef={backRef}
+            onEnter={enter}
+            onBack={back}
+            onLink={closeOnLink}
+          />
         ) : null}
       </Sheet>
     </>
   );
 }
+
+/** The bottom bar: the account and the language (unchanged while the drawer opens). */
+const MenuFooter = memo(function MenuFooter({
+  account,
+  onDone,
+}: {
+  account: Promise<HeaderAccount>;
+  onDone: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <Suspense fallback={<AccountLink user={null} onDone={onDone} />}>
+        <StreamedAccountLink account={account} onDone={onDone} />
+      </Suspense>
+      <LanguageSwitcherSlot tone="light" placement="up" />
+    </div>
+  );
+});
+
+/** The tiles and rows, or one section's links a level deeper (unchanged while the drawer opens). */
+const MenuBody = memo(function MenuBody({
+  level,
+  navigation,
+  backRef,
+  onEnter,
+  onBack,
+  onLink,
+}: {
+  level: Level | null;
+  navigation: Promise<Navigation>;
+  backRef: RefObject<HTMLButtonElement | null>;
+  onEnter: (level: Level) => void;
+  onBack: () => void;
+  onLink: (event: MouseEvent) => void;
+}) {
+  const t = useTranslations('Nav');
+  return (
+    <div className="px-5 pt-6 pb-8" onClick={onLink}>
+      {level ? (
+        <div>
+          <button
+            ref={backRef}
+            type="button"
+            onClick={onBack}
+            className="-ml-1 inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-body font-semibold text-fg"
+          >
+            <ArrowLeft aria-hidden className="h-5 w-5" />
+            {t('backTo')}
+          </button>
+          <Suspense fallback={null}>
+            <LevelLinks level={level} navigation={navigation} />
+          </Suspense>
+        </div>
+      ) : (
+        <>
+          <p className="font-headline text-[2rem] text-jade-700">{t('explore')}</p>
+          <Suspense fallback={<Tiles navigation={EMPTY_NAVIGATION} />}>
+            <StreamedTiles navigation={navigation} />
+          </Suspense>
+          <ul className="mt-6 space-y-3">
+            {(
+              [
+                ['categories', t('shop')],
+                ['learn', t('learn')],
+                ['about', t('about')],
+              ] as const
+            ).map(([id, label]) => (
+              <li key={id}>
+                <button type="button" onClick={() => onEnter(id)} className={ROW}>
+                  {label}
+                  <ChevronRight aria-hidden className="h-5 w-5 shrink-0" />
+                </button>
+              </li>
+            ))}
+            {/* TERAN's way in for businesses, straight to its page (the header's link on
+                wide screens). */}
+            <li>
+              <Link href="/wholesale" className={BUSINESS_ROW}>
+                {t('wholesale')}
+                <ArrowRight aria-hidden className="h-5 w-5 shrink-0" />
+              </Link>
+            </li>
+          </ul>
+        </>
+      )}
+    </div>
+  );
+});
 
 function StreamedTiles({ navigation }: { navigation: Promise<Navigation> }) {
   return <Tiles navigation={use(navigation)} />;

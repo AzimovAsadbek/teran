@@ -11,16 +11,22 @@ import { useFilmsAllowed, useMotionPaused, usePageLoaded } from '@/lib/motion';
  * picture under it.
  */
 const CARD_COPY_WIDTH = 720;
+/**
+ * How long a card stays on screen before its film is fetched. A card's film is most of a megabyte:
+ * cards only scrolled past, or a screen ahead that is never reached, cost nothing.
+ */
+const CARD_DWELL_MS = 500;
 
 /**
  * A product picture's living film over the picture itself (its first frame): tea poured, a
  * gaiwan's lid lifted, leaves drifting. With a mask the film shows only where it moves (elsewhere
  * the picture underneath, so the still parts stay sharp and never flicker as the loop starts
  * over); without one it covers the whole picture, its loop seamless by itself (ADR-053). It loads
- * once the page has and the picture comes near, plays while on screen (and, in a gallery, while
- * its slide is the one shown), fades in over the picture, and keeps still with reduced motion, on
- * a data-saving connection or while the visitor has paused the films (lib/motion). Decorative:
- * the picture's own text alternative describes it.
+ * once the page has and the picture comes near (a card's, once the card has stayed on screen a
+ * moment), plays while on screen (and, in a gallery, while its slide is the one shown), fades in
+ * over the picture, and keeps still with reduced motion, on a data-saving or slow connection or
+ * while the visitor has paused the films (lib/motion). Decorative: the picture's own text
+ * alternative describes it.
  */
 export function ProductFilm({
   film,
@@ -46,6 +52,7 @@ export function ProductFilm({
   const [wide, setWide] = useState(false);
   const src = size === 'card' ? film.cardSrc && (wide ? film.src : film.cardSrc) : film.src;
   const [onScreen, setOnScreen] = useState(false);
+  const [dwelled, setDwelled] = useState(false);
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -75,7 +82,14 @@ export function ProductFilm({
     };
   }, [allowed]);
 
-  const ready = allowed && loaded && near && src !== null;
+  // A card's film waits until the card has stayed on screen a moment; a gallery's comes when near.
+  useEffect(() => {
+    if (size !== 'card' || !onScreen || dwelled) return;
+    const timer = window.setTimeout(() => setDwelled(true), CARD_DWELL_MS);
+    return () => window.clearTimeout(timer);
+  }, [size, onScreen, dwelled]);
+
+  const ready = allowed && loaded && (size === 'card' ? dwelled : near) && src !== null;
   const playing = ready && onScreen && active && !paused;
   useEffect(() => {
     const video = videoRef.current;

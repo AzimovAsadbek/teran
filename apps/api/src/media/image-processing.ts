@@ -1,5 +1,15 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import {
+  copyFile,
+  link,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import sharp, { type Metadata } from 'sharp';
 import { r2Store, type S3Config } from './r2-store.js';
@@ -7,8 +17,19 @@ import { r2Store, type S3Config } from './r2-store.js';
 /**
  * Widths generated for every stored image; the storefront picks the smallest sufficient one. 480
  * serves product cards on phones (about 240 CSS px at 2× density) without falling back to 640.
+ * 800 serves a full-width picture on the commonest phones without falling back to 960: 412 CSS px
+ * at 1.75× needs 721 device px and 375 at 2× needs 750, and browsers take the smallest file at
+ * least that wide, so 720 would be a pixel short (ADR-065).
  */
-export const IMAGE_WIDTHS = [320, 480, 640, 960, 1280, 1600] as const;
+export const IMAGE_WIDTHS = [320, 480, 640, 800, 960, 1280, 1600] as const;
+
+/**
+ * Pictures shown about the width of a phone (page pictures, journal covers, the gallery) also get
+ * 1080: on 3× phones and in journal cards they need 960 to 1080 device px (312 to 360 CSS px at
+ * 3×, a card's 486 to 557 at 1.75× to 2×), which took the 1280 px file. Product, category and
+ * collection pictures never need more than 960 there, so they do without it (ADR-067).
+ */
+const PHONE_WIDE_WIDTHS = [320, 480, 640, 800, 960, 1080, 1280, 1600] as const;
 
 /**
  * Widths for page pictures that span the whole page (the first view, banners, listing banners):
@@ -17,13 +38,13 @@ export const IMAGE_WIDTHS = [320, 480, 640, 960, 1280, 1600] as const;
  * their size. Journal covers have them too: a tall card shows a slice of a wide cover, so it
  * needs a file several times its own width.
  */
-export const WIDE_IMAGE_WIDTHS = [...IMAGE_WIDTHS, 1920, 2560, 3200, 3840, 5120] as const;
+export const WIDE_IMAGE_WIDTHS = [...PHONE_WIDE_WIDTHS, 1920, 2560, 3200, 3840, 5120] as const;
 
 /**
  * Widths for the gallery's photographs and posters: the viewer shows a picture over the whole
  * screen, so up to 3840 (a 4K display) when the source is that large (ADR-056).
  */
-export const GALLERY_IMAGE_WIDTHS = [...IMAGE_WIDTHS, 1920, 2560, 3840] as const;
+export const GALLERY_IMAGE_WIDTHS = [...PHONE_WIDE_WIDTHS, 1920, 2560, 3840] as const;
 
 const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp']);
 const MIN_DIMENSION = 200;
@@ -75,6 +96,19 @@ export interface ImageStore {
   ): Promise<void>;
   /** Reads a stored file back (e.g. a rendition to attach to a Telegram post); null if missing. */
   read(storageKey: string, fileName: string): Promise<Buffer | null>;
+  /** Whether a file is stored under the key (without reading it). */
+  exists(storageKey: string, fileName: string): Promise<boolean>;
+  /**
+   * Stores a file only where none is yet, never replacing one, even one written at the same
+   * moment: false when the file was already there (a rendition added to a stored picture,
+   * scripts/add-renditions.ts).
+   */
+  saveNew(
+    storageKey: string,
+    fileName: string,
+    data: Buffer,
+    contentType: string,
+  ): Promise<boolean>;
   /** Removes every rendition under the key. Unknown or malformed keys are ignored. */
   remove(storageKey: string): Promise<void>;
 }
@@ -137,6 +171,35 @@ function directoryStore(uploadsDir: string): ImageStore {
         return null;
       }
     },
+    async exists(storageKey, fileName) {
+      if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) return false;
+      return stat(join(storageDirectory(uploadsDir, storageKey), fileName)).then(
+        () => true,
+        () => false,
+      );
+    },
+    async saveNew(storageKey, fileName, data) {
+      if (!STORAGE_KEY_PATTERN.test(storageKey) || !SAFE_FILE_NAME.test(fileName)) {
+        throw new Error(`Refusing an unsafe file name: ${storageKey}/${fileName}`);
+      }
+      const directory = storageDirectory(uploadsDir, storageKey);
+      const target = join(directory, fileName);
+      // Written aside, then linked into place: linking fails when the name is taken, so a file
+      // already there is never replaced and a half-written one is never seen under the name.
+      const pending = join(directory, `.${fileName}.${randomBytes(6).toString('hex')}`);
+      await mkdir(directory, { recursive: true });
+      try {
+        await writeFile(pending, data, { flag: 'wx' });
+        await link(pending, target);
+        return true;
+      } catch (error) {
+        const { code, syscall } = error as NodeJS.ErrnoException;
+        if (code === 'EEXIST' && syscall === 'link') return false;
+        throw error;
+      } finally {
+        await unlink(pending).catch(() => undefined);
+      }
+    },
     async remove(storageKey) {
       if (!STORAGE_KEY_PATTERN.test(storageKey)) return;
       await rm(storageDirectory(uploadsDir, storageKey), { recursive: true, force: true });
@@ -168,7 +231,6 @@ export async function storeImage(
     fullWidth?: boolean;
   } = {},
 ): Promise<StoredImage> {
-  const targetWidths = options.widths ?? IMAGE_WIDTHS;
   let metadata: Metadata;
   try {
     metadata = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
@@ -185,15 +247,7 @@ export async function storeImage(
     throw new ImageRejectedError('too_small');
   }
 
-  const candidateWidths = targetWidths.filter((candidate) => candidate <= width);
-  const widths = candidateWidths.length > 0 ? [...candidateWidths] : [width];
-  if (
-    options.fullWidth &&
-    width > widths.at(-1)! &&
-    targetWidths.some((target) => target > width)
-  ) {
-    widths.push(width);
-  }
+  const widths = renditionWidths(width, options);
   // Everything is decoded and encoded before anything is stored: a file whose header reads but
   // whose pixels do not decode is refused like any unreadable file, and nothing is left behind.
   let renditions: { width: number; data: Buffer }[];
@@ -217,20 +271,59 @@ export async function storeImage(
 }
 
 /**
+ * The rendition widths storeImage makes for a picture `width` px wide: those of the list it
+ * reaches (never enlarged), or its own width when it reaches none, and with `fullWidth` its own
+ * width too when it falls between two of them.
+ */
+export function renditionWidths(
+  width: number,
+  options: { widths?: readonly number[]; fullWidth?: boolean } = {},
+): number[] {
+  const targetWidths = options.widths ?? IMAGE_WIDTHS;
+  const candidateWidths = targetWidths.filter((candidate) => candidate <= width);
+  const widths = candidateWidths.length > 0 ? [...candidateWidths] : [width];
+  if (
+    options.fullWidth &&
+    width > widths.at(-1)! &&
+    targetWidths.some((target) => target > width)
+  ) {
+    widths.push(width);
+  }
+  return widths;
+}
+
+/**
  * A picture's WebP renditions at the given widths (never enlarged), its EXIF orientation applied
  * and its metadata dropped: what storeImage stores, and what a store rebuilt from the original
- * files holds again (scripts/restore-media.ts).
+ * files holds again (scripts/restore-media.ts). Every rendition is scaled from the decoded pixels
+ * (Lanczos 3): sharp's shrink-on-load scales a WebP source with libwebp's own, softer scaler and
+ * a large JPEG with its decoder, which left the small files of large pictures, and every file
+ * of a WebP upload, visibly softer (ADR-065).
+ *
+ * `size` is the picture's own size when `input` is one of its renditions
+ * (scripts/add-renditions.ts): each width then gets the height the original gives it, so all of
+ * a picture's files keep its proportions.
  */
 export async function renderRenditions(
   input: Buffer,
   widths: readonly number[],
+  size?: { width: number; height: number },
 ): Promise<{ width: number; data: Buffer }[]> {
   const pipeline = sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
   const renditions: { width: number; data: Buffer }[] = [];
   for (const target of widths) {
     const data = await pipeline
       .clone()
-      .resize({ width: target, withoutEnlargement: true })
+      .resize(
+        size
+          ? {
+              width: target,
+              height: Math.max(1, Math.round((size.height * target) / size.width)),
+              fit: 'fill',
+              fastShrinkOnLoad: false,
+            }
+          : { width: target, withoutEnlargement: true, fastShrinkOnLoad: false },
+      )
       .webp({ quality: 82, effort: 5 })
       .toBuffer();
     renditions.push({ width: target, data });

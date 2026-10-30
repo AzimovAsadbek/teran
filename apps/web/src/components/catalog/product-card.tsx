@@ -1,5 +1,4 @@
 import type { ProductSummaryDto } from '@teran/contracts';
-import { ArrowRight, MapPin, Package, Thermometer, Timer } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { CSSProperties } from 'react';
 import { Price } from '@/components/ui/price';
@@ -8,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatMoney, packLabel } from '@/lib/format';
 import { showPrices } from '@/lib/site';
+import { CardIcon } from './card-icons';
 import { productFamily } from './product-family';
 import { ProductFilm } from './product-film';
 import { ProductImage } from './product-image';
@@ -19,8 +19,7 @@ export const PRODUCT_CARD_SIZES =
   '(min-width: 1024px) 22vw, (min-width: 768px) 30vw, calc(50vw - 1.75rem)';
 
 /** The reference's badge: 14 px words in a 12 px-cornered outline (11 px on phones). */
-const PILL =
-  'rounded-[0.625rem] border-[0.75px] px-1.5 py-[3px] text-[0.6875rem] leading-4 font-medium min-[46.875rem]:rounded-[0.75rem] min-[46.875rem]:px-2 min-[46.875rem]:py-[4.5px] min-[46.875rem]:text-[0.875rem] min-[46.875rem]:leading-[1.3125rem]';
+const PILL = 'card-pill';
 
 /** "-25 %" from the lowest price and the price it replaces (only when both are real numbers). */
 function discountPercent(price: string, compareAt: string | null): number | null {
@@ -113,7 +112,7 @@ export function ProductCard({
     brewing?.temperatureCelsius != null
       ? {
           key: 'temperature',
-          icon: Thermometer,
+          icon: 'thermometer' as const,
           label:
             brewing.temperatureMaxCelsius != null
               ? tb('celsiusRange', {
@@ -126,7 +125,7 @@ export function ProductCard({
     brewing?.timeMinSeconds != null
       ? {
           key: 'time',
-          icon: Timer,
+          icon: 'timer' as const,
           label:
             brewing.timeMaxSeconds != null && brewing.timeMaxSeconds !== brewing.timeMinSeconds
               ? tb('minutes', {
@@ -137,13 +136,14 @@ export function ProductCard({
         }
       : null,
     // With prices the pack follows the price instead.
-    pack && !showPrices ? { key: 'pack', icon: Package, label: pack } : null,
+    pack && !showPrices ? { key: 'pack', icon: 'package' as const, label: pack } : null,
   ].filter((chip) => chip !== null);
 
   return (
     <article
       className={cn(
-        'group/card relative flex h-full flex-col overflow-hidden rounded-[1rem] bg-surface shadow-[0_1px_2px_rgb(0_0_0_/_0.04),0_12px_32px_-20px_rgb(0_0_0_/_0.35)] ring-1 ring-black/[0.06] transition-shadow duration-300 ease-out pointer-fine:hover:shadow-[0_2px_4px_rgb(0_0_0_/_0.05),0_24px_48px_-22px_rgb(0_0_0_/_0.42)]',
+        // The card's look is named once (styles/globals.css, `card-*`): listings repeat it.
+        'group/card card-shell',
         feature && 'md:flex-row',
       )}
     >
@@ -205,14 +205,14 @@ export function ProductCard({
           // is larger (styles/globals.css, `.leaf-swatch`).
           <span
             aria-hidden
-            className="leaf-swatch pointer-events-none absolute bottom-2 left-2 z-[2] block aspect-square overflow-hidden rounded-full border-4 bg-surface shadow-[0_2px_6px_rgb(0_0_0_/_0.22)] transition-[opacity,scale] duration-300 ease-out min-[46.875rem]:bottom-3 min-[46.875rem]:left-3 pointer-fine:group-hover/card:scale-90 pointer-fine:group-hover/card:opacity-0"
+            className="leaf-swatch card-swatch"
             style={{ borderColor: packColour ?? family.ring }}
           >
             <ProductImage image={hoverImage} name={product.name} sizes="96px" decorative />
           </span>
         ) : null}
         <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 z-[1]" />
-        <div className="pointer-events-none absolute inset-x-2 top-2 z-[2] flex items-start justify-between gap-2 min-[46.875rem]:inset-x-3 min-[46.875rem]:top-3">
+        <div className="card-badges">
           <div className="flex flex-wrap gap-1.5">
             {soldOut ? (
               <span className={cn(PILL, 'border-ink-700 bg-ink-700 text-ivory-50')}>
@@ -247,19 +247,13 @@ export function ProductCard({
 
       <div
         className={cn(
-          'flex flex-col px-3 pt-3 pb-3 min-[46.875rem]:px-4 min-[46.875rem]:pt-3.5 min-[46.875rem]:pb-4',
+          'card-body',
           lead ? 'lg:flex-none' : 'flex-1',
           feature && 'md:min-w-0 md:justify-center md:px-7 md:py-6',
         )}
       >
-        <p
-          className="flex h-5 min-w-0 items-center gap-1.5 text-[0.8125rem] leading-5 font-medium"
-          style={{ color: family.ink }}
-        >
-          <FamilyIcon
-            aria-hidden
-            className="h-3.5 w-3.5 shrink-0 transition-[rotate,scale] duration-500 ease-[var(--ease-out-expo)] pointer-fine:group-hover/card:scale-110 pointer-fine:group-hover/card:-rotate-12"
-          />
+        <p className="card-family" style={{ color: family.ink }}>
+          <FamilyIcon aria-hidden className="card-family-icon" />
           <span className="truncate">{product.category.name}</span>
         </p>
         <Heading
@@ -267,10 +261,10 @@ export function ProductCard({
             'mt-1 line-clamp-2 text-fg',
             // Larger, in the soft serif, where the card has the room.
             feature
-              ? 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6 md:font-heading md:text-[1.75rem] md:leading-tight md:font-normal'
+              ? 'card-title md:font-heading md:text-[1.75rem] md:leading-tight md:font-normal'
               : lead
-                ? 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6 lg:font-heading lg:text-[1.75rem] lg:leading-tight lg:font-normal'
-                : 'text-[1rem] leading-5 font-bold min-[46.875rem]:text-[1.0625rem] min-[46.875rem]:leading-6',
+                ? 'card-title lg:font-heading lg:text-[1.75rem] lg:leading-tight lg:font-normal'
+                : 'card-title',
           )}
         >
           {/* TERAN's teas are named in their pack's colour, as on the pouch. */}
@@ -289,7 +283,7 @@ export function ProductCard({
               ? t('ratingLabel', { average, count: rating.count })
               : t('rateFirstLabel', { name: product.name })
           }
-          className="relative z-[1] mt-2 inline-flex min-h-6 w-fit items-center gap-1.5 text-[0.8125rem] leading-5 hover:underline hover:underline-offset-2"
+          className="card-rating"
         >
           <Stars value={rating?.average ?? 0} className="text-[0.875rem]" />
           {rating ? (
@@ -313,8 +307,8 @@ export function ProductCard({
           </p>
         ) : null}
         {origin ? (
-          <p className="mt-1 flex min-w-0 items-center gap-1 text-[0.8125rem] leading-5 text-fg-subtle">
-            <MapPin aria-hidden className="h-3.5 w-3.5 shrink-0" />
+          <p className="card-origin">
+            <CardIcon name="map-pin" className="h-3.5 w-3.5 shrink-0" />
             <span className="sr-only">{t('origin')}: </span>
             <span className="truncate">{origin}</span>
           </p>
@@ -322,15 +316,9 @@ export function ProductCard({
         {chips.length > 0 ? (
           // Two chips side by side even on a phone's half-width card.
           <ul className="mt-2.5 flex flex-wrap gap-1 min-[46.875rem]:gap-1.5">
-            {chips.map(({ key, icon: Icon, label }) => (
-              <li
-                key={key}
-                className="inline-flex h-[1.375rem] items-center gap-0.5 rounded-full bg-jade-100 px-1.5 text-[0.6875rem] leading-none font-medium whitespace-nowrap text-teal-ink min-[46.875rem]:h-6 min-[46.875rem]:gap-1 min-[46.875rem]:px-2 min-[46.875rem]:text-[0.75rem]"
-              >
-                <Icon
-                  aria-hidden
-                  className="h-3 w-3 shrink-0 min-[46.875rem]:h-3.5 min-[46.875rem]:w-3.5"
-                />
+            {chips.map(({ key, icon, label }) => (
+              <li key={key} className="card-chip">
+                <CardIcon name={icon} className="card-chip-icon" />
                 {label}
               </li>
             ))}
@@ -353,13 +341,13 @@ export function ProductCard({
               href={`/contact?tea=${encodeURIComponent(product.slug)}`}
               aria-label={t('orderAction', { name: product.name })}
               // A phone's half-width card keeps the whole word: smaller type, no arrow.
-              className={cn(
-                'relative z-[1] inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border-[1.5px] border-forest-900 px-2 text-[0.875rem] font-semibold text-forest-900 transition-colors duration-200 hover:bg-forest-900 hover:text-ivory-50 min-[46.875rem]:px-3 min-[46.875rem]:text-[0.9375rem] pointer-fine:group-hover/card:bg-forest-900 pointer-fine:group-hover/card:text-ivory-50',
-                feature && 'md:w-auto md:px-7',
-              )}
+              className={cn('card-order', feature && 'md:w-auto md:px-7')}
             >
               <span className="truncate">{t('orderNow')}</span>
-              <ArrowRight aria-hidden className="hidden h-4 w-4 shrink-0 min-[46.875rem]:block" />
+              <CardIcon
+                name="arrow-right"
+                className="hidden h-4 w-4 shrink-0 min-[46.875rem]:block"
+              />
             </Link>
           </div>
         )}

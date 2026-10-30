@@ -1,6 +1,8 @@
 'use client';
 
-import { REVIEW_COMMENT_MAX, type Locale, type MyReviewDto } from '@teran/contracts';
+import type { MyReviewDto } from '@teran/contracts';
+// The constants entry has no Zod: the product page would otherwise load it for this one number.
+import { REVIEW_COMMENT_MAX, type Locale } from '@teran/contracts/constants';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { Stars } from '@/components/catalog/stars';

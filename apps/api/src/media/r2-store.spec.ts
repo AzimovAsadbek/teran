@@ -1,7 +1,13 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { MULTIPART_PART_BYTES, putObjectFromFile, signS3Request } from './r2-store.js';
+import {
+  MULTIPART_PART_BYTES,
+  objectExists,
+  putObjectFromFile,
+  putObjectIfAbsent,
+  signS3Request,
+} from './r2-store.js';
 
 /*
  * The worked examples of AWS's "Authenticating Requests: Using the Authorization Header (AWS
@@ -157,5 +163,64 @@ describe('putObjectFromFile (films of any size, ADR-061)', () => {
     ).rejects.toThrow(/part 2/);
     expect(calls.at(-1)).toMatchObject({ method: 'DELETE' });
     expect(calls.at(-1)?.url.search).toBe('?uploadId=u-1');
+  });
+});
+
+describe('adding a file only where none is (ADR-065)', () => {
+  const config = {
+    endpoint: 'https://account.r2.cloudflarestorage.com',
+    accessKeyId: 'test-access-key-id-0000',
+    secretAccessKey: 'test-secret-access-key-not-a-secret-000000',
+    bucket: 'teran',
+  };
+  const key = 'visuals/x/AbCdEfGhIjKl/800.webp';
+  let sent: { method: string; path: string; headers: Record<string, string> }[];
+
+  /** Answers every request with `status`. */
+  function stubR2(status: number) {
+    sent = [];
+    vi.stubGlobal('fetch', (input: string, init: RequestInit) => {
+      sent.push({
+        method: init.method ?? 'GET',
+        path: new URL(input).pathname,
+        headers: init.headers as Record<string, string>,
+      });
+      return Promise.resolve(new Response(status === 200 ? '' : 'refused', { status }));
+    });
+  }
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('asks R2 to refuse the PUT when an object is there, and says whether it was stored', async () => {
+    stubR2(200);
+    expect(await putObjectIfAbsent(config, key, Buffer.from('webp'), 'image/webp')).toBe(true);
+    expect(sent).toEqual([
+      {
+        method: 'PUT',
+        path: `/teran/${key}`,
+        headers: expect.objectContaining({ 'if-none-match': '*', 'content-type': 'image/webp' }),
+      },
+    ]);
+    // The condition is signed with the request, so it cannot be dropped on the way.
+    expect(sent[0]!.headers.authorization).toContain('if-none-match');
+
+    stubR2(412);
+    expect(await putObjectIfAbsent(config, key, Buffer.from('webp'), 'image/webp')).toBe(false);
+
+    stubR2(409);
+    await expect(putObjectIfAbsent(config, key, Buffer.from('webp'), 'image/webp')).rejects.toThrow(
+      /HTTP 409/,
+    );
+  });
+
+  it('looks for an object with HEAD', async () => {
+    stubR2(200);
+    expect(await objectExists(config, key)).toBe(true);
+    expect(sent[0]).toMatchObject({ method: 'HEAD', path: `/teran/${key}` });
+    stubR2(404);
+    expect(await objectExists(config, key)).toBe(false);
+    stubR2(403);
+    await expect(objectExists(config, key)).rejects.toThrow(/HTTP 403/);
   });
 });

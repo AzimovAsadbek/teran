@@ -718,7 +718,7 @@ describe('admin API', () => {
       const stored = first.body.visuals['banner:catalog'];
       expect(stored).toMatchObject({ source: 'https://example.com/banner.png' });
       // Wide pictures get renditions up to 5120 px, as far as their own width (2400 px here).
-      expect(stored.image.widths).toEqual([320, 480, 640, 960, 1280, 1600, 1920, 2400]);
+      expect(stored.image.widths).toEqual([320, 480, 640, 800, 960, 1080, 1280, 1600, 1920, 2400]);
       expect(stored.mobile.widths).toEqual([320, 480, 640, 800]);
 
       const settings = await request(server()).get(`${API}/content/settings?locale=uz`).expect(200);

@@ -9,6 +9,7 @@ import { ButtonLink } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StateMessage } from '@/components/ui/state-message';
 import { apiFindAsVisitor } from '@/lib/api/server';
+import { ClientMessages } from '@/i18n/client-messages';
 
 const ORDER_NUMBER = /^TRN-[0-9A-Z]{8}$/;
 
@@ -86,7 +87,10 @@ async function OrderView({
         </div>
       )}
 
-      <OrderStatusView order={order} locale={locale as Locale} token={token} account={false} />
+      {/* Paying again, checking again and ordering again read these texts. */}
+      <ClientMessages pick={['Account', 'Checkout']}>
+        <OrderStatusView order={order} locale={locale as Locale} token={token} account={false} />
+      </ClientMessages>
 
       <ButtonLink href="/catalog" variant="secondary">
         {t('continueShopping')}

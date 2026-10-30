@@ -20,6 +20,8 @@ function memoryStore() {
     },
     saveFileFrom: () => Promise.resolve(),
     read: () => Promise.resolve(null),
+    exists: () => Promise.resolve(false),
+    saveNew: () => Promise.resolve(true),
     remove: () => Promise.resolve(),
   };
   return { store, files };

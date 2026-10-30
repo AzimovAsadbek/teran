@@ -91,6 +91,8 @@ export default async function AboutPage() {
           >
             <span className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_60%_at_32%_22%,rgb(255_255_255_/_0.8),transparent_70%)]" />
             <span className="absolute inset-x-[10%] bottom-[7%] -z-10 h-[10%] rounded-[50%] bg-ink-900/10 blur-xl" />
+            {/* The front pack, the page's largest picture, stands from the first frame; the others
+                are set down beside it (styles/globals.css, Arrivals). */}
             {STAND.map((item, index) => (
               <span
                 key={item.code}
@@ -98,7 +100,7 @@ export default async function AboutPage() {
                 style={{ zIndex: item.z }}
               >
                 <span
-                  className="set-down block"
+                  className={index === 2 ? 'block' : 'set-down block'}
                   style={
                     {
                       '--i': Math.abs(index - 2),

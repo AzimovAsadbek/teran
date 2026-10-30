@@ -26,6 +26,7 @@ import pack8800 from '../../../../../public/brand/packs/8800.webp';
 import pack8830 from '../../../../../public/brand/packs/8830.webp';
 import packG8810 from '../../../../../public/brand/packs/g8810.webp';
 import packXc2025 from '../../../../../public/brand/packs/xc2025.webp';
+import { ClientMessages } from '@/i18n/client-messages';
 
 /** The five pouches, in the order of the collection. */
 const PACKS: { code: TeaCode; image: StaticImageData }[] = [
@@ -188,7 +189,9 @@ export default async function WholesalePage() {
               </Link>
             </p>
           </div>
-          {/* The five pouches standing together, XC2025 in front, set down one after another. */}
+          {/* The five pouches standing together, XC2025 in front, the others risen onto the shelf
+              one after another beside it: the front pack is the page's largest picture and stands
+              from the first frame (styles/globals.css, Arrivals). */}
           <div aria-hidden className="flex items-end justify-center lg:col-span-5">
             {STAND_ORDER.map((code, index) => {
               const pack = packByCode.get(code)!;
@@ -200,7 +203,7 @@ export default async function WholesalePage() {
                   style={{ zIndex: stand.z }}
                 >
                   <span
-                    className="arrive-pack block"
+                    className={index === 2 ? 'block' : 'arrive-pack block'}
                     style={
                       {
                         '--i': Math.abs(index - 2),
@@ -366,7 +369,11 @@ export default async function WholesalePage() {
               <Suspense fallback={null}>
                 <BusinessTypeFromLink />
               </Suspense>
-              <WholesaleForm />
+              <ClientMessages
+                pick={['Forms', 'Validation', 'Wholesale', 'Checkout.regionPlaceholder']}
+              >
+                <WholesaleForm />
+              </ClientMessages>
             </div>
           </section>
           <div className="lg:col-span-5">

@@ -1931,3 +1931,324 @@ for the moment the upload takes, so a lost connection leaves a draft to finish, 
 item without its picture. End-to-end tests create a product on sale with its photo and an article
 published with its cover in one go, each back on its list; post a short with its subtitles and
 poster description; and open the composer again to find it empty.
+
+## ADR-064: A first visit that stays light on a slow phone
+
+**Status.** Proposed on `feat/admin-uploads` (2026-10-29, from c0903cf); integrated with ADR-065
+and ADR-066 on `perf/integration-2026-10-29`, in the working tree, not committed; from the
+[performance audit](../performance-audit.md). Amends ADR-051 and ADR-053
+(arrivals and films).
+
+**Context.** The audit measured production builds with Lighthouse's phone profile and applied
+throttling (a processor 4× slower, 1.47 Mbit/s, 562 ms per request). Four causes stood out:
+
+- Listing pages carried 0.6–1.1 MB of HTML: every product card repeated its icons and two rows of
+  star drawings as inline SVG (450 SVGs on the catalogue) and its long class lists, once in the
+  HTML and again in the page's React payload, which the phone then parses and hydrates.
+- Decorative films (0.7–1.9 MB each) loaded after every page on any connection, 2.2–3.4 MB on the
+  home page, the catalogue and the category pages.
+- The for-business and about pages' largest picture, the front pack of a fan of five, arrived
+  with the others: faded in from transparent on the for-business page, so the browser counted it
+  as painted only when the fade ended (3.76 s, against 2.11 s for the same build with motion
+  reduced); set down from 94 % on the about page, so a side pack painted later at its full size
+  outgrew it and became the largest paint (3.77 s, the first paint at 2.13 s).
+- The product and store pages loaded the validation library (32 kB compressed) on first view, for
+  one number (`REVIEW_COMMENT_MAX`) and one list (`STORE_KINDS`) imported from the contracts'
+  main entry.
+
+**Decision.**
+
+- **A product card's markup is shared, not repeated.** Its parts are named utilities in
+  `globals.css` (`card-shell`, `card-body`, `card-chip`… each the same classes as before); its five
+  icons are drawn once per page from a hidden set in the store layout (`CardIconSprite`) and
+  referenced with `<use>`; a star row is one masked strip (`star-row`) instead of five drawings.
+  The card looks the same (screenshots compared before and after).
+- **Films stay pictures on a slow connection.** `useFilmsAllowed` is false where the browser
+  reports data saving or an effective connection of 3G or slower (`navigator.connection`; where a
+  browser does not report it, nothing changes). A card's film starts only once the card has stayed
+  on screen half a second, so a phone scrolling through a listing does not fetch the film of every
+  card it passes.
+- **A page's largest picture takes no part in an arrival.** On the for-business and about pages
+  the front pack stands from the first frame; the four others still arrive beside it as before
+  (`arrive-pack`, `set-down`), and being smaller they cannot outgrow it. Tried first and not kept:
+  the for-business fan set down without a fade (the front pack then starts at 94 % and a side pack
+  outgrows it again, 3.6 s), and every pack rising without a fade (the about page's frame clips a
+  rising pack, so the same happens there).
+- **Browser code takes plain values from `@teran/contracts/constants`**, which has no Zod:
+  `REVIEW_COMMENT_MAX` and `STORE_KINDS` moved there (the main entry still exports them).
+- **Next.js's `priority` stays as it is.** Since Next.js 16 it only adds a preload (as
+  `preload`) and no longer sets `fetchPriority="high"`, so such pictures are fetched at low
+  priority. Adding `fetchPriority="high"` was measured and not kept: on the product page the
+  pouch arrived 0.1 s sooner but the first paint came 0.13 s later in every run (the picture then
+  shares the link with the styles) and the largest paint did not move (it waits for the styles and
+  the streamed part); on the for-business page the largest paint was the same either way
+  (2.12 against 2.13 s, motion reduced, three runs each).
+
+**Consequences.** Measured on the same machine and settings (the audit has every page): the
+catalogue's HTML went from 1,065 to 640 kB (703 to 254 `<svg>` elements) and its blocking time
+from 572 to 369 ms; on the phone profile, which Chrome rates 3G, the home page, the catalogue
+and the listings transfer 0.8–1.3 MB instead of 3.1–4.5 MB; the for-business and about pages'
+largest paint went from 3.75 and 3.77 s to 2.15 and 2.14 s; the product and store pages'
+first-load JavaScript from 321 and 325 to 288 and 289 kB compressed. The home page's and the
+catalogue's largest paint did not move: each is one large picture, and lighter renditions need
+the server's pictures made again (a follow-up for the owner). Pages without product cards carry
+the icon set too (about 1 kB compressed). Nothing was changed in caching, the API, the server or
+Nginx. End-to-end tests (`performance.spec.ts`) keep the validation library out of the home,
+catalogue and product pages' first load, the pouch preloaded and never lazy, each fan's front pack
+out of the arrival and the cards on the shared icons; unit tests cover the slow-connection rule
+and the card film's wait.
+
+## ADR-065: An 800 px file for phones, added to stored pictures too
+
+**Status.** Proposed on `claude/beautiful-mccarthy-f71aaa` (2026-10-29, from the design-refinement
+branch at c0903cf); integrated with ADR-064 and ADR-066 on `perf/integration-2026-10-29`, in the
+working tree, not committed. Follows the performance audit of the same
+day (ADR-064, `docs/performance-audit.md`, section 11, item 1). Amends ADR-009 and ADR-040. The
+live site changes only when the owner runs the script below on the server, after a backup of the
+database.
+
+**Context.** On the audit's phone profile (Lighthouse's 412 × 823 CSS px at 1.75×, slowed to
+1.47 Mbit/s), the home page's and the catalogue's largest paints (5.1 s and 4.5 s) were each one
+picture fetched at 960 px: the first view's phone crop (269 kB) and the catalogue banner's
+(207 kB), for 721 device pixels. Pictures are kept as WebP files at fixed widths (ADR-009: 320,
+480, 640, 960, 1280 and 1600 px, page pictures up to 5120, ADR-040), and the browser takes the
+smallest file at least as wide as the device pixels, so 721 meant 960. The owner wants the
+pictures sharp (ADR-040): they could not simply be made smaller or more compressed.
+
+**Decision.**
+
+- **800 px joins every list of widths** (`IMAGE_WIDTHS`, which page and gallery pictures extend),
+  so new uploads get it. Not 720: measured in Chrome 156 with each list (phones emulated), the
+  browser never takes a file narrower than the device pixels, so 720 is a pixel short for 412 px
+  at 1.75× (721) and 30 short for 375 px at 2× (750); 800 serves both, and 360 px at 2× (720).
+  Phones at 2.625–3× (1080–1206 px) keep 1280; 414 px at 2× (828) keeps 960 for full-width
+  pictures.
+- **The storefront is unchanged.** Every srcset is built from the widths the API returns
+  (`imageSources`, `ProductImage`, `VisualPicture`). Checked on a production build: the first
+  view's srcset and its preload list 800w, and the 412 px phone fetches the 800 px file.
+- **Every file is scaled from the decoded pixels** (`fastShrinkOnLoad: false` in
+  `renderRenditions`). sharp's default shrinks a picture while decoding it: a WebP upload with
+  libwebp's own scaler, the small files of a large JPEG in its decoder. For the first view's
+  3840 px picture uploaded as WebP, the files kept 83–90 % of the finest detail, against 93–97 %
+  now; from the JPEG, the 320–640 px files 89 % against 96 %. Uploads take 7–10 % more CPU, and
+  the files of a WebP upload are up to 9 % larger (the detail they keep).
+- **Stored pictures get the new file from `scripts/add-renditions.ts`.** Without `--apply` it
+  lists what it would add and changes nothing. With it, each missing file is made from the
+  narrowest stored file at least twice as wide (else the widest; originals are not kept), at the
+  picture's own proportions, and stored only where no file is: R2 gets a conditional PUT
+  (`If-None-Match: *`), the uploads folder a hard link that fails when the name is taken. Nothing
+  is replaced or deleted. The width is then recorded on the picture, only if its row is as it was
+  read (the page pictures' setting under a row lock, only that picture's widths changed); an
+  audit row is written and the storefront's cache refreshed. A run can be repeated: a file found
+  there is checked and recorded. Runbook: `docs/deployment/production.md`, section 6.
+- **AVIF is not added** (no `<picture>` `type` sources): at equal sharpness it saves little, and
+  costs about 30 times the CPU per upload (below).
+
+**Measured** (this Mac, i9-8950HK; sharp 0.35.5 with libvips 8.18.7, libwebp 1.6.0, libaom
+3.15.1; Chrome 156). Sharpness is measured where the visitor sees it: each file scaled to the
+phone's 721 device pixels (Lanczos 3, the same for every file) and compared with the original
+scaled straight there, by SSIM and by the share of the original's finest detail kept (the
+one-pixel band, projected).
+
+| Phone crop                  | First view (1080 × 1440)              | Catalogue banner (1600 × 825)         |
+| --------------------------- | ------------------------------------- | ------------------------------------- |
+| Today: 960 px               | 269,486 B · SSIM 0.991 · detail 0.976 | 207,144 B · SSIM 0.993 · detail 0.968 |
+| 800 px, new upload          | 218,484 B (−19 %) · 0.985 · 0.965     | 142,802 B (−31 %) · 0.969 · 0.897     |
+| 800 px, added by the script | 215,442 B (−20 %) · 0.982 · 0.947     | 140,456 B (−32 %) · 0.981 · 0.908     |
+
+Magnified four times, the 960 and 800 px views of both pictures look the same to the eye: the
+lower figures are single-pixel differences in the leaves' texture, not blur (an 800 px file still
+has more pixels than the screen). A file made from a stored one at least twice as wide is as
+faithful as one made from the original (the banner's measures better); one made from a file only
+1.2–1.9 times as wide (the first view's phone crop has none wider than 1080 px) stays within
+0.005 SSIM of a new upload's.
+
+On a production build reading a copy of the local data, before and after the script ran on it
+(Lighthouse 12.8.2, phone profile, applied throttling, median of three runs), the 412 px phone
+fetched the first view's picture at 216 kB instead of 270 kB on the wire, and the home page's
+largest paint came at 4.87 s instead of 5.79 s (runs 4.81–4.88 against 5.39–5.97; score 54 → 64).
+The catalogue's banner came at 141 kB instead of 208 kB, its largest paint at 3.24 s instead of
+4.36 s (score 59 → 66). On the slowed, shared link the picture gets about a third of the bandwidth,
+so each kilobyte saved counts about three times. This branch has none of the audit's other changes
+(ADR-064), so the times are those of its baseline, over local HTTP/1.1 (pessimistic for pages led
+by a picture, as the audit notes).
+
+AVIF (4:2:0, effort 4) against today's WebP: at each file's own size, in 6 of 10 cases (the first
+view at 960 and 1920 px, the banner at 960 and 1920 px and its phone crop at 800 and 960 px) no
+AVIF up to quality 80 was as faithful on both measures; in the other 4 it was 3 % larger to 18 %
+smaller. As seen on the phone it matched today's 960 px WebP only at quality 70–80, for −20 %
+(first view) and +8 % (banner); at effort 9, −21 % and −3 % for 70–80 CPU seconds per file.
+The whole set of a picture's files took about 30 times the CPU of WebP: 126 s against 4 s for the
+first view (3840 px), 292 s against 9 s for a 5120 px picture, so a minute or more per upload on a
+two-core server. Revisit if sharp gains a faster or image-tuned AV1 encoder (SVT-AV1, libaom's
+`tune=iq`).
+
+**Consequences.** One more file per picture. On a copy of the local data, 162 of 174 pictures got
+one (10.6 MB in all, 27 s): 93 made from a file twice as wide, 69 from one 1.2–1.9 times as wide;
+the 12 others are narrower than 800 px or have no stored file wider than it (14 widths of demo
+gallery items and of 827 px photographs only a new upload can give). Addresses, cache rules and
+the storefront stay as they are (each file has its own immutable address). Uploads take one more
+WebP file and the Lanczos scaling (about 10 % more CPU). Reverting the code alone is safe:
+recorded widths keep their files. Undoing a run means restoring the database backup (the added
+files then stay unused in the bucket) or removing 800 from the recorded widths.
+
+## ADR-066: Drawers that open at once over a long page
+
+**Status.** Proposed on `claude/brave-euler-0e95d9` (2026-10-29, from
+`feat/teran-design-refinement`, c0903cf); integrated with ADR-064 (the audit) and ADR-065 (lighter
+phone pictures) on `perf/integration-2026-10-29`, in the working tree, not committed. The
+interaction follow-up of the performance audit (its item 2).
+
+**Context.** The audit measured three taps above the 200 ms budget for interaction to next paint
+(INP) on a processor 4× slower: opening the phone menu (248–288 ms on the home page and the
+catalogue) and the catalogue's filters (232 ms). Chrome traces, Event Timing and Long Animation
+Frames showed that React's own work on these taps was small (13–29 ms). Most of the time,
+120–190 ms, was one forced style and layout pass inside `showModal()`: a modal `<dialog>` makes
+the rest of the document inert, and Chrome then restyles every element the page renders (4,807
+on the catalogue, 2,614 on the home page), when the dialog opens and again when it closes. A bare
+`<dialog>` cost the same (153 ms on the catalogue, 107 ms on the home page), while `show()`,
+which is not modal, took 6 ms; the scroll lock `html:has(dialog[open])` added about 8 ms.
+
+**Decision.**
+
+- **While a drawer is open, the page's blocks wholly below the screen are not rendered**
+  (`lib/quiet-page.ts`, called by `Sheet`, so the menu, the filters, the bag and search). Right
+  before `showModal()`, the blocks that start more than a quarter of a screen below it get
+  `content-visibility: hidden` with the size of their content box kept (`contain-intrinsic-*`), so
+  nothing moves; they are found by walking down from the body only into blocks that cross that
+  edge, measuring everything before changing anything. Once the drawer has closed and the frame
+  that shows it closing has been painted, they render again as they were. Nobody can see them
+  behind the drawer, and the inert page cannot be focused, read aloud or searched, so nothing a
+  visitor sees, reaches or hears changes; the restyle of opening and of closing leaves them out. A
+  drawer opened again before the page has woken keeps them so; the page wakes when the last open
+  drawer closes, or when an open drawer is removed.
+- **The menu drawer's content is put together while the page is idle** (below 1280 px, in a
+  transition, so a tap still comes first) **and kept as it is while the drawer opens and closes**
+  (`MenuBody` and `MenuFooter` are memoized, their callbacks stable): the tap only shows it. A tap
+  before then puts it together as before.
+- **The filter drawer's form is its own memoized component** (`FilterForm`, its submit handler
+  stable), so opening and closing re-render only the drawer around it.
+- **Kept:** the native modal `<dialog>` (inert background, focus containment, Esc and the
+  backdrop come from the browser) and the scroll lock.
+- **Tried and not kept:**
+  - `content-visibility: auto` on long pages at all times (a listing's cards past the first row,
+    the home page's sections, the footer): the taps came within 4–8 ms of this decision, but a
+    lazy picture in a skipped block waits until the block is rendered (about one and a half screens
+    ahead, against Chrome's 2,500 px on 3G: flinging the catalogue fast on 3G, 41 of its 52
+    pictures came on screen still loading, against 30), in some home sections Chrome ran
+    transitions from default values (a link's blue, a button's grey) when they were first
+    rendered, and axe misread their colours while they were skipped (the home page's Lighthouse
+    accessibility score fell from 100 to 97).
+  - A non-modal dialog that makes the page inert itself (the same restyle, only later), and
+    rendering a drawer's content after its first paint (an empty first frame).
+  - Lighter stickers in the home ribbon (564 SVG elements in the first view, the largest part of
+    what the home page still restyles): a design component, left for later.
+
+**Consequences.** Measured on production builds, in Chromium through Playwright: 412 × 823 at
+1.75× with touch, the processor 4× slower (CDP), Event Timing (`durationThreshold: 16`) installed
+before the page loads; load, wait 1.5 s, tap, wait 1.2 s, the longest pointer, click or touch
+duration; the build before and the build after in turn, seven loads each, median (ms; the API
+rounds to 8 ms). Two setups: the end-to-end stack (`build:stack`, its seeded data), and a build
+configured as the live site (no demo content, prices hidden) on a copy of the local data, the
+audit's setup:
+
+| Tap                          | Stack before | Stack after | Live-like before | Live-like after |
+| ---------------------------- | ------------ | ----------- | ---------------- | --------------- |
+| Catalogue: open the filters  | 200          | 96          | 208              | 112             |
+| Catalogue: open the menu     | 208          | 104         | 224              | 112             |
+| Home page: open the menu     | 192          | 120         | 216              | 136             |
+| Product page: next picture   | 88           | 88          | 104              | 88              |
+| Home page: close the menu    | 176          | 104         | 176              | 104             |
+| Catalogue: close the filters | 208          | 80          | 216              | 104             |
+
+The audit had 232, 248 and 288 ms for the first three on its setup, on a busier machine (the
+same comparison under a load average of 8–10 gave 304–352 ms before).
+
+- **Nothing a visitor sees changes.** With a drawer open, the page behind it (the strip beside
+  the phone menu, half a tablet's screen beside the filters) is the same pixel for pixel; after it
+  closes every block renders again within a frame, the layout is the same as before it opened,
+  and the same transitions run. Browsing is untouched: no containment applies with no drawer
+  open, so pictures load, Lighthouse (accessibility 100) and axe read the pages as before.
+- **The work is saved, not moved.** On opening the filters, Chrome now restyles 859 elements
+  instead of 4,807, and on opening the menu on the home page 906 instead of 2,614. In the second
+  after a drawer closes, the longest frame went from 138 ms to none over 50 ms on the catalogue and
+  from 120 to 61 ms on the home page (live-like setup).
+- Tests: unit tests for `quiet-page` (which blocks, their size kept, restored as they were, two
+  drawers, opened again before waking, never the block holding the drawer); an end-to-end phone
+  test (the footer not rendered while the filters are open and rendered again after, focus back on
+  the button, the form applying its choices). Lint, typecheck, the unit tests (contracts 34, API
+  170, web 174) and the end-to-end suite (65 tests, with ffmpeg) pass.
+
+## ADR-067: The last phone bytes: pictures their drawn size, no 404 row on found pages
+
+**Status.** Proposed on `perf/integration-2026-10-29` (2026-10-30), in the working tree with
+ADR-064 to ADR-066, not committed. The final pass of the performance audit
+(`docs/performance-audit.md`, "Final pass").
+
+**Context.** After ADR-064 to ADR-066 the first view on a slow phone was limited by bytes, not by
+the processor: on the home page the first picture (211 kB) loaded for 3.4 to 4.3 s while 486 to
+616 kB of other files loaded beside it (fonts, scripts, three posters of the film feed far down
+the page, the five packs of the signature teas). Measured in the browser, per picture and phone
+(the `sizes` value is the chosen file's width over its density, `naturalWidth`):
+
+- Pictures inside the page's margins said they were the screen's width: the catalogue banner's and
+  the range tile's phone crops (`sizes="100vw"`, drawn 312 to 364 px), the contact picture
+  (drawn 328 to 380 px), the home story's steps. Phones fetched the next file up.
+- Journal covers in cards (drawn 486 to 557 CSS px at 1.75× to 2×), the gallery (327 to 360 px
+  at 3×), the contact picture and the home story's steps at 3× needed 960 to 1080 device px and
+  took the 1280 px file (or a 1215 px page picture). Product, category and collection pictures
+  never needed more than 960 px on the eight phones measured.
+- The not-found boundary's element goes into every page's payload, so its server component
+  fetched TERAN's eight featured teas for every page rendered and sent them with it (8 of 8 slugs
+  in the HTML of the contact, wholesale and stores pages).
+- Every storefront page carried all the client namespaces of every page (about 30 kB of
+  messages in Uzbek), and the contact and wholesale forms put Zod in their pages' first bundle.
+- The backfill of ADR-065 recorded new widths with an ordinary update, which moved the rows'
+  `updatedAt` and with it the sitemap's `lastmod` of 15 addresses, for a change no visitor reads.
+
+**Decision.**
+
+- **1080 px for pictures shown about a phone's width** (`WIDE_IMAGE_WIDTHS` and
+  `GALLERY_IMAGE_WIDTHS`; `IMAGE_WIDTHS` stays as it was), for new uploads and, through
+  `scripts/add-renditions.ts`, for stored pictures (made from the narrowest stored file at least
+  twice as wide, else the widest, as in ADR-065).
+- **`sizes` says the drawn width on phones:** `VisualPicture` takes `phoneSizes` for its phone
+  crop (the whole screen by default); the range tile and the home story's steps say
+  `calc(100vw - 3rem)`, the contact picture `calc(100vw - 2rem)`. The catalogue banner's phone
+  crop keeps `100vw`: it is drawn by the header's height, wider than the screen (449 CSS px), so
+  a smaller `sizes` would blur it.
+- **The film feed's posters load lazily**, the first three too: the feed sits about 8,000 px down
+  the home page, and eager posters were fetched with the first view's picture (72 kB).
+- **The 404 page's row of teas is fetched by the browser** once the missing page shows
+  (`NotFoundSuggestions`, `GET /api/suggestions?locale=`, the storefront's cached list with
+  prices removed while they are hidden, `noindex` as every `/api/` path). The branded page, its
+  links and the crawlers' real 404 are unchanged; a found page no longer asks.
+- **Each page sends only the client messages its components read**: the layouts send the header's,
+  footer's, bag's and chat's (`STORE_CLIENT_MESSAGES`, `CHECKOUT_CLIENT_MESSAGES`), pages add
+  theirs with `<ClientMessages pick>` (merged in the browser by `MergeMessages`, which passes the
+  time zone on), and `scripts/check-client-messages.mjs` (part of `pnpm lint`) fails when a client
+  component reads a message its route does not send. Ported from ADR-020's branch
+  (`perf/scoped-intl-messages`, 51b02f7) onto the current pages.
+- **The contact and wholesale forms load their contract after the page** (`useFormSubmission`
+  takes a loader; the forms prepare it when they are first focused), so a submission still
+  validates at once, and a visitor who never uses the form never loads it. One made before it has arrived waits for it (shown as sending only after 150 ms) and then
+  marks and focuses the fields as usual; a second press sends nothing (a ref set at once, not
+  state), a contract that cannot be loaded is reported as a connection failure with every field
+  kept, and the API still validates everything. Their lists (business types, regions) come from
+  the Zod-free `@teran/contracts/constants`.
+- **Recording widths keeps each row's `updatedAt`** (categories, collections, articles, gallery
+  items, the page pictures' setting): the sitemap's `lastmod` stays as it was.
+- **The image optimiser's cache is a named volume** (`web-image-cache`, mounted on
+  `/app/apps/web/.next/cache/images` only; the folder is made in the image and owned by `node`).
+  Next.js's other caches stay in the container, so a new release never serves a page or a fetch
+  from the old one.
+- **Not done, with the reason:** the signature teas keep their five packs (ADR-051 draws the
+  change between teas with them; 122 kB in two of three slow runs); `fetchPriority` and AVIF were
+  not tried again (no new evidence since ADR-064 and ADR-065); the product page keeps its
+  streaming (its largest picture is already in the first part of the HTML).
+
+**Consequences.** Before and after are in `docs/performance-audit.md` ("Final pass"). The live
+bucket gets 1080 px files only when the owner runs the backfill (production guide, section 6);
+until then the storefront offers the widths each picture has. The catalogue banner on a 360 px
+phone at 3× takes the 1080 px file (2.4 device pixels per CSS pixel of its drawn width, against
+2.85 with the 1280 px file).

@@ -1,6 +1,8 @@
 'use client';
 
-import { STORE_KINDS, type PublicStoreDto, type StoreKind } from '@teran/contracts';
+import type { PublicStoreDto, StoreKind } from '@teran/contracts';
+// The constants entry has no Zod, which the stores page would otherwise load for this list.
+import { STORE_KINDS } from '@teran/contracts/constants';
 import {
   ChevronDown,
   Clock,

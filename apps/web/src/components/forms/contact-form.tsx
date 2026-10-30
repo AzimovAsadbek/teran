@@ -1,6 +1,6 @@
 'use client';
 
-import { contactInquirySchema, type Locale } from '@teran/contracts';
+import type { Locale } from '@teran/contracts/constants';
 import { Send } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useRef, useState, type FormEvent } from 'react';
@@ -16,11 +16,18 @@ import {
   TextField,
 } from '@/components/ui/field';
 import { Notice } from '@/components/ui/notice';
-import { useFormSubmission } from '@/features/forms/use-form-submission';
+import { prepareContract, useFormSubmission } from '@/features/forms/use-form-submission';
 import { usePrimaryAction } from '@/lib/floating';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
 import { useOrderLine } from './order-line';
+
+/**
+ * The form's contract, loaded once the form is used (or on the first submission), not with the
+ * page: Zod stays out of its first bundle (ADR-067).
+ */
+const contactContract = () =>
+  import('@teran/contracts').then((contracts) => contracts.contactInquirySchema);
 
 const EMPTY = { name: '', phone: '', email: '', subject: '', message: '' };
 
@@ -83,7 +90,7 @@ export function ContactForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await form.submit(
-      contactInquirySchema,
+      contactContract,
       { ...payload, locale, website: honeypotValue(event.currentTarget) },
       '/inquiries/contact',
     );
@@ -119,6 +126,8 @@ export function ContactForm() {
 
   return (
     <form
+      // Its contract starts loading as soon as the form is used, so sending validates at once.
+      onFocus={() => void prepareContract(contactContract).catch(() => {})}
       method="post"
       ref={formRef}
       onSubmit={onSubmit}

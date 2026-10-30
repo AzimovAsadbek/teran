@@ -1,8 +1,8 @@
 {
   "Meta": {
     "siteName": "TERAN",
-    "titleTemplate": "%s — TERAN",
-    "defaultTitle": "TERAN — premium Chinese tea online store",
+    "titleTemplate": "%s — TERAN Tea",
+    "defaultTitle": "TERAN Tea — premium Chinese tea online store",
     "defaultDescription": "TERAN premium Chinese green tea from the mountains of Hunan and Yunnan, in 400 g zip pouches. Order by phone, Telegram or WhatsApp."
   },
   "Common": {
@@ -155,7 +155,7 @@
     "unsubscribeInvalid": "This link is invalid or has expired."
   },
   "Home": {
-    "metaTitle": "TERAN — premium Chinese tea online store",
+    "metaTitle": "TERAN Tea — premium Chinese tea online store",
     "heroCta": "Shop teas",
     "valuesTitle": "What TERAN stands for",
     "showcaseTitle": "Choose your favourite tea",

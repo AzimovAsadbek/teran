@@ -1,6 +1,6 @@
 import type { Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
-import { getLocale, getMessages, getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
@@ -9,7 +9,8 @@ import { PageHeader } from '@/components/content/page-header';
 import { StoreLocator } from '@/components/stores/store-locator';
 import { ClientMessages } from '@/i18n/client-messages';
 import { getPublicSettings } from '@/lib/data/content';
-import { pageMetadata } from '@/lib/seo';
+import { pageMetadata, pointsOfSaleSchema } from '@/lib/seo';
+import { JsonLd } from '@/components/seo/json-ld';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -27,11 +28,16 @@ async function Locator() {
   await connection();
   const locale = await getLocale();
   const settings = await getPublicSettings(locale).catch(() => null);
+  const places = settings ? pointsOfSaleSchema(settings.stores, locale as Locale) : null;
   // The locator's own texts reach the browser on this page only.
   return (
-    <ClientMessages pick={['Stores']}>
-      <StoreLocator stores={settings ? settings.stores : null} />
-    </ClientMessages>
+    <>
+      {/* Each point of sale for search engines and maps, as entered in Admin (ADR-068). */}
+      {places ? <JsonLd data={places} /> : null}
+      <ClientMessages pick={['Stores']}>
+        <StoreLocator stores={settings ? settings.stores : null} />
+      </ClientMessages>
+    </>
   );
 }
 

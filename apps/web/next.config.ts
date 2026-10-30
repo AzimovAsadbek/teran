@@ -150,6 +150,8 @@ const nextConfig: NextConfig = {
     return [
       { source: '/api/v1/:path*', destination: `${apiInternalUrl}/api/v1/:path*` },
       { source: '/uploads/:path*', destination: `${uploadsOrigin}/:path*` },
+      // The IndexNow key file at the site's root (app/api/indexnow, ADR-068).
+      { source: '/:file([0-9a-f]{32}\\.txt)', destination: '/api/indexnow/:file' },
     ];
   },
 };

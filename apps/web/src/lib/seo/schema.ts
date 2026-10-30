@@ -10,7 +10,7 @@ import { BRAND } from '@/content/brand';
 import { routing } from '@/i18n/routing';
 import { imageSources } from '@/lib/navigation';
 import { absoluteUrl, siteUrl } from '@/lib/site';
-import { ORGANIZATION_ID, WEBSITE_ID, type JsonLdObject } from './json-ld';
+import { BRAND_ID, ORGANIZATION_ID, WEBSITE_ID, type JsonLdObject } from './json-ld';
 import { languageVersions, localizedUrl, type Href } from './urls';
 
 /*
@@ -20,6 +20,8 @@ import { languageVersions, localizedUrl, type Href } from './urls';
 
 const CONTEXT = 'https://schema.org';
 const LOGO = `${siteUrl}/brand/teran-logo.png`;
+/** TERAN TRADE MChJ without its legal form, and the brand's name on Instagram (`terantea.uz`). */
+const BRAND_ALTERNATE_NAMES = ['TERAN TRADE', 'TERAN Tea'] as const;
 
 /** The largest rendition of an uploaded picture, as an absolute address. */
 function largestImage(image: ImageDto): string {
@@ -87,7 +89,9 @@ export function productSchema({
     image: product.images.map(largestImage),
     sku: variant.sku,
     ...(gtin ? { gtin } : {}),
-    ...(isOwnBrand(product) ? { brand: { '@type': 'Brand', name: BRAND.name } } : {}),
+    ...(isOwnBrand(product)
+      ? { brand: { '@type': 'Brand', '@id': BRAND_ID, name: BRAND.name } }
+      : {}),
     category: product.category.name,
     // The customers' average and the reviews the page shows, once there is a rating.
     ...(rating
@@ -204,6 +208,43 @@ export function faqSchema(items: readonly { question: string; answer: string }[]
   };
 }
 
+/** A point of sale as the store locator shows it (Admin → Store addresses, the reader's language). */
+export interface PointOfSale {
+  name: string;
+  address: string;
+  phone: string | null;
+  latitude: number;
+  longitude: number;
+  kinds: readonly string[];
+}
+
+/**
+ * The points of sale on the store locator (ADR-068): each TERAN's own, at the address and the
+ * place on the map that TERAN entered. A shop is a `Store`, a dealer or a wholesale point a
+ * `LocalBusiness`. Opening hours are free text there, so they are not given as structured hours.
+ */
+export function pointsOfSaleSchema(
+  stores: readonly PointOfSale[],
+  locale: Locale,
+): JsonLdObject | null {
+  if (stores.length === 0) return null;
+  const page = localizedUrl('/stores', locale);
+  return {
+    '@context': CONTEXT,
+    '@graph': stores.map((store) => ({
+      '@type': store.kinds.includes('SHOP') ? 'Store' : 'LocalBusiness',
+      name: store.name,
+      url: page,
+      image: LOGO,
+      address: { '@type': 'PostalAddress', streetAddress: store.address, addressCountry: 'UZ' },
+      geo: { '@type': 'GeoCoordinates', latitude: store.latitude, longitude: store.longitude },
+      ...(store.phone ? { telephone: store.phone } : {}),
+      parentOrganization: { '@id': ORGANIZATION_ID },
+      brand: { '@id': BRAND_ID },
+    })),
+  };
+}
+
 export interface StoreFacts {
   /** The brand's description and tagline in the page's language (content/brand.ts). */
   description: string;
@@ -229,6 +270,9 @@ export function storeSchema(facts: StoreFacts): JsonLdObject {
         '@type': 'OnlineStore',
         '@id': ORGANIZATION_ID,
         name: BRAND.name,
+        // The names TERAN goes by: its company without the legal form (as in the domain and on
+        // Telegram) and its Instagram name.
+        alternateName: [...BRAND_ALTERNATE_NAMES],
         legalName: BRAND.company,
         description: facts.description,
         slogan: facts.slogan,
@@ -248,6 +292,15 @@ export function storeSchema(facts: StoreFacts): JsonLdObject {
             }
           : {}),
         ...(facts.profiles.length > 0 ? { sameAs: [...facts.profiles] } : {}),
+        brand: { '@id': BRAND_ID },
+      },
+      {
+        '@type': 'Brand',
+        '@id': BRAND_ID,
+        name: BRAND.name,
+        slogan: facts.slogan,
+        logo: LOGO,
+        url: home,
       },
       {
         '@type': 'WebSite',

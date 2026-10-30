@@ -118,6 +118,18 @@ export interface BrandCopy {
   labels: { company: string; location: string; website: string; codes: string };
 }
 
+/**
+ * Who TERAN is in one sentence, from the facts above (the descriptor, the company, its city): put
+ * before the brand's own description where a page is described to search engines and AI
+ * assistants (the home page's description, the organization's schema), so the name is read as a
+ * Chinese tea brand, not the common word or the wine (ADR-068).
+ */
+export const brandIdentity: Localized<string> = {
+  uz: 'TERAN — premium Xitoy choyi brendi (TERAN TRADE MChJ, Namangan, Oʻzbekiston).',
+  ru: 'TERAN — бренд премиального китайского чая (TERAN TRADE MChJ, Наманган, Узбекистан).',
+  en: 'TERAN is a premium Chinese tea brand (TERAN TRADE MChJ, Namangan, Uzbekistan).',
+};
+
 export const brandCopy: Localized<BrandCopy> = {
   uz: {
     tagline: 'Teran taʼm. Teran taassurot.',

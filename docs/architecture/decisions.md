@@ -2252,3 +2252,47 @@ bucket gets 1080 px files only when the owner runs the backfill (production guid
 until then the storefront offers the widths each picture has. The catalogue banner on a 360 px
 phone at 3× takes the 1080 px file (2.4 device pixels per CSS pixel of its drawn width, against
 2.85 with the 1280 px file).
+
+## ADR-068: A brand search engines read as Chinese tea, and new pages they hear of at once
+
+**Status.** Proposed on `seo/brand-visibility-2026-10-30` (2026-10-30, from 0cfdd13), in the
+working tree, not committed. Research, evidence and the off-site plan:
+`docs/seo/brand-visibility-2026-10-30.md`.
+
+**Context.** Searched from Uzbekistan on 2026-10-30, TERAN is first for its own name with a
+product word in every language ("TERAN choy", "TERAN чай", "Теран чай", "TERAN yashil choy",
+"TERAN Chinese tea", "terantrade", "TERAN Trade"), but not for "TERAN tea" in English, which Google
+reads as Ten Ren, a Taiwanese tea house; "Teran" alone is a wine grape of Istria, and in Uzbek
+"teran" is also the everyday word "deep". The organization's schema said who TERAN is only in the
+brand's poetic line; products named the brand without linking it to the organization; the store
+locator described no point of sale to search engines; and a new product reached search engines
+only when they next read the sitemap (Google about 76 pages indexed of 321 listed).
+
+**Decision.**
+
+- **One sentence of identity** (`brandIdentity`, content/brand.ts: "TERAN — premium Xitoy choyi
+  brendi (TERAN TRADE MChJ, Namangan, Oʻzbekiston).", in each language) opens the home page's
+  description and the organization's, before the brand's own line; only facts TERAN supplied.
+- **The organization names its other names and its brand:** `alternateName` TERAN TRADE (the
+  company without its legal form, as in the domain and on Telegram) and TERAN Tea (its Instagram
+  name); a `Brand` node (`#brand`) that the organization owns and every TERAN product refers to.
+- **Each point of sale is described** on the store locator (`Store`, or `LocalBusiness` for a
+  dealer or a wholesale point) from Admin → Store addresses: name, address, map position, phone,
+  the organization and the brand; free-text hours are not passed off as structured hours.
+- **IndexNow:** after the API asks the storefront to revalidate the catalogue or the journal, the
+  pages whose `lastmod` changed in the last 15 minutes are announced to Bing, Yandex and the other
+  IndexNow engines, each change once per server process, from an indexable build only. The key is
+  derived from the revalidation secret both apps already hold (no new setting) and served at
+  `/<key>.txt`. Google is not an IndexNow engine: it keeps learning of pages from the sitemap.
+- **English titles say "TERAN Tea"** (the home page "TERAN Tea — premium Chinese tea online
+  store", others "… — TERAN Tea"): the exact words English searchers type, which Google otherwise
+  reads as Ten Ren; Uzbek and Russian titles keep "TERAN", already first with choy and чай.
+- **Not changed:** the sitemap, robots, canonical and language links (ADR-060), the product titles
+  (already "TERAN 8009 — Yashil choy, 400 g"), and every product on the site (the owner keeps them
+  all, 2026-10-30).
+
+**Consequences.** New products, categories and articles reach Bing and Yandex minutes after they
+are saved, with the same titles, descriptions and schema as the others. Category and product
+pages take the SEO title and description entered in Admin when there is one. The search results,
+the external profiles and the content plan are tracked in the document above; nothing there is
+done without the owner.

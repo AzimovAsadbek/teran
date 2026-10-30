@@ -8,8 +8,9 @@ import type {
 } from '@teran/contracts';
 import { describe, expect, it } from 'vitest';
 import { siteUrl } from '@/lib/site';
-import { ORGANIZATION_ID, serializeJsonLd, WEBSITE_ID } from './json-ld';
+import { BRAND_ID, ORGANIZATION_ID, serializeJsonLd, WEBSITE_ID } from './json-ld';
 import {
+  pointsOfSaleSchema,
   articleSchema,
   breadcrumbSchema,
   faqSchema,
@@ -133,7 +134,7 @@ describe('product structured data', () => {
       image: [`${siteUrl}/uploads/products/p1/abc/1920.webp`],
       sku: 'TRN-8800-400',
       gtin: '4780179230045',
-      brand: { '@type': 'Brand', name: 'TERAN' },
+      brand: { '@type': 'Brand', '@id': BRAND_ID, name: 'TERAN' },
       category: 'Green tea',
     });
   });
@@ -304,12 +305,15 @@ describe('the shop and the website', () => {
 
   it('states only facts TERAN gave, by stable ids', () => {
     const graph = storeSchema(facts)['@graph'] as Record<string, unknown>[];
-    const [store, website] = graph;
+    const [store, brand, website] = graph;
     expect(store).toMatchObject({
       '@type': 'OnlineStore',
       '@id': ORGANIZATION_ID,
       name: 'TERAN',
+      // The company without its legal form, and the brand's Instagram name (ADR-068).
+      alternateName: ['TERAN TRADE', 'TERAN Tea'],
       legalName: 'TERAN TRADE MChJ',
+      brand: { '@id': BRAND_ID },
       url: `${siteUrl}/`,
       logo: `${siteUrl}/brand/teran-logo.png`,
       address: { '@type': 'PostalAddress', addressLocality: 'Namangan', addressCountry: 'UZ' },
@@ -326,6 +330,15 @@ describe('the shop and the website', () => {
     expect(store).not.toHaveProperty('email');
     expect(store).not.toHaveProperty('sameAs');
     expect(JSON.stringify(store)).not.toContain('availableLanguage');
+    // The brand TERAN's own products carry (their schema refers to it by the same id).
+    expect(brand).toEqual({
+      '@type': 'Brand',
+      '@id': BRAND_ID,
+      name: 'TERAN',
+      slogan: facts.slogan,
+      logo: `${siteUrl}/brand/teran-logo.png`,
+      url: `${siteUrl}/`,
+    });
     expect(website).toEqual({
       '@type': 'WebSite',
       '@id': WEBSITE_ID,
@@ -346,5 +359,43 @@ describe('the shop and the website', () => {
       email: 'info@terantrade.uz',
       sameAs: ['https://t.me/TeranTrade'],
     });
+  });
+});
+
+describe('points of sale', () => {
+  const shop = {
+    name: 'TERAN Namangan',
+    address: 'Namangan shahri, Navoiy koʻchasi',
+    phone: '+998975707007',
+    latitude: 40.9983,
+    longitude: 71.6726,
+    kinds: ['SHOP'],
+  };
+
+  it('describes each one as TERAN entered it, tied to the organization and the brand', () => {
+    const graph = pointsOfSaleSchema(
+      [shop, { ...shop, name: 'Dealer', phone: null, kinds: ['DEALER'] }],
+      'ru',
+    )!['@graph'] as Record<string, unknown>[];
+    expect(graph[0]).toEqual({
+      '@type': 'Store',
+      name: 'TERAN Namangan',
+      url: `${siteUrl}/ru/stores`,
+      image: `${siteUrl}/brand/teran-logo.png`,
+      address: { '@type': 'PostalAddress', streetAddress: shop.address, addressCountry: 'UZ' },
+      geo: { '@type': 'GeoCoordinates', latitude: 40.9983, longitude: 71.6726 },
+      telephone: '+998975707007',
+      parentOrganization: { '@id': ORGANIZATION_ID },
+      brand: { '@id': BRAND_ID },
+    });
+    // A dealer is a local business, and a store without a phone states none.
+    expect(graph[1]).toMatchObject({ '@type': 'LocalBusiness', name: 'Dealer' });
+    expect(graph[1]).not.toHaveProperty('telephone');
+    // Free-text hours are not passed off as structured opening hours.
+    expect(JSON.stringify(graph)).not.toContain('openingHours');
+  });
+
+  it('gives nothing while no point of sale is entered', () => {
+    expect(pointsOfSaleSchema([], 'uz')).toBeNull();
   });
 });

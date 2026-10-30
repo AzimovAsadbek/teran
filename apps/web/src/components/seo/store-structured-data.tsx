@@ -1,6 +1,6 @@
 import { normalizeUzPhone, type Locale } from '@teran/contracts';
 import { connection } from 'next/server';
-import { brandCopy } from '@/content/brand';
+import { brandCopy, brandIdentity } from '@/content/brand';
 import { socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
 import { storeSchema } from '@/lib/seo';
@@ -23,7 +23,7 @@ export async function StoreStructuredData({ locale }: { locale: Locale }) {
   return (
     <JsonLd
       data={storeSchema({
-        description: brandCopy[locale].description,
+        description: `${brandIdentity[locale]} ${brandCopy[locale].description}`,
         slogan: brandCopy[locale].tagline,
         phones,
         email: contact?.email ?? null,

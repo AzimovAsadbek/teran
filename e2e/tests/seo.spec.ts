@@ -181,8 +181,15 @@ test.describe('search engines', () => {
     const graph = (JSON.parse(home.jsonLd[0]!) as { '@graph': Record<string, unknown>[] })[
       '@graph'
     ];
-    expect(graph.map((node) => node['@type'])).toEqual(['OnlineStore', 'WebSite']);
-    expect(graph[0]).toMatchObject({ '@id': `${origin}/#organization`, url: `${origin}/` });
+    expect(graph.map((node) => node['@type'])).toEqual(['OnlineStore', 'Brand', 'WebSite']);
+    // The organization, its other names and the brand its products carry (ADR-068).
+    expect(graph[0]).toMatchObject({
+      '@id': `${origin}/#organization`,
+      url: `${origin}/`,
+      alternateName: ['TERAN TRADE', 'TERAN Tea'],
+      brand: { '@id': `${origin}/#brand` },
+    });
+    expect(graph[1]).toMatchObject({ '@id': `${origin}/#brand`, name: 'TERAN' });
     expect(JSON.stringify(graph)).not.toContain('availableLanguage');
 
     const productPage = await fetchPage(request, '/en/products/classic-green-tea');

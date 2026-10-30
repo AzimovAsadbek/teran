@@ -13,7 +13,7 @@ import { SignatureTeas } from '@/components/home/signature-teas';
 import { SocialReel } from '@/components/home/social-reel';
 import { StorySequence } from '@/components/home/story-sequence';
 import { StoreStructuredData } from '@/components/seo/store-structured-data';
-import { brandCopy } from '@/content/brand';
+import { brandCopy, brandIdentity } from '@/content/brand';
 import { getPrerenderSettings } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
 
@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: 'Home' });
   return pageMetadata({
     title: { absolute: t('metaTitle') },
-    description: brandCopy[locale].description,
+    description: `${brandIdentity[locale]} ${brandCopy[locale].description}`,
     href: '/',
     locale,
   });

@@ -332,6 +332,12 @@ teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed
   While that lasts the disk holds the upload and the result. The admin area shows the percentage;
   the film appears on the site by itself when it is ready. A restart goes on with it.
 
+- IndexNow (ADR-068): once the storefront revalidates after a change, it announces the changed
+  pages to Bing, Yandex and the other IndexNow engines. Nothing to configure: the key is derived
+  from `REVALIDATE_SECRET` and published at `https://<site>/<key>.txt`; only an indexable build
+  (`SEARCH_INDEXING`, a public `PUBLIC_ORIGIN`, no demo content) does it. The storefront's log
+  shows one `indexnow` line per announcement with the engines' status (200 or 202 accepted).
+
 ## 7. Nginx
 
 The server's Nginx is configured by its administrator; nothing in this repository writes it. For

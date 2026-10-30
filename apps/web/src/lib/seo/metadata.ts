@@ -31,7 +31,10 @@ export function coverShareImage(image: ImageDto | null | undefined): OgImage | u
   };
 }
 
-/** A title that names the brand already gets no "— TERAN" from the layout's template. */
+/**
+ * A title that names the brand already gets no "— TERAN" (in English "— TERAN Tea", ADR-068)
+ * from the layout's template.
+ */
 function withoutSecondBrand(title: string): string | { absolute: string } {
   return /\bTERAN\b/i.test(title) ? { absolute: title } : title;
 }

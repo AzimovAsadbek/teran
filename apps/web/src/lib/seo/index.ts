@@ -11,14 +11,23 @@
 export { searchIndexing, type IndexingDecision } from './indexing';
 export { coverShareImage, DEFAULT_OG_IMAGE, pageMetadata } from './metadata';
 export { defaultRobots, PRIVATE_PATHS, robotsRules } from './robots';
-export { jsonLd, ORGANIZATION_ID, serializeJsonLd, WEBSITE_ID, type JsonLdObject } from './json-ld';
+export {
+  BRAND_ID,
+  jsonLd,
+  ORGANIZATION_ID,
+  serializeJsonLd,
+  WEBSITE_ID,
+  type JsonLdObject,
+} from './json-ld';
 export {
   articleSchema,
   breadcrumbSchema,
   faqSchema,
+  pointsOfSaleSchema,
   productSchema,
   storeSchema,
   type Crumb,
+  type PointOfSale,
 } from './schema';
 export { buildSitemap, sitemapEntries } from './sitemap';
 export { hreflangLinks, languageVersions, localizedUrl, type Href } from './urls';

@@ -6,6 +6,8 @@ export type JsonLdObject = Record<string, unknown>;
 /** The organisation (TERAN, the shop) and the website, referred to by these ids everywhere. */
 export const ORGANIZATION_ID = `${siteUrl}/#organization`;
 export const WEBSITE_ID = `${siteUrl}/#website`;
+/** The TERAN brand, which the organization owns and TERAN's own products carry (ADR-068). */
+export const BRAND_ID = `${siteUrl}/#brand`;
 
 /**
  * JSON for a structured data script (application/ld+json). Product names, descriptions and

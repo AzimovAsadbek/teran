@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /*
- * When the storefront's films may move: never with reduced motion or on a data-saving or slow
+ * When the storefront's films may move: never with reduced motion or on a data-saving or very slow
  * connection, and not while the visitor has paused them with the footer's switch, which is
  * remembered on this device. That switch is the WCAG 2.2.2 mechanism for every film on the
  * storefront (none has a button of its own) and for the home page's moving ribbons
@@ -81,12 +81,20 @@ function subscribeToConnection(onChange: () => void) {
 
 /**
  * A connection where films would cost more than they give: data saving on, or one the browser
- * rates 3G or slower (a film is a few megabytes; on such a link it would hold up the pictures and
- * the visitor's data). Films stay pictures there; a 4G link plays them as everywhere else.
+ * rates 2G or slower. Films stay pictures there. A link rated 3G still plays them, in their
+ * lightest copy (`isModestConnection`): Chrome rates many ordinary links in Uzbekistan 3G (a round
+ * trip over about 270 ms), and the owner wants the films seen (2026-10-30).
  */
 export function isLightConnection(current: Connection | undefined): boolean {
   if (!current) return false;
-  return Boolean(current.saveData) || ['slow-2g', '2g', '3g'].includes(current.effectiveType ?? '');
+  return Boolean(current.saveData) || ['slow-2g', '2g'].includes(current.effectiveType ?? '');
+}
+
+/** A link the browser rates 3G: films play in their lightest copy (looping-film.tsx). */
+export function isModestConnection(
+  current: Connection | undefined = typeof navigator === 'undefined' ? undefined : connection(),
+): boolean {
+  return current?.effectiveType === '3g';
 }
 
 function useLightConnection(): boolean {

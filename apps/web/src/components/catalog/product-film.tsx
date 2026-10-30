@@ -61,7 +61,9 @@ export function ProductFilm({
     const ahead = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
-        const drawn = entry.boundingClientRect.width * (window.devicePixelRatio || 1);
+        // In CSS pixels, as the page's other films (looping-film.tsx): a moving picture keeps
+        // its look at one film pixel per CSS pixel, so a Retina screen takes no heavier copy.
+        const drawn = entry.boundingClientRect.width;
         setWide(drawn > CARD_COPY_WIDTH * 1.1);
         setNear(true);
       },

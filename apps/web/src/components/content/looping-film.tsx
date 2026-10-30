@@ -3,7 +3,7 @@
 import type { PublicFilmDto } from '@teran/contracts';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
-import { useFilmsAllowed, useMatches, useMotionPaused } from '@/lib/motion';
+import { isModestConnection, useFilmsAllowed, useMatches, useMotionPaused } from '@/lib/motion';
 import { filmPosition, filmSource } from '@/lib/visuals';
 
 /** How long a film takes to appear over its poster (its own first frame) when it starts. */
@@ -70,14 +70,19 @@ function FilmPlayer({ film, stopped }: { film: PublicFilmDto; stopped: boolean }
   }, []);
 
   // Fetched whole, after the page's own load, so the loop never waits for the network: the copy
-  // whose width fills this frame on this screen (sharp on the largest, light on small ones).
+  // whose width fills this frame in CSS pixels. Not by the screen's density: a moving picture
+  // keeps its look at one film pixel per CSS pixel, and a Retina window would otherwise take the
+  // 4K copy (the first view's film: 18 MB against 5.3 MB), which the pictures below then wait
+  // behind.
   useEffect(() => {
     if (!near) return;
     const abort = new AbortController();
     let objectUrl: string | null = null;
     const fetchFilm = () => {
       const frame = frameRef.current?.getBoundingClientRect();
-      const src = frame ? filmSource(film, frame, window.devicePixelRatio || 1) : film.src;
+      // On a link rated 3G, the lightest copy (the first): the film still plays, sooner.
+      const lightest = isModestConnection() ? film.sources[0]?.src : undefined;
+      const src = lightest ?? (frame ? filmSource(film, frame, 1) : film.src);
       fetch(src, { signal: abort.signal })
         .then((response) => (response.ok ? response.blob() : Promise.reject(response.status)))
         .then((blob) => {

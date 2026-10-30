@@ -113,11 +113,19 @@ describe('ProductFilm', () => {
     await waitFor(() => expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled());
   });
 
-  it('plays the film itself on a card drawn wider than its copy (a large card at 2×)', async () => {
+  it('plays the film itself on a card drawn wider than its copy in CSS pixels', async () => {
+    const { container } = render(<ProductFilm film={film} size="card" />);
+    scrollToFilm(820);
+    await waitFor(() => expect(container.querySelector('video')).toHaveAttribute('src', film.src));
+  });
+
+  it("keeps the cards' copy for a large card on a 2× screen (films by CSS pixels)", async () => {
     vi.stubGlobal('devicePixelRatio', 2);
     const { container } = render(<ProductFilm film={film} size="card" />);
     scrollToFilm(430);
-    await waitFor(() => expect(container.querySelector('video')).toHaveAttribute('src', film.src));
+    await waitFor(() =>
+      expect(container.querySelector('video')).toHaveAttribute('src', film.cardSrc),
+    );
   });
 
   it('plays the film itself in the gallery, only on the slide shown', async () => {
@@ -130,8 +138,8 @@ describe('ProductFilm', () => {
     await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
   });
 
-  it('keeps the picture still on a slow connection', () => {
-    const connection = Object.assign(new EventTarget(), { effectiveType: '3g', saveData: false });
+  it('keeps the picture still on a very slow connection (2G; 3G still plays)', () => {
+    const connection = Object.assign(new EventTarget(), { effectiveType: '2g', saveData: false });
     Object.defineProperty(navigator, 'connection', { configurable: true, value: connection });
     try {
       const { container } = render(<ProductFilm film={film} size="full" />);

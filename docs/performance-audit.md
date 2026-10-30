@@ -1263,3 +1263,21 @@ with a benefit that can be checked). The working tree is as section 14 left it; 
   the final tree (15.6), and the backfill listing on two copies of the data (15.6).
 - Not done: real devices, Safari, a real mobile network, field INP; the live bucket and database
   were not touched.
+
+### 15.9 The live site's PageSpeed report (2026-10-30)
+
+The owner's PageSpeed Insights run on terantrade.uz measured the code deployed before this audit.
+Its items, against the branch as it now stands:
+
+| Report item                                                      | Status                                                                                                                                                    |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| First picture 960 px (263 KiB) for a 412 px phone                | The 800 px file (ADR-065) and the 1080 px one (ADR-067) exist only after the backfill on the live bucket (production guide, section 6); the code is ready |
+| Product cards in the family rows: 640 px files for 262 px        | Fixed: `sizes` says 72 % of the row inside the margins; 480 px at 412 px 1.75×, 800 px (was 960) at 390 px 3×                                             |
+| The signature teas' cup: 640 px file for 131 px                  | Fixed: `sizes` says 36 % of the stage on phones; 320 px at 412 px 1.75×                                                                                   |
+| Range tiles, packs, the leaves (384 to 480 px for 166 to 262 px) | Correct for the phone's density (Lighthouse compares with CSS pixels); unchanged                                                                          |
+| "Increase the compression" of the first picture (80 KiB)         | A visual decision (quality 75 would save about 20 %, 15.2); not taken                                                                                     |
+| Legacy JavaScript (14 KiB of polyfills)                          | Next.js's own polyfill module; no setting removes it in Next.js 16                                                                                        |
+| Render-blocking CSS (2 files, 41 KiB)                            | Next.js's stylesheets; inlining them was tried and rejected (perf pass of 2026-10-17)                                                                     |
+| `cdn-cgi/…/email-decode.min.js` in the critical chain            | Cloudflare's Email Address Obfuscation (Scrape Shield): the owner can switch it off in Cloudflare                                                         |
+| The hero film (1.9 MB) in the payload                            | Off on slow or data-saving connections (ADR-064, in the new code); PageSpeed's lab connection is not throttled for real, so it may still load there       |
+| Non-composited animations (`clear-in`, `pour-in`)                | Design animations (ADR-051); no layout shift measured                                                                                                     |

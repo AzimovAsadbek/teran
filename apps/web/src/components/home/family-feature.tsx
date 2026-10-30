@@ -142,9 +142,10 @@ export async function FamilyFeature({
               key={product.id}
               className="w-[72%] max-w-[18rem] shrink-0 snap-start min-[46.875rem]:w-auto min-[46.875rem]:max-w-none"
             >
+              {/* On phones a card is 72 % of the row inside the page's margins (1.5rem a side). */}
               <ProductCard
                 product={product}
-                sizes="(min-width: 1024px) 20vw, (min-width: 750px) 30vw, 72vw"
+                sizes="(min-width: 1024px) 20vw, (min-width: 750px) 30vw, calc((100vw - 3rem) * 0.72)"
               />
             </li>
           ))}

@@ -253,7 +253,14 @@ export function SignatureStage({
                   {/* The chosen tea's cup fills from below (POUR) inside the saucer's ring. */}
                   <div className="relative aspect-square overflow-hidden rounded-full shadow-[0_20px_40px_-18px_rgb(32_24_8_/_0.55)] ring-[6px] ring-white">
                     <div className={cn('absolute inset-0', index === active && 'pour-in')}>
-                      <ProductImage image={entry.cup} name={entry.name} sizes="20rem" decorative />
+                      {/* The cup is 36 % (34 % from 30rem) of the stage, which fills the page's
+                          width on phones. */}
+                      <ProductImage
+                        image={entry.cup}
+                        name={entry.name}
+                        sizes="(min-width: 1024px) 20rem, (min-width: 30rem) 34vw, calc((100vw - 3rem) * 0.36)"
+                        decorative
+                      />
                       {entry.cup.film?.cardSrc ? (
                         <ProductFilm film={entry.cup.film} size="card" active={index === active} />
                       ) : null}

@@ -48,8 +48,6 @@ beforeEach(() => {
     'fetch',
     vi.fn(async () => new Response(new Blob(['film'], { type: 'video/mp4' }))),
   );
-  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:film');
-  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 });
@@ -58,7 +56,7 @@ afterEach(() => {
   // Unmounted while the media mocks are still in place: a film still loading when a test ends
   // must not reach jsdom's play(), which is not implemented (it returns nothing to catch).
   cleanup();
-  act(() => setMotionPaused(false));
+  localStorage.clear();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -77,10 +75,8 @@ describe('LoopingFilm', () => {
     const { container } = render(<LoopingFilm film={film} />);
     expect(fetch).not.toHaveBeenCalled();
     scrollToFilm();
-    await waitFor(() =>
-      expect(container.querySelector('video')).toHaveAttribute('src', 'blob:film'),
-    );
-    expect(fetch).toHaveBeenCalledWith(film.src, expect.anything());
+    await waitFor(() => expect(container.querySelector('video')).toHaveAttribute('src', film.src));
+    expect(fetch).not.toHaveBeenCalled();
     const video = container.querySelector('video')!;
     expect(video.loop).toBe(true);
     expect(video.muted).toBe(true);
@@ -97,8 +93,25 @@ describe('LoopingFilm', () => {
     media['(max-width: 749px)'] = true;
     const { container } = render(<LoopingFilm film={film} phoneFilm={phoneFilm} />);
     scrollToFilm();
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith(phoneFilm.src, expect.anything()));
+    await waitFor(() =>
+      expect(container.querySelector('video')).toHaveAttribute('src', phoneFilm.src),
+    );
     expect(container.querySelector('video')!.style.objectPosition).toBe('50% 80%');
+  });
+
+  it('keeps the poster until playback and retries autoplay on a user gesture', async () => {
+    vi.mocked(HTMLMediaElement.prototype.play).mockRejectedValueOnce(
+      new DOMException('Gesture required', 'NotAllowedError'),
+    );
+    const { container } = render(<LoopingFilm film={film} />);
+    scrollToFilm();
+    const video = container.querySelector('video')!;
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1));
+    expect(video).toHaveClass('opacity-0');
+    act(() => document.dispatchEvent(new Event('pointerup')));
+    await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2));
+    act(() => video.dispatchEvent(new Event('playing')));
+    expect(video).toHaveClass('opacity-100');
   });
 
   it('keeps the poster alone with reduced motion', () => {

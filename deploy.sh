@@ -624,7 +624,8 @@ validate_env() {
   if [ "$(env_value SHOW_PRICES)" = "true" ]; then flag="true"; else flag="false"; fi
   if [ "$(env_value CHECKOUT_ENABLED)" = "true" ]; then value="true"; else value="false"; fi
   if [ "$flag" != "$value" ]; then
-    warn "SHOW_PRICES va CHECKOUT_ENABLED har xil: narxsiz do'kon onlayn buyurtma olmaydi (ADR-027)."
+    fail "SHOW_PRICES va CHECKOUT_ENABLED bir xil bo'lishi kerak (ADR-027)."
+    problems=$((problems + 1))
   fi
   value="$(env_value CORS_EXTRA_ORIGINS)"
   if [ -n "$value" ]; then
@@ -1466,6 +1467,10 @@ main() {
   start_service api "API (NestJS)"
   start_service web "Frontend (Next.js)"
   smoke_checks
+  step "Sekin internet uchun video nusxalari tekshirilmoqda"
+  if ! compose run --rm -T --no-deps migrate tsx scripts/add-film-renditions.ts --apply; then
+    warn "Ayrim video nusxalari tayyorlanmadi. Keyingi deploy qayta urinadi. Mavjud videolar ishlayveradi."
+  fi
   record_success
   print_summary
 }

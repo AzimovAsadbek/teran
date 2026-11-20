@@ -3,7 +3,6 @@ import {
   buildPaginated,
   MEDIA_KINDS,
   ORDER_STATUSES,
-  type adminOrderListQuerySchema,
   type AdminAuditEntry,
   type AdminBadges,
   type AdminDashboard,
@@ -11,28 +10,23 @@ import {
   type Paginated,
   type SalesDay,
 } from '@teran/contracts';
-import type { z } from 'zod';
 import { AuditService } from '../audit/audit.service.js';
 import { toMoney, ZERO } from '../common/money.js';
-import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  pageArgs,
-  tashkentDayBoundary,
-  tashkentToday,
-  toCsv,
-  type Actor,
-} from './admin-support.js';
+import { pageArgs, csvCell, tashkentToday, toCsv, type Actor } from './admin-support.js';
 import { visibleProductWhere } from '../catalog/product-visibility.js';
 import { VISIBLE_MEDIA_WHERE } from '../content/media.service.js';
 import { inventoryRowSelect, toInventoryRow } from './inventory.service.js';
-import { orderListSelect, toOrderListItem } from './orders.service.js';
+import {
+  orderListFilter,
+  orderListSelect,
+  toOrderListItem,
+  type OrderFilters,
+} from './orders.service.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SALES_DAYS = 30;
-const EXPORT_LIMIT = 10_000;
-
-type ExportQuery = Pick<z.output<typeof adminOrderListQuerySchema>, 'from' | 'to' | 'status'>;
+const EXPORT_BATCH = 500;
 
 /** Calendar date in Tashkent for an instant. */
 function tashkentDate(instant: Date): string {
@@ -202,49 +196,10 @@ export class AdminDashboardService {
   }
 
   /** Orders as CSV for accounting (contains personal data, hence administrators only). */
-  async exportOrders(query: ExportQuery, actor: Actor): Promise<string> {
-    const where: Prisma.OrderWhereInput = {
-      status: query.status,
-      createdAt: {
-        ...(query.from ? { gte: tashkentDayBoundary(query.from, 'start') } : {}),
-        ...(query.to ? { lte: tashkentDayBoundary(query.to, 'end') } : {}),
-      },
-    };
-    const rows = await this.prisma.order.findMany({
-      where,
-      orderBy: { createdAt: 'asc' },
-      take: EXPORT_LIMIT,
-      select: {
-        number: true,
-        createdAt: true,
-        status: true,
-        paymentStatus: true,
-        paymentMethod: true,
-        customerName: true,
-        customerPhone: true,
-        regionCode: true,
-        city: true,
-        deliveryMethodName: true,
-        subtotal: true,
-        deliveryFee: true,
-        discountTotal: true,
-        total: true,
-        items: { select: { quantity: true } },
-      },
-    });
-    await this.audit.record({
-      actorUserId: actor.userId,
-      action: 'orders.export',
-      entityType: 'Order',
-      metadata: {
-        count: rows.length,
-        from: query.from ?? null,
-        to: query.to ?? null,
-        status: query.status ?? null,
-      },
-      ipAddress: actor.ipAddress,
-    });
-    return toCsv(
+  async *exportOrders(query: OrderFilters, actor: Actor): AsyncGenerator<string> {
+    const where = orderListFilter(query);
+    const started = new Date();
+    yield toCsv(
       [
         'number',
         'created_at_tashkent',
@@ -262,24 +217,88 @@ export class AdminDashboardService {
         'discount',
         'total',
       ],
-      rows.map((row) => [
-        row.number,
-        `${tashkentDate(row.createdAt)} ${new Date(row.createdAt.getTime() + 5 * 60 * 60 * 1000).toISOString().slice(11, 16)}`,
-        row.status,
-        row.paymentStatus,
-        row.paymentMethod,
-        row.customerName,
-        row.customerPhone,
-        row.regionCode,
-        row.city,
-        row.deliveryMethodName,
-        row.items.reduce((sum, item) => sum + item.quantity, 0),
-        toMoney(row.subtotal),
-        toMoney(row.deliveryFee),
-        toMoney(row.discountTotal),
-        toMoney(row.total),
-      ]),
+      [],
     );
+    let after: { id: string; createdAt: Date } | undefined;
+    let count = 0;
+    for (;;) {
+      const rows = await this.prisma.order.findMany({
+        where: {
+          AND: [
+            where,
+            { createdAt: { lte: started } },
+            ...(after
+              ? [
+                  {
+                    OR: [
+                      { createdAt: { gt: after.createdAt } },
+                      { createdAt: after.createdAt, id: { gt: after.id } },
+                    ],
+                  },
+                ]
+              : []),
+          ],
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        take: EXPORT_BATCH,
+        select: {
+          id: true,
+          number: true,
+          createdAt: true,
+          status: true,
+          paymentStatus: true,
+          paymentMethod: true,
+          customerName: true,
+          customerPhone: true,
+          regionCode: true,
+          city: true,
+          deliveryMethodName: true,
+          subtotal: true,
+          deliveryFee: true,
+          discountTotal: true,
+          total: true,
+          items: { select: { quantity: true } },
+        },
+      });
+      for (const row of rows) {
+        yield [
+          row.number,
+          `${tashkentDate(row.createdAt)} ${new Date(row.createdAt.getTime() + 5 * 60 * 60 * 1000).toISOString().slice(11, 16)}`,
+          row.status,
+          row.paymentStatus,
+          row.paymentMethod,
+          row.customerName,
+          row.customerPhone,
+          row.regionCode,
+          row.city,
+          row.deliveryMethodName,
+          row.items.reduce((sum, item) => sum + item.quantity, 0),
+          toMoney(row.subtotal),
+          toMoney(row.deliveryFee),
+          toMoney(row.discountTotal),
+          toMoney(row.total),
+        ]
+          .map(csvCell)
+          .join(',') + '\r\n';
+      }
+      count += rows.length;
+      if (rows.length < EXPORT_BATCH) break;
+      const last = rows[rows.length - 1]!;
+      after = { id: last.id, createdAt: last.createdAt };
+    }
+    await this.audit.record({
+      actorUserId: actor.userId,
+      action: 'orders.export',
+      entityType: 'Order',
+      metadata: {
+        count,
+        paymentStatus: query.paymentStatus ?? null,
+        from: query.from ?? null,
+        to: query.to ?? null,
+        status: query.status ?? null,
+      },
+      ipAddress: actor.ipAddress,
+    });
   }
 
   async auditLog(page: number, pageSize: number): Promise<Paginated<AdminAuditEntry>> {

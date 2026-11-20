@@ -2,8 +2,7 @@
 
 import type { PublicVisualDto } from '@teran/contracts';
 import Image, { type StaticImageData } from 'next/image';
-import { useRef, type CSSProperties } from 'react';
-import { LoopingFilm } from '@/components/content/looping-film';
+import { createElement, useRef, type CSSProperties } from 'react';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
@@ -63,8 +62,8 @@ function headlineSize(lines: string[]): { className: string; fit: number } {
  * the film moves slower than the words, so the first view has depth (a scrubbed scene,
  * lib/scroll-scene; nothing moves with reduced motion).
  *
- * The film (LoopingFilm): the place's picture is its first frame, painted at once (the page's
- * largest paint); the film is fetched once the page has loaded, fades in over it and loops.
+ * The poster is included in the server-rendered view. The hero-film player can start the visible
+ * clip before React hydrates and reveals it over the poster when playback begins.
  */
 export function HeroStage({
   words,
@@ -99,6 +98,7 @@ export function HeroStage({
       ref={sectionRef}
       className="relative isolate h-[clamp(31rem,122vw,44rem)] w-full min-[56.25rem]:h-[clamp(36rem,calc(100svh-8.5rem),52rem)]"
     >
+      {media !== null ? <script async fetchPriority="high" src="/hero-film.v1.js" /> : null}
       <h1 className="sr-only">{labels.heading}</h1>
       {/* The pictures, clipped to the view. */}
       <div aria-hidden className="absolute inset-0 -z-10 overflow-hidden bg-forest-950">
@@ -112,6 +112,7 @@ export function HeroStage({
                   visual={visual}
                   sizes="100vw"
                   priority
+                  filmPoster={Boolean(film)}
                   phoneBelow={900}
                   position={filmPosition(film)}
                   phonePosition={filmPosition(visual.mobileVideo ?? film)}
@@ -128,9 +129,25 @@ export function HeroStage({
                 className="-z-30 object-cover object-[60%_100%] lg:object-center"
               />
             ) : null}
-            {film ? (
-              <LoopingFilm film={film} phoneFilm={visual?.mobileVideo} phoneBelow={900} />
-            ) : null}
+            {film
+              ? createElement(
+                  'teran-hero-film',
+                  {
+                    className: 'absolute inset-0 -z-20 block',
+                    'data-clips': JSON.stringify({ wide: film, mobile: visual?.mobileVideo }),
+                  },
+                  <video
+                    muted
+                    loop
+                    playsInline
+                    disablePictureInPicture
+                    preload="none"
+                    tabIndex={-1}
+                    suppressHydrationWarning
+                    className="h-full w-full mask-cover mask-no-repeat object-cover opacity-0 transition-opacity duration-200"
+                  />,
+                )
+              : null}
           </div>
         </div>
         {/* On phones a soft veil where the words are; wide screens keep the film's own light. */}

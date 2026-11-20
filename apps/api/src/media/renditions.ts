@@ -277,23 +277,41 @@ export async function recordWidths(
         }),
       );
     case 'visuals':
-      // The setting is one document: read and written under a row lock, and only this picture's
-      // widths change in it (its last change is kept, as above).
-      return prisma.$transaction(async (tx) => {
-        const [row] = await tx.$queryRaw<{ value: Prisma.JsonObject | null; updatedAt: Date }[]>`
-          SELECT value, "updatedAt" FROM "SiteSetting" WHERE key = 'visuals' FOR UPDATE`;
-        const visual = row?.value?.[owner.slot] as Prisma.JsonObject | null | undefined;
-        const stored = visual?.[owner.part] as Prisma.JsonObject | null | undefined;
-        if (!row?.value || !stored || stored.key !== picture.key) return false;
-        if (JSON.stringify(stored.widths) !== JSON.stringify(picture.widths)) return false;
-        stored.widths = widths;
-        await tx.siteSetting.update({
-          where: { key: 'visuals' },
-          data: { value: row.value, updatedAt: row.updatedAt },
-        });
-        return true;
-      });
+      return recordVisualWidths(
+        prisma,
+        owner.slot,
+        owner.part,
+        picture.key,
+        picture.widths,
+        widths,
+      );
   }
 }
 
 const changed = ({ count }: { count: number }) => count === 1;
+
+export async function recordVisualWidths(
+  prisma: PrismaClient,
+  slot: string,
+  part: 'image' | 'mobile' | 'video' | 'mobileVideo',
+  key: string,
+  before: number[],
+  widths: number[],
+): Promise<boolean> {
+  // The setting is one document: read and written under a row lock, and only this picture's
+  // widths change in it (its last change is kept, as above).
+  return prisma.$transaction(async (tx) => {
+    const [row] = await tx.$queryRaw<{ value: Prisma.JsonObject | null; updatedAt: Date }[]>`
+          SELECT value, "updatedAt" FROM "SiteSetting" WHERE key = 'visuals' FOR UPDATE`;
+    const visual = row?.value?.[slot] as Prisma.JsonObject | null | undefined;
+    const stored = visual?.[part] as Prisma.JsonObject | null | undefined;
+    if (!row?.value || !stored || stored.key !== key) return false;
+    if (JSON.stringify(stored.widths ?? []) !== JSON.stringify(before)) return false;
+    stored.widths = widths;
+    await tx.siteSetting.update({
+      where: { key: 'visuals' },
+      data: { value: row.value, updatedAt: row.updatedAt },
+    });
+    return true;
+  });
+}

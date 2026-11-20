@@ -8,7 +8,8 @@ import { setMotionPaused, useFilmsAllowed, useMotionPaused } from '@/lib/motion'
 /**
  * Pauses every film on the storefront, or lets them move again (lib/motion): a link-like switch
  * in the footer, the one way to stop the films and the moving ribbons (they have no buttons of
- * their own, the owner's choice; WCAG 2.2.2). Shown only where films may play at all.
+ * their own, the owner's choice; WCAG 2.2.2). The same control lets a visitor enable motion
+ * when the operating system defaults to reduced motion.
  */
 export function MotionToggle({
   labels,
@@ -24,20 +25,20 @@ export function MotionToggle({
   useEffect(() => {
     document.documentElement.toggleAttribute('data-motion-paused', paused);
   }, [paused]);
-  if (!allowed) return null;
-  const Icon = paused ? Play : Pause;
+  const stopped = !allowed || paused;
+  const Icon = stopped ? Play : Pause;
   return (
     <button
       type="button"
-      onClick={() => setMotionPaused(!paused)}
-      aria-pressed={paused}
+      onClick={() => setMotionPaused(!stopped)}
+      aria-pressed={stopped}
       className={cn(
         'inline-flex items-center gap-1.5 text-[0.875rem] leading-[1.3125rem] font-medium hover:underline hover:underline-offset-[3px] min-[61.875rem]:text-[0.84375rem]',
         className,
       )}
     >
       <Icon aria-hidden className="h-3.5 w-3.5 fill-current" />
-      {paused ? labels.play : labels.pause}
+      {stopped ? labels.play : labels.pause}
     </button>
   );
 }

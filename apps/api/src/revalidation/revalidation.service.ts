@@ -21,6 +21,10 @@ export class RevalidationService implements OnModuleDestroy {
   private readonly pending = new Set<CacheTag>();
   private timer: NodeJS.Timeout | undefined;
 
+  private inFlight = false;
+  private stopped = false;
+  private delay = DEBOUNCE_MS;
+
   constructor(config: ConfigService<Env, true>) {
     this.url = config.get('WEB_REVALIDATE_URL', { infer: true });
     this.secret = config.get('REVALIDATE_SECRET', { infer: true });
@@ -29,10 +33,18 @@ export class RevalidationService implements OnModuleDestroy {
   notify(...tags: CacheTag[]): void {
     if (!this.url || !this.secret) return;
     for (const tag of tags) this.pending.add(tag);
-    this.timer ??= setTimeout(() => void this.flush(), DEBOUNCE_MS);
+    this.schedule();
+  }
+
+  private schedule(): void {
+    if (!this.inFlight && !this.stopped && this.pending.size && !this.timer) {
+      this.timer = setTimeout(() => void this.flush(), this.delay);
+      this.timer.unref();
+    }
   }
 
   onModuleDestroy(): void {
+    this.stopped = true;
     clearTimeout(this.timer);
   }
 
@@ -41,6 +53,7 @@ export class RevalidationService implements OnModuleDestroy {
     const tags = [...this.pending];
     this.pending.clear();
     if (tags.length === 0 || !this.url || !this.secret) return;
+    this.inFlight = true;
     try {
       const response = await fetch(this.url, {
         method: 'POST',
@@ -48,11 +61,15 @@ export class RevalidationService implements OnModuleDestroy {
         body: JSON.stringify({ tags }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      if (!response.ok) {
-        this.logger.warn({ status: response.status, tags }, 'Storefront revalidation was rejected');
-      }
+      if (!response.ok) throw new Error('Revalidation returned HTTP ' + response.status);
+      this.delay = DEBOUNCE_MS;
     } catch (error) {
-      this.logger.warn({ err: error, tags }, 'Storefront revalidation failed');
+      for (const tag of tags) this.pending.add(tag);
+      this.delay = Math.min(this.delay * 2, 60_000);
+      this.logger.warn({ err: error, tags, retryMs: this.delay }, 'Storefront revalidation failed');
+    } finally {
+      this.inFlight = false;
+      this.schedule();
     }
   }
 }

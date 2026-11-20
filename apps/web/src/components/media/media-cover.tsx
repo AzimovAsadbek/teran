@@ -1,29 +1,37 @@
 'use client';
 
 import type { MediaItemDto } from '@teran/contracts';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useAmbientPlayback } from '@/lib/ambient-playback';
 import { cn } from '@/lib/cn';
-import { useFilmsAllowed, useMatches, useMotionPaused, usePageLoaded } from '@/lib/motion';
+import { useFilmsAllowed, useMotionPaused } from '@/lib/motion';
 import { imageSources } from '@/lib/navigation';
 
-/**
- * The gallery header's picture (ADR-056): a photograph, or a film's poster with the film itself
- * fading in over it once the page has loaded, muted and looping. The film plays only from 768 px
- * (phones keep the sharp poster rather than a large file) and only where films are allowed (no
- * reduced motion or data saving, not paused with the footer's switch).
- */
+/** The eager poster fills the gallery header until its visible film plays, on phones and desktop. */
 export function MediaCover({ item }: { item: MediaItemDto }) {
-  const [playing, setPlaying] = useState(false);
+  const video = useRef<HTMLVideoElement>(null);
+  const posterRef = useRef<HTMLImageElement>(null);
+  const [playing, setPlaying] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
   const allowed = useFilmsAllowed();
   const paused = useMotionPaused();
-  const loaded = usePageLoaded();
-  const wide = useMatches('(min-width: 48rem)') === true;
   const poster = imageSources(item.image, 1920);
-  const film = item.video && allowed && !paused && loaded && wide ? item.video : null;
+  const film = item.video && allowed ? item.video : null;
+  useEffect(() => {
+    const image = posterRef.current;
+    if (!image) return;
+    const observer = new IntersectionObserver(([entry]) =>
+      setVisible(Boolean(entry?.isIntersecting)),
+    );
+    observer.observe(image);
+    return () => observer.disconnect();
+  }, []);
+  useAmbientPlayback(video, film?.src ?? null, visible && !paused);
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element -- API renditions (ADR-009) */}
       <img
+        ref={posterRef}
         src={poster.src}
         srcSet={poster.srcSet}
         sizes="100vw"
@@ -37,17 +45,18 @@ export function MediaCover({ item }: { item: MediaItemDto }) {
       />
       {film ? (
         <video
+          ref={video}
           src={film.src}
           muted
           loop
           playsInline
-          autoPlay
-          preload="auto"
+          preload="none"
           aria-hidden
-          onPlaying={() => setPlaying(true)}
+          onPlaying={() => setPlaying(film.src)}
+          onError={() => setPlaying(null)}
           className={cn(
             'absolute inset-0 -z-20 h-full w-full object-cover transition-opacity duration-1000',
-            playing ? 'opacity-100' : 'opacity-0',
+            playing === film.src ? 'opacity-100' : 'opacity-0',
           )}
         />
       ) : null}

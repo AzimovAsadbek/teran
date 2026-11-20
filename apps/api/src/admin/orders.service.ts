@@ -24,6 +24,31 @@ import { pageArgs, tashkentDayBoundary, type Actor } from './admin-support.js';
 
 type ListQuery = z.output<typeof adminOrderListQuerySchema>;
 
+export type OrderFilters = Omit<ListQuery, 'page' | 'pageSize'>;
+
+export function orderListFilter(query: OrderFilters): Prisma.OrderWhereInput {
+  const search = query.q?.trim();
+  const digits = search?.replace(/\D/g, '') ?? '';
+  return {
+    status: query.status,
+    paymentStatus: query.paymentStatus,
+    createdAt: {
+      ...(query.from ? { gte: tashkentDayBoundary(query.from, 'start') } : {}),
+      ...(query.to ? { lte: tashkentDayBoundary(query.to, 'end') } : {}),
+    },
+    ...(search
+      ? {
+          OR: [
+            { number: { contains: search.toUpperCase() } },
+            { customerName: { contains: search, mode: 'insensitive' } },
+            { customerEmail: { contains: search.toLowerCase() } },
+            ...(digits.length >= 4 ? [{ customerPhone: { contains: digits } }] : []),
+          ],
+        }
+      : {}),
+  };
+}
+
 const listSelect = {
   id: true,
   number: true,
@@ -81,32 +106,13 @@ export class AdminOrdersService {
   ) {}
 
   async list(query: ListQuery): Promise<Paginated<AdminOrderListItem>> {
-    const search = query.q?.trim();
-    const digits = search?.replace(/\D/g, '') ?? '';
-    const where: Prisma.OrderWhereInput = {
-      status: query.status,
-      paymentStatus: query.paymentStatus,
-      createdAt: {
-        ...(query.from ? { gte: tashkentDayBoundary(query.from, 'start') } : {}),
-        ...(query.to ? { lte: tashkentDayBoundary(query.to, 'end') } : {}),
-      },
-      ...(search
-        ? {
-            OR: [
-              { number: { contains: search.toUpperCase() } },
-              { customerName: { contains: search, mode: 'insensitive' } },
-              { customerEmail: { contains: search.toLowerCase() } },
-              ...(digits.length >= 4 ? [{ customerPhone: { contains: digits } }] : []),
-            ],
-          }
-        : {}),
-    };
+    const where = orderListFilter(query);
     const [total, rows] = await Promise.all([
       this.prisma.order.count({ where }),
       this.prisma.order.findMany({
         where,
         select: listSelect,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         ...pageArgs(query.page, query.pageSize),
       }),
     ]);

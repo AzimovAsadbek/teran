@@ -32,6 +32,7 @@ const optionalPhone = z
 
 export const contactInquirySchema = z
   .object({
+    idempotencyKey: z.uuid().optional(),
     name: z.string().trim().min(2).max(100),
     email: emailSchema.optional().or(z.literal('').transform(() => undefined)),
     phone: optionalPhone,

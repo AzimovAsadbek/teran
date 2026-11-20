@@ -43,7 +43,7 @@ afterEach(() => {
   // Unmounted while the media mocks are still in place: a film still loading when a test ends
   // must not reach jsdom's play(), which is not implemented (it returns nothing to catch).
   cleanup();
-  act(() => setMotionPaused(false));
+  localStorage.clear();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -132,30 +132,61 @@ describe('ProductFilm', () => {
     const { container, rerender } = render(<ProductFilm film={film} size="full" active={false} />);
     scrollToFilm();
     const video = container.querySelector('video')!;
-    await waitFor(() => expect(video).toHaveAttribute('src', film.src));
+    expect(video).not.toHaveAttribute('src');
     expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
     rerender(<ProductFilm film={film} size="full" active />);
     await waitFor(() => expect(HTMLMediaElement.prototype.play).toHaveBeenCalled());
   });
 
-  it('keeps the picture still on a very slow connection (2G; 3G still plays)', () => {
-    const connection = Object.assign(new EventTarget(), { effectiveType: '2g', saveData: false });
+  it('recovers a stalled gallery stream when the browser cannot report its connection', async () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<ProductFilm film={film} size="full" />);
+      scrollToFilm();
+      const video = container.querySelector('video')!;
+      expect(video).toHaveAttribute('src', film.src);
+      await act(async () => {
+        video.dispatchEvent(new Event('waiting'));
+        video.dispatchEvent(new Event('playing'));
+        await vi.advanceTimersByTimeAsync(5_000);
+      });
+      expect(video).toHaveAttribute('src', film.src);
+      await act(async () => {
+        video.dispatchEvent(new Event('stalled'));
+        await vi.advanceTimersByTimeAsync(5_000);
+      });
+      expect(video).toHaveAttribute('src', film.cardSrc);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['2g', false],
+    ['slow-2g', false],
+    ['3g', false],
+    ['4g', true],
+  ])('streams a small visible film on %s, Save-Data %s', async (effectiveType, saveData) => {
+    const connection = Object.assign(new EventTarget(), { effectiveType, saveData });
     Object.defineProperty(navigator, 'connection', { configurable: true, value: connection });
     try {
       const { container } = render(<ProductFilm film={film} size="full" />);
       scrollToFilm();
-      expect(container.querySelector('video')).toBeNull();
+      await waitFor(() =>
+        expect(container.querySelector('video')).toHaveAttribute('src', film.cardSrc),
+      );
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
     } finally {
       delete (navigator as Navigator & { connection?: unknown }).connection;
     }
   });
 
-  it('keeps the picture still with reduced motion, and without a cards copy', () => {
+  it('allows explicit playback with reduced motion and falls back to an original without a card copy', async () => {
     media['(prefers-reduced-motion: reduce)'] = true;
-    const reduced = render(<ProductFilm film={film} size="card" />);
-    expect(reduced.container.querySelector('video')).toBeNull();
-    media['(prefers-reduced-motion: reduce)'] = false;
-    const noCopy = render(<ProductFilm film={{ ...film, cardSrc: null }} size="card" />);
-    expect(noCopy.container.querySelector('video')).toBeNull();
+    const { container } = render(<ProductFilm film={{ ...film, cardSrc: null }} size="card" />);
+    expect(container.querySelector('video')).toBeNull();
+    act(() => setMotionPaused(false));
+    scrollToFilm();
+    await waitFor(() => expect(container.querySelector('video')).toHaveAttribute('src', film.src));
   });
 });

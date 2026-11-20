@@ -5,8 +5,10 @@ import { fileURLToPath } from 'node:url';
  * secrets: the stack listens on 127.0.0.1, holds generated demo data and is reset on every run.
  */
 
-export const E2E_API_PORT = 4100;
-export const E2E_WEB_PORT = 3100;
+export const checkoutOpen = process.env.E2E_STORE_MODE !== 'closed';
+
+export const E2E_API_PORT = Number(process.env.E2E_API_PORT || 4100);
+export const E2E_WEB_PORT = Number(process.env.E2E_WEB_PORT || 3100);
 export const E2E_API_URL = `http://127.0.0.1:${E2E_API_PORT}`;
 /**
  * The web server binds to "localhost", not 127.0.0.1: Next.js 16 addresses proxy rewrites to
@@ -66,9 +68,9 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         THROTTLE_DISABLED: 'true',
         WEB_REVALIDATE_URL: `${E2E_WEB_URL}/api/revalidate`,
         REVALIDATE_SECRET,
-        // The stack sells online (its storefront is built with prices) ...
-        CHECKOUT_ENABLED: 'true',
-        // ... and online payments are simulated by the demo provider: no provider is contacted.
+        // Match the storefront mode.
+        CHECKOUT_ENABLED: String(checkoutOpen),
+        // Online payments are simulated.
         PAYMENT_PROVIDER_MODE: 'demo',
         PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY,CLICK,PAYME,CARD',
         // Telegram posts are composed and recorded, never sent: no bot or channel is contacted.
@@ -80,8 +82,8 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         API_INTERNAL_URL: E2E_API_URL,
         NEXT_PUBLIC_SITE_URL: E2E_WEB_URL,
         NEXT_PUBLIC_DEMO_CONTENT: 'true',
-        // The journeys buy things: prices and the bag on (the live site hides them for now).
-        NEXT_PUBLIC_SHOW_PRICES: 'true',
+        // Build the storefront with the same mode as its API.
+        NEXT_PUBLIC_SHOW_PRICES: String(checkoutOpen),
       };
     case 'web':
       return {

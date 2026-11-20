@@ -80,7 +80,11 @@ jobs:
       - run: pnpm test:integration
 
   e2e:
-    name: End-to-end tests
+    name: End-to-end tests (${{ matrix.store }})
+    strategy:
+      fail-fast: false
+      matrix:
+        store: [open, closed]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     services:
@@ -98,6 +102,7 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     env:
+      E2E_STORE_MODE: ${{ matrix.store }}
       E2E_DATABASE_URL: postgresql://teran:ci-only-password@127.0.0.1:5432/teran_e2e?schema=public
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -118,11 +123,20 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ffmpeg
       - run: pnpm test:e2e
+      - name: Restore the database and media from a snapshot
+        if: matrix.store == 'open'
+        env:
+          BACKUP_PG_CONTAINER: ${{ job.services.postgres.id }}
+          PGUSER: teran
+          PGDATABASE: teran_e2e
+        run: |
+          snapshot="$(python3 docker/postgres/backup.py create "$RUNNER_TEMP/snapshots" --media apps/api/storage/e2e-uploads)"
+          python3 docker/postgres/backup.py verify "$snapshot"
       - name: Keep the report of a failed run
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.store }}
           path: |
             e2e/playwright-report
             e2e/test-results
@@ -148,6 +162,7 @@ jobs:
         run: docker compose -f docker-compose.prod.yml --env-file /dev/null config --quiet
       - name: Check the deploy script
         run: |
+          bash docker/check-store-mode.sh
           bash -n deploy.sh
           shellcheck deploy.sh
           ./deploy.sh --help > /dev/null
@@ -192,5 +207,5 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: Known vulnerabilities in production dependencies (high and critical)
+      - name: Known vulnerabilities in production dependencies
         run: pnpm audit:prod

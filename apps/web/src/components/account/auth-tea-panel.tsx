@@ -29,7 +29,7 @@ export async function AuthTeaPanel({ pick }: { pick: number }) {
         sizes="(min-width: 90rem) 42rem, (min-width: 1024px) 46vw, 100vw"
         priority
       />
-      {tea.image.film?.cardSrc ? <ProductFilm film={tea.image.film} size="card" /> : null}
+      {tea.image.film ? <ProductFilm film={tea.image.film} size="card" /> : null}
       <div className="absolute bottom-0 left-0 max-w-[min(26rem,calc(100%-1.5rem))] rounded-tr-[1.25rem] bg-surface px-4 pt-3 pb-3 lg:px-6 lg:pt-5 lg:pb-5">
         <p
           className="font-headline text-[1.25rem] leading-none text-fg uppercase lg:text-[1.75rem]"

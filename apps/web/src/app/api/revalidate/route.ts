@@ -4,7 +4,7 @@ import { after, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSitemapEntries } from '@/lib/data/catalog';
 import { buildSitemap } from '@/lib/seo';
-import { indexNowKey, recentlyChanged, submitToIndexNow } from '@/lib/seo/indexnow';
+import { indexNowKey, announceRecent } from '@/lib/seo/indexnow';
 import { searchIndexing } from '@/lib/seo/indexing';
 import { siteUrl } from '@/lib/site';
 
@@ -37,19 +37,35 @@ export async function POST(request: Request) {
   for (const tag of tags) revalidateTag(tag, { expire: 0 });
   // A new or changed product, category or article is announced to the IndexNow engines at once,
   // from an indexable build only (ADR-068).
-  if (searchIndexing.indexable && tags.some((tag) => tag !== 'settings')) after(announceChanges);
+  if (searchIndexing.indexable && tags.some((tag) => tag !== 'settings'))
+    after(scheduleAnnouncement);
   return NextResponse.json({ revalidated: tags });
 }
 
 /** Changes already announced by this server process. */
-const announced = new Set<string>();
+const announced = new Map<string, number>();
+let running: Promise<void> | undefined;
+let dirty = false;
+
+function scheduleAnnouncement(): Promise<void> {
+  dirty = true;
+  running ??= (async () => {
+    try {
+      while (dirty) {
+        dirty = false;
+        await announceChanges();
+      }
+    } finally {
+      running = undefined;
+    }
+  })();
+  return running;
+}
 
 /** Tells Bing, Yandex and the other IndexNow engines which pages changed just now. */
 async function announceChanges(): Promise<void> {
   const key = indexNowKey(process.env.REVALIDATE_SECRET);
   const data = key ? await getSitemapEntries().catch(() => null) : null;
   if (!key || !data) return;
-  const urls = recentlyChanged(buildSitemap({ pages: [], data }), Date.now(), announced);
-  const status = await submitToIndexNow({ urls, key, siteUrl }).catch(() => 0);
-  if (status !== null) console.info(JSON.stringify({ msg: 'indexnow', urls: urls.length, status }));
+  await announceRecent(buildSitemap({ pages: [], data }), announced, { key, siteUrl });
 }

@@ -187,7 +187,7 @@ async function TeaShowcase({ tea }: { tea: ProductDetailDto }) {
           sizes="(min-width: 90rem) 38rem, 42vw"
           priority
         />
-        {picture?.film?.cardSrc ? <ProductFilm film={picture.film} size="card" /> : null}
+        {picture?.film ? <ProductFilm film={picture.film} size="card" /> : null}
         {leaf ? (
           <span
             aria-hidden

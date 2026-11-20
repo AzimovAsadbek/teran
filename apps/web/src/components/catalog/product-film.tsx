@@ -1,9 +1,10 @@
 'use client';
 
 import type { ProductFilmDto } from '@teran/contracts';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useAmbientPlayback } from '@/lib/ambient-playback';
 import { cn } from '@/lib/cn';
-import { useFilmsAllowed, useMotionPaused, usePageLoaded } from '@/lib/motion';
+import { useFilmsAllowed, useMotionPaused, useModestConnection } from '@/lib/motion';
 
 /**
  * The width of the cards' copy (storage/tea-films-3: 720 px, a four-column card on a 2× display).
@@ -22,11 +23,8 @@ const CARD_DWELL_MS = 500;
  * gaiwan's lid lifted, leaves drifting. With a mask the film shows only where it moves (elsewhere
  * the picture underneath, so the still parts stay sharp and never flicker as the loop starts
  * over); without one it covers the whole picture, its loop seamless by itself (ADR-053). It loads
- * once the page has and the picture comes near (a card's, once the card has stayed on screen a
- * moment), plays while on screen (and, in a gallery, while its slide is the one shown), fades in
- * over the picture, and keeps still with reduced motion, on a data-saving or slow connection or
- * while the visitor has paused the films (lib/motion). Decorative: the picture's own text
- * alternative describes it.
+ * when the active slide is near or a card stays in view. It streams a smaller copy on slower
+ * connections and keeps the photograph visible until playback starts.
  */
 export function ProductFilm({
   film,
@@ -45,15 +43,22 @@ export function ProductFilm({
 }) {
   const allowed = useFilmsAllowed();
   const paused = useMotionPaused();
-  const loaded = usePageLoaded();
+  const modest = useModestConnection();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [near, setNear] = useState(false);
   // Measured as the card comes near: whether it is drawn wider than its copy.
   const [wide, setWide] = useState(false);
-  const src = size === 'card' ? film.cardSrc && (wide ? film.src : film.cardSrc) : film.src;
+  const [failed, setFailed] = useState<string | null>(null);
+  const [stalled, setStalled] = useState<string | null>(null);
+  const preferSmaller = useCallback(() => setStalled(film.src), [film.src]);
+  const preferred =
+    modest || stalled === film.src || (size === 'card' && !wide)
+      ? (film.cardSrc ?? film.src)
+      : film.src;
+  const src = preferred === failed ? film.src : preferred;
   const [onScreen, setOnScreen] = useState(false);
   const [dwelled, setDwelled] = useState(false);
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState<string | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -91,20 +96,14 @@ export function ProductFilm({
     return () => window.clearTimeout(timer);
   }, [size, onScreen, dwelled]);
 
-  const ready = allowed && loaded && (size === 'card' ? dwelled : near) && src !== null;
-  const playing = ready && onScreen && active && !paused;
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !ready) return;
-    if (playing) {
-      video.muted = true;
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [playing, ready]);
-
-  if (!allowed || src === null) return null;
+  const ready = allowed && active && (size === 'card' ? dwelled : near);
+  useAmbientPlayback(
+    videoRef,
+    ready ? src : null,
+    ready && onScreen && !paused,
+    film.cardSrc && src !== film.cardSrc && stalled !== film.src ? preferSmaller : undefined,
+  );
+  if (!allowed) return null;
   // The mask is cropped as the film is (cover, centred), so the two stay aligned.
   const mask: CSSProperties | undefined = film.mask
     ? {
@@ -126,14 +125,18 @@ export function ProductFilm({
       loop
       playsInline
       disablePictureInPicture
-      preload={ready ? 'auto' : 'none'}
+      preload="none"
       aria-hidden
       tabIndex={-1}
-      onPlaying={() => setShown(true)}
+      onPlaying={() => setShown(src)}
+      onError={() => {
+        setShown(null);
+        setFailed(preferred);
+      }}
       style={mask}
       className={cn(
         'pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out',
-        shown ? 'opacity-100' : 'opacity-0',
+        shown === src && ready ? 'opacity-100' : 'opacity-0',
         className,
       )}
     />

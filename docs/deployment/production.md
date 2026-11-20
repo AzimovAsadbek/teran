@@ -273,7 +273,7 @@ teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed
   film to the bucket, and its answers carry the bucket's addresses (`R2_PUBLIC_URL`), so visitors
   load them from Cloudflare. The storefront allows that origin in its content security policy
   (compiled in from `R2_PUBLIC_URL`; rebuild the web image after changing it). The bucket's CORS
-  rules must allow `PUBLIC_ORIGIN` (page films are fetched by script). An `/uploads/...` address
+  rules should allow `GET` and `HEAD` from `PUBLIC_ORIGIN`, accept single byte ranges and expose `Content-Range` and `Content-Length` for the small hero film. An `/uploads/...` address
   (an admin preview, an older link) is redirected by the API to the same key in the bucket.
   `r2.dev` addresses are Cloudflare's rate-limited development addresses: use a custom domain on
   the bucket (for example `media.terantrade.uz`) for production.
@@ -324,6 +324,13 @@ teran run --rm -e ALLOW_DEMO_SEED=true migrate prisma db seed
   added files are new keys (`…/1080.webp`) beside the old ones, so nothing a visitor had is lost;
   restoring the database backup (section 10) takes the widths off the pictures, and the storefront
   stops offering the files (they stay in the bucket, unused, until removed by hand).
+
+- **Page films on slow connections.** Importing a page film makes H.264 copies at 320 and 640 pixels when the source is wider. Importing the home hero also makes a small WebP preview of each poster crop. The deploy script runs an idempotent backfill against existing assets after the health check. Large originals remain available. For a deployment managed outside the script, run the first command to see pending work, then apply it and repeat the first command to check the result.
+
+  ```bash
+  teran run --rm migrate tsx scripts/add-film-renditions.ts
+  teran run --rm migrate tsx scripts/add-film-renditions.ts --apply
+  ```
 
 - Films from iPhones (ADR-062): the API image includes ffmpeg (Alpine's package). A finished upload
   is made ready in the background, one film at a time, in `.processing/` on the uploads volume: an
@@ -440,6 +447,19 @@ that the dump is not empty and can be read (`pg_restore --list`, including the m
 if any of this fails the migration does not run. The script never deletes or restores backups:
 copy them off the server and remove old ones yourself.
 
+**Scheduled snapshots and restore drills.** Run `docker/postgres/backup.py` on the backup host with Python 3, PostgreSQL 18 client tools and rclone. For a Compose database, set `BACKUP_PG_CONTAINER` to its container name and `PGUSER` and `PGDATABASE` to the database role and name. For a remote PostgreSQL service, use libpq settings and a protected password file. The media source can be a mounted uploads directory or an rclone path to R2. Use an independent off-site destination with encryption, retention and access controlled by the operator.
+
+The following cron entries propose a 6-hour recovery point and a weekly verification with a 60-minute recovery time target. The on-call operator owns these targets, storage capacity, retention and alerts on job failures or a missing fresh manifest. Confirm targets against a production-sized rehearsal. Cron runs the backup on the backup host. Install the verification entry on an isolated restore host with its own database credentials and free space for two copies of the media.
+
+```cron
+# Backup host. Environment supplies PGUSER, PGDATABASE and the PostgreSQL connection.
+0 */6 * * * /usr/bin/flock -n /var/lock/teran-backup /usr/bin/python3 /opt/teran/docker/postgres/backup.py create /srv/teran-snapshots --media /mnt/teran-uploads --offsite archive:teran/snapshots
+# Restore host. A PostgreSQL role with CREATEDB restores into a new random database.
+30 2 * * 0 /usr/bin/python3 /opt/teran/docker/postgres/backup.py verify-latest archive:teran/snapshots
+```
+
+Use `--media live-r2:bucket` for object storage. A completed snapshot contains a database dump, the media tree and a manifest published last. PostgreSQL exports one transaction snapshot for both the dump and its reference counts. A rehearsal restores the dump and media to temporary destinations, checks order counts and totals by currency, SKU count, stock and SHA-256 hashes for a sample of database-referenced images and videos. The inventory check also fingerprints each variant and its stock. Its JSON output includes capture time, verification time and duration. Keep that output with the operator’s monitoring records. Restore a named snapshot with `backup.py verify <snapshot>`. [PostgreSQL snapshot support](https://www.postgresql.org/docs/18/app-pgdump.html)
+
 **Manual.** Back up the database (and the uploads volume when R2 is not used), keep copies off the
 server (encrypted), and test a restore regularly.
 
@@ -478,11 +498,10 @@ docker run --rm -v teran-production_uploads:/data -v "$PWD/backups:/backup:ro" a
 teran up -d
 ```
 
-**R2** keeps the live pictures and films. Cloudflare does not back the bucket up for you: mirror it
-regularly to storage you control with any S3-compatible sync tool (for example `rclone sync` with an
-R2 remote and a read-only API token). Files are never overwritten (every upload gets a new key),
-so a mirror only grows. This step is not automated or exercised by this repository. The local
-source folders of imported pictures can rebuild them as well (`scripts/restore-media.ts`, ADR-043).
+**R2** keeps the live pictures and films. Configure the scheduled snapshot's media source with a
+read-only bucket token and give its off-site destination independent credentials. Verification
+should read the saved snapshot and its media using the restore host's credentials. The local
+source folders of imported pictures can also rebuild them (`scripts/restore-media.ts`, ADR-043).
 
 ## 11. Updating and rolling back
 

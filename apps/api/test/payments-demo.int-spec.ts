@@ -362,6 +362,60 @@ describe('payments in demo mode', () => {
     expect(await payments.expireOverdue()).toEqual({ expired: 0, cancelledOrders: 0 });
   });
 
+  it.each(['failure', 'cancel'] as const)(
+    'releases a %s reservation once, only after the retry window',
+    async (outcome) => {
+      const { placed } = await placeOrder();
+      await demo(tokenOf(placed.payment!.redirectUrl), outcome);
+      const payment = await ctx.prisma.payment.findFirstOrThrow({
+        where: { order: { number: placed.order.number } },
+      });
+      expect(await payments.expireOverdue()).toEqual({ expired: 0, cancelledOrders: 0 });
+      const deadline = new Date(payment.expiresAt!.getTime() + 1);
+      const runs = await Promise.all([
+        payments.expireOverdue(deadline),
+        payments.expireOverdue(deadline),
+      ]);
+      expect(runs.reduce((sum, run) => sum + run.cancelledOrders, 0)).toBe(1);
+      expect(
+        await ctx.prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } }),
+      ).toMatchObject({ stockQuantity: 5 });
+      expect(
+        await ctx.prisma.inventoryMovement.count({
+          where: { orderId: payment.orderId, reason: 'ORDER_CANCELLED' },
+        }),
+      ).toBe(1);
+      expect(
+        await ctx.prisma.orderStatusEvent.findFirst({
+          where: { orderId: payment.orderId, toStatus: 'CANCELLED' },
+        }),
+      ).toMatchObject({ paymentStatus: payment.status });
+    },
+  );
+
+  it.each(['paid', 'cash', 'confirmed'] as const)(
+    'preserves a %s order after the deadline',
+    async (kind) => {
+      const { placed } = await placeOrder(
+        kind === 'cash' ? { paymentMethod: 'CASH_ON_DELIVERY' } : {},
+      );
+      if (kind === 'paid') await demo(tokenOf(placed.payment!.redirectUrl), 'success');
+      if (kind === 'confirmed') {
+        await demo(tokenOf(placed.payment!.redirectUrl), 'failure');
+        await ctx.prisma.order.update({
+          where: { number: placed.order.number },
+          data: { status: 'CONFIRMED' },
+        });
+      }
+      expect((await payments.expireOverdue(new Date(Date.now() + 86400000))).cancelledOrders).toBe(
+        0,
+      );
+      expect(
+        await ctx.prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } }),
+      ).toMatchObject({ stockQuantity: 3 });
+    },
+  );
+
   it('gives a payment that is being processed a grace period before expiring it', async () => {
     const { placed } = await placeOrder();
     await demo(tokenOf(placed.payment!.redirectUrl), 'pending');

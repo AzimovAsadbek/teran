@@ -220,7 +220,12 @@ export const visualSlotSchema = z
   .regex(VISUAL_SLOT_PATTERN, { error: 'invalid_visual_slot' });
 
 /** A stored picture: WebP renditions at `<key>/<width>.webp` (see the API's image processing). */
+export const posterPreviewSchema = z
+  .string()
+  .max(4096)
+  .regex(/^data:image\/webp;base64,[A-Za-z0-9+/]+=*$/);
 export const storedPictureSchema = z.object({
+  preview: posterPreviewSchema.optional(),
   key: z.string().min(1).max(200),
   widths: z.array(z.number().int().positive()).min(1),
   width: z.number().int().positive(),
@@ -296,8 +301,8 @@ export type VisualsSetting = z.infer<typeof visualsSettingSchema>;
 
 /** A place's picture as the storefront gets it. */
 export const publicVisualSchema = z.object({
-  image: imageSchema,
-  mobile: imageSchema.nullable(),
+  image: imageSchema.extend({ preview: posterPreviewSchema.optional() }),
+  mobile: imageSchema.extend({ preview: posterPreviewSchema.optional() }).nullable(),
   video: publicFilmSchema.nullable().default(null),
   mobileVideo: publicFilmSchema.nullable().default(null),
 });

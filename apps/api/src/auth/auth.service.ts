@@ -313,6 +313,9 @@ export class AuthService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      if (accountCart) {
+        await tx.$queryRaw`SELECT id FROM "Cart" WHERE id IN (${deviceCart.id}::uuid, ${accountCart.id}::uuid) ORDER BY id FOR UPDATE`;
+      }
       await tx.cart.update({ where: { id: deviceCart.id }, data: { userId } });
       if (!accountCart) return;
 

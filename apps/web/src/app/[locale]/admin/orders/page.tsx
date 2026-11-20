@@ -60,7 +60,7 @@ export default async function AdminOrdersPage({
   ]);
   if (!orders) return <AccessDenied />;
   const isAdmin = user?.role === 'ADMIN';
-  const exportQuery = apiQuery(params, ['status', 'from', 'to']);
+  const exportQuery = apiQuery(params, FILTERS);
   const status = param(params, 'status');
   /** The list URL with one filter changed (the page always starts again from 1). */
   const withStatus = (value: OrderStatus | undefined) => {

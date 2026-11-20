@@ -11,7 +11,7 @@ import { NETWORK_NAMES, SocialIcon } from '@/components/social/social-icon';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import type { SocialLink } from '@/lib/contact';
-import { useFilmsAllowed, useMotionPaused, usePageLoaded } from '@/lib/motion';
+import { useFilmsAllowed, useMotionPaused } from '@/lib/motion';
 import { imageSources } from '@/lib/navigation';
 
 export interface SocialReelLabels {
@@ -33,8 +33,8 @@ const ROUND =
  * on their posters. Arrows below move it, a swipe or the wheel scroll it, and a card opens the
  * feed at its film (reel-player.tsx, ADR-057), where the films scroll up and down as on Reels and
  * the row follows behind. TERAN's networks follow, then the way to the gallery. The film here
- * plays only while the band is in view, the page has loaded and films are allowed (no reduced
- * motion or data saving, not paused with the footer's switch); otherwise every card is a poster.
+ * plays the visible, active card when the visitor's motion settings allow playback. Other cards
+ * keep their posters until selected.
  */
 export function SocialReelView({
   films,
@@ -58,8 +58,7 @@ export function SocialReelView({
   const [ready, setReady] = useState<string | null>(null);
   const filmsAllowed = useFilmsAllowed();
   const paused = useMotionPaused();
-  const loaded = usePageLoaded();
-  const playing = inView && loaded && filmsAllowed && !paused && open === null;
+  const playing = inView && filmsAllowed && !paused && open === null;
 
   // The second card starts in the middle, so the row reads as a row on either side.
   useEffect(() => {
@@ -181,7 +180,7 @@ export function SocialReelView({
                     loop
                     playsInline
                     autoPlay
-                    preload="auto"
+                    preload="none"
                     aria-hidden
                     onPlaying={() => setReady(film.id)}
                     className={cn(
@@ -194,7 +193,7 @@ export function SocialReelView({
                   aria-hidden
                   className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 via-35% to-transparent"
                 />
-                {!(current && playing) ? (
+                {!(current && playing && ready === film.id) ? (
                   <span
                     aria-hidden
                     className="absolute top-1/2 left-1/2 grid h-14 w-14 -translate-1/2 place-items-center rounded-full bg-white/90 text-forest-900 shadow-[0_6px_18px_-6px_rgb(0_0_0_/_0.5)] transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none"

@@ -28,6 +28,7 @@
  * --force does not come back.
  */
 import 'dotenv/config';
+import { addFilmWidths, missingFilmWidths, heroPreview } from '../src/media/film-renditions.js';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -562,8 +563,18 @@ async function setVisual(
   const film = video ? await storeFilm(run, video) : null;
   const phoneFilm = mobileVideo ? await storeFilm(run, mobileVideo) : null;
   run.visuals[slot] = {
-    image: picture(image),
-    mobile: phone ? picture(phone) : null,
+    image: {
+      ...picture(image),
+      ...(slot === 'home.hero.1' ? { preview: await heroPreview(run.store, picture(image)) } : {}),
+    },
+    mobile: phone
+      ? {
+          ...picture(phone),
+          ...(slot === 'home.hero.1'
+            ? { preview: await heroPreview(run.store, picture(phone)) }
+            : {}),
+        }
+      : null,
     video: film,
     mobileVideo: phoneFilm,
     source: main.source,
@@ -612,6 +623,16 @@ async function storeFilm(run: Run, entry: Entry) {
     }
     await run.store.saveFile(stored.storageKey, filmCopyFileName(copy.width), data, 'video/mp4');
     widths.push(copy.width);
+  }
+  const lighter = missingFilmWidths(size?.width ?? null, widths);
+  if (lighter.length) {
+    try {
+      await addFilmWidths(run.store, stored.storageKey, lighter, () => Promise.resolve(file));
+      widths.push(...lighter);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      console.warn('Install FFmpeg and run add-film-renditions for smaller page films.');
+    }
   }
   return {
     key: stored.storageKey,

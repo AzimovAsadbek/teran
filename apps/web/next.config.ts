@@ -20,7 +20,7 @@ const uploadsOrigin = (process.env.UPLOADS_ORIGIN || `${apiInternalUrl}/uploads`
 /**
  * Where pictures and films are read from when they are not same-origin: the public address of the
  * object storage (Cloudflare R2, ADR-043; the API then hands out absolute addresses there). Films
- * are fetched whole by the page (connect-src) and masks are CSS images, so the bucket also allows
+ * stream from the media origin and masks are CSS images, so the bucket also allows
  * the site in its CORS rules.
  */
 const mediaOrigin = /^https:\/\//.test(uploadsOrigin) ? new URL(uploadsOrigin).origin : null;
@@ -38,8 +38,7 @@ const contentSecurityPolicy = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://tile.openstreetmap.org${media}`,
-  // Films play from the media origin (or /uploads); blob: lets the admin area play a chosen file
-  // before uploading it, and the films fetched whole.
+  // Blob URLs play local admin previews and the bounded, high-priority hero copy.
   `media-src 'self' blob:${media}`,
   "font-src 'self'",
   `connect-src 'self'${media}${isDev ? ' ws:' : ''}`,

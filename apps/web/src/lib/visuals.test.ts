@@ -37,6 +37,14 @@ describe('the film copy a frame gets', () => {
     expect(filmSource(film, { width: 400, height: 700 }, 1)).toBe('/uploads/visuals/a/b/w1280.mp4');
   });
 
+  it('selects budgeted renditions on constrained links and falls back to the smallest existing copy', () => {
+    const frame = { width: 390, height: 660 };
+    const copies = [320, 640, 1280].map((width) => ({ width, src: '/w' + width }));
+    expect(filmSource({ ...film, sources: copies }, frame, 1, 320)).toBe('/w320');
+    expect(filmSource({ ...film, sources: copies }, frame, 1, 640)).toBe('/w640');
+    expect(filmSource({ ...film, sources: copies.slice(2) }, frame, 1, 320)).toBe('/w1280');
+  });
+
   it('plays the film itself when it has no copies', () => {
     expect(filmSource({ ...film, sources: [] }, { width: 3000, height: 1000 }, 2)).toBe(film.src);
   });

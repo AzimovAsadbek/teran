@@ -1,5 +1,48 @@
 # Performance audit
 
+## 2026-11-21 video startup
+
+Bosh sahifaning birinchi videosi avval `slow-2g`, `2g` va `Save-Data` holatlarida poster bilan cheklanardi. Endi vitrina aloqa sifatiga qarab video nusxasini tanlaydi. Katalog kartasi ekranda turganda, galereya va qisqa videolar lentasi esa tegishli video tanlanganda ijroni boshlaydi. Tizimda kamaytirilgan harakat sozlangan bo‘lsa, foydalanuvchi saytdagi harakat tugmasi orqali videolarni yoqa oladi. Brauzer avtomatik ijroni to‘xtatsa, keyingi bosish yoki klaviatura harakati bilan qayta uriniladi.
+
+| Mobil profil | Yuklash tezligi va kechikish | Birinchi rasm | Birinchi video kadri |          Tanlangan fayl |
+| ------------ | ---------------------------- | ------------: | -------------------: | ----------------------: |
+| Lokal        | Cheklovsiz                   |        0,20 s |               0,34 s | 720 px · 1 927 060 bayt |
+| 3G           | 750 kbit/s, 150 ms           |        2,74 s |               8,84 s |   640 px · 260 900 bayt |
+| 2G           | 128 kbit/s, 350 ms           |       14,96 s |              25,99 s |    320 px · 60 451 bayt |
+| Save-Data    | 750 kbit/s, 150 ms           |        2,72 s |               4,73 s |    320 px · 60 451 bayt |
+
+Jadvalda har bir profil uchun brauzer keshi bo‘sh uchta mustaqil Chromium seansining medianasi berilgan. Telefon oynasi 390 × 844 CSS piksel, piksel nisbati 2. Server keshi oldindan isitilgan. Vaqtlar bosh sahifaga kirishdan boshlab sanaladi. Poster uchun Element Timing mavjud bo‘lsa uning vaqti, aks holda rasm dekodlangandan keyingi chizish sikli olinadi. Video vaqti brauzer birinchi kadrni ko‘rsatishga topshirgan paytni bildiradi. To‘rt profilning har birida server video uchun HTTP `206` va tegishli bayt oralig‘ini qaytardi.
+
+Birinchi optimallashtirishda yengil 320 px fayl bilan ham 2G’da birinchi kadr 75,21 s kutdi. Birinchi ekrandagi kichik WebP rasmni HTML ichiga joylash, videoni React ishga tushishidan oldin boshlash, katta posterni keyinga qoldirish va faqat 96 KiB gacha bo‘lgan kichik faylni ustuvor so‘rash bu kutishni qisqartirdi. 2G’da kichik video so‘rovi endi CSS chizilishidan avval boshlanadi. Diagnostik o‘lchovda so‘rov sahifaga kirgandan 2,3 s o‘tib boshlandi. Avval u 15 s kutgan edi. Kattaroq fayllarni brauzer to‘g‘ridan-to‘g‘ri oqim bilan o‘qiydi. Asosiy fayl, telefon uchun alohida kadr va fokus nuqtasi saqlanadi. Sekin nusxa topilmasa pleyer mavjud videoni tanlaydi.
+
+Qayta o‘lchash uchun `home.hero.1` videosi va uning posteri bor production nusxasini ishga tushiring. Sayt manzilini quyidagi buyruqqa bering. Skript kodlangan fayl, javob holati va vaqtlarni JSON satrlari sifatida chiqaradi. Eski yuklamalarning yengil video hamda poster nusxalarini deploy skripti tayyorlaydi. [O‘lchov skripti](../e2e/scripts/measure-film.ts) · [Media va mavjud fayllarni yangilash](deployment/production.md#6-pictures-and-films)
+
+```sh
+FILM_BENCH_RUNS=3 FILM_BENCH_URL=http://localhost:3100 pnpm --filter @teran/e2e exec node scripts/measure-film.ts
+```
+
+### Safari va Firefox uchun ijro tekshiruvi
+
+WebKit va Firefox dvigatellarida mahalliy HTTPS vitrina tekshirildi. Aloqa tezligini brauzer bildirmaganda 720 px video o‘ynadi. Xuddi shu so‘rov ushlab turilganda ikkala dvigatel ham posterni ko‘rsatdi va keyin 320 px videoga o‘tdi. Save-Data holatida ikkalasi ham birinchi so‘rovdayoq 320 px nusxani tanladi. Pleyer ekranda ijro to‘xtab turganini kuzatadi. Brauzer tarmoq turini bildirmaganda 5 soniya, bildirganda 12 soniya davomida kadr siljimasa va buferda yetarli ma’lumot bo‘lmasa, yengilroq nusxasi bor videoni unga o‘tkazadi.
+
+Buni takrorlash uchun kamida ikki xil kenglikdagi mobil videosi bor nusxani va Playwright’ning WebKit hamda Firefox dvigatellarini ishlating. Production xavfsizlik sarlavhasi WebKit’da mahalliy HTTP resurslarini ham HTTPS’ga o‘tkazadi. Sinov serveri TLS bilan ishlashi kerak. [Brauzerlararo video tekshiruvi](../e2e/scripts/check-film-playback.ts)
+
+```sh
+FILM_BENCH_URL=https://localhost:3122 E2E_IGNORE_HTTPS_ERRORS=true pnpm --filter @teran/e2e exec node scripts/check-film-playback.ts
+```
+
+### Vitrinaning uch sahifasi
+
+Xuddi shu 3G profilida, har bir sahifaga bo‘sh brauzer keshi bilan bir martadan kirildi. Birinchi mazmun chizilishi (FCP), eng katta ko‘rinadigan element chizilishi (LCP) va joylashuv siljishi (CLS) navbatdagi yuklanish yakunlangandan 2,5 s o‘tib o‘qildi. Shu oraliqda HTTP xatolari kuzatilmadi.
+
+| Sahifa            |    FCP |    LCP | CLS |
+| ----------------- | -----: | -----: | --: |
+| Bosh sahifa       | 2,78 s | 9,13 s |   0 |
+| Katalog           | 2,78 s | 2,78 s |   0 |
+| Klassik qora choy | 2,70 s | 3,03 s |   0 |
+
+Quyidagi bo‘limlar 2026-yil oktabrdagi o‘lchovlar va o‘sha vaqtdagi video siyosatini tasvirlaydi.
+
 Date: 2026-10-29. Scope: the storefront (Next.js 16) and the API it reads, on production builds,
 for slow mobile networks and low-end phones. Branch `feat/admin-uploads` from c0903cf; then
 integrated with ADR-065 (an 800 px file for phones) and ADR-066 (drawers that open at once) on

@@ -16,7 +16,7 @@ import {
 } from 'react';
 import { Emblem } from '@/components/brand/logo';
 import { cn } from '@/lib/cn';
-import { useFilmsAllowed, useMatches } from '@/lib/motion';
+import { useFilmsAllowed, useMatches, useModestConnection } from '@/lib/motion';
 import { imageSources } from '@/lib/navigation';
 import type { MediaLabels } from './media-gallery';
 import { fillLabel } from './media-labels';
@@ -108,6 +108,7 @@ function ReelFeed({
   const [hint, setHint] = useState(false);
   const [sound, setSoundState] = useState(readSound);
   const filmsAllowed = useFilmsAllowed();
+  const modest = useModestConnection();
   const touch = useMatches('(pointer: coarse)') === true;
   const count = items.length;
   const film = items[active];
@@ -242,7 +243,7 @@ function ReelFeed({
             key={item.id}
             film={item}
             current={index === active}
-            near={Math.abs(index - active) <= 1}
+            near={index === active || (!modest && Math.abs(index - active) <= 1)}
             playing={index === active && !paused}
             preload={
               index === active || (index === active + 1 && filmsAllowed) ? 'auto' : 'metadata'

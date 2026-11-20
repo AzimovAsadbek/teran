@@ -22,6 +22,7 @@ export function VisualPicture({
   sizes,
   phoneSizes = '100vw',
   priority = false,
+  filmPoster = false,
   phoneBelow = 750,
   position,
   phonePosition,
@@ -35,6 +36,7 @@ export function VisualPicture({
    */
   phoneSizes?: string;
   priority?: boolean;
+  filmPoster?: boolean;
   /** The width under which the taller crop is shown, where the frame keeps its proportions. */
   phoneBelow?: number;
   /**
@@ -49,7 +51,8 @@ export function VisualPicture({
   const wide = imageSources(visual.image, 1280);
   const phone = visual.mobile ? imageSources(visual.mobile, 960) : null;
   const phoneMedia = `(max-width: ${phoneBelow - 1}px)`;
-  if (priority) {
+  const deferred = filmPoster && Boolean(visual.image.preview);
+  if (priority && !deferred) {
     if (phone) {
       preload(phone.src, {
         as: 'image',
@@ -72,11 +75,24 @@ export function VisualPicture({
     ...(phonePosition ? { '--position-phone': phonePosition } : {}),
   } as CSSProperties;
   return (
-    <picture>
-      {phone ? <source media={phoneMedia} srcSet={phone.srcSet} sizes={phoneSizes} /> : null}
+    <picture className="relative block h-full w-full" data-film-poster={deferred ? '' : undefined}>
+      {phone ? (
+        <source
+          media={phoneMedia}
+          srcSet={deferred ? (visual.mobile?.preview ?? visual.image.preview) : phone.srcSet}
+          data-full={deferred ? phone.srcSet : undefined}
+          data-small={deferred && visual.mobile ? imageSources(visual.mobile, 240).src : undefined}
+          sizes={phoneSizes}
+          suppressHydrationWarning={deferred}
+        />
+      ) : null}
       <img
-        src={wide.src}
-        srcSet={wide.srcSet}
+        src={deferred ? visual.image.preview : wide.src}
+        srcSet={deferred ? undefined : wide.srcSet}
+        data-full={deferred ? wide.srcSet : undefined}
+        data-small={deferred ? imageSources(visual.image, 240).src : undefined}
+        {...(deferred ? { elementtiming: 'teran-poster-preview' } : {})}
+        suppressHydrationWarning={deferred}
         sizes={sizes}
         width={visual.image.width}
         height={visual.image.height}

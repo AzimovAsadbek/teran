@@ -261,7 +261,7 @@ export function SignatureStage({
                         sizes="(min-width: 1024px) 20rem, (min-width: 30rem) 34vw, calc((100vw - 3rem) * 0.36)"
                         decorative
                       />
-                      {entry.cup.film?.cardSrc ? (
+                      {entry.cup.film ? (
                         <ProductFilm film={entry.cup.film} size="card" active={index === active} />
                       ) : null}
                     </div>

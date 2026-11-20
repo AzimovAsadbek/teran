@@ -96,22 +96,6 @@ export class CartService {
     return { id: cart.id };
   }
 
-  private async findOrCreateCart(request: Request, response: Response): Promise<{ id: string }> {
-    const existing = await this.findCart(request);
-    if (existing) return existing;
-    const token = generateToken();
-    const cart = await this.prisma.cart.create({
-      data: {
-        tokenHash: sha256(token),
-        userId: request.auth?.userId ?? null,
-        expiresAt: new Date(Date.now() + this.ttlMs),
-      },
-      select: { id: true },
-    });
-    response.cookie(this.cookie, token, cookieOptions(this.secure, this.ttlMs));
-    return cart;
-  }
-
   /** Gives the cart a new token and cookie (used when a signed-in customer returns on a new device). */
   async adoptCart(cartId: string, response: Response): Promise<void> {
     const token = generateToken();
@@ -137,53 +121,50 @@ export class CartService {
     input: { variantId: string; quantity: number },
     locale: Locale,
   ): Promise<CartDto> {
-    const variant = await this.prisma.productVariant.findFirst({
-      where: { id: input.variantId, isActive: true, product: visibleProductWhere() },
-      select: { id: true, stockQuantity: true },
-    });
-    if (!variant) {
-      throw new ApiException(
-        HttpStatus.NOT_FOUND,
-        'CART_ITEM_UNAVAILABLE',
-        'This product is not available',
-      );
-    }
-    const available = Math.min(variant.stockQuantity, MAX_LINE_QUANTITY);
-    if (available <= 0) {
-      throw ApiException.conflict('INSUFFICIENT_STOCK', 'This product is out of stock', {
-        variantId: variant.id,
-        available: 0,
+    const cartId = await this.mutate(request, response, async (tx, id) => {
+      const variant = await tx.productVariant.findFirst({
+        where: { id: input.variantId, isActive: true, product: visibleProductWhere() },
+        select: { id: true, stockQuantity: true },
       });
-    }
+      if (!variant) {
+        throw new ApiException(
+          HttpStatus.NOT_FOUND,
+          'CART_ITEM_UNAVAILABLE',
+          'This product is not available',
+        );
+      }
+      const available = Math.min(variant.stockQuantity, MAX_LINE_QUANTITY);
+      if (available <= 0) {
+        throw ApiException.conflict('INSUFFICIENT_STOCK', 'This product is out of stock', {
+          variantId: variant.id,
+          available: 0,
+        });
+      }
 
-    const cart = await this.findOrCreateCart(request, response);
-    const existing = await this.prisma.cartItem.findUnique({
-      where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
-    });
-    if (existing && existing.quantity >= available) {
-      throw ApiException.conflict('INSUFFICIENT_STOCK', 'No more of this product is available', {
-        variantId: variant.id,
-        available,
+      const existing = await tx.cartItem.findUnique({
+        where: { cartId_variantId: { cartId: id, variantId: variant.id } },
       });
-    }
-    if (
-      !existing &&
-      (await this.prisma.cartItem.count({ where: { cartId: cart.id } })) >= MAX_CART_LINES
-    ) {
-      throw ApiException.conflict(
-        'CONFLICT',
-        'The cart already contains the maximum number of products',
-      );
-    }
+      if (existing && existing.quantity >= available) {
+        throw ApiException.conflict('INSUFFICIENT_STOCK', 'No more of this product is available', {
+          variantId: variant.id,
+          available,
+        });
+      }
+      if (!existing && (await tx.cartItem.count({ where: { cartId: id } })) >= MAX_CART_LINES) {
+        throw ApiException.conflict(
+          'CONFLICT',
+          'The cart already contains the maximum number of products',
+        );
+      }
 
-    const quantity = Math.min((existing?.quantity ?? 0) + input.quantity, available);
-    await this.prisma.cartItem.upsert({
-      where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
-      create: { cartId: cart.id, variantId: variant.id, quantity },
-      update: { quantity },
+      const quantity = Math.min((existing?.quantity ?? 0) + input.quantity, available);
+      await tx.cartItem.upsert({
+        where: { cartId_variantId: { cartId: id, variantId: variant.id } },
+        create: { cartId: id, variantId: variant.id, quantity },
+        update: { quantity },
+      });
     });
-    await this.touch(cart.id);
-    return this.buildCart(cart.id, locale);
+    return this.buildCart(cartId, locale);
   }
 
   async updateItem(
@@ -192,31 +173,31 @@ export class CartService {
     quantity: number,
     locale: Locale,
   ): Promise<CartDto> {
-    const cart = await this.requireCart(request);
-    const item = await this.prisma.cartItem.findFirst({
-      where: { id: itemId, cartId: cart.id },
-      include: { variant: { select: { stockQuantity: true } } },
-    });
-    if (!item) throw ApiException.notFound('Cart item not found');
-
-    const available = Math.min(item.variant.stockQuantity, MAX_LINE_QUANTITY);
-    if (quantity > available) {
-      throw ApiException.conflict('INSUFFICIENT_STOCK', 'Not enough stock for this quantity', {
-        variantId: item.variantId,
-        available,
+    const cartId = await this.mutate(request, null, async (tx, id) => {
+      const item = await tx.cartItem.findFirst({
+        where: { id: itemId, cartId: id },
+        include: { variant: { select: { stockQuantity: true } } },
       });
-    }
-    await this.prisma.cartItem.update({ where: { id: item.id }, data: { quantity } });
-    await this.touch(cart.id);
-    return this.buildCart(cart.id, locale);
+      if (!item) throw ApiException.notFound('Cart item not found');
+
+      const available = Math.min(item.variant.stockQuantity, MAX_LINE_QUANTITY);
+      if (quantity > available) {
+        throw ApiException.conflict('INSUFFICIENT_STOCK', 'Not enough stock for this quantity', {
+          variantId: item.variantId,
+          available,
+        });
+      }
+      await tx.cartItem.update({ where: { id: item.id }, data: { quantity } });
+    });
+    return this.buildCart(cartId, locale);
   }
 
   async removeItem(request: Request, itemId: string, locale: Locale): Promise<CartDto> {
-    const cart = await this.requireCart(request);
-    // Scoped by cartId: a customer can only ever remove lines from their own cart.
-    await this.prisma.cartItem.deleteMany({ where: { id: itemId, cartId: cart.id } });
-    await this.touch(cart.id);
-    return this.buildCart(cart.id, locale);
+    const cartId = await this.mutate(request, null, async (tx, id) => {
+      // Scoped by cartId: a customer can only ever remove lines from their own cart.
+      await tx.cartItem.deleteMany({ where: { id: itemId, cartId: id } });
+    });
+    return this.buildCart(cartId, locale);
   }
 
   /**
@@ -231,59 +212,59 @@ export class CartService {
     items: readonly { variantId: string | null; sku: string; quantity: number }[],
     locale: Locale,
   ): Promise<ReorderResultDto> {
-    const variantIds = items.flatMap((item) => (item.variantId ? [item.variantId] : []));
-    const variants = await this.prisma.productVariant.findMany({
-      where: { id: { in: variantIds } },
-      select: {
-        id: true,
-        isActive: true,
-        stockQuantity: true,
-        product: { select: { status: true, publishedAt: true } },
-      },
-    });
-    const byId = new Map(variants.map((variant) => [variant.id, variant]));
-    const now = new Date();
     const added: string[] = [];
     const skipped: ReorderResultDto['skipped'] = [];
+    const cartId = await this.mutate(request, response, async (tx, id) => {
+      const variantIds = items.flatMap((item) => (item.variantId ? [item.variantId] : []));
+      const variants = await tx.productVariant.findMany({
+        where: { id: { in: variantIds } },
+        select: {
+          id: true,
+          isActive: true,
+          stockQuantity: true,
+          product: { select: { status: true, publishedAt: true } },
+        },
+      });
+      const byId = new Map(variants.map((variant) => [variant.id, variant]));
+      const now = new Date();
 
-    const cart = await this.findOrCreateCart(request, response);
-    const lines = await this.prisma.cartItem.findMany({
-      where: { cartId: cart.id },
-      select: { variantId: true, quantity: true },
+      const lines = await tx.cartItem.findMany({
+        where: { cartId: id },
+        select: { variantId: true, quantity: true },
+      });
+      const inCart = new Map(lines.map((line) => [line.variantId, line.quantity]));
+
+      for (const item of items) {
+        const variant = item.variantId ? byId.get(item.variantId) : undefined;
+        if (!variant || !variant.isActive || !isProductPublic(variant.product, now)) {
+          skipped.push({ sku: item.sku, reason: 'unavailable' });
+          continue;
+        }
+        const available = Math.min(variant.stockQuantity, MAX_LINE_QUANTITY);
+        if (available <= 0) {
+          skipped.push({ sku: item.sku, reason: 'out_of_stock' });
+          continue;
+        }
+        const current = inCart.get(variant.id);
+        if (current === undefined && inCart.size >= MAX_CART_LINES) {
+          skipped.push({ sku: item.sku, reason: 'limited' });
+          continue;
+        }
+        const wanted = (current ?? 0) + item.quantity;
+        const quantity = Math.min(wanted, available);
+        if (quantity > (current ?? 0)) {
+          await tx.cartItem.upsert({
+            where: { cartId_variantId: { cartId: id, variantId: variant.id } },
+            create: { cartId: id, variantId: variant.id, quantity },
+            update: { quantity },
+          });
+          inCart.set(variant.id, quantity);
+          added.push(item.sku);
+        }
+        if (quantity < wanted) skipped.push({ sku: item.sku, reason: 'limited' });
+      }
     });
-    const inCart = new Map(lines.map((line) => [line.variantId, line.quantity]));
-
-    for (const item of items) {
-      const variant = item.variantId ? byId.get(item.variantId) : undefined;
-      if (!variant || !variant.isActive || !isProductPublic(variant.product, now)) {
-        skipped.push({ sku: item.sku, reason: 'unavailable' });
-        continue;
-      }
-      const available = Math.min(variant.stockQuantity, MAX_LINE_QUANTITY);
-      if (available <= 0) {
-        skipped.push({ sku: item.sku, reason: 'out_of_stock' });
-        continue;
-      }
-      const current = inCart.get(variant.id);
-      if (current === undefined && inCart.size >= MAX_CART_LINES) {
-        skipped.push({ sku: item.sku, reason: 'limited' });
-        continue;
-      }
-      const wanted = (current ?? 0) + item.quantity;
-      const quantity = Math.min(wanted, available);
-      if (quantity > (current ?? 0)) {
-        await this.prisma.cartItem.upsert({
-          where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
-          create: { cartId: cart.id, variantId: variant.id, quantity },
-          update: { quantity },
-        });
-        inCart.set(variant.id, quantity);
-        added.push(item.sku);
-      }
-      if (quantity < wanted) skipped.push({ sku: item.sku, reason: 'limited' });
-    }
-    await this.touch(cart.id);
-    return { cart: await this.buildCart(cart.id, locale), added, skipped };
+    return { cart: await this.buildCart(cartId, locale), added, skipped };
   }
 
   /** Orderable lines with current server-side prices; throws if the cart cannot be ordered as-is. */
@@ -403,17 +384,41 @@ export class CartService {
     });
   }
 
-  private async requireCart(request: Request): Promise<{ id: string }> {
-    const cart = await this.findCart(request);
-    if (!cart) throw ApiException.notFound('Cart not found');
-    return cart;
-  }
-
-  /** Sliding expiry: an active cart stays alive. */
-  private async touch(cartId: string): Promise<void> {
-    await this.prisma.cart.update({
-      where: { id: cartId },
-      data: { expiresAt: new Date(Date.now() + this.ttlMs) },
+  /** Lock an existing cart before reading its lines. A new cookie is issued only after commit. */
+  private async mutate(
+    request: Request,
+    response: Response | null,
+    write: (tx: Prisma.TransactionClient, id: string) => Promise<void>,
+  ): Promise<string> {
+    const existing = await this.findCart(request);
+    if (!existing && !response) throw ApiException.notFound('Cart not found');
+    const token = existing ? null : generateToken();
+    const cartId = await this.prisma.$transaction(async (tx) => {
+      const expiresAt = new Date(Date.now() + this.ttlMs);
+      let id: string;
+      if (existing) {
+        const locked = await tx.cart.updateMany({
+          where: {
+            id: existing.id,
+            tokenHash: sha256((request.cookies as Record<string, string>)[this.cookie]!),
+            OR: [{ userId: null }, { userId: request.auth?.userId ?? null }],
+          },
+          data: { expiresAt },
+        });
+        if (!locked.count) throw ApiException.notFound('Cart not found');
+        id = existing.id;
+      } else {
+        const cart = await tx.cart.create({
+          data: { tokenHash: sha256(token!), userId: request.auth?.userId ?? null, expiresAt },
+          select: { id: true },
+        });
+        id = cart.id;
+      }
+      await write(tx, id);
+      return id;
     });
+    if (response && token)
+      response.cookie(this.cookie, token, cookieOptions(this.secure, this.ttlMs));
+    return cartId;
   }
 }

@@ -1,24 +1,22 @@
 'use client';
 
 import type { PublicFilmDto } from '@teran/contracts';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAmbientPlayback } from '@/lib/ambient-playback';
 import { cn } from '@/lib/cn';
-import { isModestConnection, useFilmsAllowed, useMatches, useMotionPaused } from '@/lib/motion';
+import { useFilmWidthLimit, useFilmsAllowed, useMatches, useMotionPaused } from '@/lib/motion';
 import { filmPosition, filmSource } from '@/lib/visuals';
 
 /** How long a film takes to appear over its poster (its own first frame) when it starts. */
-const FADE_IN_MS = 800;
+const FADE_IN_MS = 250;
 
 /**
  * A muted film looping over its poster, decorative (the words over it carry the meaning): a page
  * picture's film (set by the import script, ADR-037), the picture being its first frame. The film
  * is prepared as a loop (its end flows into its beginning), so it simply repeats, without a seam.
  *
- * It is fetched whole once the page has loaded and the place comes near the screen, then fades
- * in over the poster; it plays only while on screen, and never with reduced motion, on a
- * data-saving or slow connection or while the visitor has paused the films (the footer's switch,
- * lib/motion). It has no button of its own (the owner's choice). Phones (under `phoneBelow`, as
- * the poster's taller crop) get their own film when there is one.
+ * The browser streams byte ranges for the visible frame. The poster stays under it until
+ * playback starts. Phones can use a separate crop and constrained links use the smallest copy.
  *
  * The film lies at -z-20 in its frame (over a poster at -z-20 or below).
  */
@@ -43,93 +41,54 @@ export function LoopingFilm({
 function FilmPlayer({ film, stopped }: { film: PublicFilmDto; stopped: boolean }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [near, setNear] = useState(false);
+  const limit = useFilmWidthLimit();
   const [onScreen, setOnScreen] = useState(false);
-  const [url, setUrl] = useState<string | null>(null);
-  const [shown, setShown] = useState(false);
+  const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [shown, setShown] = useState<string | null>(null);
+  const [stalled, setStalled] = useState(false);
+  const preferSmaller = useCallback(() => setStalled(true), []);
 
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
-    // Fetched a screen ahead of the place; played only while some of it shows.
-    const ahead = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) setNear(true);
-      },
-      { rootMargin: '100% 0px' },
-    );
-    const visible = new IntersectionObserver(([entry]) =>
-      setOnScreen(Boolean(entry?.isIntersecting)),
-    );
-    ahead.observe(frame);
-    visible.observe(frame);
-    return () => {
-      ahead.disconnect();
-      visible.disconnect();
-    };
+    const observer = new IntersectionObserver(([entry]) => {
+      const visible = Boolean(entry?.isIntersecting);
+      setOnScreen(visible);
+      if (visible) setFrame(frame.getBoundingClientRect());
+    });
+    observer.observe(frame);
+    return () => observer.disconnect();
   }, []);
 
-  // Fetched whole, after the page's own load, so the loop never waits for the network: the copy
-  // whose width fills this frame in CSS pixels. Not by the screen's density: a moving picture
-  // keeps its look at one film pixel per CSS pixel, and a Retina window would otherwise take the
-  // 4K copy (the first view's film: 18 MB against 5.3 MB), which the pictures below then wait
-  // behind.
-  useEffect(() => {
-    if (!near) return;
-    const abort = new AbortController();
-    let objectUrl: string | null = null;
-    const fetchFilm = () => {
-      const frame = frameRef.current?.getBoundingClientRect();
-      // On a link rated 3G, the lightest copy (the first): the film still plays, sooner.
-      const lightest = isModestConnection() ? film.sources[0]?.src : undefined;
-      const src = lightest ?? (frame ? filmSource(film, frame, 1) : film.src);
-      fetch(src, { signal: abort.signal })
-        .then((response) => (response.ok ? response.blob() : Promise.reject(response.status)))
-        .then((blob) => {
-          objectUrl = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: film.type }));
-          setUrl(objectUrl);
-        })
-        .catch(() => {
-          // A film the page may not read (another origin that does not allow it, a network
-          // hiccup): the player streams it from its address instead.
-          if (!abort.signal.aborted) setUrl(src);
-        });
-    };
-    let timer = 0;
-    if (document.readyState === 'complete') timer = window.setTimeout(fetchFilm, 200);
-    else window.addEventListener('load', fetchFilm, { once: true });
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('load', fetchFilm);
-      abort.abort();
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [near, film]);
-
-  const playing = url !== null && onScreen && !stopped;
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !url) return;
-    if (playing) {
-      video.muted = true;
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [playing, url]);
+  const smallest = film.sources[0];
+  const selected = frame
+    ? filmSource(film, frame, 1, stalled && smallest ? smallest.width : limit)
+    : null;
+  const source = selected && selected === failed ? film.src : selected;
+  useAmbientPlayback(
+    videoRef,
+    source,
+    onScreen && !stopped,
+    !stalled && smallest && smallest.src !== source ? preferSmaller : undefined,
+  );
 
   return (
     <div ref={frameRef} aria-hidden className="absolute inset-0 -z-20">
       <video
         ref={videoRef}
-        src={url ?? undefined}
+        src={source ?? undefined}
         muted
         loop
         playsInline
         disablePictureInPicture
-        preload="auto"
+        preload="none"
         tabIndex={-1}
-        onPlaying={() => setShown(true)}
+        onPlaying={() => setShown(source)}
+        onError={() => {
+          setShown(null);
+          setFailed(selected);
+        }}
         style={{
           objectPosition: filmPosition(film),
           transitionDuration: `${FADE_IN_MS}ms`,
@@ -150,7 +109,7 @@ function FilmPlayer({ film, stopped }: { film: PublicFilmDto; stopped: boolean }
         }}
         className={cn(
           'h-full w-full object-cover transition-opacity ease-out',
-          shown ? 'opacity-100' : 'opacity-0',
+          shown && shown === source ? 'opacity-100' : 'opacity-0',
         )}
       />
     </div>

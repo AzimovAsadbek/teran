@@ -26,10 +26,16 @@ export function filmSource(
   film: PublicFilmDto,
   frame: { width: number; height: number },
   density: number,
+  widthLimit: number | null = null,
 ): string {
   if (film.sources.length === 0) return film.src;
+  if (widthLimit !== null) {
+    const affordable = film.sources.findLast((copy) => copy.width <= widthLimit);
+    return (affordable ?? film.sources[0]!).src;
+  }
   const aspect = film.width && film.height ? film.width / film.height : 16 / 9;
   const needed = Math.max(frame.width, frame.height * aspect) * density;
-  const fits = film.sources.find((copy) => copy.width >= needed * 0.9);
-  return (fits ?? film.sources[film.sources.length - 1]!).src;
+  const qualityCopies = film.sources.filter((copy) => copy.width > 640 || copy.src === film.src);
+  const fits = qualityCopies.find((copy) => copy.width >= needed * 0.9);
+  return (fits ?? qualityCopies.at(-1))?.src ?? film.src;
 }

@@ -34,8 +34,10 @@ export class InquiriesService {
 
   async createContact(input: ContactInput): Promise<void> {
     if (input.website) return;
-    const inquiry = await this.prisma.contactInquiry.create({
+    const [inquiry] = await this.prisma.contactInquiry.createManyAndReturn({
+      skipDuplicates: true,
       data: {
+        idempotencyKey: input.idempotencyKey,
         name: input.name,
         email: input.email ?? null,
         phone: input.phone ?? null,
@@ -45,7 +47,7 @@ export class InquiriesService {
       },
       select: { id: true },
     });
-    this.logger.log({ inquiryId: inquiry.id }, 'Contact inquiry received');
+    if (inquiry) this.logger.log({ inquiryId: inquiry.id }, 'Contact inquiry received');
   }
 
   async createWholesale(input: WholesaleInput): Promise<void> {

@@ -148,6 +148,7 @@ export class OrdersService {
     payload: CheckoutPayload,
     userId: string | null,
   ): Promise<OrderWithItems> {
+    await tx.$queryRaw`SELECT id FROM "Cart" WHERE id = ${cartId}::uuid FOR UPDATE`;
     const lines = await this.cart.orderableLines(cartId, payload.locale, tx);
     const reserved = await this.reserveStock(tx, lines);
     const subtotal = reserved.reduce(

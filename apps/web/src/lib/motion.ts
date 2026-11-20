@@ -1,33 +1,24 @@
 import { useSyncExternalStore } from 'react';
 
-/*
- * When the storefront's films may move: never with reduced motion or on a data-saving or very slow
- * connection, and not while the visitor has paused them with the footer's switch, which is
- * remembered on this device. That switch is the WCAG 2.2.2 mechanism for every film on the
- * storefront (none has a button of its own) and for the home page's moving ribbons
- * (components/home/marquee.tsx).
- */
-
+/** Storefront motion preferences. Connection quality controls rendition size. */
 const KEY = 'teran.motion';
 const listeners = new Set<() => void>();
-let paused: boolean | null = null;
+let choice: 'playing' | 'paused' | null | undefined;
 
-function readPaused(): boolean {
-  if (paused === null) {
-    try {
-      paused = window.localStorage.getItem(KEY) === 'paused';
-    } catch {
-      paused = false;
-    }
+function readChoice() {
+  try {
+    const saved = window.localStorage.getItem(KEY);
+    return saved === 'paused' || saved === 'playing' ? saved : null;
+  } catch {
+    return choice ?? null;
   }
-  return paused;
 }
 
 function subscribePaused(listener: () => void) {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
     if (event.key !== KEY) return;
-    paused = event.newValue === 'paused';
+    choice = undefined;
     listener();
   };
   window.addEventListener('storage', onStorage);
@@ -39,19 +30,19 @@ function subscribePaused(listener: () => void) {
 
 /** Pauses (or lets move again) every film on the storefront, here and on later visits. */
 export function setMotionPaused(value: boolean) {
-  paused = value;
+  choice = value ? 'paused' : 'playing';
   try {
-    if (value) window.localStorage.setItem(KEY, 'paused');
-    else window.localStorage.removeItem(KEY);
+    window.localStorage.setItem(KEY, choice);
   } catch {
     // Private windows may refuse storage: the choice then lasts for this page only.
   }
+  window.dispatchEvent(new CustomEvent('teran-motion-change', { detail: choice }));
   for (const listener of listeners) listener();
 }
 
 /** Whether the visitor has paused the films. */
 export function useMotionPaused(): boolean {
-  return useSyncExternalStore(subscribePaused, readPaused, () => false);
+  return useSyncExternalStore(subscribePaused, readChoice, () => null) === 'paused';
 }
 
 function useMatches(query: string): boolean | null {
@@ -79,52 +70,42 @@ function subscribeToConnection(onChange: () => void) {
   return () => current?.removeEventListener('change', onChange);
 }
 
-/**
- * A connection where films would cost more than they give: data saving on, or one the browser
- * rates 2G or slower. Films stay pictures there. A link rated 3G still plays them, in their
- * lightest copy (`isModestConnection`): Chrome rates many ordinary links in Uzbekistan 3G (a round
- * trip over about 270 ms), and the owner wants the films seen (2026-10-30).
- */
-export function isLightConnection(current: Connection | undefined): boolean {
-  if (!current) return false;
-  return Boolean(current.saveData) || ['slow-2g', '2g'].includes(current.effectiveType ?? '');
+export function filmWidthLimit(
+  current = typeof navigator === 'undefined' ? undefined : connection(),
+): number | null {
+  if (current?.saveData || ['slow-2g', '2g'].includes(current?.effectiveType ?? '')) return 320;
+  return current?.effectiveType === '3g' ? 640 : null;
 }
 
-/** A link the browser rates 3G: films play in their lightest copy (looping-film.tsx). */
+export function useFilmWidthLimit(): number | null {
+  return useSyncExternalStore(
+    subscribeToConnection,
+    () => filmWidthLimit(),
+    () => null,
+  );
+}
+
+/** Ask for a smaller rendition on metered or slow links, including Save-Data on fast Wi-Fi. */
 export function isModestConnection(
   current: Connection | undefined = typeof navigator === 'undefined' ? undefined : connection(),
 ): boolean {
-  return current?.effectiveType === '3g';
+  return filmWidthLimit(current) !== null;
 }
 
-function useLightConnection(): boolean {
+export function useModestConnection(): boolean {
   return useSyncExternalStore(
     subscribeToConnection,
-    () => isLightConnection(connection()),
+    () => isModestConnection(),
     () => false,
   );
 }
 
-/** Whether films may load and play at all here (false on the server and before hydration). */
+/** Respect the system motion preference until the visitor explicitly enables films. */
 export function useFilmsAllowed(): boolean {
-  const reducedMotion = useMatches('(prefers-reduced-motion: reduce)');
-  const light = useLightConnection();
-  return reducedMotion === false && !light;
+  const reduced = useMatches('(prefers-reduced-motion: reduce)');
+  const preference = useSyncExternalStore(subscribePaused, readChoice, () => null);
+  return reduced !== null && (!reduced || preference === 'playing');
 }
 
 /** Whether a media query matches (null on the server and before hydration). */
 export { useMatches };
-
-function subscribeToLoad(onChange: () => void) {
-  window.addEventListener('load', onChange);
-  return () => window.removeEventListener('load', onChange);
-}
-
-/** Whether the page has finished loading (false on the server): films never compete with it. */
-export function usePageLoaded(): boolean {
-  return useSyncExternalStore(
-    subscribeToLoad,
-    () => document.readyState === 'complete',
-    () => false,
-  );
-}

@@ -165,7 +165,7 @@ export function ProductCard({
             className={cn(soldOut && 'opacity-60')}
           />
           {/* A living picture (steam rising, the tea stirring) where the first picture has a film. */}
-          {product.image?.film?.cardSrc && !soldOut ? (
+          {product.image?.film && !soldOut ? (
             <ProductFilm film={product.image.film} size="card" />
           ) : null}
         </div>

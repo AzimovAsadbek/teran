@@ -160,7 +160,7 @@ export function ProductZoom({
               draggable={false}
               className="block h-auto max-h-[calc(100dvh-12rem)] w-auto max-w-[calc(100vw-2rem)] object-contain select-none sm:max-w-[calc(100vw-12rem)]"
             />
-            {image.film?.cardSrc ? <ProductFilm film={image.film} size="full" /> : null}
+            {image.film ? <ProductFilm film={image.film} size="full" /> : null}
           </div>
           {count > 1 ? (
             <button

@@ -45,6 +45,7 @@ RUN --mount=type=cache,id=teran-pnpm-store,target=/pnpm/store \
 
 # ── One-off database jobs (migrations, demo seed, admin CLI) ──────────────────────────────────
 FROM build AS tools
+RUN apk add --no-cache ffmpeg
 ENV NODE_ENV=production \
     UPLOADS_DIR=/data/uploads \
     CHECKPOINT_DISABLE=1 \

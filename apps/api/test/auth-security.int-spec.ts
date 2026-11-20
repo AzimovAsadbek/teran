@@ -201,6 +201,26 @@ describe('authentication and HTTP security', () => {
     expect(malformed.body.code).toBe('BAD_REQUEST');
   });
 
+  it('stores retried contact submissions once and accepts a new intent from the same visitor', async () => {
+    const payload = {
+      idempotencyKey: crypto.randomUUID(),
+      name: 'Real person',
+      phone: '90 123 45 67',
+      message: 'Salom! Choy haqida savolim bor.',
+      locale: 'uz',
+    };
+    const send = (key: string) =>
+      agent()
+        .post(`${API}/inquiries/contact`)
+        .send({ ...payload, idempotencyKey: key })
+        .expect(202);
+    await Promise.all([send(payload.idempotencyKey), send(payload.idempotencyKey)]);
+    await send(payload.idempotencyKey);
+    expect(await ctx.prisma.contactInquiry.count()).toBe(1);
+    await send(crypto.randomUUID());
+    expect(await ctx.prisma.contactInquiry.count()).toBe(2);
+  });
+
   it('accepts honeypot submissions silently without storing them', async () => {
     await agent()
       .post(`${API}/inquiries/contact`)

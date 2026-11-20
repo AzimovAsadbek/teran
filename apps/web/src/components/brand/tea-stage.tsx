@@ -85,7 +85,7 @@ export function TeaStage({
           <div className="relative aspect-square overflow-hidden rounded-full shadow-[0_20px_40px_-18px_rgb(32_24_8_/_0.55)] ring-[6px] ring-white">
             <div className={cn('absolute inset-0', entering && 'pour-in')}>
               <ProductImage image={cup} name={name} sizes="16rem" decorative />
-              {cup.film?.cardSrc ? <ProductFilm film={cup.film} size="card" /> : null}
+              {cup.film ? <ProductFilm film={cup.film} size="card" /> : null}
             </div>
           </div>
         </div>

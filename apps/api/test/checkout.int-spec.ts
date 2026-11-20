@@ -77,6 +77,44 @@ describe('cart and checkout', () => {
     expect(cookie.join(';')).toMatch(/SameSite=Lax/i);
   });
 
+  it('keeps both simultaneous additions to the same cart and caps concurrent stock', async () => {
+    const product = await createProduct(ctx.prisma, {
+      categoryId,
+      variants: [{ price: '10000', stock: 4 }],
+    });
+    const shopper = agent();
+    const add = () =>
+      shopper.post(`${API}/cart/items`).send({ variantId: product.variants[0]!.id, quantity: 1 });
+    await add().expect(201);
+    await Promise.all([add().expect(201), add().expect(201)]);
+    expect(cartSchema.parse((await shopper.get(`${API}/cart`)).body).itemCount).toBe(3);
+    expect((await Promise.all([add(), add()])).map((result) => result.status).sort()).toEqual([
+      201, 409,
+    ]);
+    expect(await ctx.prisma.cartItem.findFirstOrThrow()).toMatchObject({ quantity: 4 });
+  });
+
+  it('admits just one contender for the thirtieth distinct line', async () => {
+    const product = await createProduct(ctx.prisma, {
+      categoryId,
+      variants: Array.from({ length: 31 }, () => ({ price: '10000', stock: 2 })),
+    });
+    const shopper = agent();
+    const add = (index: number) =>
+      shopper
+        .post(`${API}/cart/items`)
+        .send({ variantId: product.variants[index]!.id, quantity: 1 });
+    await add(0).expect(201);
+    const cart = await ctx.prisma.cart.findFirstOrThrow();
+    await ctx.prisma.cartItem.createMany({
+      data: product.variants
+        .slice(1, 29)
+        .map((v) => ({ cartId: cart.id, variantId: v.id, quantity: 1 })),
+    });
+    expect((await Promise.all([add(29), add(30)])).map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(await ctx.prisma.cartItem.count({ where: { cartId: cart.id } })).toBe(30);
+  });
+
   it('caps quantities at available stock and rejects adding beyond it', async () => {
     const product = await createProduct(ctx.prisma, {
       categoryId,

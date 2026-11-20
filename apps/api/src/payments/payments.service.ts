@@ -249,6 +249,22 @@ export class PaymentsService {
     try {
       await this.prisma.$transaction(async (tx) => {
         if (open) await this.closeAttempt(tx, open, 'CANCELLED', 'customer', 'REPLACED');
+        // Serialize a restart with the expiry worker, including time spent waiting for the lock.
+        const locked = await tx.order.updateMany({
+          where: { id: order.id, status: 'PENDING' },
+          data: { paymentMethod: input.method },
+        });
+        const current = await tx.order.findUniqueOrThrow({
+          where: { id: order.id },
+          select: orderSelect,
+        });
+        if (
+          !locked.count ||
+          !isAwaitingOnlinePayment(current, new Date()) ||
+          current.payments.length >= MAX_PAYMENT_ATTEMPTS
+        ) {
+          throw ApiException.conflict('CONFLICT', 'This order is not awaiting an online payment');
+        }
         await this.createAttempt(tx, {
           orderId: order.id,
           method: input.method,
@@ -260,7 +276,6 @@ export class PaymentsService {
           source: 'customer',
           detail: open ? 'Payment restarted' : 'Payment started',
         });
-        await tx.order.update({ where: { id: order.id }, data: { paymentMethod: input.method } });
       });
     } catch (error) {
       if (isOpenAttemptConflict(error)) {
@@ -521,9 +536,42 @@ export class PaymentsService {
         this.logger.warn({ err: error, paymentId: payment.id }, 'Expiring a payment failed');
       }
     }
-    if (expired > 0)
-      this.logger.log({ expired, cancelledOrders }, 'Overdue online payments expired');
+    // A customer can fail or cancel the last attempt before its deadline. Those payments
+    // will never enter the open-attempt sweep above, including ones from older releases.
+    const abandoned = await this.prisma.order.findMany({
+      where: this.expiredUnpaidFilter(now),
+      select: { id: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+    for (const { id } of abandoned) {
+      try {
+        const result = await this.prisma.$transaction((tx) => this.cancelUnpaidOrder(tx, id, now));
+        if (result.cancelled) cancelledOrders++;
+        if (result.restocked) this.revalidation.notify('catalog');
+      } catch (error) {
+        this.logger.warn({ err: error, orderId: id }, 'Releasing an expired reservation failed');
+      }
+    }
+    if (expired || cancelledOrders)
+      this.logger.log({ expired, cancelledOrders }, 'Overdue online orders reconciled');
     return { expired, cancelledOrders };
+  }
+
+  private expiredUnpaidFilter(now: Date): Prisma.OrderWhereInput {
+    return {
+      status: 'PENDING',
+      paymentMethod: { not: 'CASH_ON_DELIVERY' },
+      payments: {
+        some: { provider: { not: 'CASH' }, expiresAt: { lte: now } },
+        none: {
+          OR: [
+            { status: { in: [...OPEN_PAYMENT_STATUSES, ...SETTLED_PAYMENT_STATUSES] } },
+            { provider: { not: 'CASH' }, expiresAt: { gt: now } },
+          ],
+        },
+      },
+    };
   }
 
   private async cancelUnpaidOrder(
@@ -531,39 +579,26 @@ export class PaymentsService {
     orderId: string,
     now: Date,
   ): Promise<{ cancelled: boolean; restocked: boolean }> {
+    const updated = await tx.order.updateMany({
+      where: { id: orderId, ...this.expiredUnpaidFilter(now) },
+      data: { status: 'CANCELLED', cancelledAt: now, cancelReason: PAYMENT_NOT_COMPLETED },
+    });
+    if (updated.count === 0) return { cancelled: false, restocked: false };
     const order = await tx.order.findUniqueOrThrow({
       where: { id: orderId },
       select: {
         id: true,
-        status: true,
+        paymentStatus: true,
         items: { select: { variantId: true, quantity: true } },
-        payments: { select: { status: true } },
       },
     });
-    // Staff have taken the order over, or another attempt may still pay it, or it is paid.
-    if (order.status !== 'PENDING') return { cancelled: false, restocked: false };
-    if (order.payments.some((payment) => isOpenPayment(payment.status))) {
-      return { cancelled: false, restocked: false };
-    }
-    if (
-      order.payments.some((payment) =>
-        (SETTLED_PAYMENT_STATUSES as readonly PaymentStatus[]).includes(payment.status),
-      )
-    ) {
-      return { cancelled: false, restocked: false };
-    }
-    const updated = await tx.order.updateMany({
-      where: { id: order.id, status: 'PENDING' },
-      data: { status: 'CANCELLED', cancelledAt: now, cancelReason: PAYMENT_NOT_COMPLETED },
-    });
-    if (updated.count === 0) return { cancelled: false, restocked: false };
     const restocked = await releaseOrderStock(tx, order, null);
     await tx.orderStatusEvent.create({
       data: {
         orderId: order.id,
         fromStatus: 'PENDING',
         toStatus: 'CANCELLED',
-        paymentStatus: 'EXPIRED',
+        paymentStatus: order.paymentStatus,
         note: 'Online payment not completed in time',
         createdAt: now,
       },

@@ -143,6 +143,26 @@ describe('admin API', () => {
     return (placed.body as { order: { number: string } }).order.number;
   }
 
+  it('exports every matching order beyond 10,000 rows using the list filters', async () => {
+    const { agent } = await signedIn('ADMIN');
+    await ctx.prisma.$executeRaw`
+      INSERT INTO "Order" (id, number, "paymentStatus", "paymentMethod", locale, "customerName", "customerPhone", "deliveryMethodName", "regionCode", city, subtotal, "deliveryFee", total, "idempotencyKey", "accessTokenHash", "createdAt", "updatedAt")
+      SELECT gen_random_uuid(), 'CSV-' || i, (CASE WHEN i=10002 THEN 'PENDING' ELSE 'PAID' END)::"PaymentStatus", 'CASH_ON_DELIVERY', 'uz', CASE WHEN i=10003 THEN 'Other' ELSE 'Sample' END, '900001111', 'Courier', 'UZ-TK', 'Toshkent', 10, 0, 10, 'key-' || i, 'fixture', CASE WHEN i=10004 THEN date '2020-11-23' ELSE date '2020-11-21' END, now() FROM generate_series(1, 10004) AS i`;
+    const query = { paymentStatus: 'PAID', q: 'sample', from: '2020-11-21', to: '2020-11-21' };
+    const list = await agent.get(`${API}/admin/orders`).query(query).expect(200);
+    const csv = await agent.get(`${API}/admin/reports/orders.csv`).query(query).expect(200);
+    const numbers = csv.text
+      .trimEnd()
+      .split('\r\n')
+      .slice(1)
+      .map((line) => line.split(',')[0]);
+    expect(list.body.total).toBe(10001);
+    expect(numbers).toHaveLength(10001);
+    expect(new Set(numbers)).toEqual(
+      new Set(Array.from({ length: 10001 }, (_, i) => 'CSV-' + (i + 1))),
+    );
+  });
+
   describe('authorisation', () => {
     it('requires a staff session and the right role', async () => {
       await request(server()).get(`${API}/admin/dashboard`).expect(401);

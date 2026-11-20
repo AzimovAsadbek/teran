@@ -23,6 +23,40 @@ async function addToBag(page: Page, slug: string, pack: string, quantity: number
 }
 
 test.describe('guest checkout', () => {
+  for (const startingQuantity of [0, 1]) {
+    test(`two tabs adding the same pack to a bag starting with ${startingQuantity} keep both additions`, async ({
+      page,
+      context,
+    }) => {
+      const other = await context.newPage();
+      const tabs = [page, other];
+      await Promise.all(
+        tabs.map(async (tab) => {
+          await tab.goto('/en/products/classic-black-tea');
+          await tab.locator('label').filter({ hasText: '250 g' }).first().click();
+        }),
+      );
+      if (startingQuantity) {
+        await page.getByRole('button', { name: /^Add to bag · / }).click();
+        await expect(page.getByRole('dialog', { name: 'Your bag' })).toBeVisible();
+        await page.keyboard.press('Escape');
+      }
+      await Promise.all(
+        tabs.map((tab) => tab.getByRole('button', { name: /^Add to bag · / }).click()),
+      );
+      const quantity = startingQuantity + 2;
+      for (const tab of tabs) {
+        await expect(tab.getByRole('dialog', { name: 'Your bag' })).toBeVisible();
+        await tab.keyboard.press('Escape');
+        await expect(
+          tab.getByRole('button', { name: quantity + ' items in your bag' }).first(),
+        ).toBeVisible();
+      }
+      const cart = await (await page.request.get('/api/v1/cart')).json();
+      expect(cart).toMatchObject({ itemCount: quantity, lines: [{ quantity }] });
+    });
+  }
+
   test('browse, add to bag, validate and place a cash-on-delivery order', async ({ page }) => {
     await page.goto('/en/catalog');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

@@ -1,4 +1,5 @@
-import { Controller, Get, Header, Query } from '@nestjs/common';
+import { Readable } from 'node:stream';
+import { Controller, Get, Header, Query, StreamableFile } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   adminOrderListQuerySchema,
@@ -14,7 +15,7 @@ import { RequireStaff } from '../auth/auth.guard.js';
 import { CurrentActor, type Actor } from './admin-support.js';
 import { AdminDashboardService } from './dashboard.service.js';
 
-const exportQuerySchema = adminOrderListQuerySchema.pick({ from: true, to: true, status: true });
+const exportQuerySchema = adminOrderListQuerySchema.omit({ page: true, pageSize: true });
 
 @ApiTags('admin')
 @Controller('admin')
@@ -47,8 +48,10 @@ export class AdminDashboardController {
   exportOrders(
     @Query({ schema: exportQuerySchema }) query: z.output<typeof exportQuerySchema>,
     @CurrentActor() actor: Actor,
-  ): Promise<string> {
-    return this.dashboard.exportOrders(query, actor);
+  ): StreamableFile {
+    return new StreamableFile(Readable.from(this.dashboard.exportOrders(query, actor)), {
+      type: 'text/csv; charset=utf-8',
+    });
   }
 
   @Get('audit')

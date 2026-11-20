@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_API_URL, E2E_WEB_URL, stackEnv } from './scripts/e2e-env.ts';
+import { checkoutOpen, E2E_API_URL, E2E_WEB_URL, stackEnv } from './scripts/e2e-env.ts';
 
 /**
  * End-to-end tests drive the real storefront, API and database.
@@ -12,11 +12,14 @@ import { E2E_API_URL, E2E_WEB_URL, stackEnv } from './scripts/e2e-env.ts';
  * - `E2E_IGNORE_HTTPS_ERRORS=true`: accept a local certificate authority, for a smoke test of
  *   the production Compose stack on https://localhost (docs/testing/test-strategy.md).
  */
-const external = process.env.E2E_BASE_URL;
+const external = process.env.E2E_BASE_URL?.trim() || undefined;
 const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: './tests',
+  ...(checkoutOpen
+    ? { testIgnore: '**/closed-store.spec.ts' }
+    : { testMatch: '**/closed-store.spec.ts' }),
   // Orders change shared stock, so tests run one at a time for deterministic results.
   fullyParallel: false,
   workers: 1,
@@ -45,7 +48,8 @@ export default defineConfig({
           url: `${E2E_API_URL}/api/v1/health/ready`,
           env: stackEnv('api'),
           reuseExistingServer: !isCI,
-          timeout: 180_000,
+          // Seeding generates the full responsive image catalogue on this CI runner.
+          timeout: 300_000,
           stdout: 'ignore',
           stderr: 'pipe',
         },

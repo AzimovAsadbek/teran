@@ -193,8 +193,10 @@ export class SettingsService {
         Object.entries(visuals).map(([slot, visual]) => [
           slot,
           {
-            image: visualImage(visual.image),
-            mobile: visual.mobile ? visualImage(visual.mobile) : null,
+            image: { ...visualImage(visual.image), preview: visual.image.preview },
+            mobile: visual.mobile
+              ? { ...visualImage(visual.mobile), preview: visual.mobile.preview }
+              : null,
             video: visualVideo(visual.video),
             mobileVideo: visualVideo(visual.mobileVideo),
           },

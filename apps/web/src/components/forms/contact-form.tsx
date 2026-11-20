@@ -69,6 +69,7 @@ export function ContactForm() {
   const [values, setValues] = useState(EMPTY);
   const [packs, setPacks] = useState(1);
   const id = useId();
+  const submission = useRef<{ payload: string; key: string } | null>(null);
 
   const order = orderLine ? `${orderLine} × ${packs}` : null;
   const note = values.message.trim();
@@ -89,9 +90,18 @@ export function ContactForm() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const fingerprint = JSON.stringify([locale, payload]);
+    if (submission.current?.payload !== fingerprint) {
+      submission.current = { payload: fingerprint, key: crypto.randomUUID() };
+    }
     await form.submit(
       contactContract,
-      { ...payload, locale, website: honeypotValue(event.currentTarget) },
+      {
+        ...payload,
+        locale,
+        idempotencyKey: submission.current.key,
+        website: honeypotValue(event.currentTarget),
+      },
       '/inquiries/contact',
     );
   }
@@ -101,6 +111,7 @@ export function ContactForm() {
       <FormSuccess
         text={order ? t('orderSuccess', { order }) : undefined}
         onReset={() => {
+          submission.current = null;
           setValues(EMPTY);
           setPacks(1);
           form.reset();

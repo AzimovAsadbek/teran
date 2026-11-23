@@ -19,7 +19,6 @@ import {
 } from '@/components/content/contact-options';
 import { VisualPicture } from '@/components/content/visual-picture';
 import { ContactForm } from '@/components/forms/contact-form';
-import { OrderLine } from '@/components/forms/order-line';
 import { brandCopy, PACK_COLOURS, teaCodeOf } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { emailLinks, phoneLinks, socialLinks } from '@/lib/contact';
@@ -123,19 +122,15 @@ async function ContactIntro({ searchParams }: { searchParams: SearchParams }) {
  * The tea being ordered, at the top of the form while the form is the only column (phones and
  * narrow windows): its first picture, its name in its pack's colour, its pack and a way down to
  * the messengers and phones. Wider, the tea stands beside the form (TeaShowcase) and this is not
- * displayed. It hands the tea to the form (order-line.ts), which then becomes an order; it
- * streams in on its own, so the form is never rendered again.
+ * displayed.
  */
-async function OrderSummary({ searchParams }: { searchParams: SearchParams }) {
-  const tea = await orderedTea(searchParams);
-  if (!tea) return null;
-  const [t, { pack }] = await Promise.all([getTranslations('Pages'), teaAndPack(tea)]);
+async function OrderSummary({ tea, pack }: { tea: ProductDetailDto; pack: string | null }) {
+  const t = await getTranslations('Pages');
   return (
     <section
       aria-labelledby="order-summary"
       className="mb-7 flex items-center gap-4 rounded-[1rem] bg-paper p-3 @min-[48.0625rem]/desk:hidden"
     >
-      <OrderLine value={[tea.name, pack].filter(Boolean).join(' · ')} />
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[0.75rem] bg-surface">
         <ProductImage image={tea.images[0] ?? null} name={tea.name} sizes="80px" decorative />
       </div>
@@ -350,14 +345,28 @@ async function ContactOptions() {
   );
 }
 
+async function InquiryForm({ searchParams }: { searchParams: SearchParams }) {
+  const tea = await orderedTea(searchParams);
+  const pack = tea ? (await teaAndPack(tea)).pack : null;
+  const orderLine = tea ? [tea.name, pack].filter(Boolean).join(' · ') : null;
+  return (
+    <>
+      {tea ? <OrderSummary tea={tea} pack={pack} /> : null}
+      <ClientMessages pick={['Forms', 'Validation']}>
+        <ContactForm key={tea?.id ?? 'contact'} orderLine={orderLine} />
+      </ClientMessages>
+    </>
+  );
+}
+
 /**
  * Contact page, as a desk on TERAN's warm paper: under the breadcrumbs, a white card with the
  * heading, a line on what follows and the form, and beside it (from 769 px of the desk's width;
  * under it before that) the contact page's picture. A tea's "Order" makes it the order desk
  * (ADR-053): the title "Place an order", the tea itself beside the form as its living picture
  * (TeaShowcase; at the top of the form while the form is the only column) and the form an order
- * of that tea with a count of packs. Under the desk, the two option cards. The page's shell and
- * the form are static; what depends on the address streams in.
+ * of that tea with a count of packs. Under the desk, the two option cards. The shell is static.
+ * The form streams in with its order line so its first submission includes the selected product.
  */
 export default async function ContactPage({ searchParams }: PageProps<'/[locale]/contact'>) {
   const t = await getTranslations('Pages');
@@ -386,12 +395,13 @@ export default async function ContactPage({ searchParams }: PageProps<'/[locale]
                   <ContactIntro searchParams={searchParams} />
                 </Suspense>
                 <div className="mt-7">
-                  <Suspense fallback={null}>
-                    <OrderSummary searchParams={searchParams} />
+                  <Suspense
+                    fallback={
+                      <div aria-hidden className="h-96 rounded-control bg-surface-muted/40" />
+                    }
+                  >
+                    <InquiryForm searchParams={searchParams} />
                   </Suspense>
-                  <ClientMessages pick={['Forms', 'Validation']}>
-                    <ContactForm />
-                  </ClientMessages>
                 </div>
               </div>
               <Suspense

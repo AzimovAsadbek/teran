@@ -20,7 +20,6 @@ import { prepareContract, useFormSubmission } from '@/features/forms/use-form-su
 import { usePrimaryAction } from '@/lib/floating';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { FormSuccess, Honeypot, honeypotValue } from './form-success';
-import { useOrderLine } from './order-line';
 
 /**
  * The form's contract, loaded once the form is used (or on the first submission), not with the
@@ -53,19 +52,18 @@ const SUBJECTS = [
  * keyboard focus and shows its progress while sending. Errors are named under each field.
  *
  * Reached from a tea's "Order" (`/contact?tea=…`), it is an order: the tea comes from the order
- * summary beside it (order-line.ts), the subject is "Place an order", a stepper counts the packs
+ * summary beside it, the subject is "Place an order", a stepper counts the packs
  * and the message becomes an optional note; what is sent is the tea, its pack and the count, then
  * the note ("TERAN 8830 · 400 g × 2"). While it fills the lower part of a phone's screen the
  * floating contact disc steps aside (lib/floating).
  */
-export function ContactForm() {
+export function ContactForm({ orderLine }: { orderLine: string | null }) {
   const t = useTranslations('Forms');
   const locale = useLocale() as Locale;
   const message = useValidationMessage();
   const formRef = useRef<HTMLFormElement>(null);
   const form = useFormSubmission(formRef);
   usePrimaryAction(formRef);
-  const orderLine = useOrderLine();
   const [values, setValues] = useState(EMPTY);
   const [packs, setPacks] = useState(1);
   const id = useId();

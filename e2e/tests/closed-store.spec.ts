@@ -4,7 +4,10 @@ import { signInAsAdmin } from './support/admin.ts';
 test('a tea inquiry reaches staff when online checkout is closed', async ({ page }) => {
   const name = 'Tea inquiry ' + Date.now();
   await page.goto('/products/classic-black-tea');
-  await page.getByRole('link', { name: 'Buyurtma berish' }).first().click();
+  await page
+    .getByRole('link', { name: /haqida bogʻlanish/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/contact\?tea=classic-black-tea/);
   const form = page.locator('main form').filter({ has: page.locator('input[name="phone"]') });
   await form.locator('[name="name"]').fill(name);

@@ -189,7 +189,9 @@ describe('Telegram announcements', () => {
 
     it('announces a product once it is published, with its picture, real price and link', async () => {
       const agent = await admin();
+      const root = await createCategory(ctx.prisma, 'tea');
       const category = await createCategory(ctx.prisma, 'green-tea');
+      await ctx.prisma.category.update({ where: { id: category.id }, data: { parentId: root.id } });
       const draft = await pictured(agent, category.id);
       // A draft is never announced, whatever its switch says.
       expect(telegram.calls).toHaveLength(0);

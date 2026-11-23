@@ -1,4 +1,4 @@
-import type { AddressDto, Locale } from '@teran/contracts';
+import type { AddressDto, CartDto, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -10,7 +10,7 @@ import { DemoNotice } from '@/components/ui/demo-notice';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPathname } from '@/i18n/navigation';
-import { currentUser } from '@/lib/account';
+import { currentUser, requireUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
@@ -26,14 +26,15 @@ async function CheckoutLoader() {
   await connection();
   const locale = await getLocale();
   const t = await getTranslations('Checkout');
-  const [options, user] = await Promise.all([
+  if (!(await currentUser())) {
+    const bag = await apiGetAsVisitor<CartDto>(`/cart?locale=${locale}`).catch(() => null);
+    if (bag?.lines.length === 0) redirect(getPathname({ href: '/cart', locale }));
+  }
+  const user = await requireUser(locale, '/checkout');
+  const [options, addresses] = await Promise.all([
     getCheckoutOptions(locale).catch(() => null),
-    // Prefill for signed-in customers only; a guest (or an API hiccup) simply gets empty fields.
-    currentUser(),
+    apiGetAsVisitor<AddressDto[]>('/account/addresses').catch(() => []),
   ]);
-  const addresses = user
-    ? await apiGetAsVisitor<AddressDto[]>('/account/addresses').catch(() => null)
-    : null;
 
   if (!options) {
     return (

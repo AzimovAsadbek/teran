@@ -25,7 +25,9 @@ describe('catalogue', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
+    const root = await createCategory(ctx.prisma, 'tea');
     categoryId = (await createCategory(ctx.prisma, 'green-tea')).id;
+    await ctx.prisma.category.update({ where: { id: categoryId }, data: { parentId: root.id } });
   });
 
   const get = (path: string) => request(ctx.app.getHttpServer()).get(`${API}${path}`);
@@ -141,7 +143,7 @@ describe('catalogue', () => {
     expect(detail.locales).toEqual(['uz', 'ru']);
 
     const page = categoryPageSchema.parse(
-      (await get('/catalog/category-page?locale=ru&path=green-tea').expect(200)).body,
+      (await get('/catalog/category-page?locale=ru&path=tea/green-tea').expect(200)).body,
     );
     expect(page.type === 'category' ? page.category.locales : null).toEqual(['uz', 'en']);
 
@@ -164,8 +166,6 @@ describe('catalogue', () => {
   });
 
   it('shows a category picture only once one is chosen for it, never a product picture', async () => {
-    const tea = await createCategory(ctx.prisma, 'tea');
-    await ctx.prisma.category.update({ where: { id: categoryId }, data: { parentId: tea.id } });
     const photographed = await createProduct(ctx.prisma, { categoryId, slug: 'photographed' });
     await ctx.prisma.productImage.create({
       data: {

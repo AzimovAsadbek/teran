@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { checkoutOptionsSchema, orderSchema, placedOrderSchema } from '@teran/contracts';
 import { PaymentsService } from '../src/payments/payments.service.js';
-import { createTestApp, type TestApp } from './helpers/app.js';
+import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
 import {
   createCategory,
   createDeliveryMethod,
@@ -61,7 +61,7 @@ describe('payment providers (live mode, simulated provider calls)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    const category = await createCategory(ctx.prisma);
+    const category = await createCategory(ctx.prisma, 'tea');
     await createDeliveryMethod(ctx.prisma, { code: 'courier', price: '25000' });
     const product = await createProduct(ctx.prisma, {
       categoryId: category.id,
@@ -73,7 +73,7 @@ describe('payment providers (live mode, simulated provider calls)', () => {
   const agent = () => request.agent(ctx.app.getHttpServer());
 
   async function placeOrder(method: 'PAYME' | 'CLICK') {
-    const browser = agent();
+    const browser = await signInShopper(ctx);
     await browser.post(`${API}/cart/items`).send({ variantId, quantity: 1 }).expect(201);
     return placedOrderSchema.parse(
       (await browser.post(`${API}/checkout/orders`).send(checkoutBody(method)).expect(201)).body,
@@ -102,7 +102,7 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       { method: 'PAYME', availability: 'live' },
       { method: 'CARD', availability: 'unavailable' },
     ]);
-    const browser = agent();
+    const browser = await signInShopper(ctx);
     await browser.post(`${API}/cart/items`).send({ variantId, quantity: 1 }).expect(201);
     const refused = await browser
       .post(`${API}/checkout/orders`)

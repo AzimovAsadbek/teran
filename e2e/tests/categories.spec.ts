@@ -294,11 +294,11 @@ test.describe('multi-category catalogue', () => {
     await expect(main.getByRole('heading', { name: 'How to brew' })).toHaveCount(0);
     await expect(main.getByText('Other', { exact: true })).toHaveCount(0);
 
-    // It sells like any other product.
-    await page.getByRole('button', { name: /^Add to bag · / }).click();
-    const bag = page.getByRole('dialog', { name: 'Your bag' });
-    await expect(visible(bag.getByText('Acacia honey'))).toBeVisible();
-    await expect(visible(bag.getByText(/500 g/))).toBeVisible();
+    // Non-tea items can be ordered through the contact page.
+    await expect(main.getByRole('button', { name: /^Add to bag · / })).toHaveCount(0);
+    await expect(
+      main.getByRole('link', { name: 'Contact us about Acacia honey' }).first(),
+    ).toBeVisible();
 
     // A new product in the category starts with its template and without the tea-only fields.
     await page.goto('/en/admin/products/new');

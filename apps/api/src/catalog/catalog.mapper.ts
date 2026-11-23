@@ -1,5 +1,6 @@
 import {
   ILLUSTRATION_KEYS,
+  isRetailTea,
   MAX_LINE_QUANTITY,
   NEW_PRODUCT_DAYS,
   ratingAverage,
@@ -210,14 +211,14 @@ export function productStockLevel(levels: readonly StockLevel[]): StockLevel {
   return 'out_of_stock';
 }
 
-export function toVariantDto(variant: VariantRow): VariantDto {
+function toVariantDto(variant: VariantRow, priced: boolean): VariantDto {
   return {
     id: variant.id,
     sku: variant.sku,
     weightGrams: variant.weightGrams,
     unitCount: variant.unitCount,
-    price: toMoney(variant.price),
-    compareAtPrice: toMoneyOrNull(variant.compareAtPrice),
+    price: toMoney(priced ? variant.price : 0),
+    compareAtPrice: priced ? toMoneyOrNull(variant.compareAtPrice) : null,
     currency: variant.currency,
     stockLevel: variantStockLevel(variant),
     maxQuantity: Math.max(0, Math.min(variant.stockQuantity, MAX_LINE_QUANTITY)),
@@ -324,7 +325,8 @@ export function toProductSummary(
 ): ProductSummaryDto {
   const translation = pickTranslation(product.translations, locale);
   const name = translation?.name ?? product.slug;
-  const variants = product.variants.map(toVariantDto);
+  const priced = isRetailTea(categoryPath(product.category));
+  const variants = product.variants.map((variant) => toVariantDto(variant, priced));
   const cheapest = product.variants.reduce<VariantRow | undefined>(
     (best, variant) => (best === undefined || variant.price.lessThan(best.price) ? variant : best),
     undefined,
@@ -343,10 +345,10 @@ export function toProductSummary(
     format: product.format,
     isFeatured: product.isFeatured,
     isNew: isNew(product.publishedAt, now),
-    onSale: product.variants.some((variant) => variant.compareAtPrice !== null),
+    onSale: priced && product.variants.some((variant) => variant.compareAtPrice !== null),
     stockLevel: productStockLevel(variants.map((variant) => variant.stockLevel)),
-    priceFrom: cheapest ? toMoney(cheapest.price) : toMoney(0),
-    compareAtPriceFrom: cheapest ? toMoneyOrNull(cheapest.compareAtPrice) : null,
+    priceFrom: priced && cheapest ? toMoney(cheapest.price) : toMoney(0),
+    compareAtPriceFrom: priced && cheapest ? toMoneyOrNull(cheapest.compareAtPrice) : null,
     currency: cheapest?.currency ?? 'UZS',
     variantCount: variants.length,
     defaultVariant: purchasable ?? variants[0] ?? null,
@@ -400,7 +402,9 @@ export function toProductDetail(
     images: product.images.map((image) =>
       toImageDto(image, productImageAlt(image, locale, summary.name)),
     ),
-    variants: product.variants.map(toVariantDto),
+    variants: product.variants.map((variant) =>
+      toVariantDto(variant, isRetailTea(summary.category.path)),
+    ),
     seoTitle: translation?.seoTitle ?? null,
     seoDescription: translation?.seoDescription ?? null,
     updatedAt: product.updatedAt.toISOString(),

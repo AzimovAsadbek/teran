@@ -42,10 +42,13 @@ async function Register({
     next === '/account' ? '/account/login' : `/account/login?next=${encodeURIComponent(next)}`;
   if (features?.registration === false) {
     return (
-      <AuthCard title={t('registerTitle')} aside={<AuthTeaPanel pick={3} />}>
+      <AuthCard
+        title={t('registerTitle')}
+        aside={next === '/checkout' ? undefined : <AuthTeaPanel pick={3} />}
+      >
         <p className="text-fg-muted">{t('registrationClosed')}</p>
-        <ButtonLink href="/catalog" className="mt-6">
-          {tc('startShopping')}
+        <ButtonLink href={next === '/checkout' ? loginHref : '/catalog'} className="mt-6">
+          {next === '/checkout' ? t('login') : tc('startShopping')}
         </ButtonLink>
       </AuthCard>
     );
@@ -54,8 +57,8 @@ async function Register({
   return (
     <AuthCard
       title={t('registerTitle')}
-      intro={t('guestNote')}
-      aside={<AuthTeaPanel pick={3} />}
+      intro={next === '/checkout' ? t('checkoutLoginNote') : t('guestNote')}
+      aside={next === '/checkout' ? undefined : <AuthTeaPanel pick={3} />}
       footer={
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <p>{t('haveAccount')}</p>

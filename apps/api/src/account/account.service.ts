@@ -16,6 +16,7 @@ import {
 } from '@teran/contracts';
 import type { Request, Response } from 'express';
 import { asIllustrationKey, toImageDto } from '../catalog/catalog.mapper.js';
+import { isRetailCategory, retailCategorySelect } from '../catalog/product-visibility.js';
 import { isProductPublic } from '../cart/cart-line.js';
 import { CartService } from '../cart/cart.service.js';
 import { ApiException } from '../common/errors/api-exception.js';
@@ -205,6 +206,7 @@ export class AccountService {
                 slug: true,
                 status: true,
                 publishedAt: true,
+                category: { select: retailCategorySelect },
                 illustrationKey: true,
                 translations: {
                   where: { locale: { in: localeChain(locale) } },
@@ -253,7 +255,8 @@ export class AccountService {
             product &&
             variant.isActive &&
             variant.stockQuantity > 0 &&
-            isProductPublic(product, now),
+            isProductPublic(product, now) &&
+            isRetailCategory(product.category),
           ),
         },
       });

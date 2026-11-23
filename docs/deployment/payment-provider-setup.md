@@ -74,6 +74,12 @@ Prerequisites: a contract with Click and a service in the Click merchant cabinet
 5. Refunds: make the reversal in the Click merchant cabinet, then press "Record refund" on the
    order in the TERAN admin (with a note).
 
+   In TERAN's cabinet the two production URLs were saved and verified after reloading on
+   2026-11-24. The service showed «Не активен». For a read-only credential check use the
+   signed `GET /v2/merchant/payment/status/{service_id}/{payment_id}`; an unknown payment
+   returns `-44` with valid credentials. This check does not establish that the service accepts
+   payments. Confirm activation with Click.
+
 ## 4. Cards (Visa)
 
 Not available: no card gateway is integrated. The `CARD` method is shown as "Not available yet" in
@@ -84,8 +90,8 @@ live mode when it is enabled; leave it out of `PAYMENT_METHODS_ENABLED` until a 
 
 - [ ] Contracts signed; credentials stored only in the server's secret store.
 - [ ] Payme sandbox scenarios and Click playground or Postman scenarios passed on staging.
-- [ ] Fiscal data (ИКПУ/MXIK, package codes, VAT) supplied by TERAN and fiscal receipts
-      implemented — required for online sales in Uzbekistan, **not implemented yet**.
+- [ ] Confirm receipt handling with each provider. If TERAN supplies receipt lines, verify the
+      MXIK, package codes and VAT for the teas being sold. See the [payments guide](../architecture/payments.md#before-going-live).
 - [ ] `PAYMENT_PROVIDER_MODE=live`; `ALLOW_DEMO_PAYMENTS` not set.
 - [ ] `TRUST_PROXY_HOPS` correct (Payme address check).
 - [ ] One real low-value order paid and refunded through each provider, checked in the admin order

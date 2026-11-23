@@ -17,6 +17,7 @@ import { uniqueConstraintName } from '../common/prisma-errors.js';
 import { ZERO, toMoney } from '../common/money.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CartService, type OrderableLine } from '../cart/cart.service.js';
+import { retailTeaWhere, visibleProductWhere } from '../catalog/product-visibility.js';
 import { DeliveryService } from '../delivery/delivery.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { orderConfirmationEmail } from '../mail/templates.js';
@@ -73,8 +74,10 @@ export class OrdersService {
   }
 
   async placeOrder(request: Request, payload: CheckoutPayload): Promise<PlacedOrderDto> {
+    const userId = request.auth?.userId;
+    if (!userId) throw ApiException.unauthenticated();
     // Idempotent replay: the same submission never creates a second order (or payment).
-    const previous = await this.findByIdempotencyKey(payload.idempotencyKey);
+    const previous = await this.findByIdempotencyKey(payload.idempotencyKey, userId);
     if (previous) return this.placedResponse(previous, payload);
 
     // Only a method that can be processed right now (live provider, or the labelled demo).
@@ -86,7 +89,7 @@ export class OrdersService {
     for (let attempt = 1; ; attempt++) {
       try {
         const order = await this.prisma.$transaction(
-          (tx) => this.createOrder(tx, cart.id, payload, request.auth?.userId ?? null),
+          (tx) => this.createOrder(tx, cart.id, payload, userId),
           { timeout: 15_000 },
         );
         this.logger.log(
@@ -100,7 +103,7 @@ export class OrdersService {
         const target = uniqueConstraintName(error);
         if (target?.includes('idempotencyKey')) {
           // A concurrent duplicate submission won the race; return its order.
-          const raced = await this.findByIdempotencyKey(payload.idempotencyKey);
+          const raced = await this.findByIdempotencyKey(payload.idempotencyKey, userId);
           if (raced) return this.placedResponse(raced, payload);
         }
         if (target?.includes('number') && attempt < MAX_NUMBER_ATTEMPTS) continue;
@@ -127,8 +130,17 @@ export class OrdersService {
     return toOrderDto(order);
   }
 
-  private findByIdempotencyKey(idempotencyKey: string): Promise<OrderWithItems | null> {
-    return this.prisma.order.findUnique({ where: { idempotencyKey }, include: orderInclude });
+  private async findByIdempotencyKey(
+    idempotencyKey: string,
+    userId: string,
+  ): Promise<OrderWithItems | null> {
+    const order = await this.prisma.order.findUnique({
+      where: { idempotencyKey },
+      include: orderInclude,
+    });
+    if (order && order.userId !== userId)
+      throw ApiException.conflict('CONFLICT', 'Start a new checkout');
+    return order;
   }
 
   private async placedResponse(
@@ -146,7 +158,7 @@ export class OrdersService {
     tx: Prisma.TransactionClient,
     cartId: string,
     payload: CheckoutPayload,
-    userId: string | null,
+    userId: string,
   ): Promise<OrderWithItems> {
     await tx.$queryRaw`SELECT id FROM "Cart" WHERE id = ${cartId}::uuid FOR UPDATE`;
     const lines = await this.cart.orderableLines(cartId, payload.locale, tx);
@@ -231,7 +243,7 @@ export class OrdersService {
       payload.paymentMethod,
       new Date(),
     );
-    if (userId && payload.saveAddress && payload.delivery.addressLine) {
+    if (payload.saveAddress && payload.delivery.addressLine) {
       await saveAddressFromCheckout(tx, userId, {
         recipientName: payload.customer.name,
         phone: payload.customer.phone,
@@ -268,7 +280,12 @@ export class OrdersService {
     for (const line of lines) {
       try {
         const variant = await tx.productVariant.update({
-          where: { id: line.variantId, isActive: true, stockQuantity: { gte: line.quantity } },
+          where: {
+            id: line.variantId,
+            isActive: true,
+            stockQuantity: { gte: line.quantity },
+            product: { AND: [visibleProductWhere(), retailTeaWhere] },
+          },
           data: { stockQuantity: { decrement: line.quantity } },
           select: { stockQuantity: true, price: true },
         });

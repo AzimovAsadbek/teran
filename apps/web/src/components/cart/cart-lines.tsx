@@ -65,7 +65,9 @@ export function CartLines({ cart, compact = false }: { cart: CartDto; compact?: 
                   </Link>
                   <p className="mt-0.5 text-body-sm text-fg-subtle">{pack}</p>
                 </div>
-                <Price amount={line.lineTotal} className="shrink-0 text-body-sm sm:text-body" />
+                {line.issue !== 'unavailable' ? (
+                  <Price amount={line.lineTotal} className="shrink-0 text-body-sm sm:text-body" />
+                ) : null}
               </div>
               {line.issue ? (
                 <p className="mt-2 flex items-start gap-1.5 text-body-sm text-danger" role="status">

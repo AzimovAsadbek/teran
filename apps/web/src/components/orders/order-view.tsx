@@ -1,9 +1,11 @@
 import { isOnlinePaymentMethod, type Locale, type OrderDto } from '@teran/contracts';
 import { Clock } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { ButtonLink } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { formatDateTime } from '@/lib/format';
+import { showPrices } from '@/lib/site';
 import { OrderDetails, OrderProgress, OrderTimeline } from './order-details';
 import { CheckAgain, PayOrder, ReorderButton } from './order-actions';
 
@@ -25,6 +27,7 @@ export async function OrderStatusView({
   account: boolean;
 }) {
   const t = await getTranslations('Checkout');
+  const cart = await getTranslations('Cart');
   const latest = order.payments.at(-1);
   const options = order.awaitingPayment
     ? ((await getCheckoutOptions(locale).catch(() => null))?.paymentOptions ?? []).filter(
@@ -94,9 +97,12 @@ export async function OrderStatusView({
       <OrderDetails order={order} locale={locale} />
       <OrderTimeline order={order} locale={locale} />
 
-      {account && order.items.length > 0 ? (
-        <section className="rounded-panel border border-line bg-surface p-5 sm:p-7">
+      {showPrices && account && order.items.length > 0 ? (
+        <section className="flex flex-wrap items-center gap-3 rounded-panel border border-line bg-surface p-5 sm:p-7">
           <ReorderButton number={order.number} />
+          <ButtonLink href="/cart" variant="secondary">
+            {cart('viewCart')}
+          </ButtonLink>
         </section>
       ) : null}
     </div>

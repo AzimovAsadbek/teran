@@ -9,7 +9,7 @@ import {
   placedOrderSchema,
 } from '@teran/contracts';
 import { PaymentsService, PROCESSING_GRACE_MS } from '../src/payments/payments.service.js';
-import { createTestApp, type TestApp } from './helpers/app.js';
+import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
 import {
   TEST_PASSWORD,
   createCategory,
@@ -69,7 +69,7 @@ describe('payments in demo mode', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    const category = await createCategory(ctx.prisma);
+    const category = await createCategory(ctx.prisma, 'tea');
     await createDeliveryMethod(ctx.prisma, { code: 'courier', price: '25000' });
     const product = await createProduct(ctx.prisma, {
       categoryId: category.id,
@@ -80,7 +80,11 @@ describe('payments in demo mode', () => {
 
   const agent = () => request.agent(ctx.app.getHttpServer());
 
-  async function placeOrder(body: Record<string, unknown> = {}, browser = agent()) {
+  async function placeOrder(
+    body: Record<string, unknown> = {},
+    browser?: ReturnType<typeof agent>,
+  ) {
+    browser ??= await signInShopper(ctx);
     await browser.post(`${API}/cart/items`).send({ variantId, quantity: 2 }).expect(201);
     const response = await browser
       .post(`${API}/checkout/orders`)
@@ -150,7 +154,7 @@ describe('payments in demo mode', () => {
   });
 
   it('answers a repeated checkout with the same order and payment, never a second one', async () => {
-    const browser = agent();
+    const browser = await signInShopper(ctx);
     await browser.post(`${API}/cart/items`).send({ variantId, quantity: 1 }).expect(201);
     const body = checkoutBody();
     const first = placedOrderSchema.parse(
@@ -175,10 +179,7 @@ describe('payments in demo mode', () => {
       paymentStatus: 'REQUIRES_ACTION',
       awaitingPayment: true,
     });
-    // The guest return link leads to the order page with the order's own secret.
-    expect(landing.orderPath).toBe(
-      `/orders/${placed.order.number}?token=${encodeURIComponent(placed.accessToken)}`,
-    );
+    expect(landing.orderPath).toBe(`/account/orders/${placed.order.number}`);
     expect((await guestOrder(placed.order.number, placed.accessToken)).paymentStatus).toBe(
       'REQUIRES_ACTION',
     );
@@ -246,7 +247,7 @@ describe('payments in demo mode', () => {
     const first = (await placeOrder()).placed;
     expect((await demo(tokenOf(first.payment!.redirectUrl), 'cancel')).status).toBe('CANCELLED');
 
-    const second = (await placeOrder({}, agent())).placed;
+    const second = (await placeOrder()).placed;
     const token = tokenOf(second.payment!.redirectUrl);
     expect((await demo(token, 'pending')).status).toBe('PROCESSING');
     expect((await demo(token, 'pending')).status).toBe('PROCESSING');

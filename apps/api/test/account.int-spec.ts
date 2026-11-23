@@ -47,7 +47,7 @@ describe('customer account, persistent cart and cart migration', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    categoryId = (await createCategory(ctx.prisma)).id;
+    categoryId = (await createCategory(ctx.prisma, 'tea')).id;
     await createDeliveryMethod(ctx.prisma, { code: 'courier', price: '25000' });
   });
 

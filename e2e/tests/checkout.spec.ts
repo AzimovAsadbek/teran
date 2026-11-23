@@ -1,3 +1,4 @@
+import { registerAtCheckout } from './support/checkout.ts';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 /**
@@ -22,7 +23,7 @@ async function addToBag(page: Page, slug: string, pack: string, quantity: number
   return drawer;
 }
 
-test.describe('guest checkout', () => {
+test.describe('shopper checkout', () => {
   for (const startingQuantity of [0, 1]) {
     test(`two tabs adding the same pack to a bag starting with ${startingQuantity} keep both additions`, async ({
       page,
@@ -66,7 +67,8 @@ test.describe('guest checkout', () => {
     await expect(drawer.getByText('Classic black tea')).toBeVisible();
     await expect(drawer.getByText('196,000 UZS').first()).toBeVisible();
     await drawer.getByRole('link', { name: 'Checkout' }).click();
-    await expect(page).toHaveURL(/\/en\/checkout$/);
+    await registerAtCheckout(page);
+    await page.getByLabel('Full name').fill('');
 
     // An empty submit explains what is missing and moves focus to the first problem.
     await page.getByRole('button', { name: /^Place order/ }).click();
@@ -87,17 +89,24 @@ test.describe('guest checkout', () => {
     // The button shows the server-calculated total once the delivery quote has loaded.
     const placeOrder = page.getByRole('button', { name: /^Place order · .+UZS$/ });
     await expect(placeOrder).toBeVisible();
+    const created = page.waitForResponse(
+      (response) =>
+        response.url().includes('/checkout/orders') &&
+        response.request().method() === 'POST' &&
+        response.status() === 201,
+    );
     await placeOrder.click();
 
-    await expect(page).toHaveURL(/\/en\/orders\/TRN-[0-9A-Z]{8}\?token=[^&]+&placed=1$/);
+    await expect(page).toHaveURL(/\/en\/account\/orders\/TRN-[0-9A-Z]{8}\?placed=1$/);
     await expect(page.getByRole('heading', { name: /Thank you/ })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('link', { name: 'View bag' })).toBeVisible();
     await expect(visible(page.getByText('Cash on delivery'))).toBeVisible();
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
 
     // The status link keeps working; a forged token reveals nothing.
     const url = new URL(page.url());
     const number = url.pathname.split('/').pop() ?? '';
-    const token = url.searchParams.get('token') ?? '';
+    const { accessToken: token } = (await (await created).json()) as { accessToken: string };
     await page.goto(`/en/orders/${number}?token=${encodeURIComponent(token)}`);
     await expect(visible(page.getByRole('heading', { name: `Order ${number}` }))).toBeVisible();
     await page.goto(`/en/orders/${number}?token=${'A'.repeat(43)}`);
@@ -108,8 +117,18 @@ test.describe('guest checkout', () => {
     await expect(visible(page.getByText('Your bag is empty'))).toBeVisible();
   });
 
+  test('non-tea products have contact ordering and no online offer', async ({ page }) => {
+    await page.goto('/en/products/matcha-whisk');
+    const main = page.getByRole('main');
+    await expect(main.getByRole('link', { name: /Contact us about/ }).first()).toBeVisible();
+    await expect(main.getByRole('button', { name: /^Add to bag · / })).toHaveCount(0);
+    const structured = await page.locator('script[type="application/ld+json"]').allTextContents();
+    expect(structured.join(' ')).not.toContain('"offers"');
+  });
+
   test('checkout without items shows an empty bag', async ({ page }) => {
     await page.goto('/en/checkout');
+    await expect(page).toHaveURL(/\/en\/cart$/);
     await expect(visible(page.getByText('Your bag is empty'))).toBeVisible();
   });
 });

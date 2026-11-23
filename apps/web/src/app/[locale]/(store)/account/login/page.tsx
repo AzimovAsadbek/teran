@@ -39,8 +39,14 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
   return (
     <AuthCard
       title={staff ? t('staffLoginTitle') : t('loginTitle')}
-      intro={staff ? t('staffLoginIntro') : t('guestNote')}
-      aside={<AuthTeaPanel pick={1} />}
+      intro={
+        staff
+          ? t('staffLoginIntro')
+          : next === '/checkout'
+            ? t('checkoutLoginNote')
+            : t('guestNote')
+      }
+      aside={next === '/checkout' ? undefined : <AuthTeaPanel pick={1} />}
       footer={
         !staff && features?.registration !== false ? (
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">

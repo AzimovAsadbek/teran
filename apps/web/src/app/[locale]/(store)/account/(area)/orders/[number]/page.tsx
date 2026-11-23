@@ -28,8 +28,13 @@ export async function generateMetadata({
 
 async function AccountOrder({
   params,
-}: Pick<PageProps<'/[locale]/account/orders/[number]'>, 'params'>) {
-  const [{ number }, locale] = await Promise.all([params, rootParams.locale() as Promise<Locale>]);
+  searchParams,
+}: PageProps<'/[locale]/account/orders/[number]'>) {
+  const [{ number }, locale, query] = await Promise.all([
+    params,
+    rootParams.locale() as Promise<Locale>,
+    searchParams,
+  ]);
   const [t, ta] = await Promise.all([getTranslations('Checkout'), getTranslations('Account')]);
   if (!ORDER_NUMBER.test(number)) notFound();
   // A signed-out visitor (401) is sent to sign in and brought back here afterwards.
@@ -59,10 +64,15 @@ async function AccountOrder({
         {ta('orders')}
       </Link>
       <div>
-        <p className="text-eyebrow text-accent-fg">{t('statusTitle')}</p>
+        <p className="text-eyebrow text-accent-fg">
+          {query.placed === '1' ? t('orderTitle', { number: order.number }) : t('statusTitle')}
+        </p>
         <h1 className="text-display-lg mt-2 text-fg">
-          {t('orderTitle', { number: order.number })}
+          {query.placed === '1' ? t('thankYou') : t('orderTitle', { number: order.number })}
         </h1>
+        {query.placed === '1' ? (
+          <p className="mt-3 text-body text-fg-muted">{t('orderPlacedText')}</p>
+        ) : null}
       </div>
       {/* Paying again, checking again and ordering again read the checkout's texts. */}
       <ClientMessages pick={['Checkout']}>
@@ -74,6 +84,7 @@ async function AccountOrder({
 
 export default function AccountOrderPage({
   params,
+  searchParams,
 }: PageProps<'/[locale]/account/orders/[number]'>) {
   return (
     <Suspense
@@ -84,7 +95,7 @@ export default function AccountOrderPage({
         </div>
       }
     >
-      <AccountOrder params={params} />
+      <AccountOrder params={params} searchParams={searchParams} />
     </Suspense>
   );
 }

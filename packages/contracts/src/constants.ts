@@ -115,3 +115,13 @@ export const REGION_CODES = REGIONS.map((region) => region.code) as [RegionCode,
 export function regionName(code: string, locale: Locale): string {
   return REGIONS.find((region) => region.code === code)?.name[locale] ?? code;
 }
+
+/** Storefront prices and online checkout are available in the Tea catalogue branch. */
+export const RETAIL_TEA_CATEGORY = 'tea';
+
+export function isRetailTea(categoryPath: string | null | undefined): boolean {
+  return (
+    categoryPath === RETAIL_TEA_CATEGORY ||
+    categoryPath?.startsWith(RETAIL_TEA_CATEGORY + '/') === true
+  );
+}

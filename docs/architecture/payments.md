@@ -6,11 +6,13 @@ Everything here is implemented in `apps/api/src/payments` and verified by
 the unit tests next to the code. Setting up the real providers is described in
 [../deployment/payment-provider-setup.md](../deployment/payment-provider-setup.md).
 
-> **Status (2026-11-23).** The Payme sandbox passed both one-time-order scenarios against TERAN's
+> **Status (2026-11-24).** All 39 Payme sandbox checks passed against TERAN's
 > isolated database using two 1,000 UZS orders. The first transaction ended in state `-1` and the
 > second reached state `2` before its refund in state `-2`. Repeated requests returned the same
-> result. Click Prepare and Complete passed with sandbox credentials. Production Click merchant
-> verification, fiscal receipts and a direct card gateway remain pending. See "Before going live".
+> result. Click Prepare and Complete passed with sandbox credentials. The production Click
+> API accepted TERAN's credentials for a read-only payment lookup. The signed public callbacks
+> recognized an unknown order, and both URLs were saved in the merchant cabinet. The cabinet
+> showed the service as inactive. No live charge was made. See “Before going live”.
 
 ## Principles
 
@@ -233,9 +235,11 @@ Humo only. Integrating one means a new adapter behind the same `PaymentProvider`
    secret key); the cashbox account field `order_id` (Payme); the Prepare/Complete URLs (Click).
 2. Run Payme's sandbox scenarios (test.paycom.uz with `TEST_KEY`) and Click's Playground or
    Postman suite against a staging deployment, and record the results.
-3. **Fiscal receipts**: online payments in Uzbekistan need fiscal data per product (ИКПУ/MXIK code,
-   package code, VAT). TERAN must supply these; then Payme `detail`/`SetFiscalData` and Click's
-   fiscalization endpoints can be implemented.
+3. Confirm who issues fiscal receipts for each merchant account. If Payme requires TERAN to
+   send line items, configure the official product codes, package codes and VAT before using
+   its fiscal `detail` object. When Click issues the receipt, avoid issuing a duplicate.
+   [Payme fiscal details](https://developer.help.paycom.uz/metody-merchant-api/checktransaction/) ·
+   [Click receipt guidance](https://click.uz/ru/clickofd)
 4. Decide the card gateway, if cards are wanted.
 5. Keep `PAYMENT_PROVIDER_MODE=live` in production; never set `ALLOW_DEMO_PAYMENTS` on a site that
    takes real orders.

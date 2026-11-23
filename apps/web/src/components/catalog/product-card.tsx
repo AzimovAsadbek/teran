@@ -5,8 +5,8 @@ import { Price } from '@/components/ui/price';
 import { PACK_COLOURS, teaCodeOf } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { formatMoney, packLabel } from '@/lib/format';
-import { showPrices } from '@/lib/site';
+import { packLabel } from '@/lib/format';
+import { sellsOnline } from '@/lib/site';
 import { CardIcon } from './card-icons';
 import { productFamily } from './product-family';
 import { ProductFilm } from './product-film';
@@ -75,12 +75,12 @@ export function ProductCard({
   const lead = layout === 'lead';
   const t = useTranslations('Product');
   const tb = useTranslations('Brewing');
-  const tc = useTranslations('Common');
   const locale = useLocale();
   const Heading = headingLevel;
+  const priced = sellsOnline(product.category.path);
   const soldOut = product.stockLevel === 'out_of_stock';
   const discount =
-    soldOut || !showPrices ? null : discountPercent(product.priceFrom, product.compareAtPriceFrom);
+    soldOut || !priced ? null : discountPercent(product.priceFrom, product.compareAtPriceFrom);
   // A single item without a weight ("1 piece": a bottle, a whisk) says nothing the name does not.
   const variant = product.defaultVariant;
   const single = variant ? variant.unitCount === 1 && !variant.weightGrams : false;
@@ -96,9 +96,6 @@ export function ProductCard({
   // The family's presentation (product-family.ts): its mark, ink, field, ring and light.
   const family = productFamily(product.illustrationKey, product.category.path);
   const FamilyIcon = family.icon;
-  const packPrice = product.defaultVariant
-    ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
-    : null;
   // Cards kept in a visitor's browser (recently viewed) from before these fields lack them.
   const rating = product.rating ?? null;
   const brewing = product.brewing ?? null;
@@ -136,7 +133,7 @@ export function ProductCard({
         }
       : null,
     // With prices the pack follows the price instead.
-    pack && !showPrices ? { key: 'pack', icon: 'package' as const, label: pack } : null,
+    pack && !priced ? { key: 'pack', icon: 'package' as const, label: pack } : null,
   ].filter((chip) => chip !== null);
 
   return (
@@ -234,15 +231,12 @@ export function ProductCard({
             <span className={cn(PILL, 'shrink-0 border-forest-700 bg-forest-700 text-ivory-50')}>
               −{discount}%
             </span>
-          ) : !soldOut && showPrices && product.onSale ? (
+          ) : !soldOut && priced && product.onSale ? (
             <span className={cn(PILL, 'shrink-0 border-forest-700 bg-forest-700 text-ivory-50')}>
               {t('badgeSale')}
             </span>
           ) : null}
         </div>
-        {showPrices ? (
-          <QuickAdd variant={product.defaultVariant} productName={product.name} price={packPrice} />
-        ) : null}
       </div>
 
       <div
@@ -324,26 +318,38 @@ export function ProductCard({
             ))}
           </ul>
         ) : null}
-        {showPrices ? (
-          <p className="mt-auto flex min-h-6 flex-wrap items-baseline gap-x-1.5 pt-3 text-[1rem] leading-6 font-medium">
-            <Price
-              amount={product.priceFrom}
-              compareAt={product.compareAtPriceFrom}
-              from={product.variantCount > 1}
-            />
-            {pack ? <span className="text-[0.875rem] text-fg-muted">· {pack}</span> : null}
-          </p>
+        {priced ? (
+          <div className="mt-auto pt-3">
+            <p className="flex min-h-6 flex-wrap items-baseline gap-x-1.5 text-[1rem] leading-6 font-medium">
+              <Price
+                amount={product.priceFrom}
+                compareAt={product.compareAtPriceFrom}
+                from={product.variantCount > 1}
+              />
+              {pack && product.variantCount === 1 ? (
+                <span className="text-[0.875rem] text-fg-muted">· {pack}</span>
+              ) : null}
+            </p>
+            {!soldOut &&
+              (product.variantCount > 1 ? (
+                <Link href={href} className="card-order mt-2 min-h-11">
+                  {t('choosePack')}
+                </Link>
+              ) : (
+                <QuickAdd variant={product.defaultVariant} productName={product.name} />
+              ))}
+          </div>
         ) : soldOut ? null : (
           // Without prices there is no bag: the button leads to the contact page, where every
           // channel to order by is (ADR-045), with this tea named in the message.
           <div className={cn('mt-auto pt-3.5', feature && 'md:mt-5')}>
             <Link
               href={`/contact?tea=${encodeURIComponent(product.slug)}`}
-              aria-label={t('orderAction', { name: product.name })}
+              aria-label={t('contactToOrderNamed', { name: product.name })}
               // A phone's half-width card keeps the whole word: smaller type, no arrow.
               className={cn('card-order', feature && 'md:w-auto md:px-7')}
             >
-              <span className="truncate">{t('orderNow')}</span>
+              <span className="truncate">{t('contactToOrder')}</span>
               <CardIcon
                 name="arrow-right"
                 className="hidden h-4 w-4 shrink-0 min-[46.875rem]:block"

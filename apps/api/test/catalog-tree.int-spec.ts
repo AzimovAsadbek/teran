@@ -13,7 +13,7 @@ import {
   type TaxonomyUpsertInput,
   type UserRole,
 } from '@teran/contracts';
-import { createTestApp, type TestApp } from './helpers/app.js';
+import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
 import {
   TEST_PASSWORD,
   createDeliveryMethod,
@@ -542,7 +542,7 @@ describe('multi-category catalogue', () => {
     }
   });
 
-  it('sells across categories in one cart and keeps purchase-time snapshots', async () => {
+  it('sells tea from a mixed collection and keeps purchase-time snapshots', async () => {
     const { admin, ids, coffee } = await setUpShop();
     // A collection spanning categories.
     const collection = (
@@ -564,8 +564,21 @@ describe('multi-category catalogue', () => {
       (await anonymous().get(`${API}/catalog/products?collection=morning`).expect(200)).body,
     );
     expect(morning.items.map((item) => item.category.slug).sort()).toEqual(['coffee', 'green-tea']);
+    for (const sort of ['price_asc', 'price_desc']) {
+      for (const [index, slug, price] of [
+        [1, 'sencha', '50000.00'],
+        [2, 'dark-espresso', '0.00'],
+      ] as const) {
+        const response = await anonymous()
+          .get(`${API}/catalog/products?collection=morning&sort=${sort}&pageSize=1&page=${index}`)
+          .expect(200);
+        const sorted = productListSchema.parse(response.body);
+        expect(sorted.items.map((item) => [item.slug, item.priceFrom])).toEqual([[slug, price]]);
+        expect(sorted.total).toBe(2);
+      }
+    }
 
-    const shopper = request.agent(server());
+    const shopper = await signInShopper(ctx);
     const variants = await ctx.prisma.productVariant.findMany({
       where: { sku: { in: ['DARK-ESPRESSO', 'SENCHA'] } },
     });
@@ -573,7 +586,7 @@ describe('multi-category catalogue', () => {
       await shopper
         .post(`${API}/cart/items`)
         .send({ variantId: variant.id, quantity: 2 })
-        .expect(201);
+        .expect(variant.sku === 'SENCHA' ? 201 : 404);
     }
     const placed = placedOrderSchema.parse(
       (
@@ -595,21 +608,21 @@ describe('multi-category catalogue', () => {
           .expect(201)
       ).body,
     );
-    expect(placed.order.items.map((item) => item.sku).sort()).toEqual(['DARK-ESPRESSO', 'SENCHA']);
-    expect(placed.order.total).toBe('225000.00');
+    expect(placed.order.items.map((item) => item.sku).sort()).toEqual(['SENCHA']);
+    expect(placed.order.total).toBe('125000.00');
 
     // Later: renamed, repriced, archived, moved. The order still shows what was bought.
-    const espresso = (await admin.get(`${API}/admin/products/${ids['dark-espresso']}`).expect(200))
+    const originalTea = (await admin.get(`${API}/admin/products/${ids['sencha']}`).expect(200))
       .body as ProductUpsertInput;
     await admin
-      .put(`${API}/admin/products/${ids['dark-espresso']}`)
+      .put(`${API}/admin/products/${ids['sencha']}`)
       .send({
-        ...espresso,
-        slug: 'espresso-dark-roast',
+        ...originalTea,
+        slug: 'sencha-renamed',
         status: 'ARCHIVED',
         categoryId: coffee.id,
         translations: { uz: { name: 'Yangi nom' }, ru: null, en: null },
-        variants: espresso.variants.map((variant) => ({ ...variant, price: '99000' })),
+        variants: originalTea.variants.map((variant) => ({ ...variant, price: '99000' })),
       })
       .expect(200);
     const order = orderSchema.parse(
@@ -621,24 +634,24 @@ describe('multi-category catalogue', () => {
           .expect(200)
       ).body,
     );
-    const line = order.items.find((item) => item.sku === 'DARK-ESPRESSO')!;
+    const line = order.items.find((item) => item.sku === 'SENCHA')!;
     expect(line).toMatchObject({
-      productName: 'dark-espresso nomi',
+      productName: 'sencha nomi',
       unitPrice: '50000.00',
       lineTotal: '100000.00',
     });
-    expect(order.total).toBe('225000.00');
+    expect(order.total).toBe('125000.00');
 
     // The renamed product's old address is redirected (while the product is visible).
-    const archived = (await admin.get(`${API}/admin/products/${ids['dark-espresso']}`).expect(200))
+    const archived = (await admin.get(`${API}/admin/products/${ids['sencha']}`).expect(200))
       .body as ProductUpsertInput;
     await admin
-      .put(`${API}/admin/products/${ids['dark-espresso']}`)
+      .put(`${API}/admin/products/${ids['sencha']}`)
       .send({ ...archived, status: 'ACTIVE' })
       .expect(200);
     expect(
-      (await anonymous().get(`${API}/catalog/redirects/products/dark-espresso`).expect(200)).body,
-    ).toEqual({ slug: 'espresso-dark-roast' });
+      (await anonymous().get(`${API}/catalog/redirects/products/sencha`).expect(200)).body,
+    ).toEqual({ slug: 'sencha-renamed' });
     await anonymous().get(`${API}/catalog/redirects/products/never-existed`).expect(404);
   });
 
@@ -660,32 +673,15 @@ describe('multi-category catalogue', () => {
     const gift = await ctx.prisma.productVariant.findUniqueOrThrow({ where: { sku: 'GIFT-1' } });
     const sencha = await ctx.prisma.productVariant.findUniqueOrThrow({ where: { sku: 'SENCHA' } });
     const shopper = request.agent(server());
-    await shopper.post(`${API}/cart/items`).send({ variantId: gift.id, quantity: 3 }).expect(201);
-    await shopper
-      .post(`${API}/checkout/orders`)
-      .send({
-        idempotencyKey: randomUUID(),
-        locale: 'uz',
-        customer: { name: 'Gift', phone: '+998901234567' },
-        delivery: {
-          methodCode: 'courier',
-          regionCode: 'UZ-TK',
-          city: 'Toshkent',
-          addressLine: '1-uy',
-        },
-        paymentMethod: 'CASH_ON_DELIVERY',
-        acceptTerms: true,
-      })
-      .expect(201);
+    await shopper.post(`${API}/cart/items`).send({ variantId: gift.id, quantity: 3 }).expect(404);
+    expect(await ctx.prisma.order.count()).toBe(0);
     expect(
       (await ctx.prisma.productVariant.findUniqueOrThrow({ where: { id: gift.id } })).stockQuantity,
-    ).toBe(0);
+    ).toBe(3);
     expect(
       (await ctx.prisma.productVariant.findUniqueOrThrow({ where: { id: sencha.id } }))
         .stockQuantity,
     ).toBe(sencha.stockQuantity);
-    // Sold out: no more can be added.
-    await shopper.post(`${API}/cart/items`).send({ variantId: gift.id, quantity: 1 }).expect(409);
     expect(green.id).not.toBe(tea.id);
   });
 

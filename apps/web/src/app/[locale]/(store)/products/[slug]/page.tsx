@@ -41,7 +41,7 @@ import { namesFormat } from '@/lib/format';
 import { coverShareImage, pageMetadata, productSchema } from '@/lib/seo';
 import { ShareButton } from '@/components/product/share-button';
 import { packLabel } from '@/lib/format';
-import { showPrices } from '@/lib/site';
+import { sellsOnline } from '@/lib/site';
 
 export async function generateMetadata({
   params,
@@ -99,6 +99,7 @@ async function ProductView({
   // TERAN's own five: their stage, their name set like the pack, their colour (ADR-050/051).
   const code = teaCodeOf(product.slug);
   const packColour = code ? PACK_COLOURS[code] : null;
+  const priced = sellsOnline(product.category.path);
   const family = productFamily(product.illustrationKey, product.category.path);
   const FamilyIcon = family.icon;
   const measures = brewingMeasures(product.brewing, tb);
@@ -134,7 +135,7 @@ async function ProductView({
     locale,
     variant: initialVariant,
     reviews: reviews?.items ?? null,
-    withOffers: showPrices,
+    withOffers: priced,
   });
 
   const th = await getTranslations('Home');
@@ -220,7 +221,7 @@ async function ProductView({
                   {t('badgeNew')}
                 </span>
               ) : null}
-              {showPrices && product.onSale ? (
+              {priced && product.onSale ? (
                 <span className="inline-flex min-h-7 items-center rounded-full bg-forest-700 px-3 text-[0.8125rem] font-semibold text-ivory-50">
                   {t('badgeSale')}
                 </span>
@@ -265,7 +266,7 @@ async function ProductView({
               )}
             </a>
             <div className="mt-5">
-              {showPrices ? (
+              {priced ? (
                 <>
                   <PurchasePanel
                     productName={product.name}
@@ -300,8 +301,8 @@ async function ProductView({
                   {product.stockLevel === 'out_of_stock' ? null : (
                     <OrderBar
                       href={`/contact?tea=${encodeURIComponent(product.slug)}`}
-                      label={t('orderNow')}
-                      ariaLabel={t('orderAction', { name: product.name })}
+                      label={t('contactToOrder')}
+                      ariaLabel={t('contactToOrderNamed', { name: product.name })}
                       name={product.name}
                       thumb={orderThumb(product, code)}
                     />
@@ -339,7 +340,7 @@ async function ProductView({
                 />
               </section>
             ) : null}
-            {showPrices ? null : (
+            {priced ? null : (
               <>
                 <ProductTabsSection product={product} />
                 <AttributeRows product={product} />

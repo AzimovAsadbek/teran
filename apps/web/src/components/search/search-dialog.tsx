@@ -10,7 +10,7 @@ import { Price } from '@/components/ui/price';
 import { Sheet } from '@/components/ui/sheet';
 import { Link, useRouter } from '@/i18n/navigation';
 import { apiRequest } from '@/lib/api/client';
-import { showPrices } from '@/lib/site';
+import { sellsOnline } from '@/lib/site';
 
 const DEBOUNCE_MS = 220;
 
@@ -177,7 +177,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                           <span className="block truncate text-title-sm text-fg group-hover:underline">
                             {product.name}
                           </span>
-                          {showPrices ? (
+                          {sellsOnline(product.category.path) ? (
                             <Price
                               amount={product.priceFrom}
                               from={product.variantCount > 1}

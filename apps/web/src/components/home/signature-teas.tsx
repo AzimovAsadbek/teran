@@ -11,7 +11,7 @@ import {
 import { brewingMeasures } from '@/lib/brewing';
 import { getProduct, getProductList } from '@/lib/data/catalog';
 import { formatMoney, packLabel } from '@/lib/format';
-import { showPrices } from '@/lib/site';
+import { sellsOnline } from '@/lib/site';
 import { SignatureStage, type SignatureTea } from './signature-stage';
 
 /**
@@ -62,8 +62,14 @@ export async function SignatureTeas() {
         : null,
       orderLabel: tp('orderAction', { name: product.name }),
       addLabel: tp('quickAdd', { name: product.name }),
-      price: showPrices && variant ? formatMoney(variant.price, locale, tc('currency.UZS')) : null,
-      variantId: showPrices && variant && product.stockLevel !== 'out_of_stock' ? variant.id : null,
+      price:
+        sellsOnline(product.category.path) && variant
+          ? formatMoney(variant.price, locale, tc('currency.UZS'))
+          : null,
+      variantId:
+        sellsOnline(product.category.path) && variant && product.stockLevel !== 'out_of_stock'
+          ? variant.id
+          : null,
       leaves: leavesOf(product, detail),
       cup: product.image,
     };

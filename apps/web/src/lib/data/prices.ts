@@ -5,7 +5,7 @@ import type {
   ProductSummaryDto,
   VariantDto,
 } from '@teran/contracts';
-import { showPrices } from '@/lib/site';
+import { sellsOnline, showPrices } from '@/lib/site';
 
 /*
  * While the storefront shows no prices (lib/site showPrices, ADR-027), none reaches its pages
@@ -21,9 +21,10 @@ function variant(item: VariantDto): VariantDto {
 }
 
 export function summaryPrices<T extends ProductSummaryDto>(product: T): T {
-  if (showPrices) return product;
+  if (sellsOnline(product.category.path)) return product;
   return {
     ...product,
+    onSale: false,
     priceFrom: HIDDEN,
     compareAtPriceFrom: null,
     defaultVariant: product.defaultVariant ? variant(product.defaultVariant) : null,
@@ -31,7 +32,7 @@ export function summaryPrices<T extends ProductSummaryDto>(product: T): T {
 }
 
 export function detailPrices(product: ProductDetailDto): ProductDetailDto {
-  if (showPrices) return product;
+  if (sellsOnline(product.category.path)) return product;
   return { ...summaryPrices(product), variants: product.variants.map(variant) };
 }
 
@@ -40,6 +41,9 @@ function facetPrices(facets: FacetsDto): FacetsDto {
 }
 
 export function listPrices(list: ProductListDto): ProductListDto {
-  if (showPrices) return list;
-  return { ...list, items: list.items.map(summaryPrices), facets: facetPrices(list.facets) };
+  return {
+    ...list,
+    items: list.items.map(summaryPrices),
+    facets: showPrices ? list.facets : facetPrices(list.facets),
+  };
 }

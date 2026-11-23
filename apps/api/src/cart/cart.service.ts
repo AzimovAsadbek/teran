@@ -18,7 +18,12 @@ import { localeChain, pickTranslation } from '../common/i18n.js';
 import { ZERO, toMoney, toMoneyOrNull } from '../common/money.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { asIllustrationKey, toImageDto, variantStockLevel } from '../catalog/catalog.mapper.js';
-import { visibleProductWhere } from '../catalog/product-visibility.js';
+import {
+  isRetailCategory,
+  retailCategorySelect,
+  retailTeaWhere,
+  visibleProductWhere,
+} from '../catalog/product-visibility.js';
 import { DeliveryService } from '../delivery/delivery.service.js';
 import { evaluateCartLine, isProductPublic } from './cart-line.js';
 import { MAX_CART_LINES } from './cart-merge.js';
@@ -31,6 +36,7 @@ function cartItemsInclude(locale: Locale) {
       include: {
         product: {
           include: {
+            category: { select: retailCategorySelect },
             translations: { where: { locale: { in: localeChain(locale) } } },
             images: { orderBy: { position: 'asc' }, take: 1 },
           },
@@ -123,7 +129,11 @@ export class CartService {
   ): Promise<CartDto> {
     const cartId = await this.mutate(request, response, async (tx, id) => {
       const variant = await tx.productVariant.findFirst({
-        where: { id: input.variantId, isActive: true, product: visibleProductWhere() },
+        where: {
+          id: input.variantId,
+          isActive: true,
+          product: { AND: [visibleProductWhere(), retailTeaWhere] },
+        },
         select: { id: true, stockQuantity: true },
       });
       if (!variant) {
@@ -175,7 +185,11 @@ export class CartService {
   ): Promise<CartDto> {
     const cartId = await this.mutate(request, null, async (tx, id) => {
       const item = await tx.cartItem.findFirst({
-        where: { id: itemId, cartId: id },
+        where: {
+          id: itemId,
+          cartId: id,
+          variant: { isActive: true, product: { AND: [visibleProductWhere(), retailTeaWhere] } },
+        },
         include: { variant: { select: { stockQuantity: true } } },
       });
       if (!item) throw ApiException.notFound('Cart item not found');
@@ -217,7 +231,10 @@ export class CartService {
     const cartId = await this.mutate(request, response, async (tx, id) => {
       const variantIds = items.flatMap((item) => (item.variantId ? [item.variantId] : []));
       const variants = await tx.productVariant.findMany({
-        where: { id: { in: variantIds } },
+        where: {
+          id: { in: variantIds },
+          product: { AND: [visibleProductWhere(), retailTeaWhere] },
+        },
         select: {
           id: true,
           isActive: true,
@@ -355,8 +372,9 @@ export class CartService {
         unitCount: variant.unitCount,
         image: image ? toImageDto(image, name) : null,
         illustrationKey: asIllustrationKey(variant.product.illustrationKey),
-        unitPrice: toMoney(variant.price),
-        compareAtPrice: toMoneyOrNull(variant.compareAtPrice),
+        unitPrice: toMoney(evaluation.issue === 'unavailable' ? 0 : variant.price),
+        compareAtPrice:
+          evaluation.issue === 'unavailable' ? null : toMoneyOrNull(variant.compareAtPrice),
         quantity: evaluation.quantity,
         lineTotal: toMoney(lineTotal),
         maxQuantity: Math.max(0, Math.min(variant.stockQuantity, MAX_LINE_QUANTITY)),
@@ -378,7 +396,9 @@ export class CartService {
   private evaluate(item: CartItemRow, now: Date) {
     return evaluateCartLine({
       requestedQuantity: item.quantity,
-      productVisible: isProductPublic(item.variant.product, now),
+      productVisible:
+        isProductPublic(item.variant.product, now) &&
+        isRetailCategory(item.variant.product.category),
       variantActive: item.variant.isActive,
       stockQuantity: item.variant.stockQuantity,
     });

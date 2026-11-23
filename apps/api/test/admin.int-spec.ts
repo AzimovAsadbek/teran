@@ -19,7 +19,7 @@ import {
   type UserRole,
 } from '@teran/contracts';
 import type { Prisma } from '../src/generated/prisma/client.js';
-import { createTestApp, type TestApp } from './helpers/app.js';
+import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
 import { uploadFilm, waitForFilm } from './helpers/publishing.js';
 import { TEST_ENV } from './test-env.js';
 import {
@@ -105,7 +105,7 @@ describe('admin API', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    categoryId = (await createCategory(ctx.prisma)).id;
+    categoryId = (await createCategory(ctx.prisma, 'tea')).id;
     await createDeliveryMethod(ctx.prisma, { code: 'courier', price: '25000' });
   });
 
@@ -122,7 +122,7 @@ describe('admin API', () => {
   }
 
   async function placeOrder(variantId: string, quantity: number): Promise<string> {
-    const shopper = request.agent(server());
+    const shopper = await signInShopper(ctx);
     await shopper.post(`${API}/cart/items?locale=uz`).send({ variantId, quantity }).expect(201);
     const placed = await shopper
       .post(`${API}/checkout/orders`)

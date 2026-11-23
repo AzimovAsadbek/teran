@@ -37,7 +37,7 @@ import {
   toProductDetail,
   toProductSummary,
 } from './catalog.mapper.js';
-import { visibleProductWhere } from './product-visibility.js';
+import { retailTeaWhere, visibleProductWhere } from './product-visibility.js';
 
 const RELATED_LIMIT = 4;
 const SUGGESTION_LIMIT = 6;
@@ -222,13 +222,7 @@ export class CatalogService {
     const [total, products, formatGroups, caffeineGroups, priceRange, attributeFacets] =
       await Promise.all([
         this.prisma.product.count({ where }),
-        this.prisma.product.findMany({
-          where,
-          orderBy: this.listOrder(query),
-          skip,
-          take: query.pageSize,
-          include: summaryInclude(query.locale),
-        }),
+        this.listPage(query, where, skip),
         this.prisma.product.groupBy({
           by: ['format'],
           where: formatFacetWhere,
@@ -242,7 +236,7 @@ export class CatalogService {
           orderBy: { caffeineLevel: 'asc' },
         }),
         this.prisma.product.aggregate({
-          where: formatFacetWhere,
+          where: { AND: [formatFacetWhere, retailTeaWhere] },
           _min: { minPrice: true },
           _max: { minPrice: true },
         }),
@@ -472,6 +466,8 @@ export class CatalogService {
     if (query.featured) conditions.push({ isFeatured: true });
     if (query.inStock)
       conditions.push({ variants: { some: { isActive: true, stockQuantity: { gt: 0 } } } });
+    if (query.minPrice !== undefined || query.maxPrice !== undefined)
+      conditions.push(retailTeaWhere);
     if (query.minPrice !== undefined) conditions.push({ minPrice: { gte: query.minPrice } });
     if (query.maxPrice !== undefined) conditions.push({ minPrice: { lte: query.maxPrice } });
     if (query.q) conditions.push(this.searchWhere(normalizeSearchText(query.q), query.locale));
@@ -616,6 +612,36 @@ export class CatalogService {
         some: { locale: { in: localeChain(locale) }, searchText: { contains: needle } },
       },
     };
+  }
+
+  private async listPage(query: ProductListQuery, where: Prisma.ProductWhereInput, skip: number) {
+    const include = summaryInclude(query.locale);
+    const orderBy = this.listOrder(query);
+    const take = query.pageSize;
+    const byPrice = query.sort === 'price_asc' || query.sort === 'price_desc';
+    if (!byPrice || query.minPrice !== undefined || query.maxPrice !== undefined) {
+      return this.prisma.product.findMany({ where, include, orderBy, skip, take });
+    }
+
+    // Priced teas come first. Private prices must never determine the order of contact-only items.
+    const teas = { AND: [where, retailTeaWhere] };
+    const teaCount = await this.prisma.product.count({ where: teas });
+    const teaTake = Math.min(take, Math.max(0, teaCount - skip));
+    const [priced, other] = await Promise.all([
+      teaTake
+        ? this.prisma.product.findMany({ where: teas, include, orderBy, skip, take: teaTake })
+        : [],
+      teaTake < take
+        ? this.prisma.product.findMany({
+            where: { AND: [where, { NOT: retailTeaWhere }] },
+            include,
+            orderBy: { slug: 'asc' },
+            skip: Math.max(0, skip - teaCount),
+            take: take - teaTake,
+          })
+        : [],
+    ]);
+    return [...priced, ...other];
   }
 
   private listOrder(query: ProductListQuery): Prisma.ProductOrderByWithRelationInput[] {

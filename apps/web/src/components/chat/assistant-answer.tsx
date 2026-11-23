@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ProductImage } from '@/components/catalog/product-image';
 import { Link } from '@/i18n/navigation';
 import { formatMoney, packLabel } from '@/lib/format';
-import { showPrices } from '@/lib/site';
+import { sellsOnline } from '@/lib/site';
 
 /** Where each page an answer points to lives. */
 const PAGE_HREF: Record<AssistantLink, string> = {
@@ -66,7 +66,7 @@ export function AssistantAnswer({
           {answer.products.map((product) => {
             const soldOut = product.stockLevel === 'out_of_stock';
             const pack = product.defaultVariant
-              ? showPrices
+              ? sellsOnline(product.category.path)
                 ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
                 : packLabel(product.defaultVariant, product.format, locale, (key, values) =>
                     tp(`units.${key}`, values),

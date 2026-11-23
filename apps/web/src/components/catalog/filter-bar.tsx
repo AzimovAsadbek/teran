@@ -233,7 +233,10 @@ export async function FilterBar({
               applied={t('filterApplied')}
             />
           ))}
-          {showPrices ? (
+          {showPrices &&
+          (facets.priceRange ||
+            filters.minPrice !== undefined ||
+            filters.maxPrice !== undefined) ? (
             <PriceFilter
               basePath={basePath}
               formAction={formAction}
@@ -276,7 +279,11 @@ export async function FilterBar({
           {t('results', { count: total })}
         </p>
         <div className="lg:self-start">
-          <SortSelect value={filters.sort} query={toSearchParams(filters)} />
+          <SortSelect
+            hasPricedTea={Boolean(facets.priceRange)}
+            value={filters.sort}
+            query={toSearchParams(filters)}
+          />
         </div>
       </div>
 

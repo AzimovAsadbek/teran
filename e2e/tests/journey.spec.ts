@@ -81,7 +81,7 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   await click.check();
   await expect(visible(main(page).getByText(/Demo · no money is charged/))).toBeVisible();
   await visible(main(page).getByRole('checkbox', { name: /terms of use/ })).check();
-  await visible(main(page).getByRole('button', { name: /^Place order · .+UZS$/ })).click();
+  await visible(main(page).getByRole('button', { name: /^Pay with Click · .+UZS$/ })).click();
 
   // 6. The demonstration payment page: no card details, a clear label; the payment is declined.
   await expect(page).toHaveURL(/\/en\/payments\/demo\/[A-Za-z0-9_-]+$/);

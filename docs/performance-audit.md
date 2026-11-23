@@ -1,5 +1,19 @@
 # Performance audit
 
+## 2026-11-24 · terantrade.uz
+
+Jonli bosh sahifa `33cea0b` versiyasida mobil Chromium orqali o‘lchandi. Har bir
+profilga bo‘sh brauzer keshi bilan uch marta kirildi. Vaqtlar navigatsiya boshlanganidan
+hisoblangan medianalardir.
+
+| Mobil profil                   | Birinchi rasm | Birinchi video kadri | Video nusxasi |
+| ------------------------------ | ------------: | -------------------: | ------------: |
+| 3G · 750 kbit/s, 150 ms        |        4,76 s |               8,69 s |        640 px |
+| 2G · 128 kbit/s, 350 ms        |       24,82 s |              53,07 s |        320 px |
+| Save-Data · 750 kbit/s, 150 ms |        2,74 s |               8,91 s |        320 px |
+
+Har uch profilda ham video boshlandi. Server videoni HTTP `206` orqali yubordi.
+
 ## 2026-11-21 video startup
 
 Bosh sahifaning birinchi videosi avval `slow-2g`, `2g` va `Save-Data` holatlarida poster bilan cheklanardi. Endi vitrina aloqa sifatiga qarab video nusxasini tanlaydi. Katalog kartasi ekranda turganda, galereya va qisqa videolar lentasi esa tegishli video tanlanganda ijroni boshlaydi. Tizimda kamaytirilgan harakat sozlangan bo‘lsa, foydalanuvchi saytdagi harakat tugmasi orqali videolarni yoqa oladi. Brauzer avtomatik ijroni to‘xtatsa, keyingi bosish yoki klaviatura harakati bilan qayta uriniladi.

@@ -2,7 +2,7 @@ import type { Locale } from '@teran/contracts';
 import type { Block, Localized, QuestionGroup } from '../types';
 
 /**
- * Help centre answers. They describe how the store works (guest checkout, cash on delivery,
+ * Help centre answers. They describe how the store works (account checkout, cash on delivery,
  * configured delivery methods) and general tea knowledge; nothing about specific products.
  */
 export const faqGroups: Localized<readonly QuestionGroup[]> = {
@@ -20,7 +20,7 @@ export const faqGroups: Localized<readonly QuestionGroup[]> = {
         {
           question: 'Do I need an account?',
           answer: [
-            'No. You can order as a guest. An account simply keeps your orders and details in one place.',
+            'Yes. You can add tea to your bag before signing in. Sign in or create an account to confirm your order and pay.',
           ],
         },
         {
@@ -124,7 +124,7 @@ export const faqGroups: Localized<readonly QuestionGroup[]> = {
         {
           question: 'Нужен ли аккаунт?',
           answer: [
-            'Нет, можно заказать без регистрации. Аккаунт просто хранит ваши заказы и данные в одном месте.',
+            'Да. Чай можно добавить в корзину без входа. Чтобы подтвердить и оплатить заказ, войдите или создайте аккаунт.',
           ],
         },
         {
@@ -228,7 +228,7 @@ export const faqGroups: Localized<readonly QuestionGroup[]> = {
         {
           question: 'Hisob ochish shartmi?',
           answer: [
-            'Yoʻq, roʻyxatdan oʻtmasdan ham buyurtma berish mumkin. Hisob shunchaki buyurtmalaringiz va maʼlumotlaringizni bir joyda saqlaydi.',
+            'Ha. Choyni savatga kirishsiz qoʻsha olasiz. Buyurtmani tasdiqlash va toʻlash uchun hisobingizga kiring yoki yangi hisob oching.',
           ],
         },
         {

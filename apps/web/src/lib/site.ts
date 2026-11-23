@@ -1,3 +1,5 @@
+import { isRetailTea } from '@teran/contracts/constants';
+
 /** Public origin used for canonical URLs, sitemaps and social metadata. */
 export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(
   /\/$/,
@@ -18,15 +20,12 @@ export function absoluteUrl(path: string): string {
  */
 export const isDemoContent = process.env.NEXT_PUBLIC_DEMO_CONTENT !== 'false';
 
-/**
- * Prices and online ordering. Off by default since the owner asked (2026-10-17) to show no price
- * until TERAN confirms them: the storefront then shows no price anywhere (cards, product pages,
- * search, delivery fees, structured data), has no bag, and asks visitors to order
- * through TERAN's contact channels. Prices stay in the admin area and can be edited there at any
- * time. NEXT_PUBLIC_SHOW_PRICES=true (a build-time switch) turns both back on; the end-to-end stack
- * builds with it.
- */
+/** Build-time storefront switch. When open, only the Tea branch offers priced online orders. */
 export const showPrices = process.env.NEXT_PUBLIC_SHOW_PRICES === 'true';
+
+export function sellsOnline(categoryPath: string): boolean {
+  return showPrices && isRetailTea(categoryPath);
+}
 
 /** Open Graph locale codes for the supported languages. */
 export const ogLocales = { uz: 'uz_UZ', ru: 'ru_RU', en: 'en_US' } as const;

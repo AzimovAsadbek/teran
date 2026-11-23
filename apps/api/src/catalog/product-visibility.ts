@@ -1,4 +1,27 @@
+import { isRetailTea, RETAIL_TEA_CATEGORY } from '@teran/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
+
+export const retailTeaWhere = {
+  category: {
+    OR: [{ slug: RETAIL_TEA_CATEGORY, parentId: null }, { parent: { slug: RETAIL_TEA_CATEGORY } }],
+  },
+} satisfies Prisma.ProductWhereInput;
+
+export const retailCategorySelect = {
+  slug: true,
+  isActive: true,
+  parent: { select: { slug: true, isActive: true } },
+} satisfies Prisma.CategorySelect;
+
+export function isRetailCategory(
+  category: Prisma.CategoryGetPayload<{ select: typeof retailCategorySelect }>,
+): boolean {
+  return (
+    category.isActive &&
+    category.parent?.isActive !== false &&
+    isRetailTea(category.parent ? category.parent.slug + '/' + category.slug : category.slug)
+  );
+}
 
 /**
  * The single definition of "visible on the storefront": active, published, sellable in at least

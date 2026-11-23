@@ -1,3 +1,4 @@
+import { registerAtCheckout } from './support/checkout.ts';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import { E2E_ADMIN } from '../scripts/e2e-env.ts';
@@ -23,7 +24,7 @@ async function signInAsAdmin(page: Page) {
   await expect(page).toHaveURL(/\/en\/admin$/);
 }
 
-async function placeGuestOrder(browser: Browser, slug: string): Promise<string> {
+async function placeCustomerOrder(browser: Browser, slug: string): Promise<string> {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto(`/en/products/${slug}`);
@@ -31,6 +32,7 @@ async function placeGuestOrder(browser: Browser, slug: string): Promise<string> 
   await visible(
     page.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: 'Checkout' }),
   ).click();
+  await registerAtCheckout(page);
   await field(page, 'Full name').fill('Admin Journey');
   await field(page, 'Phone number').fill('90 333 44 55');
   await field(page, 'Region').selectOption('UZ-TK');
@@ -40,7 +42,7 @@ async function placeGuestOrder(browser: Browser, slug: string): Promise<string> 
   await page.getByRole('radio', { name: /Cash on delivery/ }).check();
   await page.getByRole('checkbox', { name: /terms of use/ }).check();
   await page.getByRole('button', { name: /^Place order · / }).click();
-  await expect(page).toHaveURL(/\/en\/orders\/TRN-/);
+  await expect(page).toHaveURL(/\/en\/account\/orders\/TRN-/);
   const number = new URL(page.url()).pathname.split('/').pop() ?? '';
   await context.close();
   return number;
@@ -145,7 +147,7 @@ test.describe('administration', () => {
     await expect(visible(page.getByRole('cell', { name: '12', exact: true }))).toBeVisible();
 
     // A customer orders it; staff confirm, deliver and record the cash.
-    const number = await placeGuestOrder(browser, slug);
+    const number = await placeCustomerOrder(browser, slug);
     await page.goto(`/en/admin/orders?q=${number}`);
     await page.getByRole('link', { name: number }).click();
     // Every step is confirmed in a dialog that names the same action.

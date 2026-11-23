@@ -1,5 +1,6 @@
 import {
   ASSISTANT_LINKS,
+  isRetailTea,
   REGIONS,
   type BrewingDto,
   type CategoryDto,
@@ -96,7 +97,8 @@ function productEntry(product: KnowledgeProduct, prices: boolean): string {
         : variant.unitCount !== null
           ? `${variant.unitCount} pcs`
           : variant.sku;
-    const price = prices ? `, ${formatSom(variant.price)}` : '';
+    const price =
+      prices && isRetailTea(product.category.path) ? `, ${formatSom(variant.price)}` : '';
     return `${size} (${STOCK[variant.stockLevel]}${price})`;
   });
   const details = product.attributes

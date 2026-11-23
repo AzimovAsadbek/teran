@@ -1,3 +1,4 @@
+import { registerAtCheckout } from './support/checkout.ts';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { E2E_ADMIN } from '../scripts/e2e-env.ts';
@@ -76,6 +77,7 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
     await expectAccessible(page, 'open bag drawer');
 
     await visit(page, '/en/checkout');
+    await registerAtCheckout(page);
     await expect(page.getByLabel('Full name')).toBeVisible();
     await expectAccessible(page, 'checkout');
     await page.getByRole('button', { name: /^Place order/ }).click();
@@ -157,7 +159,7 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
     await main.getByLabel('Address', { exact: false }).first().fill('Axe street 1');
     await main.getByRole('radio', { name: /Payme/ }).check();
     await main.getByRole('checkbox', { name: /terms of use/ }).check();
-    await main.getByRole('button', { name: /^Place order · / }).click();
+    await main.getByRole('button', { name: /^Pay with Payme · / }).click();
     await expect(page).toHaveURL(/\/en\/payments\/demo\//);
     await page.waitForLoadState('networkidle');
     await expectAccessible(page, 'demonstration payment page');

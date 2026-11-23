@@ -14,7 +14,7 @@ import {
   type RawSearchParams,
 } from '@/features/catalog/query';
 import { useRouter } from '@/i18n/navigation';
-import { VISIBLE_SORTS } from '@/features/catalog/sorts';
+import { visibleSorts } from '@/features/catalog/sorts';
 import { showPrices } from '@/lib/site';
 
 /**
@@ -134,7 +134,7 @@ const FilterForm = memo(function FilterForm({
       className="divide-y divide-line-subtle px-5 sm:px-6"
     >
       <Group legend={t('sort')}>
-        {VISIBLE_SORTS.map((sort) => (
+        {visibleSorts(Boolean(facets.priceRange)).map((sort) => (
           <label key={sort} className="flex min-h-11 cursor-pointer items-center gap-3 text-body">
             <input
               type="radio"
@@ -187,7 +187,8 @@ const FilterForm = memo(function FilterForm({
         </Group>
       ) : null}
 
-      {showPrices ? (
+      {showPrices &&
+      (facets.priceRange || filters.minPrice !== undefined || filters.maxPrice !== undefined) ? (
         <Group legend={t('price')}>
           <div className="grid grid-cols-2 gap-3 pt-1">
             <label className="text-helper text-fg-muted">

@@ -1,3 +1,4 @@
+import { registerAtCheckout } from './support/checkout.ts';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { API, publishProduct, staffRequest } from './support/admin.ts';
 
@@ -45,7 +46,7 @@ test.describe('phone', () => {
     const drawer = page.getByRole('dialog', { name: 'Your bag' });
     await expect(drawer.getByText('Classic black tea')).toBeVisible();
     await drawer.getByRole('link', { name: 'Checkout' }).click();
-    await expect(page).toHaveURL(/\/en\/checkout$/);
+    await registerAtCheckout(page);
     await expect(visible(page.getByRole('heading', { level: 1, name: 'Checkout' }))).toBeVisible();
     await expect(visible(page.getByLabel('Full name'))).toBeVisible();
     await expectNoSidewaysScroll(page);

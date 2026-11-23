@@ -3,8 +3,9 @@
 import type { ProductSummaryDto } from '@teran/contracts';
 import { useEffect, useSyncExternalStore } from 'react';
 import { ProductRail, type RailLabels } from '@/components/home/product-rail';
+import { showPrices } from '@/lib/site';
 
-const STORAGE_KEY = 'teran:recently-viewed';
+const STORAGE_KEY = showPrices ? 'teran:recently-viewed:retail-tea-v1' : 'teran:recently-viewed';
 const LIMIT = 8;
 const EMPTY: ProductSummaryDto[] = [];
 

@@ -86,15 +86,15 @@ function firstMethodFor(options: CheckoutOptionsDto, regionCode: string): string
 }
 
 function initialValues(
-  user: CurrentUserDto | null,
+  user: CurrentUserDto,
   options: CheckoutOptionsDto,
   address: AddressDto | null,
 ): Values {
-  const phone = user?.phone ? normalizeUzPhone(user.phone) : null;
+  const phone = user.phone ? normalizeUzPhone(user.phone) : null;
   return {
-    name: user ? [user.firstName, user.lastName].filter(Boolean).join(' ') : '',
+    name: [user.firstName, user.lastName].filter(Boolean).join(' '),
     phone: phone ? formatUzPhone(phone) : '',
-    email: user?.email ?? '',
+    email: user.email ?? '',
     regionCode: address?.regionCode ?? '',
     city: address?.city ?? '',
     addressLine: address?.addressLine ?? '',
@@ -118,8 +118,8 @@ export function CheckoutForm({
   addresses,
 }: {
   options: CheckoutOptionsDto;
-  user: CurrentUserDto | null;
-  /** The signed-in customer's address book (empty for guests). */
+  user: CurrentUserDto;
+  /** The signed-in customer's address book. */
   addresses: AddressDto[];
 }) {
   const t = useTranslations('Checkout');
@@ -136,7 +136,7 @@ export function CheckoutForm({
   const [savedAddressId, setSavedAddressId] = useState(defaultAddress?.id ?? '');
   const [values, setValues] = useState<Values>(() => initialValues(user, options, defaultAddress));
   const [saveAddress, setSaveAddress] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const [destination, setDestination] = useState<'payment' | 'order' | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<ApiError | null>(null);
@@ -281,7 +281,7 @@ export function CheckoutForm({
       paymentMethod: values.paymentMethod as PaymentMethod,
       note: values.note,
       expectedTotal: currentQuote?.total,
-      ...(user && saveAddress ? { saveAddress: true } : {}),
+      ...(saveAddress ? { saveAddress: true } : {}),
       acceptTerms: values.acceptTerms as true,
     };
     const parsed = checkoutSchema.safeParse(input);
@@ -317,19 +317,22 @@ export function CheckoutForm({
         method: 'POST',
         body: parsed.data,
       });
+      setDestination(placed.payment?.redirectUrl ? 'payment' : 'order');
       cartActions.clear();
       if (placed.payment?.redirectUrl) {
         // Online payment: continue on the provider's page (or the labelled demo page). The order
         // is only marked paid when the provider confirms it to the API.
-        setRedirecting(true);
         window.location.assign(placed.payment.redirectUrl);
         return;
       }
-      const query = new URLSearchParams({ token: placed.accessToken, placed: '1' });
-      router.replace(`/orders/${placed.order.number}?${query.toString()}`);
+      router.replace(`/account/orders/${placed.order.number}?placed=1`);
     } catch (caught) {
       const failure = caught instanceof ApiError ? caught : new ApiError(0, null);
       setSubmitting(false);
+      if (failure.code === 'UNAUTHENTICATED') {
+        router.replace('/account/login?next=/checkout');
+        return;
+      }
       if (failure.code === 'VALIDATION_FAILED') {
         setErrors(fieldErrorsFromApi(failure.body?.issues));
         setSummaryError(tv('fixErrors'));
@@ -353,6 +356,12 @@ export function CheckoutForm({
     }
   }
 
+  if (destination)
+    return (
+      <Notice role="status" className="mt-8">
+        {t(destination === 'payment' ? 'redirectingToPayment' : 'thankYou')}
+      </Notice>
+    );
   if (!cart) {
     return cartStatus === 'error' ? (
       <Notice tone="danger" role="alert" className="mt-8">
@@ -378,6 +387,10 @@ export function CheckoutForm({
   }));
   // Only cart problems (explained next to the button) disable it; missing input is reported on submit.
   const canSubmit = cart.isCheckoutReady && !submitting;
+  const submitLabel =
+    values.paymentMethod && isOnlinePaymentMethod(values.paymentMethod)
+      ? t('continueToProvider', { provider: t(`paymentMethods.${values.paymentMethod}`) })
+      : t('placeOrder');
 
   return (
     <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-14">
@@ -409,20 +422,6 @@ export function CheckoutForm({
         <FormErrorSummary message={summaryError} />
 
         <Section step={1} title={t('contactSection')}>
-          {!user ? (
-            <p className="text-body-sm text-fg-muted">
-              {t.rich('accountHint', {
-                login: (chunks) => (
-                  <Link
-                    href="/account/login?next=/checkout"
-                    className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
-                  >
-                    {chunks}
-                  </Link>
-                ),
-              })}
-            </p>
-          ) : null}
           <TextField
             label={t('name')}
             name="name"
@@ -688,13 +687,11 @@ export function CheckoutForm({
             className="w-full"
           >
             {submitting ? null : <Lock aria-hidden className="h-4 w-4" />}
-            {redirecting
-              ? t('redirectingToPayment')
-              : submitting
-                ? t('placing')
-                : currentQuote
-                  ? `${t('placeOrder')} · ${formatMoney(currentQuote.total, locale, currency)}`
-                  : t('placeOrder')}
+            {submitting
+              ? t('placing')
+              : currentQuote
+                ? `${submitLabel} · ${formatMoney(currentQuote.total, locale, currency)}`
+                : submitLabel}
           </Button>
         </div>
       </form>

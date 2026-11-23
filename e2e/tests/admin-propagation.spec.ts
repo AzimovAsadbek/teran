@@ -1,3 +1,4 @@
+import { registerAtCheckout } from './support/checkout.ts';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import {
   API,
@@ -67,13 +68,13 @@ function product(
  * A category of the test's own, so the products it adds never change what other journeys count
  * in the seeded categories. `retire` switches it off again at the end.
  */
-async function ownCategory(page: Page, id: string) {
+async function ownCategory(page: Page, id: string, parentId: string | null = null) {
   const data = (isActive: boolean) => ({
     slug: `e2e-prop-${id}`,
     position: 90,
     isActive,
     illustrationKey: null,
-    parentId: null,
+    parentId,
     translations: { uz: { name: `Sinov turkumi ${id}` }, ru: null, en: null },
   });
   const created = await page.request.post(`${API}/admin/categories`, { data: data(true) });
@@ -357,7 +358,12 @@ test.describe('admin changes reach the storefront', () => {
     const store = await storefront(browser);
     const id = Date.now().toString(36);
     const slug = `e2e-edit-${id}`;
-    const own = await ownCategory(page, id);
+    const categories = await page.request.get(`${API}/catalog/categories?locale=en`);
+    expect(categories.ok()).toBe(true);
+    const roots: { id: string; slug: string }[] = await categories.json();
+    const tea = roots.find((entry) => entry.slug === 'tea');
+    if (!tea) throw new Error('Missing seeded tea category');
+    const own = await ownCategory(page, id, tea.id);
     const productId = await publishProduct(page.request, product(slug, own.id), PICTURES.sprig);
 
     // Price and short description changed in the editor.
@@ -546,12 +552,13 @@ test.describe('what visitors send reaches the admin area', () => {
     await footer.getByRole('button', { name: 'Subscribe' }).click();
     await expect(footer.getByText('Thank you! You are subscribed.')).toBeVisible();
 
-    // A guest order (its status page is shown to the customer).
+    // The visitor signs in with their bag before confirming an order.
     await visitor.goto('/en/products/classic-black-tea');
     await visitor.getByRole('button', { name: /^Add to bag · / }).click();
     await visible(
       visitor.getByRole('dialog', { name: 'Your bag' }).getByRole('link', { name: 'Checkout' }),
     ).click();
+    await registerAtCheckout(visitor);
     const checkout = visitor.getByRole('main');
     await visible(checkout.getByLabel('Full name')).fill('Propagation Buyer');
     await visible(checkout.getByLabel('Phone number')).fill('90 444 55 66');
@@ -561,7 +568,7 @@ test.describe('what visitors send reaches the admin area', () => {
     await checkout.getByRole('radio', { name: /Cash on delivery/ }).check();
     await checkout.getByRole('checkbox', { name: /terms of use/ }).check();
     await checkout.getByRole('button', { name: /^Place order · / }).click();
-    await expect(visitor).toHaveURL(/\/en\/orders\/TRN-/);
+    await expect(visitor).toHaveURL(/\/en\/account\/orders\/TRN-/);
     const orderPage = visitor.url();
     const number = new URL(orderPage).pathname.split('/').pop() ?? '';
 

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { cartSchema, placedOrderSchema } from '@teran/contracts';
-import { createTestApp, type TestApp } from './helpers/app.js';
+import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
 import {
   createCategory,
   createDeliveryMethod,
@@ -42,7 +42,7 @@ describe('cart and checkout', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    categoryId = (await createCategory(ctx.prisma)).id;
+    categoryId = (await createCategory(ctx.prisma, 'tea')).id;
     await createDeliveryMethod(ctx.prisma, {
       code: 'courier',
       price: '25000',
@@ -178,12 +178,44 @@ describe('cart and checkout', () => {
     expect(ownerCart.lines).toHaveLength(1);
   });
 
+  it('keeps the guest bag until login and never reserves stock for an unsigned order', async () => {
+    const product = await createProduct(ctx.prisma, { categoryId });
+    const guest = agent();
+    await guest.post(`${API}/cart/items`).send({ variantId: product.variants[0]!.id }).expect(201);
+    await guest.post(`${API}/checkout/orders`).send(checkoutBody()).expect(401);
+    expect(await ctx.prisma.inventoryMovement.count()).toBe(0);
+    await signInShopper(ctx, guest);
+    const body = checkoutBody();
+    await guest.post(`${API}/checkout/orders`).send(body).expect(201);
+    const other = await signInShopper(ctx);
+    await other.post(`${API}/checkout/orders`).send(body).expect(409);
+    expect(await ctx.prisma.order.count()).toBe(1);
+  });
+
+  it('blocks a saved tea pack after staff move it out of Tea', async () => {
+    const product = await createProduct(ctx.prisma, { categoryId });
+    const browser = await signInShopper(ctx);
+    await browser
+      .post(`${API}/cart/items`)
+      .send({ variantId: product.variants[0]!.id })
+      .expect(201);
+    const gifts = await createCategory(ctx.prisma, 'gifts');
+    await ctx.prisma.product.update({ where: { id: product.id }, data: { categoryId: gifts.id } });
+    const bag = cartSchema.parse((await browser.get(`${API}/cart`).expect(200)).body);
+    expect(bag).toMatchObject({
+      isCheckoutReady: false,
+      lines: [{ issue: 'unavailable', unitPrice: '0.00' }],
+    });
+    await browser.post(`${API}/checkout/orders`).send(checkoutBody()).expect(409);
+    expect(await ctx.prisma.order.count()).toBe(0);
+  });
+
   it('places an order with server-side totals, ignoring client-supplied prices', async () => {
     const product = await createProduct(ctx.prisma, {
       categoryId,
       variants: [{ price: '45000', stock: 10 }],
     });
-    const shopper = agent();
+    const shopper = await signInShopper(ctx);
     await shopper
       .post(`${API}/cart/items`)
       .send({ variantId: product.variants[0]!.id, quantity: 2 })
@@ -240,7 +272,7 @@ describe('cart and checkout', () => {
       categoryId,
       variants: [{ price: '45000', stock: 10 }],
     });
-    const shopper = agent();
+    const shopper = await signInShopper(ctx);
     await shopper
       .post(`${API}/cart/items`)
       .send({ variantId: product.variants[0]!.id, quantity: 1 })
@@ -263,7 +295,7 @@ describe('cart and checkout', () => {
       categoryId,
       variants: [{ price: '45000', stock: 10 }],
     });
-    const shopper = agent();
+    const shopper = await signInShopper(ctx);
     await shopper
       .post(`${API}/cart/items`)
       .send({ variantId: product.variants[0]!.id, quantity: 1 })
@@ -291,8 +323,8 @@ describe('cart and checkout', () => {
       categoryId,
       variants: [{ price: '45000', stock: 1 }],
     });
-    const alice = agent();
-    const bob = agent();
+    const alice = await signInShopper(ctx);
+    const bob = await signInShopper(ctx);
     for (const shopper of [alice, bob]) {
       await shopper
         .post(`${API}/cart/items`)
@@ -320,7 +352,7 @@ describe('cart and checkout', () => {
       categoryId,
       variants: [{ price: '45000', stock: 10 }],
     });
-    const shopper = agent();
+    const shopper = await signInShopper(ctx);
     await shopper
       .post(`${API}/cart/items`)
       .send({ variantId: product.variants[0]!.id, quantity: 1 })
@@ -340,7 +372,7 @@ describe('cart and checkout', () => {
 
   it('enforces delivery coverage, address requirements and enabled payment methods', async () => {
     const product = await createProduct(ctx.prisma, { categoryId });
-    const shopper = agent();
+    const shopper = await signInShopper(ctx);
     await shopper
       .post(`${API}/cart/items`)
       .send({ variantId: product.variants[0]!.id })
@@ -392,7 +424,7 @@ describe('cart and checkout', () => {
 
   it('serves guest order status only with the secret token', async () => {
     const product = await createProduct(ctx.prisma, { categoryId });
-    const shopper = agent();
+    const shopper = await signInShopper(ctx);
     await shopper
       .post(`${API}/cart/items`)
       .send({ variantId: product.variants[0]!.id })
@@ -416,7 +448,12 @@ describe('cart and checkout', () => {
   });
 
   it('refuses checkout with an empty cart', async () => {
-    const response = await agent().post(`${API}/checkout/orders`).send(checkoutBody()).expect(400);
+    const response = await (
+      await signInShopper(ctx)
+    )
+      .post(`${API}/checkout/orders`)
+      .send(checkoutBody())
+      .expect(400);
     expect(response.body.code).toBe('CART_EMPTY');
   });
 });

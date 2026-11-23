@@ -210,14 +210,21 @@ describe('payment providers (live mode, simulated provider calls)', () => {
         amount: tiyin(placed),
         account: { order_id: placed.order.number },
       };
-      const created = await rpc('CreateTransaction', create);
+      const [created, concurrentRepeat] = await Promise.all([
+        rpc('CreateTransaction', create),
+        rpc('CreateTransaction', create),
+      ]);
       expect(created.result).toMatchObject({ state: 1 });
-      expect(await rpc('CreateTransaction', create)).toMatchObject({ result: created.result });
+      expect(concurrentRepeat.result).toEqual(created.result);
       expect((await orderView(placed)).paymentStatus).toBe('PROCESSING');
 
       // A second Payme transaction for the same order while the first is open.
       const second = await rpc('CreateTransaction', { ...create, id: '5e730e8e0b852a417aa49cec' });
-      expect(second.error?.code).toBe(-31008);
+      expect(second.error).toMatchObject({ code: -31051, data: 'order_id' });
+      expect((await rpc('CheckPerformTransaction', create)).error).toMatchObject({
+        code: -31051,
+        data: 'order_id',
+      });
 
       const performed = await rpc('PerformTransaction', { id: paymeId });
       expect(performed.result).toMatchObject({
@@ -261,6 +268,26 @@ describe('payment providers (live mode, simulated provider calls)', () => {
           reason: 5,
         }),
       ]);
+    });
+
+    it('reserves a one-time order for only one of two concurrent Payme transactions', async () => {
+      const placed = await placeOrder('PAYME');
+      const params = {
+        account: { order_id: placed.order.number },
+        time: Date.now(),
+        amount: tiyin(placed),
+      };
+      const attempts = await Promise.all(
+        ['bbbbbbbbbbbbbbbbbbbbbb21', 'bbbbbbbbbbbbbbbbbbbbbb22'].map((id) =>
+          rpc('CreateTransaction', { ...params, id }),
+        ),
+      );
+      expect(attempts.filter((attempt) => attempt.result?.state === 1)).toHaveLength(1);
+      expect(attempts.filter((attempt) => attempt.error).map((attempt) => attempt.error)).toEqual([
+        expect.objectContaining({ code: -31051, data: 'order_id' }),
+      ]);
+      expect(await ctx.prisma.paymeTransaction.count()).toBe(1);
+      expect((await orderView(placed)).paymentStatus).toBe('PROCESSING');
     });
 
     it('cancels an unperformed transaction and lets the customer try again', async () => {

@@ -31,6 +31,14 @@ export const UNPARSABLE_BODY = Symbol('unparsable-body');
 
 const ORDER_NUMBER = /^TRN-[0-9A-Z]{8}$/;
 
+function orderNumberFromAccount(account: unknown): string {
+  const number = isRecord(account) ? account[PAYME_ACCOUNT_FIELD] : undefined;
+  if (typeof number !== 'string' || !ORDER_NUMBER.test(number)) {
+    throw new PaymeError(-31050, PAYME_ACCOUNT_FIELD);
+  }
+  return number;
+}
+
 const transactionInclude = {
   payment: {
     select: { id: true, orderId: true, status: true, order: { select: { number: true } } },
@@ -112,7 +120,7 @@ export class PaymeService {
   private async checkPerformTransaction(params: Record<string, unknown>) {
     const amount = paymeInteger(params.amount);
     if (amount === null) throw new PaymeError(-31001);
-    await this.payableOrder(params.account, amount);
+    await this.payableOrder(orderNumberFromAccount(params.account), amount);
     return { allow: true };
   }
 
@@ -128,17 +136,15 @@ export class PaymeService {
 
     const now = Date.now();
     if (BigInt(now) - time >= BigInt(PAYME_TIMEOUT_MS)) throw new PaymeError(-31008);
-    const order = await this.payableOrder(params.account, amount);
-
-    const active = await this.prisma.paymeTransaction.findFirst({
-      where: { payment: { orderId: order.id }, state: PaymeState.CREATED },
-      select: { id: true },
-    });
-    // One Payme transaction at a time per order (Payme's sandbox expects -31008 here).
-    if (active) throw new PaymeError(-31008);
+    const number = orderNumberFromAccount(params.account);
 
     try {
-      const created = await this.prisma.$transaction(async (tx) => {
+      const transaction = await this.prisma.$transaction(async (tx) => {
+        // Competing callbacks must see the transaction that first reserved this order.
+        await tx.$queryRaw`SELECT id FROM "Order" WHERE number = ${number} FOR UPDATE`;
+        const repeated = await this.findTransaction(paymeId, tx);
+        if (repeated) return repeated;
+        const order = await this.payableOrder(number, amount, tx);
         const open = await tx.payment.findFirst({
           where: {
             orderId: order.id,
@@ -190,13 +196,10 @@ export class PaymeService {
             createTime: BigInt(now),
             state: PaymeState.CREATED,
           },
+          include: transactionInclude,
         });
       });
-      return {
-        create_time: Number(created.createTime),
-        transaction: created.id,
-        state: created.state,
-      };
+      return this.repeatCreate(transaction);
     } catch (error) {
       // The same CreateTransaction arrived twice at once: answer with the stored transaction.
       if (uniqueConstraintName(error)?.includes('paymeId')) {
@@ -356,12 +359,12 @@ export class PaymeService {
    * The order named by the account, if it can be paid with Payme now and the amount (tiyin)
    * equals its total: -31050 unknown order, -31051 not payable, -31001 wrong amount.
    */
-  private async payableOrder(account: unknown, amount: bigint) {
-    const number = isRecord(account) ? account[PAYME_ACCOUNT_FIELD] : undefined;
-    if (typeof number !== 'string' || !ORDER_NUMBER.test(number)) {
-      throw new PaymeError(-31050, PAYME_ACCOUNT_FIELD);
-    }
-    const order = await this.prisma.order.findUnique({
+  private async payableOrder(
+    number: string,
+    amount: bigint,
+    db: Prisma.TransactionClient = this.prisma,
+  ) {
+    const order = await db.order.findUnique({
       where: { number },
       select: {
         id: true,
@@ -372,7 +375,16 @@ export class PaymeService {
         currency: true,
         payments: {
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-          select: { provider: true, status: true, expiresAt: true },
+          select: {
+            provider: true,
+            status: true,
+            expiresAt: true,
+            paymeTransactions: {
+              where: { state: PaymeState.CREATED },
+              select: { id: true },
+              take: 1,
+            },
+          },
         },
       },
     });
@@ -380,7 +392,9 @@ export class PaymeService {
     if (
       order.paymentMethod !== 'PAYME' ||
       order.currency !== 'UZS' ||
-      order.payments.some((payment) => isSettledPayment(payment.status)) ||
+      order.payments.some(
+        (payment) => isSettledPayment(payment.status) || payment.paymeTransactions.length > 0,
+      ) ||
       !isAwaitingOnlinePayment(order, new Date())
     ) {
       throw new PaymeError(-31051, PAYME_ACCOUNT_FIELD);
@@ -391,8 +405,11 @@ export class PaymeService {
     return order;
   }
 
-  private findTransaction(paymeId: string): Promise<TransactionRow | null> {
-    return this.prisma.paymeTransaction.findUnique({
+  private findTransaction(
+    paymeId: string,
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<TransactionRow | null> {
+    return db.paymeTransaction.findUnique({
       where: { paymeId },
       include: transactionInclude,
     });

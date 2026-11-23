@@ -6,11 +6,11 @@ Everything here is implemented in `apps/api/src/payments` and verified by
 the unit tests next to the code. Setting up the real providers is described in
 [../deployment/payment-provider-setup.md](../deployment/payment-provider-setup.md).
 
-> **Status (2026-10-14).** Click and Payme are implemented from their official documentation and
-> tested against simulated provider calls built exactly to those specifications. They have **not**
-> been run against Click or Payme themselves: no merchant credentials exist yet. Card payments
-> (Visa) have **no gateway**: the method is shown as unavailable outside demo mode. Fiscal receipts
-> (required for online sales in Uzbekistan) are **not** implemented. See "Before going live".
+> **Status (2026-11-23).** The Payme sandbox passed both one-time-order scenarios against TERAN's
+> isolated database using two 1,000 UZS orders. The first transaction ended in state `-1` and the
+> second reached state `2` before its refund in state `-2`. Repeated requests returned the same
+> result. Click Prepare and Complete passed with sandbox credentials. Production Click merchant
+> verification, fiscal receipts and a direct card gateway remain pending. See "Before going live".
 
 ## Principles
 
@@ -174,7 +174,7 @@ answer, errors with Russian, Uzbek and English messages).
   number. **Amounts** are in tiyin and must equal the order total × 100 (`-31001` otherwise).
 - **Methods**: `CheckPerformTransaction` (order exists `-31050`, payable `-31051`, amount),
   `CreateTransaction` (creates or reuses the order's open Payme attempt → `PROCESSING`; a second
-  open Payme transaction for the order → `-31008`, as Payme's sandbox expects; transactions older
+  open Payme transaction for the order → `-31051` with `data: "order_id"`; transactions older
   than 12 hours → `-31008`), `PerformTransaction` (→ `PAID`; refused with `-31008` and the
   transaction cancelled with reason 4/3 if the attempt expired, was replaced or the order was
   cancelled), `CancelTransaction` (state 1 → `-1`, attempt `CANCELLED`; state 2 → `-2`, attempt
@@ -186,9 +186,10 @@ answer, errors with Russian, Uzbek and English messages).
   duplicate `CreateTransaction` is resolved by the unique `paymeId`.
 - **Not implemented**: `SetFiscalData` and `ChangePassword` answer `-32601` (method not found)
   rather than pretending to store data; checkout `detail` (fiscal items) is not sent.
-- Documentation discrepancies noted during implementation: the CheckPerformTransaction and
-  CheckTransaction pages have swapped URLs; the sandbox expects `-31008` where Payme's template
-  returns `-31050` for a second transaction on an order (TERAN follows the sandbox).
+- On 2026-11-23 the official sandbox required an account error (`-31099` through `-31050`) for a
+  new transaction ID on a one-time order already reserved by another transaction. TERAN returns
+  `-31051` and identifies `order_id`. The same transaction ID receives the original creation result.
+  The [written walkthrough](https://developer.help.paycom.uz/pesochnitsa/) lists `-31008` for this case.
 
 ## Click (SHOP API)
 

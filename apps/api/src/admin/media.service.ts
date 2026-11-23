@@ -35,6 +35,9 @@ type MediaPayload = z.output<typeof mediaUpsertSchema>;
 type MediaRow = Prisma.MediaItemGetPayload<{ include: { translations: true; videoJob: true } }>;
 
 const include = { translations: true, videoJob: true } satisfies Prisma.MediaItemInclude;
+// Prisma reads the item and its relations in separate queries. The worker stores the finished
+// video and deletes its job in one commit, so both reads must see the same stage of that change.
+const mediaSnapshot = { isolationLevel: 'RepeatableRead' } as const;
 
 /**
  * A film being made ready counts as having its file, and its cover when it is to be taken from the
@@ -71,11 +74,15 @@ export class AdminMediaService {
   }
 
   async list(kind?: MediaKind): Promise<AdminMediaItem[]> {
-    const rows = await this.prisma.mediaItem.findMany({
-      where: kind ? { kind } : {},
-      include,
-      orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
-    });
+    const rows = await this.prisma.$transaction(
+      (tx) =>
+        tx.mediaItem.findMany({
+          where: kind ? { kind } : {},
+          include,
+          orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+        }),
+      mediaSnapshot,
+    );
     return rows.map((row) => this.toAdmin(row));
   }
 
@@ -93,6 +100,8 @@ export class AdminMediaService {
     const savedId = await this.prisma.$transaction(async (tx) => {
       let mediaId: string;
       if (id) {
+        // Serialize the publication check with the worker attaching the finished file.
+        await tx.$queryRaw`SELECT id FROM "MediaItem" WHERE id = ${id}::uuid FOR UPDATE`;
         const existing = await tx.mediaItem.findUnique({
           where: { id },
           include: { videoJob: true },
@@ -371,7 +380,10 @@ export class AdminMediaService {
   }
 
   private async find(id: string): Promise<MediaRow> {
-    const row = await this.prisma.mediaItem.findUnique({ where: { id }, include });
+    const row = await this.prisma.$transaction(
+      (tx) => tx.mediaItem.findUnique({ where: { id }, include }),
+      mediaSnapshot,
+    );
     if (!row) throw ApiException.notFound('Media item not found');
     return row;
   }

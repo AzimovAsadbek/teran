@@ -40,6 +40,13 @@ function Item({ href, children }: { href: string; children: ReactNode }) {
   );
 }
 
+async function PaymeTrialLink() {
+  await connection();
+  if (process.env.PAYME_TRIAL_ENABLED !== 'true') return null;
+  const t = await getTranslations('PaymeTrial');
+  return <Item href="/payme-sinov">{t('title')}</Item>;
+}
+
 /** TERAN's phones and e-mails as the last links of the contact column, once entered in the admin. */
 async function ContactLinks() {
   await connection();
@@ -123,6 +130,9 @@ async function FooterColumns() {
         <Item href="/delivery">{tn('delivery')}</Item>
         <Item href="/returns">{tn('returns')}</Item>
         <Item href="/accessibility">{tn('accessibility')}</Item>
+        <Suspense fallback={null}>
+          <PaymeTrialLink />
+        </Suspense>
         <Suspense fallback={null}>
           <ContactLinks />
         </Suspense>

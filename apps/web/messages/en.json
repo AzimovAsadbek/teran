@@ -2068,6 +2068,15 @@
       "foundBy": "Found for “{query}”. Pick the right one, then click the exact spot on the map."
     }
   },
+  "PaymeTrial": {
+    "title": "Payme test payment",
+    "intro": "Try a virtual UZS 1,000 order in Payme’s test checkout. Your card will not be charged and no tea will be dispatched.",
+    "open": "Open Payme test checkout",
+    "login": "Sign in to try it",
+    "order": "Test order {number}",
+    "refresh": "Refresh payment status",
+    "unavailable": "The test checkout could not be reached. Please try again."
+  },
   "Payment": {
     "metaTitle": "Payment",
     "demoTitle": "Demonstration payment",

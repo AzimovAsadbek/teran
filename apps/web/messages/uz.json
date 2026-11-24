@@ -2068,6 +2068,15 @@
       "foundBy": "«{query}» boʻyicha topildi. Mosini tanlang, keyin aniq joyni xaritada bosing."
     }
   },
+  "PaymeTrial": {
+    "title": "Payme bilan sinov toʻlovi",
+    "intro": "Payme sinov kassasida 1 000 soʻmlik virtual buyurtmani tekshiring. Kartadan pul yechilmaydi va choy yetkazib berilmaydi.",
+    "open": "Payme sinov kassasiga oʻtish",
+    "login": "Sinov uchun hisobga kirish",
+    "order": "Sinov buyurtmasi {number}",
+    "refresh": "Toʻlov holatini yangilash",
+    "unavailable": "Sinov kassasiga ulanib boʻlmadi. Qayta urinib koʻring."
+  },
   "Payment": {
     "metaTitle": "Toʻlov",
     "demoTitle": "Namoyish toʻlovi",

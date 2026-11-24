@@ -54,6 +54,22 @@ Prerequisites: a contract with Payme and a web cashbox ("касса") in the mer
 7. Refunds: made in the Payme merchant cabinet; Payme then calls `CancelTransaction` and the order
    shows "Refunded" automatically.
 
+### Test a payment from the public storefront
+
+`PAYME_TRIAL_ENABLED=true` on the web service adds a footer link to `/payme-sinov`. A signed-in
+tester can open Payme’s sandbox for a virtual 1,000 UZS order and return to see its recorded
+status. This switch works independently of `SHOW_PRICES` and `CHECKOUT_ENABLED`.
+
+Connect the isolated sandbox API to the storefront’s private `payme-trial` Compose network
+with the alias `payme-trial-api`. TERAN’s sandbox fixture uses the product `teran-payment-sandbox`,
+the variant `TERAN-SANDBOX-ONLY` and free `sandbox-delivery`. Its database holds the test
+orders. Use the sandbox key and `https://test.paycom.uz` there, with outbound customer
+notifications disabled. Payme’s test callbacks must reach this same isolated API.
+Where the cashier shares its public callback with production, route only the exact sandbox
+authorization to this API and keep Payme IP validation on for both backends.
+
+To withdraw the preview, turn off `PAYME_TRIAL_ENABLED` and recreate the web service.
+
 ## 3. Click (SHOP API)
 
 Prerequisites: a contract with Click and a service in the Click merchant cabinet.

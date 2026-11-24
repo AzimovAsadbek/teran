@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Locale } from '@teran/contracts';
+import { localeSchema, type Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
@@ -28,10 +28,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('title'), robots: { index: false, follow: false }, referrer: 'no-referrer' };
 }
 
-async function openTrial(nonce: string) {
+async function openTrial(locale: Locale, nonce: string) {
   'use server';
-  if (!paymeTrialEnabled() || !NONCE.test(nonce)) notFound();
-  const locale = await getLocale();
+  if (!paymeTrialEnabled() || !localeSchema.safeParse(locale).success || !NONCE.test(nonce))
+    notFound();
   const user = await requireUser(locale, PAYME_TRIAL_PATH);
   const path = getPathname({ locale, href: PAYME_TRIAL_PATH });
   const trial = await startPaymeTrial(user.id, nonce, locale).catch(() => null);
@@ -98,7 +98,10 @@ async function Trial({ searchParams }: Pick<PageProps<'/[locale]/payme-sinov'>, 
           </div>
         ) : null}
         {user ? (
-          <form action={openTrial.bind(null, retry ?? pending ?? randomUUID())} className="mt-6">
+          <form
+            action={openTrial.bind(null, locale, retry ?? pending ?? randomUUID())}
+            className="mt-6"
+          >
             <button className={buttonClasses()} type="submit">
               {t('open')}
             </button>

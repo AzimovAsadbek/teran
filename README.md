@@ -1,15 +1,26 @@
-# TERAN — online tea store
+# TERAN · tea retail platform
 
-Storefront and administration platform for TERAN® — Premium Chinese Tea (TERAN TRADE MChJ,
-Namangan, Uzbekistan). Shoppers
-browse the catalogue in Uzbek, Russian or English, fill a bag, and order with cash on delivery as
-a guest or with an account. Staff manage products, stock, orders, customers, enquiries, the
-journal, delivery prices and settings in a protected admin area.
+TERAN is a tea retailer in Namangan, Uzbekistan. Customers browse the catalogue in Uzbek, Russian
+or English. Store staff use a shared admin panel to translate product pages, track stock, handle
+enquiries and publish announcements to Telegram. [Visit the storefront](https://terantrade.uz/)
 
-> **Demonstration mode.** The catalogue, prices, delivery fees and some texts are placeholders
-> until TERAN supplies real data, and the site tells visitors so and asks search engines not to
-> index it. See [demo mode](docs/development/demo-mode.md) and
-> [business information required](docs/business-information-required.md).
+## Inside the application
+
+- **Product recommendations.** A request such as “green tea under 100,000 soʻm” becomes a set of
+  catalogue filters. The advisor accepts product IDs returned by the search and falls back to
+  rule-based matching when the model is unavailable.
+  [Advisor implementation](apps/api/src/assistant/assistant.service.ts) · [Integration tests](apps/api/test/assistant.int-spec.ts)
+- **Storefront chat.** The Gemini version of the chat passes catalogue data in the shopper's
+  language and verifies product suggestions before displaying them.
+  [Gemini implementation and tests, November 2026 snapshot](https://github.com/AzimovAsadbek/teran/tree/a1dd23cafaa94e11a5034599bb199b336bdf96a1/apps/api/src/assistant)
+- **Telegram publishing.** A staff member can announce a product or article when publishing it.
+  The API records the announcement, tracks its delivery and handles retries. Dry-run mode lets a
+  developer inspect the message locally.
+  [Delivery flow](docs/architecture/telegram.md) · [Bot API integration tests](apps/api/test/telegram.int-spec.ts)
+
+The default storefront takes enquiries through the contact page. Online ordering is configurable
+through `NEXT_PUBLIC_SHOW_PRICES` in the web build and `CHECKOUT_ENABLED` in the API. The local
+seed supplies a sample catalogue. [Demo data and settings](docs/development/demo-mode.md)
 
 ## Features
 
@@ -22,10 +33,8 @@ journal, delivery prices and settings in a protected admin area.
   roles, enquiries, newsletter export, journal, delivery methods, settings, audit log, CSV reports.
 - **Languages:** Uzbek (default, no URL prefix), Russian (`/ru`), English (`/en`), with every
   message in all three.
-- **Quality:** WCAG 2.2 AA checked automatically, mobile first with no sideways scrolling,
-  Core Web Vitals-friendly rendering (static shells with streamed data, pre-sized images),
-  search-engine metadata, and security controls documented in
-  [security](docs/architecture/security.md).
+- **Accessibility and rendering.** Playwright journeys include automated accessibility checks.
+  The storefront uses streamed data and pre-sized images. [Test strategy](docs/testing/test-strategy.md)
 
 ## Technology
 
@@ -43,9 +52,10 @@ journal, delivery prices and settings in a protected admin area.
 Requirements: Node.js 24.15+, Docker, and pnpm through Corepack (`corepack enable`).
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 cp apps/api/.env.example apps/api/.env          # then fill in the secrets
 cp apps/web/.env.example apps/web/.env.local    # shares two of them with the API
+pnpm generate
 pnpm db:up && pnpm db:migrate && pnpm db:seed
 pnpm dev
 ```

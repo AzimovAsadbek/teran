@@ -460,6 +460,25 @@ The following cron entries propose a 6-hour recovery point and a weekly verifica
 
 Use `--media live-r2:bucket` for object storage. A completed snapshot contains a database dump, the media tree and a manifest published last. PostgreSQL exports one transaction snapshot for both the dump and its reference counts. A rehearsal restores the dump and media to temporary destinations, checks order counts and totals by currency, SKU count, stock and SHA-256 hashes for a sample of database-referenced images and videos. The inventory check also fingerprints each variant and its stock. Its JSON output includes capture time, verification time and duration. Keep that output with the operator’s monitoring records. Restore a named snapshot with `backup.py verify <snapshot>`. [PostgreSQL snapshot support](https://www.postgresql.org/docs/18/app-pgdump.html)
 
+**TERAN production schedule.** The `teran-snapshot-create.timer` unit captures PostgreSQL and the R2 media bucket at 00:00, 06:00, 12:00 and 18:00 in Asia/Tashkent. The root-only directory `/var/backups/teran/snapshots` holds seven days of completed snapshots and always retains the most recent two. The `teran-snapshot-verify.timer` unit rehearses restoration at 02:30 on Sunday in a disposable PostgreSQL container with networking disabled. These units run the installed copies of [server-snapshots.py](../../docker/postgres/server-snapshots.py) and [backup.py](../../docker/postgres/backup.py).
+
+The Telegram worker encrypts each database dump with the owner’s public age recipient. The private group receives the encrypted database along with the web, API and PostgreSQL health, release and free disk space. Media stays in the server snapshot. Telegram delivery is retried every 15 minutes and tracks the message for each delivered part. During setup, verify the private group and its owner, then bind its numeric ID in `/etc/teran-backup/chat.id`. The bot token and public recipient are read from `/etc/teran-backup/bot.token` and `/etc/teran-backup/recipient.txt`. Keep this directory accessible only to root. Keep a second protected copy of the recovery identity with the owner. [Telegram worker](../../docker/postgres/telegram-backup.py)
+
+Operators can check the schedule and the latest restore result on the host.
+
+```bash
+systemctl list-timers --all 'teran-snapshot*'
+journalctl -u teran-snapshot@verify.service -n 10
+```
+
+For a Telegram restore, download the encrypted document. If it arrived in numbered parts, concatenate them in order. Decrypt the file on a trusted recovery machine and restore the resulting dump into a fresh PostgreSQL database.
+
+```bash
+umask 077
+age --decrypt --identity /secure/location/identity.txt --output database.dump TERAN-snapshot.dump.age
+pg_restore --list database.dump
+```
+
 **Manual.** Back up the database (and the uploads volume when R2 is not used), keep copies off the
 server (encrypted), and test a restore regularly.
 

@@ -104,13 +104,15 @@ callback racing the expiry job (or a second callback) cannot apply twice.
 
 Stock is reserved when the order is placed (unchanged from before). For an online order the first
 attempt gets `expiresAt = order time + ONLINE_PAYMENT_WINDOW_MINUTES` (default 30, 10–1440). Later
-attempts keep the same deadline, so retrying never extends how long stock is held.
+attempts keep the same checkout deadline. Once Payme creates a transaction, its reservation runs
+until payment, cancellation or 12 hours after Payme's original timestamp.
 
 `PaymentExpiryService` runs `PaymentsService.expireOverdue()` every minute in every API process
 (idempotent; all changes are conditional):
 
-- `PENDING`/`REQUIRES_ACTION` attempts past `expiresAt`, and `PROCESSING` attempts past
-  `expiresAt` + 15 minutes (someone may be paying at that moment), become `EXPIRED`;
+- Open attempts awaiting customer action expire at `expiresAt`. A processing CLICK payment gets
+  15 more minutes. A created Payme transaction expires at `paymeTime + 43,200,000`, with state
+  `-1` and reason `4`. The worker reads that time from the stored provider transaction.
 - if nothing else can still pay the order and it is still `PENDING`, the order is cancelled
   (`cancelReason = PAYMENT_NOT_COMPLETED`, shown to the customer as "payment not completed"), its
   stock returned with `ORDER_CANCELLED` ledger entries, and a status event written;
@@ -209,8 +211,11 @@ merchant_trans_id [+ merchant_prepare_id] + amount + action + sign_time)` over t
   `CLICK_SERVICE_ID`; missing or malformed fields answer `-8`.
 - **Order and amount**: `merchant_trans_id` is the order number (`-5` if unknown); the amount (in
   sum) must match the order total within 0.01, as Click's reference implementation allows (`-2`).
+- The hosted link includes the configured `merchant_user_id`. CLICK receives the registered
+  service, merchant, order number, amount in UZS and return URL. [Payment link](https://docs.click.uz/click-button)
 - **Prepare** (`action=0`): creates or reuses the order's open Click attempt → `PROCESSING`, stores
-  a `ClickTransaction` and answers its integer `merchant_prepare_id`. Repeats get the same id; an
+  a `ClickTransaction` and answers its integer `merchant_prepare_id`. While it awaits Complete,
+  another CLICK transaction for that order receives `-9`. Repeats get the same id; an
   already paid order answers `-4`; a cancelled or no-longer-payable order `-9`.
 - **Complete** (`action=1`): checks the prepare id belongs to this `click_trans_id` and order
   (`-6`), then marks the attempt `PAID` (`merchant_confirm_id` = prepare id). A repeat answers

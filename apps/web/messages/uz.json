@@ -675,6 +675,7 @@
     "paymentFailedText": "Oxirgi toʻlov urinishi amalga oshmadi. Qayta urinib koʻring yoki boshqa usulni tanlang.",
     "paymentProcessingText": "Toʻlov tizimidan tasdiq kutilmoqda. Natija kelishi bilan shu sahifada koʻrinadi.",
     "checkAgain": "Qayta tekshirish",
+    "checkAfterPayment": "Ilovada toʻlov qilgan boʻlsangiz, qayta toʻlashdan oldin holatini shu yerda tekshiring.",
     "paymentReceived": "Toʻlov qabul qilindi",
     "cancelReasons": {
       "payment_not_completed": "Onlayn toʻlov oʻz vaqtida yakunlanmadi, shuning uchun buyurtma bekor qilindi va mahsulotlar sotuvga qaytarildi.",

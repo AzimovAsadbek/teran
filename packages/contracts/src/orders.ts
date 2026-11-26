@@ -255,7 +255,7 @@ export const orderSchema = z.object({
   payments: z.array(orderPaymentSchema),
   /** An online payment is still required and can be started now (until paymentDueAt). */
   awaitingPayment: z.boolean(),
-  /** When the order is cancelled if an online payment has not succeeded by then. */
+  /** Deadline for starting another attempt. A provider may still be confirming an existing one. */
   paymentDueAt: z.string().nullable(),
   /** Why a cancelled order was cancelled, as the customer may see it (never a staff note). */
   cancelReason: z.enum(ORDER_CANCEL_REASONS).nullable(),

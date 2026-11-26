@@ -42,7 +42,12 @@ function orderNumberFromAccount(account: unknown): string {
 
 const transactionInclude = {
   payment: {
-    select: { id: true, orderId: true, status: true, order: { select: { number: true } } },
+    select: {
+      id: true,
+      orderId: true,
+      status: true,
+      order: { select: { number: true, status: true } },
+    },
   },
 } satisfies Prisma.PaymeTransactionInclude;
 
@@ -134,12 +139,12 @@ export class PaymeService {
     if (paymeId === null || time === null) throw new PaymeError(-32600);
     if (amount === null) throw new PaymeError(-31001);
 
+    const number = orderNumberFromAccount(params.account);
     const existing = await this.findTransaction(paymeId);
-    if (existing) return this.repeatCreate(existing);
+    if (existing) return this.repeatCreate(existing, number, amount);
 
     const now = Date.now();
     if (BigInt(now) - time >= BigInt(PAYME_TIMEOUT_MS)) throw new PaymeError(-31008);
-    const number = orderNumberFromAccount(params.account);
 
     try {
       const transaction = await this.prisma.$transaction(async (tx) => {
@@ -202,24 +207,24 @@ export class PaymeService {
           include: transactionInclude,
         });
       });
-      return this.repeatCreate(transaction);
+      return this.repeatCreate(transaction, number, amount);
     } catch (error) {
       // The same CreateTransaction arrived twice at once: answer with the stored transaction.
       if (uniqueConstraintName(error)?.includes('paymeId')) {
         const raced = await this.findTransaction(paymeId);
-        if (raced) return this.repeatCreate(raced);
+        if (raced) return this.repeatCreate(raced, number, amount);
       }
       if (isOpenAttemptConflict(error)) throw new PaymeError(-31008);
       throw error;
     }
   }
 
-  private async repeatCreate(transaction: TransactionRow) {
+  private async repeatCreate(transaction: TransactionRow, number: string, amount: bigint) {
+    if (transaction.payment.order.number !== number)
+      throw new PaymeError(-31051, PAYME_ACCOUNT_FIELD);
+    if (transaction.amount !== amount) throw new PaymeError(-31001);
+    transaction = await this.reconcileIfNeeded(transaction);
     if (transaction.state !== PaymeState.CREATED) throw new PaymeError(-31008);
-    if (this.isTimedOut(transaction)) {
-      await this.cancelCreated(transaction, PaymeReason.TIMEOUT);
-      throw new PaymeError(-31008);
-    }
     return {
       create_time: Number(transaction.createTime),
       transaction: transaction.id,
@@ -230,96 +235,55 @@ export class PaymeService {
   private async performTransaction(params: Record<string, unknown>) {
     const paymeId = paymeTransactionId(params.id);
     if (paymeId === null) throw new PaymeError(-32600);
-    const transaction = await this.findTransaction(paymeId);
-    if (!transaction) throw new PaymeError(-31003);
-
-    if (transaction.state === PaymeState.PERFORMED) return this.performedAnswer(transaction);
-    if (transaction.state !== PaymeState.CREATED) throw new PaymeError(-31008);
-    if (this.isTimedOut(transaction)) {
-      await this.cancelCreated(transaction, PaymeReason.TIMEOUT);
-      throw new PaymeError(-31008);
-    }
-
-    const outcome = await this.prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.findUniqueOrThrow({
-        where: { id: transaction.paymentId },
-        select: { id: true, orderId: true, status: true, order: { select: { status: true } } },
-      });
-      // The attempt expired, was replaced or the order was cancelled meanwhile: refuse the charge.
-      if (payment.status !== 'PROCESSING' || payment.order.status === 'CANCELLED') {
-        const reason: number =
-          payment.status === 'EXPIRED' ? PaymeReason.TIMEOUT : PaymeReason.EXECUTION_ERROR;
-        return { kind: 'refused', reason } as const;
-      }
-      const moved = await transitionPayment(tx, payment, 'PAID', {
+    const row = await this.prisma.$transaction(async (tx) => {
+      const current = await this.lockTransaction(tx, paymeId);
+      if (current.state === PaymeState.PERFORMED) return current;
+      if (current.state !== PaymeState.CREATED) return null;
+      const moved = await transitionPayment(tx, current.payment, 'PAID', {
         source: 'provider',
         detail: 'PerformTransaction',
       });
-      if (!moved) return { kind: 'refused', reason: PaymeReason.EXECUTION_ERROR } as const;
-      const updated = await tx.paymeTransaction.updateMany({
-        where: { id: transaction.id, state: PaymeState.CREATED },
+      if (!moved) throw new PaymeError(-31008);
+      return tx.paymeTransaction.update({
+        where: { id: current.id },
         data: { state: PaymeState.PERFORMED, performTime: BigInt(Date.now()) },
       });
-      if (updated.count === 0) throw new PaymeError(-31008);
-      const row = await tx.paymeTransaction.findUniqueOrThrow({ where: { id: transaction.id } });
-      return { kind: 'performed', row } as const;
     });
-
-    if (outcome.kind === 'refused') {
-      await this.cancelCreated(transaction, outcome.reason);
-      throw new PaymeError(-31008);
-    }
-    return this.performedAnswer(outcome.row);
+    // A timeout discovered under the lock must commit before answering Payme.
+    if (!row) throw new PaymeError(-31008);
+    return this.performedAnswer(row);
   }
 
   private async cancelTransaction(params: Record<string, unknown>) {
     const paymeId = paymeTransactionId(params.id);
-    const reason =
-      typeof params.reason === 'number' && Number.isInteger(params.reason) ? params.reason : null;
-    if (paymeId === null || reason === null) throw new PaymeError(-32600);
-    const transaction = await this.findTransaction(paymeId);
-    if (!transaction) throw new PaymeError(-31003);
-
-    if (transaction.state === PaymeState.CREATED) {
-      const cancelled = await this.cancelCreated(transaction, reason);
-      return this.cancelledAnswer(cancelled);
-    }
-    if (transaction.state === PaymeState.PERFORMED) {
-      // A refund made by TERAN staff in the Payme merchant cabinet.
-      const refunded = await this.prisma.$transaction(async (tx) => {
-        const updated = await tx.paymeTransaction.updateMany({
-          where: { id: transaction.id, state: PaymeState.PERFORMED },
-          data: {
-            state: PaymeState.CANCELLED_AFTER_PERFORM,
-            cancelTime: BigInt(Date.now()),
-            reason,
-          },
+    const reason = params.reason;
+    if (paymeId === null || typeof reason !== 'number' || !Number.isInteger(reason))
+      throw new PaymeError(-32600);
+    const row = await this.prisma.$transaction(async (tx) => {
+      const current = await this.lockTransaction(tx, paymeId);
+      if (current.state === PaymeState.CREATED) return this.cancelCreated(tx, current, reason);
+      if (current.state !== PaymeState.PERFORMED) return current;
+      if (current.payment.status === 'PAID' || current.payment.status === 'REFUND_PENDING') {
+        await transitionPayment(tx, current.payment, 'REFUNDED', {
+          source: 'provider',
+          detail: 'CancelTransaction',
+          failureCode: `PAYME_REASON_${reason}`,
         });
-        if (updated.count > 0) {
-          const payment = await tx.payment.findUniqueOrThrow({
-            where: { id: transaction.paymentId },
-            select: { id: true, orderId: true, status: true },
-          });
-          if (payment.status === 'PAID' || payment.status === 'REFUND_PENDING') {
-            await transitionPayment(tx, payment, 'REFUNDED', {
-              source: 'provider',
-              detail: 'CancelTransaction',
-              failureCode: `PAYME_REASON_${reason}`,
-            });
-          }
-        }
-        return tx.paymeTransaction.findUniqueOrThrow({ where: { id: transaction.id } });
+      }
+      return tx.paymeTransaction.update({
+        where: { id: current.id },
+        data: { state: PaymeState.CANCELLED_AFTER_PERFORM, cancelTime: BigInt(Date.now()), reason },
       });
-      return this.cancelledAnswer(refunded);
-    }
-    return this.cancelledAnswer(transaction);
+    });
+    return this.cancelledAnswer(row);
   }
 
   private async checkTransaction(params: Record<string, unknown>) {
     const paymeId = paymeTransactionId(params.id);
     if (paymeId === null) throw new PaymeError(-32600);
-    const transaction = await this.findTransaction(paymeId);
-    if (!transaction) throw new PaymeError(-31003);
+    const stored = await this.findTransaction(paymeId);
+    if (!stored) throw new PaymeError(-31003);
+    const transaction = await this.reconcileIfNeeded(stored);
     return {
       create_time: Number(transaction.createTime),
       perform_time: Number(transaction.performTime),
@@ -339,6 +303,10 @@ export class PaymeService {
       orderBy: { paymeTime: 'asc' },
       include: transactionInclude,
     });
+    // A statement may arrive before the expiry worker, including for attempts from older releases.
+    for (const [i, row] of rows.entries()) {
+      if (this.cancellationDue(row) !== null) rows[i] = await this.reconcileIfNeeded(row);
+    }
     return {
       transactions: rows.map((row) => ({
         id: row.paymeId,
@@ -419,31 +387,55 @@ export class PaymeService {
     });
   }
 
-  private isTimedOut(transaction: { createTime: bigint }): boolean {
-    return BigInt(Date.now()) - transaction.createTime >= BigInt(PAYME_TIMEOUT_MS);
+  /** Serialize Payme decisions with the expiry worker and with other callbacks for this payment. */
+  private async lockTransaction(
+    tx: Prisma.TransactionClient,
+    paymeId: string,
+  ): Promise<TransactionRow> {
+    await tx.$queryRaw`SELECT p.id FROM "Payment" p
+      JOIN "PaymeTransaction" t ON t."paymentId" = p.id
+      WHERE t."paymeId" = ${paymeId} FOR UPDATE OF p`;
+    const row = await this.findTransaction(paymeId, tx);
+    if (!row) throw new PaymeError(-31003);
+    const reason = this.cancellationDue(row);
+    return reason === null ? row : this.cancelCreated(tx, row, reason);
   }
 
-  /** Cancels a created (not performed) transaction and its open attempt. */
-  private async cancelCreated(transaction: TransactionRow, reason: number) {
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.paymeTransaction.updateMany({
-        where: { id: transaction.id, state: PaymeState.CREATED },
-        data: { state: PaymeState.CANCELLED, cancelTime: BigInt(Date.now()), reason },
-      });
-      if (updated.count > 0) {
-        const payment = await tx.payment.findUniqueOrThrow({
-          where: { id: transaction.paymentId },
-          select: { id: true, orderId: true, status: true },
-        });
-        if (isOpenPayment(payment.status)) {
-          await transitionPayment(tx, payment, 'CANCELLED', {
-            source: 'provider',
-            detail: 'CancelTransaction',
-            failureCode: `PAYME_REASON_${reason}`,
-          });
-        }
-      }
-      return tx.paymeTransaction.findUniqueOrThrow({ where: { id: transaction.id } });
+  private cancellationDue(row: TransactionRow): number | null {
+    if (row.state !== PaymeState.CREATED) return null;
+    if (
+      row.payment.status === 'EXPIRED' ||
+      BigInt(Date.now()) - row.paymeTime >= BigInt(PAYME_TIMEOUT_MS)
+    )
+      return PaymeReason.TIMEOUT;
+    if (row.payment.status !== 'PROCESSING' || row.payment.order.status === 'CANCELLED')
+      return PaymeReason.EXECUTION_ERROR;
+    return null;
+  }
+
+  private async reconcileIfNeeded(row: TransactionRow) {
+    return this.cancellationDue(row) === null
+      ? row
+      : this.prisma.$transaction((tx) => this.lockTransaction(tx, row.paymeId));
+  }
+
+  private async cancelCreated(tx: Prisma.TransactionClient, row: TransactionRow, reason: number) {
+    if (isOpenPayment(row.payment.status)) {
+      await transitionPayment(
+        tx,
+        row.payment,
+        reason === PaymeReason.TIMEOUT ? 'EXPIRED' : 'CANCELLED',
+        {
+          source: 'provider',
+          detail: 'CancelTransaction',
+          failureCode: `PAYME_REASON_${reason}`,
+        },
+      );
+    }
+    return tx.paymeTransaction.update({
+      where: { id: row.id },
+      data: { state: PaymeState.CANCELLED, cancelTime: BigInt(Date.now()), reason },
+      include: transactionInclude,
     });
   }
 

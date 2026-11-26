@@ -7,6 +7,7 @@ import {
   type AdminProductDetail,
 } from '@teran/contracts';
 import { ClickFiscalService } from '../src/payments/providers/click-fiscal.service.js';
+import { PAYME_TIMEOUT_MS } from '../src/payments/providers/payme-protocol.js';
 import { PaymentsService } from '../src/payments/payments.service.js';
 import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
 import {
@@ -458,6 +459,16 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       ]);
       expect(created.result).toMatchObject({ state: 1 });
       expect(concurrentRepeat.result).toEqual(created.result);
+      expect(
+        (await rpc('CreateTransaction', { ...create, amount: create.amount + 1 })).error?.code,
+      ).toBe(-31001);
+      expect(
+        (await rpc('CreateTransaction', { ...create, account: { order_id: 'TRN-ZZZZZZZZ' } }))
+          .error,
+      ).toMatchObject({
+        code: -31051,
+        data: 'order_id',
+      });
       expect((await orderView(placed)).paymentStatus).toBe('PROCESSING');
       const restart = await agent()
         .post(`${API}/orders/${placed.order.number}/payments`)
@@ -478,7 +489,11 @@ describe('payment providers (live mode, simulated provider calls)', () => {
         data: 'order_id',
       });
 
-      const performed = await rpc('PerformTransaction', { id: paymeId });
+      const [performed, concurrentPerform] = await Promise.all([
+        rpc('PerformTransaction', { id: paymeId }),
+        rpc('PerformTransaction', { id: paymeId }),
+      ]);
+      expect(concurrentPerform.result).toEqual(performed.result);
       expect(performed.result).toMatchObject({
         transaction: created.result!.transaction,
         state: 2,
@@ -542,6 +557,27 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       expect((await orderView(placed)).paymentStatus).toBe('PROCESSING');
     });
 
+    it('keeps Payme and the order in agreement when cancellation races confirmation', async () => {
+      const placed = await placeOrder('PAYME');
+      const id = 'bbbbbbbbbbbbbbbbbbbbbb23';
+      await rpc('CreateTransaction', {
+        id,
+        account: { order_id: placed.order.number },
+        time: Date.now(),
+        amount: tiyin(placed),
+      });
+      const [performed, cancelled] = await Promise.all([
+        rpc('PerformTransaction', { id }),
+        rpc('CancelTransaction', { id, reason: 5 }),
+      ]);
+      const confirmed = performed.result?.state === 2;
+      if (!confirmed) expect(performed.error?.code).toBe(-31008);
+      const state = confirmed ? -2 : -1;
+      expect(cancelled.result?.state).toBe(state);
+      expect((await rpc('CheckTransaction', { id })).result).toMatchObject({ state, reason: 5 });
+      expect((await orderView(placed)).paymentStatus).toBe(confirmed ? 'REFUNDED' : 'CANCELLED');
+    });
+
     it('cancels an unperformed transaction and lets the customer try again', async () => {
       const placed = await placeOrder('PAYME');
       const base = {
@@ -573,18 +609,51 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       expect(await ctx.prisma.payment.count({ where: { status: 'PAID' } })).toBe(1);
     });
 
-    it('refuses to perform a transaction for an order whose payment window has ended', async () => {
+    it('keeps stock reserved for an accepted Payme payment past the storefront window', async () => {
       const placed = await placeOrder('PAYME');
+      const id = 'bbbbbbbbbbbbbbbbbbbbbbb2';
+      const time = Date.now();
       await rpc('CreateTransaction', {
-        id: 'bbbbbbbbbbbbbbbbbbbbbbb1',
-        time: Date.now(),
+        id,
+        time,
         amount: tiyin(placed),
         account: { order_id: placed.order.number },
       });
-      await ctx.prisma.payment.updateMany({
-        data: { expiresAt: new Date(Date.now() - 60 * 60_000) },
+      const originalStock = await ctx.prisma.productVariant.findUniqueOrThrow({
+        where: { id: variantId },
       });
-      await ctx.app.get(PaymentsService).expireOverdue();
+      await ctx.app.get(PaymentsService).expireOverdue(new Date(time + 60 * 60_000));
+      expect(await orderView(placed)).toMatchObject({
+        status: 'PENDING',
+        paymentStatus: 'PROCESSING',
+      });
+      expect(
+        (await ctx.prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } }))
+          .stockQuantity,
+      ).toBe(originalStock.stockQuantity);
+      expect((await rpc('PerformTransaction', { id })).result?.state).toBe(2);
+    });
+
+    it('expires a Payme transaction twelve hours after the provider timestamp and releases stock once', async () => {
+      const placed = await placeOrder('PAYME');
+      const now = Date.now();
+      await rpc('CreateTransaction', {
+        id: 'bbbbbbbbbbbbbbbbbbbbbbb1',
+        time: now - PAYME_TIMEOUT_MS + 90_000,
+        amount: tiyin(placed),
+        account: { order_id: placed.order.number },
+      });
+      const worker = ctx.app.get(PaymentsService);
+      await worker.expireOverdue(new Date(now + 60 * 60_000));
+      expect(await worker.expireOverdue(new Date(now + 60 * 60_000))).toEqual({
+        expired: 0,
+        cancelledOrders: 0,
+      });
+      expect(
+        await ctx.prisma.inventoryMovement.count({
+          where: { variantId, reason: 'ORDER_CANCELLED' },
+        }),
+      ).toBe(1);
 
       expect(
         (await rpc('PerformTransaction', { id: 'bbbbbbbbbbbbbbbbbbbbbbb1' })).error?.code,
@@ -675,6 +744,7 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       const url = new URL(placed.payment!.redirectUrl!);
       expect(url.origin + url.pathname).toBe('https://my.click.uz/services/pay');
       expect(url.searchParams.get('transaction_param')).toBe(placed.order.number);
+      expect(url.searchParams.get('merchant_user_id')).toBe('10001');
       expect(url.searchParams.get('amount')).toBe('85000.00');
       expect(url.searchParams.get('return_url')).toMatch(
         /^http:\/\/localhost:3000\/payments\/return\//,
@@ -726,7 +796,11 @@ describe('payment providers (live mode, simulated provider calls)', () => {
     it('answers concurrent CLICK retries from the same payment and queues one receipt', async () => {
       const placed = await placeOrder('CLICK');
       const request = prepareBody(placed.order.number, '85000.00');
-      const [a, b] = await Promise.all([post('prepare', request), post('prepare', request)]);
+      const padded = prepareBody(placed.order.number, '85000.00', {
+        ...request,
+        click_trans_id: `0${request.click_trans_id}`,
+      });
+      const [a, b] = await Promise.all([post('prepare', request), post('prepare', padded)]);
       expect(a.error).toBe(0);
       expect(b).toEqual(a);
       const complete = completeBody(request, a.merchant_prepare_id!);
@@ -734,6 +808,43 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       expect(replies.map((result) => result.error).sort()).toEqual([-4, 0]);
       expect(await ctx.prisma.clickTransaction.count({ where: { fiscalState: 'QUEUED' } })).toBe(1);
       expect((await orderView(placed)).paymentStatus).toBe('PAID');
+    });
+
+    it('keeps the first successful Prepare payable when a different CLICK transaction races it', async () => {
+      const placed = await placeOrder('CLICK');
+      const first = prepareBody(placed.order.number, placed.order.total);
+      const second = prepareBody(placed.order.number, placed.order.total);
+      const replies = await Promise.all([post('prepare', first), post('prepare', second)]);
+      expect(replies.map((r) => r.error).sort()).toEqual([-9, 0]);
+      const winner = replies.findIndex((r) => r.error === 0);
+      const complete = completeBody(
+        [first, second][winner]!,
+        replies[winner]!.merchant_prepare_id!,
+      );
+      expect((await post('complete', complete)).error).toBe(0);
+      expect(await ctx.prisma.clickTransaction.count()).toBe(1);
+      expect((await orderView(placed)).paymentStatus).toBe('PAID');
+    });
+
+    it('echoes CLICK bigints as exact JSON integers through Prepare and Complete', async () => {
+      const placed = await placeOrder('CLICK');
+      const id = '9223372036854775807';
+      const body = prepareBody(placed.order.number, placed.order.total, { click_trans_id: id });
+      const endpoint = API + '/payments/click/';
+      const prepared = await agent()
+        .post(endpoint + 'prepare')
+        .type('form')
+        .send(body)
+        .expect(200);
+      expect(prepared.text).toContain('"click_trans_id":' + id);
+      expect(prepared.body.error).toBe(0);
+      const completed = await agent()
+        .post(endpoint + 'complete')
+        .type('form')
+        .send(completeBody(body, prepared.body.merchant_prepare_id))
+        .expect(200);
+      expect(completed.text).toContain('"click_trans_id":' + id);
+      expect(completed.body.error).toBe(0);
     });
 
     it('submits one mixed-product CLICK receipt and recovers its QR after a lost response', async () => {

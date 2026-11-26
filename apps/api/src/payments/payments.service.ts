@@ -35,6 +35,7 @@ import {
   type PaymentEventSource,
 } from './payment-state.js';
 import { paymentAdapters, type PaymentProviderAdapter } from './providers/payment-provider.js';
+import { PAYME_TIMEOUT_MS, PaymeReason, PaymeState } from './providers/payme-protocol.js';
 
 /** Payment attempts allowed per order (retries and method changes included). */
 export const MAX_PAYMENT_ATTEMPTS = 10;
@@ -424,6 +425,14 @@ export class PaymentsService {
       where: { paymentId: payment.id, state: 0 },
       data: { state: -1 },
     });
+    await tx.paymeTransaction.updateMany({
+      where: { paymentId: payment.id, state: PaymeState.CREATED },
+      data: {
+        state: PaymeState.CANCELLED,
+        cancelTime: BigInt(Date.now()),
+        reason: to === 'EXPIRED' ? PaymeReason.TIMEOUT : PaymeReason.EXECUTION_ERROR,
+      },
+    });
   }
 
   /** Cancels every open attempt of an order (the order itself is being cancelled). */
@@ -496,10 +505,11 @@ export class PaymentsService {
 
   /**
    * Expires online payments whose window has ended and cancels their orders when nothing else can
-   * pay them, returning the reserved stock. Payments a provider is processing get a short grace
-   * period. Idempotent and safe to run in several processes: every change is conditional.
+   * pay them, returning the reserved stock. An accepted Payme transaction keeps its provider
+   * deadline. Other processing attempts receive a short grace period. Every change is conditional.
    */
   async expireOverdue(now = new Date()): Promise<{ expired: number; cancelledOrders: number }> {
+    const paymeCutoff = BigInt(now.getTime() - PAYME_TIMEOUT_MS);
     const due = await this.prisma.payment.findMany({
       where: {
         provider: { not: 'CASH' },
@@ -508,10 +518,18 @@ export class PaymentsService {
           {
             status: 'PROCESSING',
             expiresAt: { lte: new Date(now.getTime() - PROCESSING_GRACE_MS) },
+            paymeTransactions: { none: { state: PaymeState.CREATED } },
+          },
+          {
+            provider: 'PAYME',
+            status: 'PROCESSING',
+            paymeTransactions: {
+              some: { state: PaymeState.CREATED, paymeTime: { lte: paymeCutoff } },
+            },
           },
         ],
       },
-      select: { id: true, orderId: true, status: true },
+      select: { id: true, orderId: true, status: true, provider: true },
       orderBy: { expiresAt: 'asc' },
       take: 100,
     });
@@ -528,10 +546,21 @@ export class PaymentsService {
             now,
           });
           if (!moved) return { expired: false, cancelled: false, restocked: false };
-          await tx.clickTransaction.updateMany({
-            where: { paymentId: payment.id, state: 0 },
-            data: { state: -1 },
-          });
+          if (payment.provider === 'PAYME') {
+            await tx.paymeTransaction.updateMany({
+              where: { paymentId: payment.id, state: PaymeState.CREATED },
+              data: {
+                state: PaymeState.CANCELLED,
+                reason: PaymeReason.TIMEOUT,
+                cancelTime: BigInt(now.getTime()),
+              },
+            });
+          } else if (payment.provider === 'CLICK') {
+            await tx.clickTransaction.updateMany({
+              where: { paymentId: payment.id, state: 0 },
+              data: { state: -1 },
+            });
+          }
           const cancelled = await this.cancelUnpaidOrder(tx, payment.orderId, now);
           return { expired: true, ...cancelled };
         });

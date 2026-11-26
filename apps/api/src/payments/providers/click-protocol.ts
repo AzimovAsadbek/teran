@@ -47,6 +47,19 @@ export interface ClickRequest {
 const DIGITS = /^\d{1,19}$/;
 const SIGNED_INTEGER = /^-?\d{1,10}$/;
 const AMOUNT = /^\d{1,12}(?:\.\d{1,4})?$/;
+const MAX_BIGINT = '9223372036854775807';
+
+function isClickLong(value: string): boolean {
+  return DIGITS.test(value) && (value.length < MAX_BIGINT.length || value <= MAX_BIGINT);
+}
+
+/** Node 24 preserves a JSON integer literal when it does not fit in a JavaScript number. */
+export function clickResponseId(value: string): number | { readonly rawJSON: string } {
+  const id = Number(value);
+  if (Number.isSafeInteger(id)) return id;
+  const json = JSON as JSON & { rawJSON(text: string): { readonly rawJSON: string } };
+  return json.rawJSON(BigInt(value).toString());
+}
 
 function field(body: Record<string, unknown>, name: string): string | null {
   const value = body[name];
@@ -70,9 +83,9 @@ export function parseClickRequest(body: unknown, complete: boolean): ClickReques
     signString: field(values, 'sign_string') ?? '',
   };
   const valid =
-    DIGITS.test(request.clickTransId) &&
+    isClickLong(request.clickTransId) &&
     DIGITS.test(request.serviceId) &&
-    DIGITS.test(request.clickPaydocId) &&
+    isClickLong(request.clickPaydocId) &&
     request.merchantTransId.length > 0 &&
     request.merchantTransId.length <= 64 &&
     AMOUNT.test(request.amount) &&
@@ -122,6 +135,7 @@ export function clickPaymentUrl(
   const query = new URLSearchParams({
     service_id: settings.serviceId,
     merchant_id: settings.merchantId,
+    ...(settings.merchantUserId && { merchant_user_id: settings.merchantUserId }),
     amount: params.amount,
     transaction_param: params.orderNumber,
     return_url: params.returnUrl,

@@ -13,6 +13,7 @@ import {
   ClickAction,
   ClickAnswer,
   ClickState,
+  clickResponseId,
   isClickSignatureValid,
   parseClickRequest,
   type ClickAnswerCode,
@@ -24,7 +25,7 @@ const ORDER_NUMBER = /^TRN-[0-9A-Z]{8}$/;
 const AMOUNT_TOLERANCE = new Prisma.Decimal('0.01');
 
 export interface ClickResponse {
-  click_trans_id: number | null;
+  click_trans_id: ReturnType<typeof clickResponseId> | null;
   merchant_trans_id: string | null;
   merchant_prepare_id?: number | null;
   merchant_confirm_id?: number | null;
@@ -87,7 +88,7 @@ export class ClickService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         // Serialize provider retries before inspecting or replacing an open attempt.
-        await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${click.clickTransId}, 0))`;
+        await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${clickTransId.toString()}, 0))`;
         const existing = await tx.clickTransaction.findUnique({
           where: { clickTransId },
           include: { payment: { select: { order: { select: { number: true } } } } },
@@ -99,6 +100,8 @@ export class ClickService {
             return this.answer(click, ClickAnswer.INCORRECT_AMOUNT);
           return this.repeatPrepare(click, existing);
         }
+        // Two different CLICK transactions can try to prepare the same order simultaneously.
+        await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${click.merchantTransId}, 1))`;
         const order = await this.findOrder(click.merchantTransId, tx);
         if (!order) return this.answer(click, ClickAnswer.USER_NOT_FOUND);
         if (order.payments.some((payment) => isSettledPayment(payment.status)))
@@ -120,16 +123,13 @@ export class ClickService {
             providerReference: true,
           },
         });
+        if (open?.status === 'PROCESSING')
+          return this.answer(click, ClickAnswer.TRANSACTION_CANCELLED);
         let payment: { id: string; orderId: string; status: PaymentStatus };
-        if (
-          open &&
-          open.provider === 'CLICK' &&
-          open.providerReference === null &&
-          open.status !== 'PROCESSING'
-        ) {
+        if (open && open.provider === 'CLICK' && open.providerReference === null) {
           payment = open;
         } else {
-          // A new Click payment replaces an earlier, unfinished one (it can no longer complete).
+          // An attempt still waiting for the user can be replaced.
           if (open) await this.payments.closeAttempt(tx, open, 'CANCELLED', 'provider', 'REPLACED');
           payment = await this.payments.createAttempt(tx, {
             orderId: order.id,
@@ -186,6 +186,7 @@ export class ClickService {
     const order = await this.findOrder(click.merchantTransId);
     if (!order) return this.answer(click, ClickAnswer.USER_NOT_FOUND);
     const prepareId = Number(click.merchantPrepareId);
+    if (prepareId > 2_147_483_647) return this.answer(click, ClickAnswer.TRANSACTION_NOT_FOUND);
     const transaction = await this.prisma.clickTransaction.findUnique({
       where: { prepareId },
       include: { payment: { select: { id: true, orderId: true, status: true } } },
@@ -270,7 +271,7 @@ export class ClickService {
         where: { prepareId, state: ClickState.PREPARED },
         data: {
           state: moved ? ClickState.COMPLETED : ClickState.CANCELLED,
-          ...(moved && (payment.fiscalPayload || this.config.clickUserId)
+          ...(moved && (payment.fiscalPayload || this.config.click?.merchantUserId)
             ? {
                 fiscalState: payment.fiscalPayload ? 'QUEUED' : 'CHECKING',
                 fiscalNextAt: new Date(),
@@ -340,9 +341,8 @@ export class ClickService {
     code: ClickAnswerCode,
     extra: Partial<Pick<ClickResponse, 'merchant_prepare_id' | 'merchant_confirm_id'>> = {},
   ): ClickResponse {
-    const transId = request ? Number(request.clickTransId) : null;
     return {
-      click_trans_id: transId !== null && Number.isSafeInteger(transId) ? transId : null,
+      click_trans_id: request ? clickResponseId(request.clickTransId) : null,
       merchant_trans_id: request?.merchantTransId ?? null,
       ...extra,
       error: code.error,

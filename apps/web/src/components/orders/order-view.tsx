@@ -30,6 +30,10 @@ export async function OrderStatusView({
   const cart = await getTranslations('Cart');
   const latest = order.payments.at(-1);
   const confirming = latest?.status === 'PROCESSING' && !latest.demo;
+  const waitingForProvider =
+    latest?.status === 'REQUIRES_ACTION' &&
+    !latest.demo &&
+    isOnlinePaymentMethod(order.paymentMethod);
   const options =
     order.awaitingPayment && !confirming
       ? ((await getCheckoutOptions(locale).catch(() => null))?.paymentOptions ?? []).filter(
@@ -40,7 +44,7 @@ export async function OrderStatusView({
 
   return (
     <div className="space-y-6">
-      {order.awaitingPayment ? (
+      {order.awaitingPayment || (confirming && order.status === 'PENDING') ? (
         <section
           aria-labelledby="awaiting-payment"
           className="rounded-panel border border-warning/30 bg-warning-soft/60 p-5 sm:p-7"
@@ -49,7 +53,7 @@ export async function OrderStatusView({
             <Clock aria-hidden className="h-5 w-5 text-warning" />
             {t('awaitingPaymentTitle')}
           </h2>
-          {order.paymentDueAt ? (
+          {order.paymentDueAt && !confirming ? (
             <p className="mt-2 text-body text-fg">
               {t('awaitingPaymentText', { time: formatDateTime(order.paymentDueAt, locale) })}
             </p>
@@ -59,9 +63,11 @@ export async function OrderStatusView({
               {t('paymentFailedText')}
             </Notice>
           ) : null}
-          {latest?.status === 'PROCESSING' ? (
+          {latest?.status === 'PROCESSING' || waitingForProvider ? (
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <p className="text-body-sm text-fg-muted">{t('paymentProcessingText')}</p>
+              <p className="text-body-sm text-fg-muted">
+                {t(waitingForProvider ? 'checkAfterPayment' : 'paymentProcessingText')}
+              </p>
               <CheckAgain />
             </div>
           ) : null}

@@ -23,6 +23,8 @@ Sotib olishni sinash uchun XC2025 400 g choyining ikkita qadog‘i alohida takli
 
 Fiskal chekni to‘lov provayderi rasmiylashtiradi. TERAN har bir buyurtmada mahsulot nomi, miqdori, narxi, MXIK, qadoq kodi va QQS stavkasini uzatadi. Yangi mahsulotning har bir sotiladigan qadoq varianti uchun xodim bu ma’lumotlarni admin panelga kiritadi. Keyingi xaridlarda ular avtomatik yuboriladi. [CLICK fiskalizatsiya hujjati](https://docs.click.uz/merchant-api/fiscalization) · [Payme sinov sahifasi](https://terantrade.uz/payme-sinov) · [Loyiha to‘lov yo‘riqnomasi](../deployment/payment-provider-setup.md)
 
+Payme’ning alohida tester portalida bitta qo‘shimcha brauzer urinishi umumiy xato qaytardi. Uchta asosiy sinov natijasini Payme integratsiya vakili tasdiqlagan. Jonli kassada kartadan pul yechish va yakuniy chek hali sinovdan o‘tmagan.
+
 ## Xodim paneli va texnik tuzilma
 
 - **Savdo va ombor.** Panelda buyurtmalar, mijozlar, qoldiq harakati, so‘rovlar, savdo ko‘rsatkichlari va CSV hisobotlari bor. API narx, qoldiq va jami summani qayta hisoblaydi. Buyurtma rezerv yaratadi. Muddati o‘tgan to‘lanmagan buyurtmada fon vazifasi mahsulotni omborga bir marta qaytaradi. [Buyurtma va to‘lov qoidalari](../architecture/payments.md)

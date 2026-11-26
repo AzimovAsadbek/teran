@@ -675,6 +675,7 @@
     "paymentFailedText": "The last payment attempt did not go through. You can try again or choose another method.",
     "paymentProcessingText": "We are waiting for confirmation from the payment provider. This page shows the result as soon as it arrives.",
     "checkAgain": "Check again",
+    "checkAfterPayment": "If you paid in the app, check the status here before paying again.",
     "paymentReceived": "Payment received",
     "cancelReasons": {
       "payment_not_completed": "The online payment was not completed in time, so the order was cancelled and its items returned to stock.",

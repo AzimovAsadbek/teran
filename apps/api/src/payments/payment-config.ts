@@ -19,6 +19,7 @@ export interface PaymeSettings {
 export interface ClickSettings {
   serviceId: string;
   merchantId: string;
+  merchantUserId?: string;
   secretKey: string;
 }
 
@@ -34,7 +35,6 @@ export class PaymentConfig {
   readonly windowMinutes: number;
   readonly itemizedPayme: boolean;
   readonly itemizedClick: boolean;
-  readonly clickUserId?: string;
   readonly clickCommissionTin?: string;
   readonly fiscalDelivery: { mxik: string; packageCode: string; vatPercent: number } | null;
   /** Credentials, only when configured and the mode is live. */
@@ -60,7 +60,7 @@ export class PaymentConfig {
     const live = this.mode === 'live';
     this.itemizedPayme = config.get('PAYME_FISCAL_MODE', { infer: true }) === 'items';
     this.itemizedClick = config.get('CLICK_FISCAL_MODE', { infer: true }) === 'items';
-    this.clickUserId = config.get('CLICK_MERCHANT_USER_ID', { infer: true });
+    const clickUserId = config.get('CLICK_MERCHANT_USER_ID', { infer: true });
     this.clickCommissionTin = config.get('CLICK_COMMISSION_TIN', { infer: true });
     const mxik = config.get('CLICK_DELIVERY_MXIK', { infer: true });
     const packageCode = config.get('CLICK_DELIVERY_PACKAGE_CODE', { infer: true });
@@ -80,7 +80,12 @@ export class PaymentConfig {
         : null;
     this.click =
       live && clickService && clickMerchant && clickSecret
-        ? { serviceId: clickService, merchantId: clickMerchant, secretKey: clickSecret }
+        ? {
+            serviceId: clickService,
+            merchantId: clickMerchant,
+            merchantUserId: clickUserId,
+            secretKey: clickSecret,
+          }
         : null;
 
     if (!live && (paymeId || clickService)) {

@@ -79,6 +79,7 @@ Prerequisites: a contract with Click and a service in the Click merchant cabinet
    ```
    CLICK_SERVICE_ID=<service id>
    CLICK_MERCHANT_ID=<merchant id>
+   CLICK_MERCHANT_USER_ID=<merchant user id, when assigned>
    CLICK_SECRET_KEY=<secret key>
    ```
 3. Restart the API and add `CLICK` to `PAYMENT_METHODS_ENABLED`.
@@ -110,12 +111,12 @@ The five TERAN 400 g green tea pouches (XC2025, G8810, 8800, 8830 and 8009) use 
 
 CLICK and Payme issue TERAN's fiscal receipts. Set both fiscal modes to `items` so each provider receives the purchased lines, including the codes for any future product. The `provider` setting uses the provider's own preset receipt configuration.
 
-| Setting                                                                            | Value for itemized receipts                                                                        |
-| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `PAYME_FISCAL_MODE`                                                                | `items` makes Payme receive the purchased product lines on its initial check.                      |
-| `CLICK_FISCAL_MODE`                                                                | `items` for CLICK Type 3. After a successful Complete, TERAN submits the purchased items to CLICK. |
-| `CLICK_MERCHANT_USER_ID`, `CLICK_COMMISSION_TIN`                                   | The Merchant API user and the TIN agreed with CLICK for CommissionInfo.                            |
-| `CLICK_DELIVERY_MXIK`, `CLICK_DELIVERY_PACKAGE_CODE`, `CLICK_DELIVERY_VAT_PERCENT` | Only needed if paid delivery is reintroduced. Leave empty for product-only orders.                 |
+| Setting                                                                            | Value for itemized receipts                                                                                                        |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `PAYME_FISCAL_MODE`                                                                | `items` makes Payme receive the purchased product lines on its initial check.                                                      |
+| `CLICK_FISCAL_MODE`                                                                | `items` for CLICK Type 3. After a successful Complete, TERAN submits the purchased items to CLICK.                                 |
+| `CLICK_MERCHANT_USER_ID`, `CLICK_COMMISSION_TIN`                                   | The merchant user identifies the checkout link and Merchant API requests. The TIN is the one agreed with CLICK for CommissionInfo. |
+| `CLICK_DELIVERY_MXIK`, `CLICK_DELIVERY_PACKAGE_CODE`, `CLICK_DELIVERY_VAT_PERCENT` | Only needed if paid delivery is reintroduced. Leave empty for product-only orders.                                                 |
 
 On 26 November 2026 CLICK activated service 115697 in Type 3 mode. Its cabinet showed an active service and a minimum payment of 1,000 UZS. CLICK confirmed that it generates the final receipt after receiving the item data. TERAN sends `submit_items` and retrieves the resulting QR link by CLICK payment ID. `submit_qrcode` is for a merchant that already issued its own receipt.
 

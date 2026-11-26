@@ -18,7 +18,7 @@ export class ClickFiscalService {
 
   async processDue(now = new Date()): Promise<void> {
     const click = this.config.click;
-    const userId = this.config.clickUserId;
+    const userId = click?.merchantUserId;
     if (!click || !userId) return;
     const jobs = await this.prisma.clickTransaction.findMany({
       where: { fiscalState: { in: ['QUEUED', 'CHECKING'] }, fiscalNextAt: { lte: now } },

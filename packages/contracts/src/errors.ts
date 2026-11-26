@@ -21,6 +21,8 @@ export const ERROR_CODES = [
   'PRICE_CHANGED',
   'DELIVERY_METHOD_UNAVAILABLE',
   'PAYMENT_METHOD_UNAVAILABLE',
+  'FISCAL_DATA_MISSING',
+  'PAYMENT_IN_PROGRESS',
   'INVALID_STATUS_TRANSITION',
   /** The item is not complete enough to publish; `details.missing` lists the readiness codes. */
   'PUBLICATION_BLOCKED',

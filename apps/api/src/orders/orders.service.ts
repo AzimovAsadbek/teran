@@ -26,6 +26,14 @@ import { PaymentsService } from '../payments/payments.service.js';
 import { saveAddressFromCheckout } from '../account/address-book.js';
 import { orderInclude, toOrderDto, type OrderWithItems } from './order.mapper.js';
 
+type ReservedLine = OrderableLine & {
+  stockAfter: number;
+  fiscalMxik: string | null;
+  fiscalPackageCode: string | null;
+  fiscalVatPercent: number | null;
+  fiscalBarcode: string | null;
+};
+
 const MAX_NUMBER_ATTEMPTS = 3;
 
 @Injectable()
@@ -226,6 +234,10 @@ export class OrdersService {
             productSlug: line.productSlug,
             format: line.format,
             sku: line.sku,
+            fiscalMxik: line.fiscalMxik,
+            fiscalPackageCode: line.fiscalPackageCode,
+            fiscalVatPercent: line.fiscalVatPercent,
+            fiscalBarcode: line.fiscalBarcode,
             weightGrams: line.weightGrams,
             unitCount: line.unitCount,
             unitPrice: line.unitPrice,
@@ -275,8 +287,8 @@ export class OrdersService {
   private async reserveStock(
     tx: Prisma.TransactionClient,
     lines: OrderableLine[],
-  ): Promise<(OrderableLine & { stockAfter: number })[]> {
-    const reserved: (OrderableLine & { stockAfter: number })[] = [];
+  ): Promise<ReservedLine[]> {
+    const reserved: ReservedLine[] = [];
     for (const line of lines) {
       try {
         const variant = await tx.productVariant.update({
@@ -287,9 +299,24 @@ export class OrdersService {
             product: { AND: [visibleProductWhere(), retailTeaWhere] },
           },
           data: { stockQuantity: { decrement: line.quantity } },
-          select: { stockQuantity: true, price: true },
+          select: {
+            stockQuantity: true,
+            price: true,
+            fiscalMxik: true,
+            fiscalPackageCode: true,
+            fiscalVatPercent: true,
+            barcode: true,
+          },
         });
-        reserved.push({ ...line, unitPrice: variant.price, stockAfter: variant.stockQuantity });
+        reserved.push({
+          ...line,
+          unitPrice: variant.price,
+          stockAfter: variant.stockQuantity,
+          fiscalMxik: variant.fiscalMxik,
+          fiscalPackageCode: variant.fiscalPackageCode,
+          fiscalVatPercent: variant.fiscalVatPercent,
+          fiscalBarcode: variant.barcode,
+        });
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
           throw ApiException.conflict(

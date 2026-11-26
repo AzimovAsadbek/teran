@@ -131,7 +131,19 @@ export class AdminOrdersService {
         },
         payments: {
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-          include: { events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] } },
+          include: {
+            events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+            fiscalReceipts: {
+              orderBy: { operation: 'asc' },
+              select: { operation: true, statusCode: true, receiptUrl: true },
+            },
+            clickTransactions: {
+              where: { fiscalState: { not: null } },
+              select: { fiscalState: true, fiscalError: true },
+              orderBy: { prepareId: 'desc' },
+              take: 1,
+            },
+          },
         },
       },
     });
@@ -205,6 +217,13 @@ export class AdminOrdersService {
         currency: payment.currency,
         providerReference: payment.providerReference,
         failureCode: payment.failureCode,
+        receipts: payment.fiscalReceipts.map((row) => ({
+          operation: row.operation,
+          code: row.statusCode,
+          url: row.receiptUrl,
+        })),
+        clickFiscalState: payment.clickTransactions[0]?.fiscalState ?? null,
+        clickFiscalError: payment.clickTransactions[0]?.fiscalError ?? null,
         expiresAt: payment.expiresAt?.toISOString() ?? null,
         confirmedAt: payment.confirmedAt?.toISOString() ?? null,
         createdAt: payment.createdAt.toISOString(),

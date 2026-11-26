@@ -252,6 +252,10 @@ describe('admin API', () => {
               variants: productPayload(categoryId).variants.map((variant, index) => ({
                 ...variant,
                 id: draft.variants[index]!.id,
+                fiscal:
+                  index === 0
+                    ? { mxik: '00000000000000001', packageCode: '0010', vatPercent: 0 }
+                    : null,
               })),
             }),
           )
@@ -299,6 +303,7 @@ describe('admin API', () => {
       expect(edited.variants.find((variant) => variant.sku === 'TST-100')).toMatchObject({
         price: '42000.00',
         stockQuantity: 12,
+        fiscal: { mxik: '00000000000000001', packageCode: '0010', vatPercent: 0 },
       });
 
       const ledger = await ctx.prisma.inventoryMovement.findMany({

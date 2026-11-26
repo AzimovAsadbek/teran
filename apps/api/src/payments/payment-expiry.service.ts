@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.js';
+import { ClickFiscalService } from './providers/click-fiscal.service.js';
 import { PaymentsService } from './payments.service.js';
 
 const INTERVAL_MS = 60_000;
@@ -21,6 +22,7 @@ export class PaymentExpiryService implements OnApplicationBootstrap, OnModuleDes
 
   constructor(
     private readonly payments: PaymentsService,
+    private readonly clickFiscal: ClickFiscalService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -28,6 +30,9 @@ export class PaymentExpiryService implements OnApplicationBootstrap, OnModuleDes
     // Test suites call expireOverdue() themselves; a timer would race with their fixtures.
     if (this.config.get('NODE_ENV', { infer: true }) === 'test') return;
     this.timer = setInterval(() => {
+      void this.clickFiscal
+        .processDue()
+        .catch(() => this.logger.warn('Could not process CLICK fiscal receipts'));
       void this.payments
         .expireOverdue()
         .catch((error: unknown) =>

@@ -28,6 +28,8 @@ export const PaymeReason = { EXECUTION_ERROR: 3, TIMEOUT: 4 } as const;
 type Messages = { ru: string; uz: string; en: string };
 
 const MESSAGES = {
+  '-32001': { ru: 'Чек с таким id не найден', uz: 'Chek topilmadi', en: 'Receipt not found' },
+  '-32602': { ru: 'Неверный параметр', uz: 'Notoʻgʻri parametr', en: 'Invalid parameter' },
   '-32300': {
     ru: 'Метод запроса должен быть POST',
     uz: 'Soʻrov usuli POST boʻlishi kerak',
@@ -62,7 +64,19 @@ const MESSAGES = {
 } satisfies Record<`${PaymeErrorCode}`, Messages>;
 
 export type PaymeErrorCode =
-  -32300 | -32700 | -32600 | -32601 | -32504 | -32400 | -31001 | -31003 | -31008 | -31050 | -31051;
+  | -32001
+  | -32602
+  | -32300
+  | -32700
+  | -32600
+  | -32601
+  | -32504
+  | -32400
+  | -31001
+  | -31003
+  | -31008
+  | -31050
+  | -31051;
 
 /** An error answered to Payme as a JSON-RPC error object (always with HTTP 200). */
 export class PaymeError extends Error {
@@ -82,7 +96,7 @@ export interface PaymeResponse {
   jsonrpc: '2.0';
   id: number | string | null;
   result?: Record<string, unknown>;
-  error?: { code: number; message: Messages; data?: string };
+  error?: { code: number; message: Messages | string; data?: string };
 }
 
 export function paymeError(id: PaymeResponse['id'], error: PaymeError): PaymeResponse {
@@ -91,7 +105,12 @@ export function paymeError(id: PaymeResponse['id'], error: PaymeError): PaymeRes
     id,
     error: {
       code: error.code,
-      message: error.messages,
+      message:
+        error.code === -32001
+          ? error.messages.ru
+          : error.code === -32602
+            ? `Invalid parameter: ${error.data ?? 'params'}`
+            : error.messages,
       ...(error.data !== undefined ? { data: error.data } : {}),
     },
   };

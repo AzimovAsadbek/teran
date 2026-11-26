@@ -102,6 +102,21 @@ Not available: no card gateway is integrated. The `CARD` method is shown as "Not
 live mode when it is enabled; leave it out of `PAYMENT_METHODS_ENABLED` until a gateway is chosen
 (see the options in the payments architecture document).
 
+## Product receipts
+
+For each sellable pack, enter its official 17-digit MXIK, package code and VAT percentage under **Admin → Products → Variants**. Preserve leading zeroes. Enter an explicit `0` for a zero rate. The checkout copies these fields onto the order. Existing orders keep their original values. Missing fields on a new itemized online attempt leave the cart and stock intact.
+
+Each provider has an independent receipt setting. Use `provider` when its cashbox handles the receipt, and `items` when the provider has enabled itemized receipts from the shop.
+
+| Setting                                                                            | Value for itemized receipts                                                                              |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `PAYME_FISCAL_MODE`                                                                | `items` makes Payme receive the order lines and delivery fee on its initial check.                       |
+| `CLICK_FISCAL_MODE`                                                                | `items` for CLICK to fiscalize the order's lines. Confirm the cashbox's advance/sale setting with CLICK. |
+| `CLICK_MERCHANT_USER_ID`, `CLICK_COMMISSION_TIN`                                   | The Merchant API user and the TIN agreed with CLICK for CommissionInfo.                                  |
+| `CLICK_DELIVERY_MXIK`, `CLICK_DELIVERY_PACKAGE_CODE`, `CLICK_DELIVERY_VAT_PERCENT` | Official service details for paid delivery. Free delivery needs no additional line.                      |
+
+The API worker needs outbound HTTPS to `api.click.uz`. After a submission timeout it polls the existing payment for the QR. A record marked for review requires checking that payment in the merchant cabinet. The order stays paid while its fiscal receipt is pending. [CLICK fiscal API](https://docs.click.uz/merchant-api/fiscalization) · [Payme receipt callback](https://developer.help.paycom.uz/metody-merchant-api/setfiscaldata/)
+
 ## 5. Go-live checklist
 
 - [ ] Contracts signed; credentials stored only in the server's secret store.

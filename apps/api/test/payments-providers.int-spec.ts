@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { checkoutOptionsSchema, orderSchema, placedOrderSchema } from '@teran/contracts';
+import { ClickFiscalService } from '../src/payments/providers/click-fiscal.service.js';
 import { PaymentsService } from '../src/payments/payments.service.js';
 import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
 import {
@@ -23,6 +24,13 @@ vi.hoisted(() => {
     PAYME_KEY: 'test-only-payme-cashbox-key-0001',
     // Requests in tests come from 127.0.0.1, not from Payme's address range.
     PAYME_CHECK_IP: 'false',
+    PAYME_FISCAL_MODE: 'items',
+    CLICK_FISCAL_MODE: 'items',
+    CLICK_MERCHANT_USER_ID: '10001',
+    CLICK_COMMISSION_TIN: '123456789',
+    CLICK_DELIVERY_MXIK: '00000000000000002',
+    CLICK_DELIVERY_PACKAGE_CODE: '0002',
+    CLICK_DELIVERY_VAT_PERCENT: '0',
     CLICK_SERVICE_ID: '12345',
     CLICK_MERCHANT_ID: '67890',
     CLICK_SECRET_KEY: 'test-only-click-secret-0001',
@@ -68,6 +76,14 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       variants: [{ price: '60000', stock: 10 }],
     });
     variantId = product.variants[0]!.id;
+    await ctx.prisma.productVariant.update({
+      where: { id: variantId },
+      data: {
+        fiscalMxik: '00000000000000001',
+        fiscalPackageCode: '0001',
+        fiscalVatPercent: 12,
+      },
+    });
   });
 
   const agent = () => request.agent(ctx.app.getHttpServer());
@@ -91,6 +107,29 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       ).body,
     );
   }
+
+  it.each(['PAYME', 'CLICK'])(
+    'rolls back stock and keeps the cart when %s fiscal data is missing',
+    async (method) => {
+      await ctx.prisma.productVariant.update({
+        where: { id: variantId },
+        data: { fiscalMxik: null, fiscalPackageCode: null, fiscalVatPercent: null },
+      });
+      const browser = await signInShopper(ctx);
+      await browser.post(`${API}/cart/items`).send({ variantId, quantity: 1 }).expect(201);
+      const failed = await browser
+        .post(`${API}/checkout/orders`)
+        .send(checkoutBody(method))
+        .expect(422);
+      expect(failed.body.code).toBe('FISCAL_DATA_MISSING');
+      expect(await ctx.prisma.order.count()).toBe(0);
+      expect(await ctx.prisma.cartItem.count()).toBe(1);
+      expect(
+        (await ctx.prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } }))
+          .stockQuantity,
+      ).toBe(10);
+    },
+  );
 
   it('offers Click and Payme as live and keeps cards unavailable without a card gateway', async () => {
     const options = checkoutOptionsSchema.parse(
@@ -164,10 +203,55 @@ describe('payment providers (live mode, simulated provider calls)', () => {
         code: -32601,
         data: 'ChangeEverything',
       });
-      // Fiscal receipts are not implemented, so nothing pretends to store them.
       expect(
         (await rpc('SetFiscalData', { id: 'x', type: 'PERFORM', fiscal_data: {} })).error?.code,
-      ).toBe(-32601);
+      ).toBe(-32602);
+    });
+
+    it('stores sale and refund receipts independently across concurrent and delayed callbacks', async () => {
+      const placed = await placeOrder('PAYME');
+      const id = '5e730e8e0b852a417aa49001';
+      const data = {
+        receipt_id: 121,
+        status_code: 0,
+        message: 'accepted',
+        terminal_id: 'EP01',
+        fiscal_sign: '1002',
+        date: '20261126090000',
+        qr_code_url: 'https://ofd.soliq.uz/epi?r=121',
+      };
+      const receipt = { id, type: 'PERFORM', fiscal_data: data };
+      expect((await rpc('SetFiscalData', receipt)).error?.code).toBe(-32001);
+      await rpc('CreateTransaction', {
+        id,
+        time: Date.now(),
+        amount: tiyin(placed),
+        account: { order_id: placed.order.number },
+      });
+      await rpc('PerformTransaction', { id });
+      const failed = { ...receipt, fiscal_data: { ...data, status_code: 1, qr_code_url: '' } };
+      expect((await rpc('SetFiscalData', failed)).result).toEqual({ success: true });
+      const delivered = await Promise.all([
+        rpc('SetFiscalData', receipt),
+        rpc('SetFiscalData', receipt),
+      ]);
+      expect(delivered.every((answer) => answer.result?.success)).toBe(true);
+      await rpc('SetFiscalData', failed);
+      expect(
+        (await rpc('SetFiscalData', { ...receipt, fiscal_data: { ...data, receipt_id: 999 } }))
+          .error?.code,
+      ).toBe(-32602);
+      await rpc('CancelTransaction', { id, reason: 5 });
+      await rpc('SetFiscalData', {
+        ...receipt,
+        type: 'CANCEL',
+        fiscal_data: { ...data, receipt_id: '122', qr_code_url: 'https://ofd.soliq.uz/epi?r=122' },
+      });
+      expect((await orderView(placed)).payments[0]?.receipts).toEqual([
+        { operation: 'PERFORM', url: data.qr_code_url },
+        { operation: 'CANCEL', url: 'https://ofd.soliq.uz/epi?r=122' },
+      ]);
+      expect(await ctx.prisma.fiscalReceipt.count()).toBe(2);
     });
 
     it('validates the order and the amount before a transaction exists', async () => {
@@ -187,7 +271,34 @@ describe('payment providers (live mode, simulated provider calls)', () => {
         amount: tiyin(placed),
         account: { order_id: placed.order.number },
       });
-      expect(ok.result).toEqual({ allow: true });
+      expect(ok.result).toMatchObject({
+        allow: true,
+        detail: {
+          receipt_type: 0,
+          shipping: { price: 2500000 },
+          items: [
+            {
+              price: 6000000,
+              count: 1,
+              code: '00000000000000001',
+              package_code: '0001',
+              vat_percent: 12,
+            },
+          ],
+        },
+      });
+      await ctx.prisma.productVariant.update({
+        where: { id: variantId },
+        data: { fiscalPackageCode: '0003', price: '65000' },
+      });
+      expect(
+        (
+          await rpc('CheckPerformTransaction', {
+            amount: tiyin(placed),
+            account: { order_id: placed.order.number },
+          })
+        ).result,
+      ).toEqual(ok.result);
 
       // An order placed for Click cannot be paid through Payme.
       const click = await placeOrder('CLICK');
@@ -217,6 +328,16 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       expect(created.result).toMatchObject({ state: 1 });
       expect(concurrentRepeat.result).toEqual(created.result);
       expect((await orderView(placed)).paymentStatus).toBe('PROCESSING');
+      const restart = await agent()
+        .post(`${API}/orders/${placed.order.number}/payments`)
+        .send({
+          method: 'CLICK',
+          token: placed.accessToken,
+          locale: 'uz',
+        })
+        .expect(409);
+      expect(restart.body.code).toBe('PAYMENT_IN_PROGRESS');
+      expect(await ctx.prisma.payment.count()).toBe(1);
 
       // A second Payme transaction for the same order while the first is open.
       const second = await rpc('CreateTransaction', { ...create, id: '5e730e8e0b852a417aa49cec' });
@@ -469,6 +590,83 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       // A new Prepare for a paid order.
       expect((await post('prepare', prepareBody(placed.order.number, '85000.00'))).error).toBe(-4);
       expect(await ctx.prisma.payment.count({ where: { status: 'PAID' } })).toBe(1);
+    });
+
+    it('answers concurrent CLICK retries from the same payment and queues one receipt', async () => {
+      const placed = await placeOrder('CLICK');
+      const request = prepareBody(placed.order.number, '85000.00');
+      const [a, b] = await Promise.all([post('prepare', request), post('prepare', request)]);
+      expect(a.error).toBe(0);
+      expect(b).toEqual(a);
+      const complete = completeBody(request, a.merchant_prepare_id!);
+      const replies = await Promise.all([post('complete', complete), post('complete', complete)]);
+      expect(replies.map((result) => result.error).sort()).toEqual([-4, 0]);
+      expect(await ctx.prisma.clickTransaction.count({ where: { fiscalState: 'QUEUED' } })).toBe(1);
+      expect((await orderView(placed)).paymentStatus).toBe('PAID');
+    });
+
+    it('submits one itemized CLICK receipt and recovers its QR after a lost response', async () => {
+      const placed = await placeOrder('CLICK');
+      const body = prepareBody(placed.order.number, '85000.00');
+      const prepare = await post('prepare', body);
+      const complete = completeBody(body, prepare.merchant_prepare_id!);
+      expect((await post('complete', complete)).error).toBe(0);
+      expect((await post('complete', complete)).error).toBe(-4);
+      const worker = ctx.app.get(ClickFiscalService);
+      const qr = 'https://ofd.soliq.uz/epi?r=101';
+      const send = vi
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValueOnce(new Error('response lost'))
+        .mockResolvedValueOnce(
+          Response.json({ paymentId: Number(body.click_trans_id), qrCodeURL: qr }),
+        );
+      try {
+        await Promise.all([worker.processDue(), worker.processDue()]);
+        expect(send).toHaveBeenCalledTimes(1);
+        const call = send.mock.calls[0]!;
+        expect(call[0]).toMatch(/\/submit_items$/);
+        const sentBody = call[1]?.body;
+        if (typeof sentBody !== 'string') throw new Error('Expected a JSON body');
+        const payload = JSON.parse(sentBody);
+        expect(payload).toMatchObject({
+          service_id: 12345,
+          payment_id: Number(body.click_trans_id),
+          received_card: 8500000,
+          items: [
+            {
+              SPIC: '00000000000000001',
+              PackageCode: '0001',
+              GoodPrice: 6000000,
+              Price: 6000000,
+              Amount: 1000,
+              VATPercent: 12,
+              VAT: 642857,
+              CommissionInfo: { TIN: '123456789' },
+            },
+            {
+              SPIC: '00000000000000002',
+              PackageCode: '0002',
+              Price: 2500000,
+              VATPercent: 0,
+              VAT: 0,
+            },
+          ],
+        });
+        const auth = new Headers(call[1]?.headers).get('Auth')!.split(':');
+        expect(auth[1]).toBe(
+          createHash('sha1')
+            .update(auth[2] + CLICK_SECRET)
+            .digest('hex'),
+        );
+        await worker.processDue(new Date(Date.now() + 600_000));
+        expect(send).toHaveBeenCalledTimes(2);
+        expect(send.mock.calls[1]![0]).toMatch(new RegExp('/' + body.click_trans_id + '$'));
+        expect((await orderView(placed)).payments[0]?.receipts).toEqual([
+          { operation: 'PERFORM', url: qr },
+        ]);
+      } finally {
+        send.mockRestore();
+      }
     });
 
     it('records a payment Click reports as failed and never completes it', async () => {

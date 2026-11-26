@@ -819,6 +819,11 @@ export class AdminProductsService {
         variant.compareAtPrice === null ? null : new Prisma.Decimal(variant.compareAtPrice),
       lowStockThreshold: variant.lowStockThreshold,
       barcode: variant.barcode,
+      ...(variant.fiscal !== undefined && {
+        fiscalMxik: variant.fiscal?.mxik ?? null,
+        fiscalPackageCode: variant.fiscal?.packageCode ?? null,
+        fiscalVatPercent: variant.fiscal?.vatPercent ?? null,
+      }),
       isActive: variant.isActive,
     };
   }
@@ -890,6 +895,14 @@ export class AdminProductsService {
         stockQuantity: variant.stockQuantity,
         lowStockThreshold: variant.lowStockThreshold,
         barcode: variant.barcode,
+        fiscal:
+          variant.fiscalMxik && variant.fiscalPackageCode && variant.fiscalVatPercent !== null
+            ? {
+                mxik: variant.fiscalMxik,
+                packageCode: variant.fiscalPackageCode,
+                vatPercent: variant.fiscalVatPercent,
+              }
+            : null,
         isActive: variant.isActive,
       })),
       images: row.images.map((image) => {

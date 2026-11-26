@@ -287,6 +287,33 @@ test.describe('admin changes reach the storefront', () => {
     await store.context().close();
   });
 
+  test('staff save per-pack fiscal codes and an explicit zero VAT in the product editor', async ({
+    page,
+  }) => {
+    await signInAsAdmin(page);
+    const tag = Date.now().toString(36);
+    const own = await ownCategory(page, tag);
+    const slug = 'fiscal-tea-' + tag;
+    const productId = await publishProduct(page.request, product(slug, own.id), PICTURES.lake);
+    try {
+      await page.goto(`/en/admin/products/${productId}`);
+      const mxik = page.getByLabel('MXIK (17 digits)');
+      const pack = page.getByLabel('Soliq package code');
+      const vat = page.getByLabel('VAT rate (%)');
+      await mxik.fill('00000000000000001');
+      await pack.fill('000123');
+      await vat.fill('0');
+      await visible(page.getByRole('button', { name: 'Save', exact: true })).click();
+      await expect(visible(page.getByText('Saved', { exact: true }))).toBeVisible();
+      await page.reload();
+      await expect(mxik).toHaveValue('00000000000000001');
+      await expect(pack).toHaveValue('000123');
+      await expect(vat).toHaveValue('0');
+    } finally {
+      await own.retire();
+    }
+  });
+
   test('a new collection joins the menu with its first product, added in the product editor', async ({
     page,
     browser,

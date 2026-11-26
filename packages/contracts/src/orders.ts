@@ -216,6 +216,11 @@ export const orderEventSchema = z.object({
 });
 
 /** One payment attempt, without provider internals. */
+export const receiptLinkSchema = z.object({
+  operation: z.enum(['PERFORM', 'CANCEL']),
+  url: z.url({ protocol: /^https$/ }),
+});
+export type ReceiptLink = z.infer<typeof receiptLinkSchema>;
 export const orderPaymentSchema = z.object({
   method: paymentMethodSchema,
   status: paymentStatusSchema,
@@ -225,6 +230,7 @@ export const orderPaymentSchema = z.object({
   demo: z.boolean(),
   createdAt: z.string(),
   paidAt: z.string().nullable(),
+  receipts: z.array(receiptLinkSchema).optional(),
   failureCode: z.string().nullable(),
 });
 export type OrderPaymentDto = z.infer<typeof orderPaymentSchema>;

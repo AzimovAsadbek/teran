@@ -24,6 +24,11 @@ export const orderInclude = {
       expiresAt: true,
       confirmedAt: true,
       failureCode: true,
+      fiscalReceipts: {
+        where: { statusCode: 0 },
+        orderBy: { operation: 'asc' },
+        select: { operation: true, receiptUrl: true },
+      },
       createdAt: true,
     },
   },
@@ -68,6 +73,9 @@ export function toOrderDto(order: OrderWithItems, now: Date = new Date()): Order
       createdAt: payment.createdAt.toISOString(),
       paidAt: payment.confirmedAt?.toISOString() ?? null,
       failureCode: payment.failureCode,
+      receipts: payment.fiscalReceipts.flatMap((r) =>
+        r.receiptUrl ? [{ operation: r.operation, url: r.receiptUrl }] : [],
+      ),
     })),
     awaitingPayment,
     paymentDueAt: awaitingPayment ? (paymentDeadline(order)?.toISOString() ?? null) : null,

@@ -54,7 +54,7 @@ ports the server's Nginx already uses for the site) and kept in `.deploy.env`.
   application ports are not reachable from outside even where Docker bypasses the host firewall.
 - **Outbound access** from the API: Cloudflare R2 (when used), SMTP, the Telegram Bot API,
   Google's Gemini API (the chat's AI assistant, when a key is set) and OpenStreetMap's geocoder
-  (the admin's store addresses). Payme and Click call the API; it never calls them.
+  (the admin's store addresses). Payme and Click call the API. The optional CLICK fiscal worker also uses outbound HTTPS to `api.click.uz`.
 
 ## 2. Configuration
 

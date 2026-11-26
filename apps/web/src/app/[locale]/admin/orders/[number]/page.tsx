@@ -279,6 +279,41 @@ export default async function AdminOrderPage({
                         </>
                       ) : null}
                     </dl>
+                    {payment.receipts?.map((receipt) => (
+                      <p key={receipt.operation} className="mt-2 text-sm">
+                        {receipt.url && receipt.code === 0 ? (
+                          <a
+                            className="font-semibold underline"
+                            href={receipt.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {tco(
+                              receipt.operation === 'PERFORM' ? 'fiscalReceipt' : 'refundReceipt',
+                            )}
+                          </a>
+                        ) : (
+                          <span>
+                            {tco(
+                              receipt.operation === 'PERFORM' ? 'fiscalReceipt' : 'refundReceipt',
+                            )}{' '}
+                            · {receipt.code}
+                          </span>
+                        )}
+                      </p>
+                    ))}
+                    {payment.clickFiscalState && payment.clickFiscalState !== 'COMPLETE' ? (
+                      <p className="mt-2 text-sm">
+                        {t(
+                          payment.clickFiscalState === 'REVIEW'
+                            ? 'payments.fiscalReview'
+                            : 'payments.fiscalWaiting',
+                        )}
+                        {payment.clickFiscalError && payment.clickFiscalError !== 'QR_PENDING'
+                          ? ` (${payment.clickFiscalError})`
+                          : ''}
+                      </p>
+                    ) : null}
                     {payment.events.length > 0 ? (
                       <details className="mt-2 text-xs">
                         <summary className="cursor-pointer font-semibold text-fg-muted">

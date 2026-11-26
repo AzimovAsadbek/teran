@@ -178,7 +178,8 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
           <span className="block text-fg-subtle">
             {t(`paymentStatuses.${order.paymentStatus}`)}
           </span>
-          {order.payments.length > 1 || order.payments.some((payment) => payment.demo) ? (
+          {order.payments.length > 1 ||
+          order.payments.some((payment) => payment.demo || payment.receipts?.length) ? (
             <span className="mt-2 block space-y-1 border-t border-line-subtle pt-2">
               {order.payments.map((payment) => (
                 <span key={payment.createdAt} className="block text-caption text-fg-muted">
@@ -186,6 +187,17 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
                   {payment.paidAt
                     ? ` · ${t('paidAt', { date: formatDateTime(payment.paidAt, locale) })}`
                     : ''}
+                  {payment.receipts?.map((receipt) => (
+                    <a
+                      key={receipt.operation}
+                      href={receipt.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-fit font-semibold underline"
+                    >
+                      {t(receipt.operation === 'PERFORM' ? 'fiscalReceipt' : 'refundReceipt')}
+                    </a>
+                  ))}
                   {payment.demo ? (
                     <span className="ml-1.5 rounded-full bg-gold-100 px-1.5 py-px text-micro font-bold text-fg uppercase">
                       {t('demoBadge')}

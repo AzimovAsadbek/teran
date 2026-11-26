@@ -1,3 +1,4 @@
+import { fiscalPayload } from './fiscal.js';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -233,6 +234,9 @@ export class PaymentsService {
       throw ApiException.conflict('CONFLICT', 'This order is not awaiting an online payment');
     }
     const open = order.payments.find((payment) => isOpenPayment(payment.status));
+    if (open?.status === 'PROCESSING' && (open.provider === 'PAYME' || open.provider === 'CLICK')) {
+      throw ApiException.conflict('PAYMENT_IN_PROGRESS', 'The provider is confirming this payment');
+    }
     if (
       open &&
       open.provider === provider &&
@@ -453,6 +457,7 @@ export class PaymentsService {
       providerReference?: string;
     },
   ): Promise<{ id: string; orderId: string; status: PaymentStatus }> {
+    const fiscal = await fiscalPayload(tx, attempt.orderId, attempt.provider, this.config);
     const created = await tx.payment.create({
       data: {
         orderId: attempt.orderId,
@@ -463,6 +468,7 @@ export class PaymentsService {
         currency: attempt.currency,
         expiresAt: attempt.expiresAt,
         providerReference: attempt.providerReference ?? null,
+        ...(fiscal && { fiscalPayload: fiscal }),
       },
       select: { id: true, orderId: true, status: true },
     });

@@ -3,6 +3,7 @@ import { PaymentConfig } from './payment-config.js';
 import { PaymentExpiryService } from './payment-expiry.service.js';
 import { PaymentsController } from './payments.controller.js';
 import { PaymentsService } from './payments.service.js';
+import { ClickFiscalService } from './providers/click-fiscal.service.js';
 import { ClickService } from './providers/click.service.js';
 import { PaymeService } from './providers/payme.service.js';
 import { ProviderCallbacksController } from './providers/provider-callbacks.controller.js';
@@ -13,7 +14,14 @@ import { ProviderCallbacksController } from './providers/provider-callbacks.cont
  */
 @Module({
   controllers: [PaymentsController, ProviderCallbacksController],
-  providers: [PaymentConfig, PaymentsService, PaymeService, ClickService, PaymentExpiryService],
+  providers: [
+    PaymentConfig,
+    PaymentsService,
+    PaymeService,
+    ClickService,
+    ClickFiscalService,
+    PaymentExpiryService,
+  ],
   exports: [PaymentConfig, PaymentsService],
 })
 export class PaymentsModule {}

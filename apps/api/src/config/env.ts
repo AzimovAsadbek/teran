@@ -127,6 +127,25 @@ const envObjectSchema = z.object({
     .default('https://checkout.paycom.uz'),
   /** Accept Payme calls only from the address range Payme documents (185.234.113.1–15). */
   PAYME_CHECK_IP: flag.default(true),
+  PAYME_FISCAL_MODE: z.enum(['provider', 'items']).default('provider'),
+  CLICK_FISCAL_MODE: z.enum(['provider', 'items']).default('provider'),
+  CLICK_MERCHANT_USER_ID: z
+    .string()
+    .regex(/^\d{1,12}$/)
+    .optional(),
+  CLICK_COMMISSION_TIN: z
+    .string()
+    .regex(/^\d{9}$/)
+    .optional(),
+  CLICK_DELIVERY_MXIK: z
+    .string()
+    .regex(/^\d{17}$/)
+    .optional(),
+  CLICK_DELIVERY_PACKAGE_CODE: z
+    .string()
+    .regex(/^\d{1,20}$/)
+    .optional(),
+  CLICK_DELIVERY_VAT_PERCENT: z.coerce.number().int().min(0).max(100).optional(),
 
   /** Click SHOP API: service ID, merchant ID and secret key from the Click merchant cabinet. */
   CLICK_SERVICE_ID: z
@@ -281,6 +300,28 @@ export const envSchema = z
         code: 'custom',
         path: ['PAYME_KEY'],
         message: 'PAYME_MERCHANT_ID and PAYME_KEY must be set together',
+      });
+    }
+    if (
+      env.CLICK_FISCAL_MODE === 'items' &&
+      (!env.CLICK_MERCHANT_USER_ID || !env.CLICK_COMMISSION_TIN)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CLICK_FISCAL_MODE'],
+        message: 'Itemized CLICK receipts require CLICK_MERCHANT_USER_ID and CLICK_COMMISSION_TIN',
+      });
+    }
+    const shipping = [
+      env.CLICK_DELIVERY_MXIK,
+      env.CLICK_DELIVERY_PACKAGE_CODE,
+      env.CLICK_DELIVERY_VAT_PERCENT,
+    ];
+    if (shipping.some((v) => v !== undefined) && shipping.some((v) => v === undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CLICK_DELIVERY_MXIK'],
+        message: 'Configure the delivery MXIK, package and VAT together',
       });
     }
     const click = [env.CLICK_SERVICE_ID, env.CLICK_MERCHANT_ID, env.CLICK_SECRET_KEY];

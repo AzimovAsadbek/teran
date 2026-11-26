@@ -72,6 +72,9 @@ interface VariantDraft {
   compareAtPrice: string;
   lowStockThreshold: string;
   barcode: string;
+  mxik: string;
+  packageCode: string;
+  vatPercent: string;
   isActive: boolean;
   initialStock: string;
   stockQuantity?: number;
@@ -132,6 +135,9 @@ const EMPTY_VARIANT: VariantDraft = {
   compareAtPrice: '',
   lowStockThreshold: '5',
   barcode: '',
+  mxik: '',
+  packageCode: '',
+  vatPercent: '',
   isActive: true,
   initialStock: '0',
 };
@@ -197,6 +203,9 @@ function toDraft(product: AdminProductDetail | null): Draft {
           compareAtPrice: variant.compareAtPrice?.replace(/\.00$/, '') ?? '',
           lowStockThreshold: String(variant.lowStockThreshold),
           barcode: variant.barcode ?? '',
+          mxik: variant.fiscal?.mxik ?? '',
+          packageCode: variant.fiscal?.packageCode ?? '',
+          vatPercent: variant.fiscal ? String(variant.fiscal.vatPercent) : '',
           isActive: variant.isActive,
           initialStock: '0',
           stockQuantity: variant.stockQuantity,
@@ -303,6 +312,14 @@ function toPayload(draft: Draft, types: AdminProductType[]) {
       compareAtPrice: variant.compareAtPrice.trim() ? money(variant.compareAtPrice) : null,
       lowStockThreshold: numberOrNull(variant.lowStockThreshold) ?? 0,
       barcode: variant.barcode.trim() || null,
+      fiscal:
+        variant.mxik || variant.packageCode || variant.vatPercent
+          ? {
+              mxik: variant.mxik.trim(),
+              packageCode: variant.packageCode.trim(),
+              vatPercent: variant.vatPercent.trim() ? Number(variant.vatPercent) : Number.NaN,
+            }
+          : null,
       isActive: variant.isActive,
     })),
   };
@@ -758,6 +775,17 @@ export function ProductEditor({
                       onChange={(event) => setVariant(index, { barcode: event.target.value })}
                       error={error(`variants.${index}.barcode`, variant.barcode)}
                     />
+                    {(['mxik', 'packageCode', 'vatPercent'] as const).map((field) => (
+                      <TextField
+                        key={field}
+                        label={t(`products.${field}`)}
+                        name={`${field}-${index}`}
+                        inputMode="numeric"
+                        value={variant[field]}
+                        onChange={(event) => setVariant(index, { [field]: event.target.value })}
+                        error={error(`variants.${index}.fiscal.${field}`, variant[field])}
+                      />
+                    ))}
                   </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <CheckboxField

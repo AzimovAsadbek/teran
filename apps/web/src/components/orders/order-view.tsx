@@ -29,11 +29,13 @@ export async function OrderStatusView({
   const t = await getTranslations('Checkout');
   const cart = await getTranslations('Cart');
   const latest = order.payments.at(-1);
-  const options = order.awaitingPayment
-    ? ((await getCheckoutOptions(locale).catch(() => null))?.paymentOptions ?? []).filter(
-        (option) => isOnlinePaymentMethod(option.method) && option.availability !== 'unavailable',
-      )
-    : [];
+  const confirming = latest?.status === 'PROCESSING' && !latest.demo;
+  const options =
+    order.awaitingPayment && !confirming
+      ? ((await getCheckoutOptions(locale).catch(() => null))?.paymentOptions ?? []).filter(
+          (option) => isOnlinePaymentMethod(option.method) && option.availability !== 'unavailable',
+        )
+      : [];
   const paidOnline = isOnlinePaymentMethod(order.paymentMethod) && order.paymentStatus === 'PAID';
 
   return (
@@ -66,14 +68,16 @@ export async function OrderStatusView({
           {latest?.demo ? (
             <p className="mt-3 text-body-sm text-fg-muted">{t('paymentDemoNote')}</p>
           ) : null}
-          <div className="mt-5">
-            <PayOrder
-              number={order.number}
-              token={account ? null : token}
-              options={options}
-              current={isOnlinePaymentMethod(order.paymentMethod) ? order.paymentMethod : null}
-            />
-          </div>
+          {!confirming ? (
+            <div className="mt-5">
+              <PayOrder
+                number={order.number}
+                token={account ? null : token}
+                options={options}
+                current={isOnlinePaymentMethod(order.paymentMethod) ? order.paymentMethod : null}
+              />
+            </div>
+          ) : null}
         </section>
       ) : null}
 

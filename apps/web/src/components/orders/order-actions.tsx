@@ -9,7 +9,7 @@ import type {
 } from '@teran/contracts';
 import { CreditCard, RefreshCw, ShoppingBag } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChoiceCard } from '@/components/checkout/choice-card';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
@@ -108,6 +108,19 @@ export function PayOrder({
 export function CheckAgain() {
   const t = useTranslations('Checkout');
   const router = useRouter();
+  useEffect(() => {
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') router.refresh();
+    };
+    const timers = [3000, 7500, 15000, 30000].map((delay) =>
+      window.setTimeout(refreshVisible, delay),
+    );
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
+  }, [router]);
   return (
     <Button variant="secondary" size="sm" onClick={() => router.refresh()}>
       <RefreshCw aria-hidden className="h-4 w-4" />

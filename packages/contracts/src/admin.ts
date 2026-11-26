@@ -60,6 +60,19 @@ export const productTranslationInputSchema = z.object({
   seoDescription: optionalText(170),
 });
 
+export const fiscalItemSchema = z.object({
+  mxik: z
+    .string()
+    .trim()
+    .regex(/^\d{17}$/),
+  packageCode: z
+    .string()
+    .trim()
+    .regex(/^\d{1,30}$/),
+  vatPercent: z.number().int().min(0).max(100),
+});
+export type FiscalItem = z.infer<typeof fiscalItemSchema>;
+
 export const variantInputSchema = z
   .object({
     /** Present for existing variants, absent for new ones. */
@@ -80,6 +93,7 @@ export const variantInputSchema = z
       .trim()
       .regex(/^\d{8,14}$/, { error: 'invalid_barcode' })
       .nullable(),
+    fiscal: fiscalItemSchema.nullable().optional(),
     isActive: z.boolean(),
     /** Only used when creating a variant; later stock changes go through inventory adjustments. */
     initialStock: z.number().int().min(0).max(100_000).optional(),
@@ -541,6 +555,7 @@ export interface AdminVariant {
   stockQuantity: number;
   lowStockThreshold: number;
   barcode: string | null;
+  fiscal?: FiscalItem | null;
   isActive: boolean;
 }
 
@@ -754,6 +769,9 @@ export interface AdminPayment {
   expiresAt: string | null;
   confirmedAt: string | null;
   createdAt: string;
+  receipts?: { operation: 'PERFORM' | 'CANCEL'; code: number; url: string | null }[];
+  clickFiscalState?: 'QUEUED' | 'CHECKING' | 'COMPLETE' | 'REVIEW' | null;
+  clickFiscalError?: string | null;
   events: AdminPaymentEvent[];
 }
 

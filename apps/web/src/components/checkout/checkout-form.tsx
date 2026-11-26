@@ -663,6 +663,11 @@ export function CheckoutForm({
           ) : apiErrorMessage ? (
             <Notice tone="danger" role="alert">
               {apiErrorMessage}{' '}
+              {apiError?.code === 'FISCAL_DATA_MISSING' ? (
+                <Link href="/contact" className="font-semibold underline underline-offset-2">
+                  {t('contact')}
+                </Link>
+              ) : null}
               {apiError?.code && apiError.code.startsWith('CART') ? (
                 <Link href="/cart" className="font-semibold underline underline-offset-2">
                   {t('editCart')}

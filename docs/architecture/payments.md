@@ -14,6 +14,8 @@ the unit tests next to the code. Setting up the real providers is described in
 > recognized an unknown order, and both URLs were saved in the merchant cabinet. The cabinet
 > showed the service as inactive. No live charge was made. See “Before going live”.
 
+On 2026-11-26 the local open storefront passed checkout with both provider protocols using fixture credentials. The browser returned before confirmation, then displayed the settled order automatically. Payme sale and refund receipts, CLICK fiscal submission and QR recovery after a lost response were verified in the local test database. These checks use simulated provider callbacks and do not move funds.
+
 ## Principles
 
 1. **Only the API decides whether an order is paid**, and only from a provider's authenticated
@@ -186,8 +188,9 @@ answer, errors with Russian, Uzbek and English messages).
 - **Idempotency**: Payme repeats calls; `PaymeTransaction` stores Payme's id, times (milliseconds,
   exactly as returned), state and reason, and repeated calls get the stored answer. A concurrent
   duplicate `CreateTransaction` is resolved by the unique `paymeId`.
-- **Not implemented**: `SetFiscalData` and `ChangePassword` answer `-32601` (method not found)
-  rather than pretending to store data; checkout `detail` (fiscal items) is not sent.
+- When a live provider is processing a payment, the order page checks its status automatically and the API waits for the provider before allowing a new customer attempt.
+- `PAYME_FISCAL_MODE=items` snapshots the product name, unit price, quantity, MXIK, package and VAT at checkout. `CheckPerformTransaction` returns those lines and any delivery fee in tiyin. The authenticated `SetFiscalData` callback records sale and refund receipts independently. A retry preserves an accepted receipt. Buyers and staff can open its Soliq link on the order page.
+- An unsupported RPC method, including `ChangePassword`, answers `-32601`.
 - On 2026-11-23 the official sandbox required an account error (`-31099` through `-31050`) for a
   new transaction ID on a one-time order already reserved by another transaction. TERAN returns
   `-31051` and identifies `order_id`. The same transaction ID receives the original creation result.
@@ -213,9 +216,8 @@ merchant_trans_id [+ merchant_prepare_id] + amount + action + sign_time)` over t
   one `REFUNDED`, as Click's test scenario 8 requires) and the answer is `-9`. A completion for an
   attempt that expired, was replaced or whose order was cancelled answers `-9`, so Click does not
   keep the money.
-- **Not implemented**: the Merchant API (payment status, reversal, card tokens, fiscal data) — it
-  needs `merchant_user_id` and is not required for checkout. Refunds are made in the Click merchant
-  cabinet and recorded by staff.
+- `CLICK_FISCAL_MODE=items` queues the checkout's frozen receipt lines inside the successful Complete transaction. The worker posts them to the Merchant API and retrieves the OFD link by the CLICK payment ID. An ambiguous POST is reconciled using GET. The admin order displays the receipt status, including records that need review. The provider-managed mode can retrieve an existing receipt when the merchant user ID is set.
+- Staff make CLICK refunds in the merchant cabinet and record the result on the order.
 - Documentation discrepancy: Click's Postman scenario 8 expects `-9` for `error < 0` on an
   already confirmed payment where the PHP reference returns `-4`; TERAN follows the test suite.
 

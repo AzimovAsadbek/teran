@@ -32,6 +32,11 @@ export class PaymentConfig {
   private readonly logger = new Logger(PaymentConfig.name);
   readonly mode: 'live' | 'demo';
   readonly windowMinutes: number;
+  readonly itemizedPayme: boolean;
+  readonly itemizedClick: boolean;
+  readonly clickUserId?: string;
+  readonly clickCommissionTin?: string;
+  readonly fiscalDelivery: { mxik: string; packageCode: string; vatPercent: number } | null;
   /** Credentials, only when configured and the mode is live. */
   readonly payme: PaymeSettings | null;
   readonly click: ClickSettings | null;
@@ -50,6 +55,15 @@ export class PaymentConfig {
     const clickMerchant = config.get('CLICK_MERCHANT_ID', { infer: true });
     const clickSecret = config.get('CLICK_SECRET_KEY', { infer: true });
     const live = this.mode === 'live';
+    this.itemizedPayme = config.get('PAYME_FISCAL_MODE', { infer: true }) === 'items';
+    this.itemizedClick = config.get('CLICK_FISCAL_MODE', { infer: true }) === 'items';
+    this.clickUserId = config.get('CLICK_MERCHANT_USER_ID', { infer: true });
+    this.clickCommissionTin = config.get('CLICK_COMMISSION_TIN', { infer: true });
+    const mxik = config.get('CLICK_DELIVERY_MXIK', { infer: true });
+    const packageCode = config.get('CLICK_DELIVERY_PACKAGE_CODE', { infer: true });
+    const vatPercent = config.get('CLICK_DELIVERY_VAT_PERCENT', { infer: true });
+    this.fiscalDelivery =
+      mxik && packageCode && vatPercent !== undefined ? { mxik, packageCode, vatPercent } : null;
 
     this.payme =
       live && paymeId && paymeKey

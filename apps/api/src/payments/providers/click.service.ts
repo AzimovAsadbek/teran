@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, type PaymentStatus } from '../../generated/prisma/client.js';
-import { uniqueConstraintName } from '../../common/prisma-errors.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PaymentConfig } from '../payment-config.js';
 import {
@@ -85,24 +84,29 @@ export class ClickService {
 
   private async handlePrepare(click: ClickRequest): Promise<ClickResponse> {
     const clickTransId = BigInt(click.clickTransId);
-    const existing = await this.prisma.clickTransaction.findUnique({ where: { clickTransId } });
-    if (existing) return this.repeatPrepare(click, existing);
-
-    const order = await this.findOrder(click.merchantTransId);
-    if (!order) return this.answer(click, ClickAnswer.USER_NOT_FOUND);
-    if (order.payments.some((payment) => isSettledPayment(payment.status))) {
-      return this.answer(click, ClickAnswer.ALREADY_PAID);
-    }
-    // Click reports a failed or cancelled payment with a negative error.
-    if (Number(click.error) < 0 || !this.isPayable(order)) {
-      return this.answer(click, ClickAnswer.TRANSACTION_CANCELLED);
-    }
-    if (!this.amountMatches(click.amount, order.total)) {
-      return this.answer(click, ClickAnswer.INCORRECT_AMOUNT);
-    }
-
     try {
-      const prepared = await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) => {
+        // Serialize provider retries before inspecting or replacing an open attempt.
+        await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${click.clickTransId}, 0))`;
+        const existing = await tx.clickTransaction.findUnique({
+          where: { clickTransId },
+          include: { payment: { select: { order: { select: { number: true } } } } },
+        });
+        if (existing) {
+          if (existing.payment.order.number !== click.merchantTransId)
+            return this.answer(click, ClickAnswer.TRANSACTION_NOT_FOUND);
+          if (!this.amountMatches(click.amount, existing.amount))
+            return this.answer(click, ClickAnswer.INCORRECT_AMOUNT);
+          return this.repeatPrepare(click, existing);
+        }
+        const order = await this.findOrder(click.merchantTransId, tx);
+        if (!order) return this.answer(click, ClickAnswer.USER_NOT_FOUND);
+        if (order.payments.some((payment) => isSettledPayment(payment.status)))
+          return this.answer(click, ClickAnswer.ALREADY_PAID);
+        if (Number(click.error) < 0 || !this.isPayable(order))
+          return this.answer(click, ClickAnswer.TRANSACTION_CANCELLED);
+        if (!this.amountMatches(click.amount, order.total))
+          return this.answer(click, ClickAnswer.INCORRECT_AMOUNT);
         const open = await tx.payment.findFirst({
           where: {
             orderId: order.id,
@@ -145,7 +149,7 @@ export class ClickService {
           data: { providerReference: click.clickTransId },
         });
         if (!moved) throw new Error('Payment changed during Click Prepare');
-        return tx.clickTransaction.create({
+        const prepared = await tx.clickTransaction.create({
           data: {
             clickTransId,
             clickPaydocId: BigInt(click.clickPaydocId),
@@ -154,13 +158,9 @@ export class ClickService {
             state: ClickState.PREPARED,
           },
         });
+        return this.answer(click, ClickAnswer.SUCCESS, { merchant_prepare_id: prepared.prepareId });
       });
-      return this.answer(click, ClickAnswer.SUCCESS, { merchant_prepare_id: prepared.prepareId });
     } catch (error) {
-      if (uniqueConstraintName(error)?.includes('clickTransId')) {
-        const raced = await this.prisma.clickTransaction.findUnique({ where: { clickTransId } });
-        if (raced) return this.repeatPrepare(click, raced);
-      }
       if (isOpenAttemptConflict(error)) {
         return this.answer(click, ClickAnswer.TRANSACTION_CANCELLED);
       }
@@ -207,6 +207,7 @@ export class ClickService {
     if (clickError < 0) {
       // Click reports that the payment failed (or was reversed): record it and answer -9.
       await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${transaction.paymentId}::uuid FOR UPDATE`;
         const updated = await tx.clickTransaction.updateMany({
           where: { prepareId, state: { in: [ClickState.PREPARED, ClickState.COMPLETED] } },
           data: { state: ClickState.CANCELLED, clickError },
@@ -243,10 +244,23 @@ export class ClickService {
       return this.answer(click, ClickAnswer.INCORRECT_AMOUNT, confirm);
     }
 
-    const completed = await this.prisma.$transaction(async (tx) => {
+    const answer = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${transaction.paymentId}::uuid FOR UPDATE`;
+      const latest = await tx.clickTransaction.findUniqueOrThrow({
+        where: { prepareId },
+        select: { state: true },
+      });
+      if (latest.state === ClickState.COMPLETED) return ClickAnswer.ALREADY_PAID;
+      if (latest.state === ClickState.CANCELLED) return ClickAnswer.TRANSACTION_CANCELLED;
       const payment = await tx.payment.findUniqueOrThrow({
         where: { id: transaction.paymentId },
-        select: { id: true, orderId: true, status: true, order: { select: { status: true } } },
+        select: {
+          id: true,
+          orderId: true,
+          status: true,
+          fiscalPayload: true,
+          order: { select: { status: true } },
+        },
       });
       const moved =
         payment.status === 'PROCESSING' &&
@@ -254,14 +268,20 @@ export class ClickService {
         (await transitionPayment(tx, payment, 'PAID', { source: 'provider', detail: 'Complete' }));
       const updated = await tx.clickTransaction.updateMany({
         where: { prepareId, state: ClickState.PREPARED },
-        data: { state: moved ? ClickState.COMPLETED : ClickState.CANCELLED },
+        data: {
+          state: moved ? ClickState.COMPLETED : ClickState.CANCELLED,
+          ...(moved && (payment.fiscalPayload || this.config.clickUserId)
+            ? {
+                fiscalState: payment.fiscalPayload ? 'QUEUED' : 'CHECKING',
+                fiscalNextAt: new Date(),
+              }
+            : {}),
+        },
       });
       if (moved && updated.count === 0) throw new Error('Click transaction changed meanwhile');
-      return moved;
+      return moved ? ClickAnswer.SUCCESS : ClickAnswer.TRANSACTION_CANCELLED;
     });
-    // The attempt expired, was replaced or the order was cancelled: Click must not keep the money.
-    if (!completed) return this.answer(click, ClickAnswer.TRANSACTION_CANCELLED, confirm);
-    return this.answer(click, ClickAnswer.SUCCESS, confirm);
+    return this.answer(click, answer, confirm);
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -285,9 +305,9 @@ export class ClickService {
     return { click: request };
   }
 
-  private findOrder(number: string) {
+  private findOrder(number: string, db: Prisma.TransactionClient = this.prisma) {
     if (!ORDER_NUMBER.test(number)) return Promise.resolve(null);
-    return this.prisma.order.findUnique({
+    return db.order.findUnique({
       where: { number },
       select: {
         id: true,

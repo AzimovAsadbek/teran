@@ -1,3 +1,4 @@
+import { acceptPaymeReceipt } from './payme-receipt.js';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Request } from 'express';
 import { Prisma, type PaymentStatus } from '../../generated/prisma/client.js';
@@ -109,8 +110,9 @@ export class PaymeService {
         return this.checkTransaction(params);
       case 'GetStatement':
         return this.getStatement(params);
+      case 'SetFiscalData':
+        return acceptPaymeReceipt(this.prisma, params);
       default:
-        // Includes SetFiscalData: fiscal receipts are not implemented, so nothing is acknowledged.
         throw new PaymeError(-32601, method);
     }
   }
@@ -120,8 +122,9 @@ export class PaymeService {
   private async checkPerformTransaction(params: Record<string, unknown>) {
     const amount = paymeInteger(params.amount);
     if (amount === null) throw new PaymeError(-31001);
-    await this.payableOrder(orderNumberFromAccount(params.account), amount);
-    return { allow: true };
+    const order = await this.payableOrder(orderNumberFromAccount(params.account), amount);
+    const detail = order.payments.at(-1)?.fiscalPayload;
+    return detail ? { allow: true, detail } : { allow: true };
   }
 
   private async createTransaction(params: Record<string, unknown>) {
@@ -379,6 +382,7 @@ export class PaymeService {
             provider: true,
             status: true,
             expiresAt: true,
+            fiscalPayload: true,
             paymeTransactions: {
               where: { state: PaymeState.CREATED },
               select: { id: true },

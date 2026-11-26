@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { radioDotClasses } from '@/components/ui/field';
 import { cn } from '@/lib/cn';
 
@@ -27,6 +27,10 @@ export function ChoiceCard({
   /** Shown but not selectable (e.g. a payment method that is not configured). */
   disabled?: boolean;
 }) {
+  const id = useId();
+  const descriptions = [aside && `${id}-aside`, description && `${id}-description`]
+    .filter(Boolean)
+    .join(' ');
   return (
     <label
       className={cn(
@@ -46,16 +50,26 @@ export function ChoiceCard({
         value={value}
         checked={checked}
         disabled={disabled}
+        aria-labelledby={`${id}-title`}
+        aria-describedby={descriptions || undefined}
         onChange={() => onChange(value)}
         className={cn(radioDotClasses, 'mt-0.5')}
       />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <span className="text-title-sm text-fg">{title}</span>
-          {aside ? <span className="text-body-sm font-semibold text-fg">{aside}</span> : null}
+          <span id={`${id}-title`} className="text-title-sm text-fg">
+            {title}
+          </span>
+          {aside ? (
+            <span id={`${id}-aside`} className="text-body-sm font-semibold text-fg">
+              {aside}
+            </span>
+          ) : null}
         </span>
         {description ? (
-          <span className="mt-1 block text-body-sm text-fg-muted">{description}</span>
+          <span id={`${id}-description`} className="mt-1 block text-body-sm text-fg-muted">
+            {description}
+          </span>
         ) : null}
       </span>
     </label>

@@ -69,7 +69,7 @@ def sample_hashes(root, paths):
 def create(args):
     database = os.environ['PGDATABASE']
     root = Path(args.directory).resolve()
-    if ':' not in args.media and Path(args.media).resolve() in (root, *root.parents):
+    if args.media and ':' not in args.media and Path(args.media).resolve() in (root, *root.parents):
         raise ValueError('Snapshot directory must be outside the media directory')
     root.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc)
@@ -98,9 +98,13 @@ def create(args):
             finally:
                 if not session.stdin.closed:
                     session.stdin.close()
-        copy_media(args.media, out / 'media')
-        manifest = dict(captured=stamp.isoformat(), metrics=metrics,
-                        files=sample_hashes(out / 'media', metrics['samples']), dump=sha(out / 'database.dump'))
+        files = {}
+        if args.media:
+            copy_media(args.media, out / 'media')
+            files = sample_hashes(out / 'media', metrics['samples'])
+        manifest = dict(captured=stamp.isoformat(), metrics=metrics, files=files,
+                        scope='database-and-media' if args.media else 'database',
+                        dump=sha(out / 'database.dump'))
         (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
         out.rename(final)
     if args.offsite:
@@ -134,6 +138,9 @@ def verify(args):
         else:
             source = Path(args.snapshot)
         manifest = json.loads((source / 'manifest.json').read_text())
+        scope = manifest.get('scope', 'database-and-media')
+        if scope not in ('database', 'database-and-media'):
+            raise ValueError('Unknown snapshot scope')
         if sha(source / 'database.dump') != manifest['dump']:
             raise ValueError('Database dump checksum differs')
         db = 'teran_restore_' + uuid4().hex
@@ -145,13 +152,15 @@ def verify(args):
             restored = json.loads(subprocess.check_output(psql(db) + ['-c', METRICS]))
             if restored != manifest['metrics']:
                 raise ValueError('Restored order totals, inventory or media keys differ')
-            copy_media(source / 'media', root / 'restored-media')
-            hashes = sample_hashes(root / 'restored-media', restored['samples'])
+            hashes = {}
+            if scope == 'database-and-media':
+                copy_media(source / 'media', root / 'restored-media')
+                hashes = sample_hashes(root / 'restored-media', restored['samples'])
             if hashes != manifest['files']:
                 raise ValueError('Restored media checksums differ')
         finally:
             subprocess.run(pg('dropdb', '-U', user, db), check=True)
-    print(json.dumps(dict(captured=manifest['captured'], verified=datetime.now(timezone.utc).isoformat(),
+    print(json.dumps(dict(scope=scope, captured=manifest['captured'], verified=datetime.now(timezone.utc).isoformat(),
                           seconds=round(time.monotonic() - start, 2), orders=restored['orders'],
                           totals=restored['orderTotals'], stock=restored['stock'], media=len(hashes))))
 
@@ -162,7 +171,9 @@ if __name__ == '__main__':
     commands = parser.add_subparsers(dest='action', required=True)
     make = commands.add_parser('create')
     make.add_argument('directory')
-    make.add_argument('--media', required=True, help='Uploads directory or rclone source')
+    mode = make.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--media', help='Include this uploads directory or rclone source')
+    mode.add_argument('--database-only', action='store_true', help='Capture PostgreSQL without fetching media')
     make.add_argument('--offsite', help='Independent rclone destination for completed snapshots')
     check = commands.add_parser('verify')
     check.add_argument('snapshot', help='Snapshot directory or rclone path to the snapshot')

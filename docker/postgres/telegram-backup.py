@@ -131,7 +131,7 @@ def publish(folder, token, chat_id):
                             break
                         target.write(block)
                         remaining -= len(block)
-            caption = f'{title}\nShifrlangan baza · {index + 1}/{count}\nBaza va media serverda saqlandi.\n\n{health}'
+            caption = f'{title}\nShifrlangan baza · {index + 1}/{count}\nBaza nusxasi serverda. Rasm va videolar R2’da.\n\n{health}'
             message = call(token, 'sendDocument', {'chat_id': chat_id, 'caption': caption}, part)
             if message['chat']['id'] != chat_id or message['document']['file_size'] != part.stat().st_size:
                 raise RuntimeError('Telegram delivery could not be verified')

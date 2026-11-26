@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Run TERAN's local snapshots and rehearse restoration in an isolated PostgreSQL container."""
 import argparse
-import json
 import os
 from pathlib import Path
 import re
@@ -17,7 +16,6 @@ from uuid import uuid4
 HERE = Path(__file__).resolve().parent
 SNAPSHOTS = Path('/var/backups/teran/snapshots')
 POSTGRES = 'teran-production-postgres-1'
-API = 'teran-production-api-1'
 SNAPSHOT_NAME = re.compile(r'\d{8}T\d{6}Z-[a-f0-9]{12}')
 
 
@@ -38,17 +36,9 @@ def expire_old_snapshots():
 
 def create():
     user, database = output('docker', 'exec', POSTGRES, 'printenv', 'POSTGRES_USER', 'POSTGRES_DB').splitlines()
-    fields = ['R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET']
-    script = 'process.stdout.write(JSON.stringify(' + json.dumps(fields) + '.map(k => process.env[k])))'
-    endpoint, key, secret, bucket = json.loads(output('docker', 'exec', API, 'node', '-e', script))
-    if not all([endpoint, key, secret, bucket]):
-        raise RuntimeError('The running API has no complete R2 media configuration')
-    rclone = {'TYPE': 's3', 'PROVIDER': 'Cloudflare', 'REGION': 'auto', 'ENDPOINT': endpoint,
-              'ACCESS_KEY_ID': key, 'SECRET_ACCESS_KEY': secret, 'NO_CHECK_BUCKET': 'true'}
-    env = {**os.environ, 'PGUSER': user, 'PGDATABASE': database, 'BACKUP_PG_CONTAINER': POSTGRES,
-           'RCLONE_CONFIG': '/dev/null', **{'RCLONE_CONFIG_TERANMEDIA_' + k: v for k, v in rclone.items()}}
+    env = {**os.environ, 'PGUSER': user, 'PGDATABASE': database, 'BACKUP_PG_CONTAINER': POSTGRES}
     subprocess.run([sys.executable, str(HERE / 'backup.py'), 'create', str(SNAPSHOTS),
-                    '--media', 'teranmedia:' + bucket], check=True, env=env)
+                    '--database-only'], check=True, env=env)
     expire_old_snapshots()
 
 

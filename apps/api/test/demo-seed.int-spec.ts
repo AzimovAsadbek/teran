@@ -43,6 +43,28 @@ describe('demo seed', () => {
 
   it('loads every demo record', async () => {
     const prisma = ctx.prisma;
+    const fiscalized = await prisma.productVariant.findMany({
+      where: { fiscalMxik: { not: null } },
+      select: {
+        sku: true,
+        weightGrams: true,
+        fiscalMxik: true,
+        fiscalPackageCode: true,
+        fiscalVatPercent: true,
+      },
+      orderBy: { sku: 'asc' },
+    });
+    expect(fiscalized).toEqual(
+      ['TRN-8009-400', 'TRN-8800-400', 'TRN-8830-400', 'TRN-G8810-400', 'TRN-XC2025-400'].map(
+        (sku) => ({
+          sku,
+          weightGrams: 400,
+          fiscalMxik: '00902001001000000',
+          fiscalPackageCode: '1653256',
+          fiscalVatPercent: 12,
+        }),
+      ),
+    );
     expect(await prisma.product.count()).toBe(DEMO_PRODUCTS.length);
     expect(await prisma.order.count({ where: { number: { startsWith: 'TRN-DEMO' } } })).toBe(
       DEMO_ORDERS.length,

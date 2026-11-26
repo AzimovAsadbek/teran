@@ -70,6 +70,7 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         REVALIDATE_SECRET,
         // Match the storefront mode.
         CHECKOUT_ENABLED: String(checkoutOpen),
+        CHECKOUT_DELIVERY_ENABLED: process.env.E2E_DELIVERY_ENABLED ?? 'true',
         // Online payments are simulated.
         PAYMENT_PROVIDER_MODE: 'demo',
         PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY,CLICK,PAYME,CARD',
@@ -83,6 +84,7 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         NEXT_PUBLIC_SITE_URL: E2E_WEB_URL,
         NEXT_PUBLIC_DEMO_CONTENT: 'true',
         // Build the storefront with the same mode as its API.
+        NEXT_PUBLIC_CHECKOUT_DELIVERY_ENABLED: process.env.E2E_DELIVERY_ENABLED ?? 'true',
         NEXT_PUBLIC_SHOW_PRICES: String(checkoutOpen),
       };
     case 'web':

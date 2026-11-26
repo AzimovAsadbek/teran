@@ -20,12 +20,14 @@ import { apiRequest } from '@/lib/api/client';
 import { ApiError } from '@/lib/api/errors';
 import { cn } from '@/lib/cn';
 import { useMatches } from '@/lib/motion';
-import { showPrices } from '@/lib/site';
+import { showDelivery, showPrices } from '@/lib/site';
 import { AssistantAnswer } from './assistant-answer';
 import type { ChatChannel } from './chat-types';
 
 /** The quick answers the window offers, as chips under the conversation. */
-const TOPICS = ['shipping', 'ordering', 'business'] as const;
+const TOPICS = showDelivery
+  ? (['shipping', 'ordering', 'business'] as const)
+  : (['ordering', 'business'] as const);
 type Topic = (typeof TOPICS)[number];
 /** The questions the assistant's chips ask: choosing a tea first, where it shows products. */
 const PROMPTS = ['choose', ...TOPICS] as const;

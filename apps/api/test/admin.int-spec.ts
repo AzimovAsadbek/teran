@@ -233,6 +233,7 @@ describe('admin API', () => {
         .send(productPayload(categoryId, { status: 'DRAFT' }))
         .expect(201);
       const draft = created.body as AdminProductDetail;
+      expect(draft.saleMode).toBe('CATEGORY');
       expect(draft.publishedAt).toBeNull();
       expect(draft.readiness.ready).toBe(false);
       expect(draft.readiness.items.find((item) => item.code === 'mainImage')).toMatchObject({
@@ -249,6 +250,7 @@ describe('admin API', () => {
           .put(`${API}/admin/products/${draft.id}`)
           .send(
             productPayload(categoryId, {
+              saleMode: 'CONTACT',
               variants: productPayload(categoryId).variants.map((variant, index) => ({
                 ...variant,
                 id: draft.variants[index]!.id,
@@ -269,7 +271,11 @@ describe('admin API', () => {
       const publicView = await request(server())
         .get(`${API}/catalog/products/admin-test-tea?locale=ru`)
         .expect(200);
-      expect(publicView.body).toMatchObject({ name: 'Тестовый чай' });
+      expect(publicView.body).toMatchObject({
+        name: 'Тестовый чай',
+        onlineOrderable: false,
+        priceFrom: '0.00',
+      });
       // English falls back to Uzbek.
       const english = await request(server())
         .get(`${API}/catalog/products/admin-test-tea?locale=en`)
@@ -298,6 +304,7 @@ describe('admin API', () => {
         )
         .expect(200);
       const edited = updated.body as AdminProductDetail;
+      expect(edited.saleMode).toBe('CONTACT');
       expect(edited.variants).toHaveLength(2);
       expect(edited.variants.find((variant) => variant.sku === 'TST-250')?.isActive).toBe(false);
       expect(edited.variants.find((variant) => variant.sku === 'TST-100')).toMatchObject({

@@ -59,6 +59,7 @@ export const deliveryHintSchema = z.object({
 });
 
 export const cartSchema = z.object({
+  deliveryEnabled: z.boolean().optional(),
   lines: z.array(cartLineSchema),
   itemCount: z.number().int(),
   subtotal: moneySchema,

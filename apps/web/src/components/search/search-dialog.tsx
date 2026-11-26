@@ -177,7 +177,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
                           <span className="block truncate text-title-sm text-fg group-hover:underline">
                             {product.name}
                           </span>
-                          {sellsOnline(product.category.path) ? (
+                          {sellsOnline(product) ? (
                             <Price
                               amount={product.priceFrom}
                               from={product.variantCount > 1}

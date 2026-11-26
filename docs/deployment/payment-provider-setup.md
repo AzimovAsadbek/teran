@@ -1,21 +1,21 @@
 # Payment provider setup
 
 How to turn on online payments for a TERAN deployment. The design is described in
-[../architecture/payments.md](../architecture/payments.md). Nothing here is done by default: a new
-deployment offers **cash on delivery only** (`PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY`,
-`PAYMENT_PROVIDER_MODE=live`).
+[../architecture/payments.md](../architecture/payments.md). The storefront takes product-only orders with `CHECKOUT_DELIVERY_ENABLED=false` (the default). Choose the online methods and configure their credentials before opening checkout.
 
 All values below are API environment variables (`apps/api/.env` locally, `.env.production` with
 `docker-compose.prod.yml`). They are read only by the API: never put them in the web app's
 environment, a commit, a ticket or a chat. The API checks them at start-up and refuses to start
 with a half-configured provider.
 
+In production Compose, `CHECKOUT_DELIVERY_ENABLED` configures both the API and the storefront build. Locally, keep the web build’s `NEXT_PUBLIC_CHECKOUT_DELIVERY_ENABLED` in sync. With delivery paused, checkout collects contact details and charges the product total. Stored orders keep their original delivery details and fees.
+
 ## 1. Choose the mode
 
 | Situation                                    | Settings                                                                                                                                             |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Real shop, cash only (default)               | `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY`                                                                                                           |
-| Real shop with Click and/or Payme            | `PAYMENT_PROVIDER_MODE=live`, the provider credentials, `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY,CLICK,PAYME`                                       |
+| Real shop offering delivery and cash         | `CHECKOUT_DELIVERY_ENABLED=true`, `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY`                                                                         |
+| Real shop with Click and/or Payme            | `PAYMENT_PROVIDER_MODE=live`, the provider credentials, `PAYMENT_METHODS_ENABLED=CLICK,PAYME`                                                        |
 | Demonstration site (no real payments at all) | `PAYMENT_PROVIDER_MODE=demo`, `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY,CLICK,PAYME,CARD`, and on a production build also `ALLOW_DEMO_PAYMENTS=true` |
 
 Demo and live never mix: in demo mode every online method is simulated, no provider is contacted
@@ -62,8 +62,7 @@ status. This switch works independently of `SHOW_PRICES` and `CHECKOUT_ENABLED`.
 
 Connect the isolated sandbox API to the storefront’s private `payme-trial` Compose network
 with the alias `payme-trial-api`. TERAN’s sandbox fixture uses the product `teran-payment-sandbox`,
-the variant `TERAN-SANDBOX-ONLY` and free `sandbox-delivery`. Its database holds the test
-orders. Use the sandbox key and `https://test.paycom.uz` there, with outbound customer
+the variant `TERAN-SANDBOX-ONLY` at 1,000 UZS and `CHECKOUT_DELIVERY_ENABLED=false`. Enable online ordering for this fixture and enter the test item’s fiscal fields when testing itemized mode. Each attempt uses a private synthetic shopper in the isolated database. On 26 November Payme asked for three pending order IDs and each total in tiyin before referring the cashbox for activation. Create those orders on the provider-accessible sandbox shortly before their test, then send only the public order numbers and amounts. The fixture totals 100,000 tiyin per unit. Use the sandbox key and `https://test.paycom.uz` there, with outbound customer
 notifications disabled. Payme’s test callbacks must reach this same isolated API.
 Where the cashier shares its public callback with production, route only the exact sandbox
 authorization to this API and keep Payme IP validation on for both backends.
@@ -104,16 +103,22 @@ live mode when it is enabled; leave it out of `PAYMENT_METHODS_ENABLED` until a 
 
 ## Product receipts
 
+In **Admin → Products → Variants**, choose how customers order the product. The category default enables checkout for tea and its subcategories. Choose online sales to enable a specific product in another category, or enquiry ordering to hide its price.
+
 For each sellable pack, enter its official 17-digit MXIK, package code and VAT percentage under **Admin → Products → Variants**. Preserve leading zeroes. Enter an explicit `0` for a zero rate. The checkout copies these fields onto the order. Existing orders keep their original values. Missing fields on a new itemized online attempt leave the cart and stock intact.
+
+The five TERAN 400 g green tea pouches (XC2025, G8810, 8800, 8830 and 8009) use MXIK `00902001001000000` and package code `1653256` for a 400 g bag. The merchant letter specifies 12% VAT. The migration fills empty fiscal fields only when product, SKU, barcode and weight match. Check each future pack in the [Soliq catalogue](https://tasnif.soliq.uz/).
 
 Each provider has an independent receipt setting. Use `provider` when its cashbox handles the receipt, and `items` when the provider has enabled itemized receipts from the shop.
 
 | Setting                                                                            | Value for itemized receipts                                                                              |
 | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `PAYME_FISCAL_MODE`                                                                | `items` makes Payme receive the order lines and delivery fee on its initial check.                       |
+| `PAYME_FISCAL_MODE`                                                                | `items` makes Payme receive the purchased product lines on its initial check.                            |
 | `CLICK_FISCAL_MODE`                                                                | `items` for CLICK to fiscalize the order's lines. Confirm the cashbox's advance/sale setting with CLICK. |
 | `CLICK_MERCHANT_USER_ID`, `CLICK_COMMISSION_TIN`                                   | The Merchant API user and the TIN agreed with CLICK for CommissionInfo.                                  |
-| `CLICK_DELIVERY_MXIK`, `CLICK_DELIVERY_PACKAGE_CODE`, `CLICK_DELIVERY_VAT_PERCENT` | Official service details for paid delivery. Free delivery needs no additional line.                      |
+| `CLICK_DELIVERY_MXIK`, `CLICK_DELIVERY_PACKAGE_CODE`, `CLICK_DELIVERY_VAT_PERCENT` | Only needed if paid delivery is reintroduced. Leave empty for product-only orders.                       |
+
+On 26 November CLICK confirmed that TERAN can submit each item’s SPIC and PackageCode. The type of receipt configured for service 115697 and the issuer of a final receipt after an advance still await their confirmation. Payme said it would enable `SetFiscalData` and would refer the cashbox for activation after its three-order test.
 
 The API worker needs outbound HTTPS to `api.click.uz`. After a submission timeout it polls the existing payment for the QR. A record marked for review requires checking that payment in the merchant cabinet. The order stays paid while its fiscal receipt is pending. [CLICK fiscal API](https://docs.click.uz/merchant-api/fiscalization) · [Payme receipt callback](https://developer.help.paycom.uz/metody-merchant-api/setfiscaldata/)
 

@@ -77,7 +77,7 @@ export function ProductCard({
   const tb = useTranslations('Brewing');
   const locale = useLocale();
   const Heading = headingLevel;
-  const priced = sellsOnline(product.category.path);
+  const priced = sellsOnline(product);
   const soldOut = product.stockLevel === 'out_of_stock';
   const discount =
     soldOut || !priced ? null : discountPercent(product.priceFrom, product.compareAtPriceFrom);

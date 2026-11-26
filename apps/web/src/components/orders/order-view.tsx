@@ -95,7 +95,11 @@ export async function OrderStatusView({
         <p className="mb-4 text-body-sm text-fg-muted">
           {t('statusTitle')}: <strong className="text-fg">{t(`statuses.${order.status}`)}</strong>
         </p>
-        <OrderProgress status={order.status} cancelReason={order.cancelReason} />
+        <OrderProgress
+          hasDelivery={order.deliveryMethodName !== null}
+          status={order.status}
+          cancelReason={order.cancelReason}
+        />
       </section>
 
       <OrderDetails order={order} locale={locale} />

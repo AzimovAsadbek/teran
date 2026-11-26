@@ -1,6 +1,6 @@
 import {
   ILLUSTRATION_KEYS,
-  isRetailTea,
+  productAllowsOnlineSale,
   MAX_LINE_QUANTITY,
   NEW_PRODUCT_DAYS,
   ratingAverage,
@@ -322,10 +322,10 @@ export function toProductSummary(
   locale: Locale,
   now: Date = new Date(),
   stageImage?: StoredImageRow | null,
-): ProductSummaryDto {
+): ProductSummaryDto & { onlineOrderable: boolean } {
   const translation = pickTranslation(product.translations, locale);
   const name = translation?.name ?? product.slug;
-  const priced = isRetailTea(categoryPath(product.category));
+  const priced = productAllowsOnlineSale(product.saleMode, categoryPath(product.category));
   const variants = product.variants.map((variant) => toVariantDto(variant, priced));
   const cheapest = product.variants.reduce<VariantRow | undefined>(
     (best, variant) => (best === undefined || variant.price.lessThan(best.price) ? variant : best),
@@ -344,6 +344,7 @@ export function toProductSummary(
     category: toCategoryRef(product.category, locale),
     format: product.format,
     isFeatured: product.isFeatured,
+    onlineOrderable: priced,
     isNew: isNew(product.publishedAt, now),
     onSale: priced && product.variants.some((variant) => variant.compareAtPrice !== null),
     stockLevel: productStockLevel(variants.map((variant) => variant.stockLevel)),
@@ -402,9 +403,7 @@ export function toProductDetail(
     images: product.images.map((image) =>
       toImageDto(image, productImageAlt(image, locale, summary.name)),
     ),
-    variants: product.variants.map((variant) =>
-      toVariantDto(variant, isRetailTea(summary.category.path)),
-    ),
+    variants: product.variants.map((variant) => toVariantDto(variant, summary.onlineOrderable)),
     seoTitle: translation?.seoTitle ?? null,
     seoDescription: translation?.seoDescription ?? null,
     updatedAt: product.updatedAt.toISOString(),

@@ -1,4 +1,4 @@
-import { isRetailTea } from '@teran/contracts/constants';
+import { isOnlineListing } from '@teran/contracts/constants';
 
 /** Public origin used for canonical URLs, sitemaps and social metadata. */
 export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(
@@ -20,11 +20,13 @@ export function absoluteUrl(path: string): string {
  */
 export const isDemoContent = process.env.NEXT_PUBLIC_DEMO_CONTENT !== 'false';
 
-/** Build-time storefront switch. When open, only the Tea branch offers priced online orders. */
+/** Build-time storefront switch for online sales. */
 export const showPrices = process.env.NEXT_PUBLIC_SHOW_PRICES === 'true';
 
-export function sellsOnline(categoryPath: string): boolean {
-  return showPrices && isRetailTea(categoryPath);
+export const showDelivery = process.env.NEXT_PUBLIC_CHECKOUT_DELIVERY_ENABLED === 'true';
+
+export function sellsOnline(product: Parameters<typeof isOnlineListing>[0]): boolean {
+  return showPrices && isOnlineListing(product);
 }
 
 /** Open Graph locale codes for the supported languages. */

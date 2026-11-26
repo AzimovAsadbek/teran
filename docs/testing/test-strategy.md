@@ -83,6 +83,8 @@ are made by `apps/api/scripts/make-iphone-films.swift` (macOS, AVFoundation) int
 
 ## End-to-end tests
 
+For the current product-only checkout, set `E2E_STORE_MODE=open` and `E2E_DELIVERY_ENABLED=false` for both `pnpm --filter @teran/e2e build:stack` and `pnpm test:e2e`. This scenario exercises Payme on desktop and CLICK on mobile, including sign-in with a guest bag, the exact amount, and the confirmed order. CI also runs the delivery-enabled and closed storefront scenarios.
+
 Playwright starts a disposable stack (API on port 4100, web on 3100, online payments in demo
 mode) from production builds:
 `pnpm --filter @teran/e2e build:stack` compiles contracts, API and a standalone web build; the

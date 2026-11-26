@@ -1,0 +1,4 @@
+ALTER TABLE "Order"
+  ALTER COLUMN "deliveryMethodName" DROP NOT NULL,
+  ALTER COLUMN "regionCode" DROP NOT NULL,
+  ALTER COLUMN "city" DROP NOT NULL;

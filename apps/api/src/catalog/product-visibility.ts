@@ -1,10 +1,23 @@
-import { isRetailTea, RETAIL_TEA_CATEGORY } from '@teran/contracts';
+import {
+  productAllowsOnlineSale,
+  RETAIL_TEA_CATEGORY,
+  type ProductSaleMode,
+} from '@teran/contracts';
 import type { Prisma } from '../generated/prisma/client.js';
 
-export const retailTeaWhere = {
-  category: {
-    OR: [{ slug: RETAIL_TEA_CATEGORY, parentId: null }, { parent: { slug: RETAIL_TEA_CATEGORY } }],
-  },
+export const onlineProductWhere = {
+  OR: [
+    { saleMode: 'ONLINE' },
+    {
+      saleMode: 'CATEGORY',
+      category: {
+        OR: [
+          { slug: RETAIL_TEA_CATEGORY, parentId: null },
+          { parent: { slug: RETAIL_TEA_CATEGORY } },
+        ],
+      },
+    },
+  ],
 } satisfies Prisma.ProductWhereInput;
 
 export const retailCategorySelect = {
@@ -13,13 +26,20 @@ export const retailCategorySelect = {
   parent: { select: { slug: true, isActive: true } },
 } satisfies Prisma.CategorySelect;
 
-export function isRetailCategory(
-  category: Prisma.CategoryGetPayload<{ select: typeof retailCategorySelect }>,
-): boolean {
+export function isOnlineProduct({
+  saleMode,
+  category,
+}: {
+  saleMode: ProductSaleMode;
+  category: Prisma.CategoryGetPayload<{ select: typeof retailCategorySelect }>;
+}): boolean {
   return (
     category.isActive &&
     category.parent?.isActive !== false &&
-    isRetailTea(category.parent ? category.parent.slug + '/' + category.slug : category.slug)
+    productAllowsOnlineSale(
+      saleMode,
+      category.parent ? category.parent.slug + '/' + category.slug : category.slug,
+    )
   );
 }
 

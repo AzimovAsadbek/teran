@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Wordmark } from '@/components/brand/logo';
 import { Link } from '@/i18n/navigation';
+import { showDelivery } from '@/lib/site';
 import { CurrentYear } from './site-footer';
 
 /** Checkout header: back to the bag on the left, the wordmark in the centre, nothing else. */
@@ -37,7 +38,7 @@ export async function CheckoutFooter() {
   const t = await getTranslations('Footer');
   const tn = await getTranslations('Nav');
   const links = [
-    { href: '/delivery', label: tn('delivery') },
+    ...(showDelivery ? [{ href: '/delivery', label: tn('delivery') }] : []),
     { href: '/returns', label: t('returns') },
     { href: '/terms', label: t('terms') },
     { href: '/privacy', label: t('privacy') },

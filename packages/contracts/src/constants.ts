@@ -116,7 +116,10 @@ export function regionName(code: string, locale: Locale): string {
   return REGIONS.find((region) => region.code === code)?.name[locale] ?? code;
 }
 
-/** Storefront prices and online checkout are available in the Tea catalogue branch. */
+export const PRODUCT_SALE_MODES = ['CATEGORY', 'ONLINE', 'CONTACT'] as const;
+export type ProductSaleMode = (typeof PRODUCT_SALE_MODES)[number];
+
+/** The Tea branch offers online checkout when the product inherits its category's policy. */
 export const RETAIL_TEA_CATEGORY = 'tea';
 
 export function isRetailTea(categoryPath: string | null | undefined): boolean {
@@ -124,4 +127,16 @@ export function isRetailTea(categoryPath: string | null | undefined): boolean {
     categoryPath === RETAIL_TEA_CATEGORY ||
     categoryPath?.startsWith(RETAIL_TEA_CATEGORY + '/') === true
   );
+}
+
+export function productAllowsOnlineSale(mode: ProductSaleMode, categoryPath: string): boolean {
+  return mode === 'ONLINE' || (mode === 'CATEGORY' && isRetailTea(categoryPath));
+}
+
+/** Older cached catalogue responses predate per-product settings and used the category rule. */
+export function isOnlineListing(product: {
+  onlineOrderable?: boolean;
+  category: { path: string };
+}): boolean {
+  return product.onlineOrderable ?? isRetailTea(product.category.path);
 }

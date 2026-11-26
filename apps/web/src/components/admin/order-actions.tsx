@@ -76,6 +76,12 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
     }
   }
 
+  function stepLabel(target: Step, key: 'transitions' | 'transitionTitles' | 'transitionTexts') {
+    if (target === 'DELIVERED' && !order.deliveryMethodName)
+      return t(`orders.completeOrder.${key}`);
+    return t(`orders.${key}.${target}`);
+  }
+
   const nothingToDo = order.allowedTransitions.length === 0 && !order.canRecordPayment;
 
   return (
@@ -103,7 +109,7 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
               }}
               className={buttonClasses('primary', 'md', 'w-full')}
             >
-              {t(`orders.transitions.${target}`)}
+              {stepLabel(target, 'transitions')}
               <ArrowRight aria-hidden className="h-4 w-4" />
             </button>
           ))}
@@ -143,9 +149,9 @@ export function OrderActions({ order }: { order: AdminOrderDetail }) {
 
       <ConfirmDialog
         open={dialog === 'step'}
-        title={step ? t(`orders.transitionTitles.${step}`) : ''}
-        description={step ? t(`orders.transitionTexts.${step}`) : undefined}
-        confirmLabel={step ? t(`orders.transitions.${step}`) : ''}
+        title={step ? stepLabel(step, 'transitionTitles') : ''}
+        description={step ? stepLabel(step, 'transitionTexts') : undefined}
+        confirmLabel={step ? stepLabel(step, 'transitions') : ''}
         cancelLabel={t('orders.notNow')}
         pending={action.pending}
         error={dialog === 'step' ? action.error : null}

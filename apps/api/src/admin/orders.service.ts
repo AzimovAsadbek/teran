@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   buildPaginated,
   canTransitionOrder,
-  ORDER_STATUS_TRANSITIONS,
+  nextOrderStatuses,
   type adminOrderListQuerySchema,
   type AdminOrderDetail,
   type AdminOrderListItem,
@@ -205,7 +205,7 @@ export class AdminOrdersService {
         actorName: actorName(event.actor),
         createdAt: event.createdAt.toISOString(),
       })),
-      allowedTransitions: [...ORDER_STATUS_TRANSITIONS[order.status]],
+      allowedTransitions: [...nextOrderStatuses(order.status, order.deliveryMethodName !== null)],
       canRecordPayment: this.canRecordPayment(order),
       canRecordRefund: this.refundablePayment(order.payments) !== undefined,
       payments: order.payments.map((payment) => ({
@@ -262,18 +262,19 @@ export class AdminOrdersService {
         select: {
           id: true,
           status: true,
+          deliveryMethodName: true,
           paymentStatus: true,
           items: { select: { variantId: true, quantity: true } },
         },
       });
       if (!order) throw ApiException.notFound('Order not found');
-      if (!canTransitionOrder(order.status, target)) {
+      if (!canTransitionOrder(order.status, target, order.deliveryMethodName !== null)) {
         throw ApiException.conflict(
           'INVALID_STATUS_TRANSITION',
           `An order cannot go from ${order.status} to ${target}`,
           {
             from: order.status,
-            allowed: ORDER_STATUS_TRANSITIONS[order.status],
+            allowed: nextOrderStatuses(order.status, order.deliveryMethodName !== null),
           },
         );
       }

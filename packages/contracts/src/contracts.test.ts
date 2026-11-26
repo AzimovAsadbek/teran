@@ -97,8 +97,8 @@ describe('checkoutSchema', () => {
     const parsed = checkoutSchema.parse(validCheckout);
     expect(parsed.customer.phone).toBe('+998901234567');
     expect(parsed.customer.email).toBeUndefined();
-    expect(parsed.delivery.addressLine).toBe('12-uy');
-    expect(parsed.delivery.landmark).toBeUndefined();
+    expect(parsed.delivery?.addressLine).toBe('12-uy');
+    expect(parsed.delivery?.landmark).toBeUndefined();
   });
 
   it('requires accepting the terms', () => {

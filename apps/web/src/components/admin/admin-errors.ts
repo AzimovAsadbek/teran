@@ -32,8 +32,20 @@ export function useAdminErrorMessage(): (error: ApiError | null) => string | nul
   const t = useTranslations('Admin');
   return (error) => {
     if (!error) return null;
-    const details = (error.body?.details ?? {}) as { reason?: string; missing?: unknown };
+    const details = (error.body?.details ?? {}) as {
+      reason?: string;
+      missing?: unknown;
+      sku?: string;
+    };
     const reason = details.reason;
+    if (error.code === 'FISCAL_DATA_MISSING' && details.sku) {
+      return t(
+        reason === 'click_package_length'
+          ? 'products.fiscalPackageTooLong'
+          : 'products.fiscalRequired',
+        { sku: details.sku },
+      );
+    }
     if (reason && (REASONS as readonly string[]).includes(reason)) {
       return t(`uploads.errors.${reason as Reason}`);
     }

@@ -148,20 +148,30 @@ export default async function AdminOrderPage({
             </dl>
           </Panel>
 
-          <Panel title={t('orders.deliverySection')}>
+          <Panel
+            title={order.deliveryMethodName ? t('orders.deliverySection') : tco('orderDetails')}
+          >
             <dl className="space-y-2 text-body-sm">
-              <div>
-                <dt className="text-xs text-fg-subtle">{t('orders.delivery')}</dt>
-                <dd className="font-semibold">{order.deliveryMethodName}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-fg-subtle">{t('orders.address')}</dt>
-                <dd>
-                  {[regionName(order.regionCode, locale as Locale), order.city, order.addressLine]
-                    .filter(Boolean)
-                    .join(', ')}
-                </dd>
-              </div>
+              {order.deliveryMethodName && (
+                <>
+                  <div>
+                    <dt className="text-xs text-fg-subtle">{t('orders.delivery')}</dt>
+                    <dd className="font-semibold">{order.deliveryMethodName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-fg-subtle">{t('orders.address')}</dt>
+                    <dd>
+                      {[
+                        order.regionCode && regionName(order.regionCode, locale as Locale),
+                        order.city,
+                        order.addressLine,
+                      ]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </dd>
+                  </div>
+                </>
+              )}
               {order.landmark ? (
                 <div>
                   <dt className="text-xs text-fg-subtle">{t('orders.landmark')}</dt>
@@ -218,10 +228,12 @@ export default async function AdminOrderPage({
                 <dt className="text-fg-muted">{t('orders.subtotal')}</dt>
                 <dd className="tabular-nums">{money(order.subtotal)}</dd>
               </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-fg-muted">{t('orders.delivery')}</dt>
-                <dd className="tabular-nums">{money(order.deliveryFee)}</dd>
-              </div>
+              {order.deliveryMethodName && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-fg-muted">{t('orders.delivery')}</dt>
+                  <dd className="tabular-nums">{money(order.deliveryFee)}</dd>
+                </div>
+              )}
               {Number(order.discountTotal) > 0 ? (
                 <div className="flex justify-between gap-4">
                   <dt className="text-fg-muted">{t('orders.discount')}</dt>

@@ -45,7 +45,9 @@ export function CartDrawer() {
               <span className="text-title text-fg">{t('subtotal')}</span>
               <Price amount={cart.subtotal} className="text-title-lg" />
             </div>
-            <p className="mt-1 text-helper text-fg-subtle">{t('deliveryNote')}</p>
+            {cart.deliveryEnabled !== false && (
+              <p className="mt-1 text-helper text-fg-subtle">{t('deliveryNote')}</p>
+            )}
             {!cart.isCheckoutReady ? (
               <Notice tone="danger" compact className="mt-3">
                 {t('notReady')}

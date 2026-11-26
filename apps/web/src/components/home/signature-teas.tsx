@@ -63,11 +63,11 @@ export async function SignatureTeas() {
       orderLabel: tp('orderAction', { name: product.name }),
       addLabel: tp('quickAdd', { name: product.name }),
       price:
-        sellsOnline(product.category.path) && variant
+        sellsOnline(product) && variant
           ? formatMoney(variant.price, locale, tc('currency.UZS'))
           : null,
       variantId:
-        sellsOnline(product.category.path) && variant && product.stockLevel !== 'out_of_stock'
+        sellsOnline(product) && variant && product.stockLevel !== 'out_of_stock'
           ? variant.id
           : null,
       leaves: leavesOf(product, detail),

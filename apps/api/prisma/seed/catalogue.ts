@@ -407,6 +407,9 @@ async function createDemoVariant(
       stockQuantity: variant.stock,
       lowStockThreshold: variant.lowStockThreshold ?? 5,
       barcode: variant.barcode ?? null,
+      fiscalMxik: variant.fiscal?.mxik,
+      fiscalPackageCode: variant.fiscal?.packageCode,
+      fiscalVatPercent: variant.fiscal?.vatPercent,
       position,
     },
   });

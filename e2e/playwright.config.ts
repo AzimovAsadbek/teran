@@ -17,9 +17,11 @@ const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: './tests',
-  ...(checkoutOpen
-    ? { testIgnore: '**/closed-store.spec.ts' }
-    : { testMatch: '**/closed-store.spec.ts' }),
+  ...(!checkoutOpen
+    ? { testMatch: '**/closed-store.spec.ts' }
+    : process.env.E2E_DELIVERY_ENABLED === 'false'
+      ? { testMatch: '**/order-only.spec.ts' }
+      : { testIgnore: ['**/closed-store.spec.ts', '**/order-only.spec.ts'] }),
   // Orders change shared stock, so tests run one at a time for deterministic results.
   fullyParallel: false,
   workers: 1,

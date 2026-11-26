@@ -34,6 +34,7 @@ export const TEST_ENV: Record<string, string> = {
   REVALIDATE_SECRET: '',
   // Online ordering is on in tests (it is off unless set, see CHECKOUT_ENABLED).
   CHECKOUT_ENABLED: 'true',
+  CHECKOUT_DELIVERY_ENABLED: 'true',
   // Payments: live mode without provider credentials (cash only) unless a suite overrides it.
   PAYMENT_PROVIDER_MODE: 'live',
   PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY',

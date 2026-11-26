@@ -46,7 +46,10 @@ export class PaymentConfig {
   constructor(config: ConfigService<Env, true>) {
     this.mode = config.get('PAYMENT_PROVIDER_MODE', { infer: true });
     this.windowMinutes = config.get('ONLINE_PAYMENT_WINDOW_MINUTES', { infer: true });
-    this.enabled = config.get('PAYMENT_METHODS_ENABLED', { infer: true });
+    const deliveryEnabled = config.get('CHECKOUT_DELIVERY_ENABLED', { infer: true });
+    this.enabled = config
+      .get('PAYMENT_METHODS_ENABLED', { infer: true })
+      .filter((method) => deliveryEnabled || method !== 'CASH_ON_DELIVERY');
     this.webOrigin = config.get('WEB_ORIGIN', { infer: true });
 
     const paymeId = config.get('PAYME_MERCHANT_ID', { infer: true });

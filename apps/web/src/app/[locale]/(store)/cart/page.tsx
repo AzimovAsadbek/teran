@@ -12,7 +12,7 @@ import { PREMIUM_COLLECTION_SLUG } from '@/content/brand';
 import { deliveryPage } from '@/content/pages/delivery';
 import { getProductList } from '@/lib/data/catalog';
 import { pageMetadata } from '@/lib/seo';
-import { showPrices } from '@/lib/site';
+import { showDelivery, showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -79,7 +79,7 @@ export default async function CartPage() {
         // ordering works, with the ways to choose a tea and to get in touch.
         <StateMessage
           title={t('byRequestTitle')}
-          text={deliveryPage[locale].byContact.intro}
+          text={showDelivery ? deliveryPage[locale].byContact.intro : undefined}
           primary={{ href: `/collections/${PREMIUM_COLLECTION_SLUG}`, label: tb('chooseTea') }}
           secondary={{ href: '/contact', label: th('contactTitle') }}
         />

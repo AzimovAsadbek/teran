@@ -34,17 +34,17 @@ export const orderConfirmationEmail: Template<{ number: string; total: string; l
     case 'ru':
       return {
         subject: `TERAN: заказ ${number} принят`,
-        text: `Спасибо за заказ!\n\nНомер заказа: ${number}\nСумма: ${total}\n\nСтатус заказа можно посмотреть по ссылке:\n${link}\n\nМы свяжемся с вами для подтверждения доставки.\n\nTERAN`,
+        text: `Спасибо за заказ!\n\nНомер заказа: ${number}\nСумма: ${total}\n\nСтатус заказа можно посмотреть по ссылке:\n${link}\n\nTERAN`,
       };
     case 'en':
       return {
         subject: `TERAN: order ${number} received`,
-        text: `Thank you for your order!\n\nOrder number: ${number}\nTotal: ${total}\n\nYou can follow your order here:\n${link}\n\nWe will contact you to confirm delivery.\n\nTERAN`,
+        text: `Thank you for your order!\n\nOrder number: ${number}\nTotal: ${total}\n\nYou can follow your order here:\n${link}\n\nTERAN`,
       };
     default:
       return {
         subject: `TERAN: ${number} raqamli buyurtma qabul qilindi`,
-        text: `Buyurtmangiz uchun rahmat!\n\nBuyurtma raqami: ${number}\nSumma: ${total}\n\nBuyurtma holatini quyidagi havola orqali kuzatishingiz mumkin:\n${link}\n\nYetkazib berishni tasdiqlash uchun siz bilan bogʻlanamiz.\n\nTERAN`,
+        text: `Buyurtmangiz uchun rahmat!\n\nBuyurtma raqami: ${number}\nSumma: ${total}\n\nBuyurtma holatini quyidagi havola orqali kuzatishingiz mumkin:\n${link}\n\nTERAN`,
       };
   }
 };

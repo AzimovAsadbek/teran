@@ -17,7 +17,7 @@ import { uniqueConstraintName } from '../common/prisma-errors.js';
 import { ZERO, toMoney } from '../common/money.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CartService, type OrderableLine } from '../cart/cart.service.js';
-import { retailTeaWhere, visibleProductWhere } from '../catalog/product-visibility.js';
+import { onlineProductWhere, visibleProductWhere } from '../catalog/product-visibility.js';
 import { DeliveryService } from '../delivery/delivery.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { orderConfirmationEmail } from '../mail/templates.js';
@@ -176,14 +176,15 @@ export class OrdersService {
       ZERO,
     );
 
+    const destination = this.delivery.enabled ? payload.delivery : undefined;
     const delivery = await this.delivery.quote(
-      payload.delivery.methodCode,
-      payload.delivery.regionCode,
+      destination?.methodCode,
+      destination?.regionCode,
       subtotal,
       payload.locale,
       tx,
     );
-    if (delivery.requiresAddress && !payload.delivery.addressLine) {
+    if (delivery.requiresAddress && !destination?.addressLine) {
       throw new ApiException(
         HttpStatus.BAD_REQUEST,
         'VALIDATION_FAILED',
@@ -216,10 +217,10 @@ export class OrdersService {
         customerEmail: payload.customer.email ?? null,
         deliveryMethodId: delivery.methodId,
         deliveryMethodName: delivery.methodName,
-        regionCode: payload.delivery.regionCode,
-        city: payload.delivery.city,
-        addressLine: payload.delivery.addressLine ?? null,
-        landmark: payload.delivery.landmark ?? null,
+        regionCode: destination?.regionCode ?? null,
+        city: destination?.city ?? null,
+        addressLine: destination?.addressLine ?? null,
+        landmark: destination?.landmark ?? null,
         customerNote: payload.note ?? null,
         subtotal,
         deliveryFee: delivery.fee,
@@ -255,14 +256,14 @@ export class OrdersService {
       payload.paymentMethod,
       new Date(),
     );
-    if (payload.saveAddress && payload.delivery.addressLine) {
+    if (payload.saveAddress && destination?.addressLine) {
       await saveAddressFromCheckout(tx, userId, {
         recipientName: payload.customer.name,
         phone: payload.customer.phone,
-        regionCode: payload.delivery.regionCode,
-        city: payload.delivery.city,
-        addressLine: payload.delivery.addressLine,
-        landmark: payload.delivery.landmark ?? null,
+        regionCode: destination.regionCode,
+        city: destination.city,
+        addressLine: destination.addressLine,
+        landmark: destination.landmark ?? null,
       });
     }
 
@@ -296,7 +297,7 @@ export class OrdersService {
             id: line.variantId,
             isActive: true,
             stockQuantity: { gte: line.quantity },
-            product: { AND: [visibleProductWhere(), retailTeaWhere] },
+            product: { AND: [visibleProductWhere(), onlineProductWhere] },
           },
           data: { stockQuantity: { decrement: line.quantity } },
           select: {

@@ -5,6 +5,7 @@ import {
   ILLUSTRATION_KEYS,
   MAX_PRODUCT_IMAGES,
   PRODUCT_FORMATS,
+  PRODUCT_SALE_MODES,
   PRODUCT_STATUSES,
   productUpsertSchema,
   type AdminProductDetail,
@@ -108,6 +109,7 @@ interface Draft {
   format: string;
   /** A new product's format follows its type until staff choose a format themselves. */
   formatAuto: boolean;
+  saleMode: string;
   isFeatured: boolean;
   caffeineLevel: string;
   brewTempCelsius: string;
@@ -180,6 +182,7 @@ function toDraft(product: AdminProductDetail | null): Draft {
     attributes: toAttributeDrafts(product?.attributes ?? []),
     format: product?.format ?? 'LOOSE_LEAF',
     formatAuto: product === null,
+    saleMode: product?.saleMode ?? 'CATEGORY',
     isFeatured: product?.isFeatured ?? false,
     caffeineLevel: product?.caffeineLevel ?? '',
     brewTempCelsius: product?.brewTempCelsius?.toString() ?? '',
@@ -289,6 +292,7 @@ function toPayload(draft: Draft, types: AdminProductType[]) {
     productTypeId: type?.id ?? null,
     attributes: attributePayload(draft, type),
     format: draft.format,
+    saleMode: draft.saleMode,
     isFeatured: draft.isFeatured,
     caffeineLevel: draft.caffeineLevel || null,
     brewTempCelsius: numberOrNull(draft.brewTempCelsius),
@@ -673,6 +677,17 @@ export function ProductEditor({
             title={t('products.variants')}
             hint={t('products.variantsHint')}
           >
+            <SelectField
+              label={t('products.saleMode')}
+              name="saleMode"
+              hint={t('products.saleModeHint')}
+              options={PRODUCT_SALE_MODES.map((mode) => ({
+                value: mode,
+                label: t(`products.saleModes.${mode}`),
+              }))}
+              value={draft.saleMode}
+              onChange={(event) => set('saleMode', event.target.value)}
+            />
             {error('variants') ? (
               <p className="text-body-sm font-medium text-danger">{error('variants')}</p>
             ) : null}

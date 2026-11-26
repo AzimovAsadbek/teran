@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ProductImage } from '@/components/catalog/product-image';
 import { Link } from '@/i18n/navigation';
 import { formatMoney, packLabel } from '@/lib/format';
-import { sellsOnline } from '@/lib/site';
+import { sellsOnline, showDelivery } from '@/lib/site';
 
 /** Where each page an answer points to lives. */
 const PAGE_HREF: Record<AssistantLink, string> = {
@@ -48,7 +48,9 @@ export function AssistantAnswer({
   const paragraphs = answer.reply.split(/\n{2,}/);
   const links = [
     ...answer.categories.map((category) => ({ href: `/${category.path}`, label: category.name })),
-    ...answer.links.map((link) => ({ href: PAGE_HREF[link], label: t(`pages.${link}`) })),
+    ...answer.links
+      .filter((link) => showDelivery || link !== 'delivery')
+      .map((link) => ({ href: PAGE_HREF[link], label: t(`pages.${link}`) })),
   ];
 
   return (
@@ -66,7 +68,7 @@ export function AssistantAnswer({
           {answer.products.map((product) => {
             const soldOut = product.stockLevel === 'out_of_stock';
             const pack = product.defaultVariant
-              ? sellsOnline(product.category.path)
+              ? sellsOnline(product)
                 ? formatMoney(product.defaultVariant.price, locale, tc('currency.UZS'))
                 : packLabel(product.defaultVariant, product.format, locale, (key, values) =>
                     tp(`units.${key}`, values),

@@ -37,7 +37,7 @@ import {
   toProductDetail,
   toProductSummary,
 } from './catalog.mapper.js';
-import { retailTeaWhere, visibleProductWhere } from './product-visibility.js';
+import { onlineProductWhere, visibleProductWhere } from './product-visibility.js';
 
 const RELATED_LIMIT = 4;
 const SUGGESTION_LIMIT = 6;
@@ -236,7 +236,7 @@ export class CatalogService {
           orderBy: { caffeineLevel: 'asc' },
         }),
         this.prisma.product.aggregate({
-          where: { AND: [formatFacetWhere, retailTeaWhere] },
+          where: { AND: [formatFacetWhere, onlineProductWhere] },
           _min: { minPrice: true },
           _max: { minPrice: true },
         }),
@@ -467,7 +467,7 @@ export class CatalogService {
     if (query.inStock)
       conditions.push({ variants: { some: { isActive: true, stockQuantity: { gt: 0 } } } });
     if (query.minPrice !== undefined || query.maxPrice !== undefined)
-      conditions.push(retailTeaWhere);
+      conditions.push(onlineProductWhere);
     if (query.minPrice !== undefined) conditions.push({ minPrice: { gte: query.minPrice } });
     if (query.maxPrice !== undefined) conditions.push({ minPrice: { lte: query.maxPrice } });
     if (query.q) conditions.push(this.searchWhere(normalizeSearchText(query.q), query.locale));
@@ -623,21 +623,21 @@ export class CatalogService {
       return this.prisma.product.findMany({ where, include, orderBy, skip, take });
     }
 
-    // Priced teas come first. Private prices must never determine the order of contact-only items.
-    const teas = { AND: [where, retailTeaWhere] };
-    const teaCount = await this.prisma.product.count({ where: teas });
-    const teaTake = Math.min(take, Math.max(0, teaCount - skip));
+    // Priced products come first. Contact-only products are ordered by slug.
+    const online = { AND: [where, onlineProductWhere] };
+    const onlineCount = await this.prisma.product.count({ where: online });
+    const onlineTake = Math.min(take, Math.max(0, onlineCount - skip));
     const [priced, other] = await Promise.all([
-      teaTake
-        ? this.prisma.product.findMany({ where: teas, include, orderBy, skip, take: teaTake })
+      onlineTake
+        ? this.prisma.product.findMany({ where: online, include, orderBy, skip, take: onlineTake })
         : [],
-      teaTake < take
+      onlineTake < take
         ? this.prisma.product.findMany({
-            where: { AND: [where, { NOT: retailTeaWhere }] },
+            where: { AND: [where, { NOT: onlineProductWhere }] },
             include,
             orderBy: { slug: 'asc' },
-            skip: Math.max(0, skip - teaCount),
-            take: take - teaTake,
+            skip: Math.max(0, skip - onlineCount),
+            take: take - onlineTake,
           })
         : [],
     ]);

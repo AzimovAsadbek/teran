@@ -84,7 +84,9 @@ export function CartView() {
               <span className="text-title text-fg">{t('subtotal')}</span>
               <Price amount={cart.subtotal} className="text-title-lg" />
             </div>
-            <p className="mt-1 text-helper text-fg-subtle">{t('deliveryNote')}</p>
+            {cart.deliveryEnabled !== false && (
+              <p className="mt-1 text-helper text-fg-subtle">{t('deliveryNote')}</p>
+            )}
 
             {errorMessage ? (
               <Notice tone="danger" role="alert" compact className="mt-4">

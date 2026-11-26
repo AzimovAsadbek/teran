@@ -6,6 +6,8 @@ import { getSitemapEntries } from '@/lib/data/catalog';
 import { getMedia } from '@/lib/data/content';
 import { buildSitemap } from '@/lib/seo';
 
+import { showDelivery, showPrices } from '@/lib/site';
+
 const STATIC_PAGES = [
   '/',
   '/catalog',
@@ -17,7 +19,7 @@ const STATIC_PAGES = [
   '/contact',
   '/stores',
   '/faq',
-  '/delivery',
+  ...(showDelivery ? ['/delivery'] : []),
   '/returns',
   '/privacy',
   '/terms',
@@ -27,7 +29,7 @@ const STATIC_PAGES = [
 /** The help centre's categories and articles (their addresses are the same in every language). */
 const HELP_PAGES = [
   '/faq/articles',
-  ...helpCentre('en', false).flatMap((category) => [
+  ...helpCentre('en', !showPrices, showDelivery).flatMap((category) => [
     `/faq/${category.id}`,
     ...category.articles.map((article) => `/faq/${category.id}/${article.slug}`),
   ]),

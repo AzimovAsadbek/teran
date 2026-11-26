@@ -20,11 +20,12 @@ import { SupportRow } from '@/components/content/support-row';
 import { HelpSearch } from '@/components/help/help-search';
 import { HelpShell } from '@/components/help/help-shell';
 import { JsonLd } from '@/components/seo/json-ld';
+import { showDelivery } from '@/lib/site';
 import { helpCentre } from '@/content/pages/faq';
 import { faqSchema, pageMetadata } from '@/lib/seo';
 
 export function generateStaticParams() {
-  return helpCentre('en', false).flatMap((category) =>
+  return helpCentre('en', false, showDelivery).flatMap((category) =>
     category.articles.map((article) => ({ group: category.id, article: article.slug })),
   );
 }

@@ -21,7 +21,7 @@ import { AccessDenied, AdminPageHeader, Panel, StatusTabs } from '@/components/a
 import { siteKnowledge } from '@/content/assistant-knowledge';
 import { adminGet } from '@/lib/admin/server';
 import { currentUser } from '@/lib/account';
-import { showPrices } from '@/lib/site';
+import { showDelivery, showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -188,7 +188,7 @@ export default async function AdminSettingsPage({
             model={settings.assistantModel ?? null}
             siteTexts={
               Object.fromEntries(
-                LOCALES.map((locale) => [locale, siteKnowledge(locale, !showPrices)]),
+                LOCALES.map((locale) => [locale, siteKnowledge(locale, !showPrices, showDelivery)]),
               ) as Record<Locale, string>
             }
           />

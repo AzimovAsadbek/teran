@@ -13,6 +13,7 @@
  *   caffeine level (typical of their style); the TERAN teas get neither.
  * - Deliberately absent: certifications, health claims and reviews.
  */
+import type { FiscalItem } from '@teran/contracts';
 import type { ArtAccent, ArtStyle, PackShape } from './demo-art.js';
 import {
   DEMO_RANGE_ATTRIBUTE_VALUES,
@@ -57,6 +58,7 @@ export interface DemoVariant {
   lowStockThreshold?: number;
   /** The EAN-13 printed on the pack, only where the owner supplied it. */
   barcode?: string;
+  fiscal?: FiscalItem;
 }
 
 export interface DemoProduct {
@@ -549,6 +551,13 @@ export const DEMO_COLLECTIONS: DemoCategory[] = [
   ...DEMO_RANGE_COLLECTIONS,
 ];
 
+// TERAN's declared green tea MXIK, the Soliq 400 g pouch and the VAT rate in its CLICK letter.
+const greenTeaPouchFiscal: FiscalItem = {
+  mxik: '00902001001000000',
+  packageCode: '1653256',
+  vatPercent: 12,
+};
+
 export const DEMO_PRODUCTS: DemoProduct[] = [
   // ─── The five TERAN teas (the owner's descriptions and pouch photographs, 2026-10-17) ───
   {
@@ -570,6 +579,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
         price: '189000',
         stock: 50,
         barcode: '4780179230021',
+        fiscal: greenTeaPouchFiscal,
       },
     ],
   },
@@ -592,6 +602,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
         price: '179000',
         stock: 50,
         barcode: '4780179230014',
+        fiscal: greenTeaPouchFiscal,
       },
     ],
   },
@@ -616,6 +627,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
         price: '179000',
         stock: 50,
         barcode: '4780179230045',
+        fiscal: greenTeaPouchFiscal,
       },
     ],
   },
@@ -638,6 +650,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
         price: '199000',
         stock: 50,
         barcode: '4780179230038',
+        fiscal: greenTeaPouchFiscal,
       },
     ],
   },
@@ -663,6 +676,7 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
         price: '159000',
         stock: 50,
         barcode: '4780179230052',
+        fiscal: greenTeaPouchFiscal,
       },
     ],
   },

@@ -12,7 +12,7 @@ import { generateToken, sha256 } from '../common/crypto.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
-import { retailTeaWhere, visibleProductWhere } from '../catalog/product-visibility.js';
+import { onlineProductWhere, visibleProductWhere } from '../catalog/product-visibility.js';
 import { isProductPublic } from '../cart/cart-line.js';
 import { mergeCartLines } from '../cart/cart-merge.js';
 import { CartService } from '../cart/cart.service.js';
@@ -336,7 +336,7 @@ export class AuthService {
       const variants = await tx.productVariant.findMany({
         where: {
           id: { in: [...deviceLines, ...accountLines].map((line) => line.variantId) },
-          product: { AND: [visibleProductWhere(), retailTeaWhere] },
+          product: { AND: [visibleProductWhere(), onlineProductWhere] },
         },
         select: {
           id: true,

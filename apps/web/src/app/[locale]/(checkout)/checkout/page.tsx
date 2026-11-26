@@ -31,10 +31,7 @@ async function CheckoutLoader() {
     if (bag?.lines.length === 0) redirect(getPathname({ href: '/cart', locale }));
   }
   const user = await requireUser(locale, '/checkout');
-  const [options, addresses] = await Promise.all([
-    getCheckoutOptions(locale).catch(() => null),
-    apiGetAsVisitor<AddressDto[]>('/account/addresses').catch(() => []),
-  ]);
+  const options = await getCheckoutOptions(locale).catch(() => null);
 
   if (!options) {
     return (
@@ -43,6 +40,10 @@ async function CheckoutLoader() {
       </Notice>
     );
   }
+  const addresses =
+    options.deliveryEnabled === false
+      ? []
+      : await apiGetAsVisitor<AddressDto[]>('/account/addresses').catch(() => []);
   return <CheckoutForm options={options} user={user} addresses={addresses ?? []} />;
 }
 

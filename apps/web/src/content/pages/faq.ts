@@ -389,12 +389,75 @@ export const faqByContact: Localized<
   },
 };
 
-/** The FAQ as it applies now: with checkout, or (`byContact`) with ordering by phone and messengers. */
-export function faqFor(locale: Locale, byContact: boolean): readonly QuestionGroup[] {
-  const groups = faqGroups[locale];
-  if (!byContact) return groups;
+/** Online checkout without delivery, indexed by the existing question positions and stable URLs. */
+const orderOnlyAnswers: typeof faqByContact = {
+  uz: {
+    ordering: {
+      0: [
+        'Mahsulotni savatga qo‘shing va buyurtmani rasmiylashtirishga o‘ting. Hisobingizga kiring, aloqa ma’lumotlaringizni tekshiring va to‘lov usulini tanlang.',
+      ],
+      3: [
+        'Buyurtmani o‘zgartirish yoki bekor qilish uchun buyurtma raqamingizni aytib biz bilan bog‘laning.',
+      ],
+    },
+    payment: {
+      0: [
+        'Buyurtmani tasdiqlashdan oldin to‘lov usulini tanlang. Tanlangan mahsulotlar summasi ekranda ko‘rsatiladi.',
+      ],
+      1: [
+        'To‘lov xizmatining sahifasida to‘lovni yakunlang. Tasdiq kelgach, buyurtma sahifasida to‘langani ko‘rinadi.',
+      ],
+    },
+  },
+  ru: {
+    ordering: {
+      0: [
+        'Добавьте товары в корзину и перейдите к оформлению. Войдите в аккаунт, проверьте контактные данные и выберите способ оплаты.',
+      ],
+      3: ['Чтобы изменить или отменить заказ, свяжитесь с нами и укажите его номер.'],
+    },
+    payment: {
+      0: [
+        'Выберите способ оплаты при оформлении. Перед подтверждением вы увидите сумму за выбранные товары.',
+      ],
+      1: [
+        'Завершите оплату на странице платёжного сервиса. После подтверждения статус оплаты появится на странице заказа.',
+      ],
+    },
+  },
+  en: {
+    ordering: {
+      0: [
+        'Add the items to your bag and go to checkout. Sign in, check your contact details and choose a payment method.',
+      ],
+      3: ['To request a change or cancellation, contact us with your order number.'],
+    },
+    payment: {
+      0: [
+        'Choose a payment method at checkout. You will see the total for your items before you confirm.',
+      ],
+      1: [
+        'Complete the payment on the payment provider’s page. Your order page shows when payment is confirmed.',
+      ],
+    },
+  },
+};
+
+/** Keep public help consistent with the way orders are currently taken. */
+export function faqFor(
+  locale: Locale,
+  byContact: boolean,
+  deliveryEnabled = true,
+): readonly QuestionGroup[] {
+  if (!byContact && deliveryEnabled) return faqGroups[locale];
+  const groups = faqGroups[locale].filter((group) => deliveryEnabled || group.id !== 'delivery');
+  const overrides = byContact
+    ? faqByContact[locale]
+    : !deliveryEnabled
+      ? orderOnlyAnswers[locale]
+      : {};
   return groups.map((group) => {
-    const answers = faqByContact[locale][group.id];
+    const answers = overrides[group.id];
     if (!answers) return group;
     return {
       ...group,
@@ -432,8 +495,12 @@ function slugFrom(question: string): string {
  * The FAQ as the reference's help centre: each group a category, each question an article. An
  * article keeps one address in every language (made from its English question).
  */
-export function helpCentre(locale: Locale, byContact: boolean): readonly HelpCategory[] {
-  return faqFor(locale, byContact).map((group) => {
+export function helpCentre(
+  locale: Locale,
+  byContact: boolean,
+  deliveryEnabled = true,
+): readonly HelpCategory[] {
+  return faqFor(locale, byContact, deliveryEnabled).map((group) => {
     const english = faqGroups.en.find((candidate) => candidate.id === group.id);
     return {
       id: group.id,

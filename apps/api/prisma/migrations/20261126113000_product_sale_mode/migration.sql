@@ -1,0 +1,4 @@
+CREATE TYPE "ProductSaleMode" AS ENUM ('CATEGORY', 'ONLINE', 'CONTACT');
+
+ALTER TABLE "Product"
+  ADD COLUMN "saleMode" "ProductSaleMode" NOT NULL DEFAULT 'CATEGORY';

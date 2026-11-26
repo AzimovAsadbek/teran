@@ -1,23 +1,33 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { DeliveryMethodDto, Locale } from '@teran/contracts';
 import { Prisma } from '../generated/prisma/client.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { localeChain, pickTranslation } from '../common/i18n.js';
 import { ZERO, toMoney, toMoneyOrNull } from '../common/money.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { Env } from '../config/env.js';
 
 export interface DeliveryQuote {
-  methodId: string;
-  methodName: string;
+  methodId: string | null;
+  methodName: string | null;
   requiresAddress: boolean;
   fee: Prisma.Decimal;
 }
 
 @Injectable()
 export class DeliveryService {
-  constructor(private readonly prisma: PrismaService) {}
+  readonly enabled: boolean;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    config: ConfigService<Env, true>,
+  ) {
+    this.enabled = config.get('CHECKOUT_DELIVERY_ENABLED', { infer: true });
+  }
 
   async listActive(locale: Locale): Promise<DeliveryMethodDto[]> {
+    if (!this.enabled) return [];
     const methods = await this.prisma.deliveryMethod.findMany({
       where: { isActive: true },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
@@ -45,12 +55,30 @@ export class DeliveryService {
    * the region, so a client can never choose a delivery the business does not offer.
    */
   async quote(
-    methodCode: string,
-    regionCode: string,
+    methodCode: string | undefined,
+    regionCode: string | undefined,
     subtotal: Prisma.Decimal,
     locale: Locale,
     tx: Prisma.TransactionClient = this.prisma,
   ): Promise<DeliveryQuote> {
+    if (!this.enabled)
+      return { methodId: null, methodName: null, requiresAddress: false, fee: ZERO };
+    if (!methodCode || !regionCode) {
+      throw new ApiException(
+        HttpStatus.BAD_REQUEST,
+        'VALIDATION_FAILED',
+        'Select a delivery method and region',
+        {
+          issues: [
+            {
+              path: !regionCode ? 'delivery.regionCode' : 'delivery.methodCode',
+              code: 'required',
+              message: 'required',
+            },
+          ],
+        },
+      );
+    }
     const method = await tx.deliveryMethod.findFirst({
       where: { code: methodCode, isActive: true },
       include: { translations: { where: { locale: { in: localeChain(locale) } } } },
@@ -77,6 +105,7 @@ export class DeliveryService {
     subtotal: Prisma.Decimal,
     locale: Locale,
   ): Promise<{ methodName: string; freeFromAmount: string; remaining: string } | null> {
+    if (!this.enabled) return null;
     const method = await this.prisma.deliveryMethod.findFirst({
       where: { isActive: true, freeFromAmount: { not: null } },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],

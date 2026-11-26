@@ -131,6 +131,7 @@ export function CheckoutForm({
   const formRef = useRef<HTMLFormElement>(null);
   const validationMessage = useValidationMessage();
   const { cart, status: cartStatus } = useCart();
+  const deliveryEnabled = options.deliveryEnabled !== false;
 
   const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0] ?? null;
   const [savedAddressId, setSavedAddressId] = useState(defaultAddress?.id ?? '');
@@ -190,6 +191,7 @@ export function CheckoutForm({
   const quoteFailed =
     quoteResult !== null && quoteResult.key === quoteKey && 'failed' in quoteResult;
   const quoteLoading = Boolean(quoteKey) && !currentQuote && !quoteFailed;
+  const reviewedTotal = deliveryEnabled ? currentQuote?.total : cart?.subtotal;
 
   // A corrected field drops its error straight away; the rest stay until the next submit.
   function clearError(...paths: string[]) {
@@ -271,17 +273,19 @@ export function CheckoutForm({
       idempotencyKey,
       locale,
       customer: { name: values.name, phone: values.phone, email: values.email },
-      delivery: {
-        methodCode: values.methodCode,
-        regionCode: values.regionCode as CheckoutInput['delivery']['regionCode'],
-        city: values.city,
-        addressLine: values.addressLine,
-        landmark: values.landmark,
-      },
+      delivery: deliveryEnabled
+        ? {
+            methodCode: values.methodCode,
+            regionCode: values.regionCode as NonNullable<CheckoutInput['delivery']>['regionCode'],
+            city: values.city,
+            addressLine: values.addressLine,
+            landmark: values.landmark,
+          }
+        : undefined,
       paymentMethod: values.paymentMethod as PaymentMethod,
       note: values.note,
-      expectedTotal: currentQuote?.total,
-      ...(saveAddress ? { saveAddress: true } : {}),
+      expectedTotal: reviewedTotal,
+      ...(deliveryEnabled && saveAddress ? { saveAddress: true } : {}),
       acceptTerms: values.acceptTerms as true,
     };
     const parsed = checkoutSchema.safeParse(input);
@@ -296,7 +300,7 @@ export function CheckoutForm({
     if (!values.regionCode) {
       // The method list only appears once a region is chosen; the region error says what to do.
       delete nextErrors['delivery.methodCode'];
-    } else if (!values.methodCode && !nextErrors['delivery.methodCode']) {
+    } else if (deliveryEnabled && !values.methodCode && !nextErrors['delivery.methodCode']) {
       nextErrors['delivery.methodCode'] = { code: 'too_small', message: 'required', minimum: 1 };
     }
     setErrors(nextErrors);
@@ -305,7 +309,7 @@ export function CheckoutForm({
       focusFirstInvalid(formRef.current);
       return;
     }
-    if (!currentQuote) {
+    if (!reviewedTotal) {
       // Valid input but the total is not known yet: never submit an order the customer has not seen priced.
       setSummaryError(quoteFailed ? t('quoteError') : tc('loading'));
       return;
@@ -407,7 +411,12 @@ export function CheckoutForm({
           {currentQuote ? <Price amount={currentQuote.total} /> : <Price amount={cart.subtotal} />}
         </summary>
         <div className="mt-3">
-          <OrderSummary cart={cart} quote={currentQuote} quoteLoading={quoteLoading} />
+          <OrderSummary
+            cart={cart}
+            quote={currentQuote}
+            quoteLoading={quoteLoading}
+            deliveryEnabled={deliveryEnabled}
+          />
         </div>
       </details>
 
@@ -463,139 +472,140 @@ export function CheckoutForm({
           </div>
         </Section>
 
-        <Section step={2} title={t('deliverySection')}>
-          {addresses.length > 0 ? (
-            <SelectField
-              label={t('savedAddress')}
-              name="savedAddress"
-              placeholder={t('savedAddressPlaceholder')}
-              options={addresses.map((address) => ({
-                value: address.id,
-                label: [
-                  address.label,
-                  regionName(address.regionCode, locale),
-                  address.city,
-                  address.addressLine,
-                ]
-                  .filter(Boolean)
-                  .join(', '),
-              }))}
-              value={savedAddressId}
-              onChange={(event) => chooseSavedAddress(event.target.value)}
-            />
-          ) : null}
-          <div className="grid gap-5 sm:grid-cols-2">
-            <SelectField
-              label={t('region')}
-              name="region"
-              autoComplete="address-level1"
-              required
-              placeholder={t('regionPlaceholder')}
-              options={regionOptions}
-              value={values.regionCode}
-              onChange={(event) => chooseRegion(event.target.value)}
-              error={error('delivery.regionCode')}
+        {deliveryEnabled ? (
+          <Section step={2} title={t('deliverySection')}>
+            {addresses.length > 0 ? (
+              <SelectField
+                label={t('savedAddress')}
+                name="savedAddress"
+                placeholder={t('savedAddressPlaceholder')}
+                options={addresses.map((address) => ({
+                  value: address.id,
+                  label: [
+                    address.label,
+                    regionName(address.regionCode, locale),
+                    address.city,
+                    address.addressLine,
+                  ]
+                    .filter(Boolean)
+                    .join(', '),
+                }))}
+                value={savedAddressId}
+                onChange={(event) => chooseSavedAddress(event.target.value)}
+              />
+            ) : null}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <SelectField
+                label={t('region')}
+                name="region"
+                autoComplete="address-level1"
+                required
+                placeholder={t('regionPlaceholder')}
+                options={regionOptions}
+                value={values.regionCode}
+                onChange={(event) => chooseRegion(event.target.value)}
+                error={error('delivery.regionCode')}
+              />
+              <TextField
+                label={t('city')}
+                name="city"
+                autoComplete="address-level2"
+                required
+                value={values.city}
+                onChange={(event) => set('city', event.target.value)}
+                error={error('delivery.city')}
+              />
+            </div>
+            <TextField
+              label={t('address')}
+              name="address"
+              autoComplete="street-address"
+              required={method?.requiresAddress ?? true}
+              value={values.addressLine}
+              onChange={(event) => set('addressLine', event.target.value)}
+              hint={t('addressHint')}
+              error={error('delivery.addressLine')}
             />
             <TextField
-              label={t('city')}
-              name="city"
-              autoComplete="address-level2"
-              required
-              value={values.city}
-              onChange={(event) => set('city', event.target.value)}
-              error={error('delivery.city')}
+              label={t('landmark')}
+              name="landmark"
+              value={values.landmark}
+              onChange={(event) => set('landmark', event.target.value)}
+              hint={t('landmarkHint')}
+              error={error('delivery.landmark')}
             />
-          </div>
-          <TextField
-            label={t('address')}
-            name="address"
-            autoComplete="street-address"
-            required={method?.requiresAddress ?? true}
-            value={values.addressLine}
-            onChange={(event) => set('addressLine', event.target.value)}
-            hint={t('addressHint')}
-            error={error('delivery.addressLine')}
-          />
-          <TextField
-            label={t('landmark')}
-            name="landmark"
-            value={values.landmark}
-            onChange={(event) => set('landmark', event.target.value)}
-            hint={t('landmarkHint')}
-            error={error('delivery.landmark')}
-          />
-          {user ? (
-            <CheckboxField
-              name="saveAddress"
-              checked={saveAddress}
-              onChange={(event) => setSaveAddress(event.target.checked)}
-              label={t('saveAddressToBook')}
-            />
-          ) : null}
-
-          <fieldset
-            aria-describedby={errors['delivery.methodCode'] ? 'delivery-method-error' : undefined}
-          >
-            <legend className="mb-2 text-label text-fg">{t('deliveryMethod')}</legend>
-            {!values.regionCode ? (
-              <Notice tone="neutral" compact>
-                {t('chooseRegionFirst')}
-              </Notice>
-            ) : methods.length === 0 ? (
-              <Notice tone="warning" compact>
-                {t('noMethodsForRegion')}
-              </Notice>
-            ) : (
-              <div className="space-y-2.5">
-                {methods.map((candidate) => (
-                  <ChoiceCard
-                    key={candidate.code}
-                    name="deliveryMethod"
-                    value={candidate.code}
-                    checked={values.methodCode === candidate.code}
-                    onChange={(code) => set('methodCode', code)}
-                    invalid={Boolean(errors['delivery.methodCode'])}
-                    title={candidate.name}
-                    aside={
-                      Number(candidate.price) === 0
-                        ? t('free')
-                        : formatMoney(candidate.price, locale, currency)
-                    }
-                    description={
-                      <>
-                        {[candidate.estimate, candidate.description].filter(Boolean).join(' · ')}
-                        {candidate.freeFromAmount ? (
-                          <span className="block text-success">
-                            {t('freeFrom', {
-                              amount: formatMoney(candidate.freeFromAmount, locale, currency),
-                            })}
-                          </span>
-                        ) : null}
-                      </>
-                    }
-                  />
-                ))}
-              </div>
-            )}
-            {errors['delivery.methodCode'] ? (
-              <FieldError id="delivery-method-error">{error('delivery.methodCode')}</FieldError>
+            {user ? (
+              <CheckboxField
+                name="saveAddress"
+                checked={saveAddress}
+                onChange={(event) => setSaveAddress(event.target.checked)}
+                label={t('saveAddressToBook')}
+              />
             ) : null}
-            {quoteFailed ? (
-              <Notice tone="danger" role="alert" compact className="mt-3">
-                {t('quoteError')}{' '}
-                <button
-                  type="button"
-                  onClick={() => setQuoteNonce((nonce) => nonce + 1)}
-                  className="font-semibold underline underline-offset-2"
-                >
-                  {tc('retry')}
-                </button>
-              </Notice>
-            ) : null}
-          </fieldset>
-        </Section>
 
-        <Section step={3} title={t('paymentSection')}>
+            <fieldset
+              aria-describedby={errors['delivery.methodCode'] ? 'delivery-method-error' : undefined}
+            >
+              <legend className="mb-2 text-label text-fg">{t('deliveryMethod')}</legend>
+              {!values.regionCode ? (
+                <Notice tone="neutral" compact>
+                  {t('chooseRegionFirst')}
+                </Notice>
+              ) : methods.length === 0 ? (
+                <Notice tone="warning" compact>
+                  {t('noMethodsForRegion')}
+                </Notice>
+              ) : (
+                <div className="space-y-2.5">
+                  {methods.map((candidate) => (
+                    <ChoiceCard
+                      key={candidate.code}
+                      name="deliveryMethod"
+                      value={candidate.code}
+                      checked={values.methodCode === candidate.code}
+                      onChange={(code) => set('methodCode', code)}
+                      invalid={Boolean(errors['delivery.methodCode'])}
+                      title={candidate.name}
+                      aside={
+                        Number(candidate.price) === 0
+                          ? t('free')
+                          : formatMoney(candidate.price, locale, currency)
+                      }
+                      description={
+                        <>
+                          {[candidate.estimate, candidate.description].filter(Boolean).join(' · ')}
+                          {candidate.freeFromAmount ? (
+                            <span className="block text-success">
+                              {t('freeFrom', {
+                                amount: formatMoney(candidate.freeFromAmount, locale, currency),
+                              })}
+                            </span>
+                          ) : null}
+                        </>
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+              {errors['delivery.methodCode'] ? (
+                <FieldError id="delivery-method-error">{error('delivery.methodCode')}</FieldError>
+              ) : null}
+              {quoteFailed ? (
+                <Notice tone="danger" role="alert" compact className="mt-3">
+                  {t('quoteError')}{' '}
+                  <button
+                    type="button"
+                    onClick={() => setQuoteNonce((nonce) => nonce + 1)}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    {tc('retry')}
+                  </button>
+                </Notice>
+              ) : null}
+            </fieldset>
+          </Section>
+        ) : null}
+        <Section step={deliveryEnabled ? 3 : 2} title={t('paymentSection')}>
           <fieldset aria-describedby={errors.paymentMethod ? 'payment-method-error' : undefined}>
             <legend className="sr-only">{t('paymentSection')}</legend>
             <div className="space-y-2.5">
@@ -632,7 +642,7 @@ export function CheckoutForm({
           </fieldset>
         </Section>
 
-        <Section step={4} title={t('noteSection')}>
+        <Section step={deliveryEnabled ? 4 : 3} title={t('noteSection')}>
           <TextAreaField
             label={t('note')}
             name="note"
@@ -694,8 +704,8 @@ export function CheckoutForm({
             {submitting ? null : <Lock aria-hidden className="h-4 w-4" />}
             {submitting
               ? t('placing')
-              : currentQuote
-                ? `${submitLabel} · ${formatMoney(currentQuote.total, locale, currency)}`
+              : reviewedTotal
+                ? `${submitLabel} · ${formatMoney(reviewedTotal, locale, currency)}`
                 : submitLabel}
           </Button>
         </div>
@@ -709,7 +719,12 @@ export function CheckoutForm({
           {t('summary')}
         </h2>
         <div className="mt-4">
-          <OrderSummary cart={cart} quote={currentQuote} quoteLoading={quoteLoading} />
+          <OrderSummary
+            cart={cart}
+            quote={currentQuote}
+            quoteLoading={quoteLoading}
+            deliveryEnabled={deliveryEnabled}
+          />
         </div>
       </aside>
     </div>

@@ -52,6 +52,7 @@ describe('toProductSummary', () => {
     id: '0192f7a0-0000-7000-8000-0000000000aa',
     slug: 'classic-green-tea',
     status: 'ACTIVE',
+    saleMode: 'CATEGORY',
     categoryId: 'c',
     productTypeId: null,
     format: 'LOOSE_LEAF',

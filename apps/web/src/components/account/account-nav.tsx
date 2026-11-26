@@ -3,13 +3,14 @@
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
+import { showDelivery } from '@/lib/site';
 import { cn } from '@/lib/cn';
 
 const SECTIONS = [
   ['/account', 'overview'],
   ['/account/orders', 'orders'],
   ['/account/purchases', 'purchases'],
-  ['/account/addresses', 'addresses'],
+  ...(showDelivery ? [['/account/addresses', 'addresses'] as const] : []),
   ['/account/profile', 'profile'],
   ['/account/security', 'security'],
 ] as const;

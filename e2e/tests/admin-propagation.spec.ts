@@ -98,6 +98,60 @@ async function storefront(browser: Browser): Promise<Page> {
 }
 
 test.describe('admin changes reach the storefront', () => {
+  test('staff can sell a non-tea product online and return it to enquiry ordering', async ({
+    page,
+    browser,
+  }) => {
+    await signInAsAdmin(page);
+    const id = Date.now().toString(36);
+    const category = await ownCategory(page, id);
+    const slug = 'e2e-cup-' + id;
+    const productId = await publishProduct(
+      page.request,
+      product(slug, category.id, { format: 'ACCESSORY' }),
+    );
+    const store = await storefront(browser);
+    const path = '/en/products/' + slug;
+    const main = store.getByRole('main');
+    const add = main.getByRole('button', { name: /^Add to bag · / }).first();
+    const contact = main.getByRole('link', { name: /Contact us about/ }).first();
+    try {
+      await store.goto(path);
+      await expect(contact).toBeVisible();
+      await page.goto('/en/admin/products/' + productId);
+      const mode = field(page, 'How customers order');
+      await expect(mode).toHaveValue('CATEGORY');
+      const applyMode = async (value: string) => {
+        await mode.selectOption(value);
+        const saved = page.waitForResponse(
+          (r) => r.url().includes('/admin/products/' + productId) && r.request().method() === 'PUT',
+        );
+        await visible(page.getByRole('button', { name: 'Save', exact: true })).click();
+        expect((await saved).ok()).toBe(true);
+      };
+      await applyMode('ONLINE');
+      await eventually(store, path, () => expect(add).toBeVisible({ timeout: 1000 }));
+      expect(
+        (await store.locator('script[type="application/ld+json"]').allTextContents()).join(' '),
+      ).toContain('"offers"');
+      await add.click();
+      const bag = store.getByRole('dialog', { name: /bag/i });
+      await expect(bag.getByText('Sinov choyi ' + slug)).toBeVisible();
+      await bag.getByRole('link', { name: 'Checkout' }).click();
+      await expect(store).toHaveURL(/account\/login\?next=(?:%2F|\/)checkout/i);
+
+      await applyMode('CONTACT');
+      await eventually(store, path, () => expect(contact).toBeVisible({ timeout: 1000 }));
+      await expect(add).toHaveCount(0);
+      expect(
+        (await store.locator('script[type="application/ld+json"]').allTextContents()).join(' '),
+      ).not.toContain('"offers"');
+    } finally {
+      await category.retire();
+      await store.context().close();
+    }
+  });
+
   test('store details: the announcement bar, the contact page and the footer', async ({
     page,
     browser,

@@ -5,7 +5,7 @@ import { expect, type Page } from '@playwright/test';
 export async function registerAtCheckout(page: Page) {
   await expect(page).toHaveURL(/\/en\/account\/login\?next=(?:%2F|\/)checkout/i);
   const main = page.getByRole('main');
-  await expect(main.getByText('Your tea stays in your bag.', { exact: false })).toBeVisible();
+  await expect(main.getByText('Your items stay in your bag.', { exact: false })).toBeVisible();
   await main.getByRole('link', { name: 'Create account', exact: true }).click();
   const fields = main
     .locator('form')

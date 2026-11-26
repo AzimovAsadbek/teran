@@ -13,6 +13,7 @@ import { BRAND, BRAND_VALUES, brandCopy, brandValueLabels } from '@/content/bran
 import { Link } from '@/i18n/navigation';
 import { emailLinks, phoneLinks, socialLinks } from '@/lib/contact';
 import { getPublicSettings } from '@/lib/data/content';
+import { showDelivery } from '@/lib/site';
 import { FooterColumn } from './footer-column';
 import { FooterNavSwitch } from './footer-nav';
 import { LanguageSwitcherSlot } from './language-switcher';
@@ -127,7 +128,7 @@ async function FooterColumns() {
         <Item href="/contact">{tn('contact')}</Item>
         <Item href="/stores">{tn('stores')}</Item>
         <Item href="/faq">{tn('faq')}</Item>
-        <Item href="/delivery">{tn('delivery')}</Item>
+        {showDelivery && <Item href="/delivery">{tn('delivery')}</Item>}
         <Item href="/returns">{tn('returns')}</Item>
         <Item href="/accessibility">{tn('accessibility')}</Item>
         <Suspense fallback={null}>
@@ -146,7 +147,7 @@ async function FooterColumns() {
         <Item href="/about">{t('experience')}</Item>
       </FooterColumn>
       <FooterColumn title={t('contactUs')} headingClassName={HEADING} className={contact}>
-        <Item href="/delivery">{tn('delivery')}</Item>
+        {showDelivery && <Item href="/delivery">{tn('delivery')}</Item>}
         <Item href="/contact">{tn('contact')}</Item>
       </FooterColumn>
     </>

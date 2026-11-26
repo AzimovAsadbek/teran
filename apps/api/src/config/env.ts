@@ -104,6 +104,7 @@ const envObjectSchema = z.object({
    * ordered from by calling the API directly. Turn it on together with the storefront's prices.
    */
   CHECKOUT_ENABLED: flag.default(false),
+  CHECKOUT_DELIVERY_ENABLED: flag.default(false),
   ALLOW_DEMO_PAYMENTS: flag.default(false),
   /** Minutes an online payment may stay unpaid before the order is cancelled and stock returned. */
   ONLINE_PAYMENT_WINDOW_MINUTES: z.coerce

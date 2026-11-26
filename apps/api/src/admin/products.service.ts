@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   buildPaginated,
@@ -35,6 +35,7 @@ import {
 } from '../catalog/product-attributes.js';
 import { refreshMinPrice } from '../catalog/product-pricing.js';
 import { productSearchText } from '../catalog/product-search.js';
+import { onlineProductWhere } from '../catalog/product-visibility.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { toMoney, toMoneyOrNull } from '../common/money.js';
 import type { Env } from '../config/env.js';
@@ -47,6 +48,8 @@ import {
   storeImage,
 } from '../media/image-processing.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PaymentConfig } from '../payments/payment-config.js';
+import { CLICK_PACKAGE_CODE_MAX } from '../payments/fiscal.js';
 import { RevalidationService } from '../revalidation/revalidation.service.js';
 import { TelegramService } from '../telegram/telegram.service.js';
 import { assertPublishable, productReadiness } from './readiness.js';
@@ -107,15 +110,18 @@ type DetailRow = Prisma.ProductGetPayload<{ include: typeof detailInclude }>;
 @Injectable()
 export class AdminProductsService {
   private readonly images: ImageStore;
+  private readonly checkoutEnabled: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly revalidation: RevalidationService,
     private readonly telegram: TelegramService,
+    private readonly payments: PaymentConfig,
     config: ConfigService<Env, true>,
   ) {
     this.images = configuredImageStore(config);
+    this.checkoutEnabled = config.get('CHECKOUT_ENABLED', { infer: true });
   }
 
   async list(query: ListQuery): Promise<Paginated<AdminProductListItem>> {
@@ -249,7 +255,11 @@ export class AdminProductsService {
           action: 'product.create',
           entityType: 'Product',
           entityId: product.id,
-          metadata: { slug: input.slug, status: input.status },
+          metadata: {
+            slug: input.slug,
+            status: input.status,
+            saleMode: input.saleMode ?? 'CATEGORY',
+          },
           ipAddress: actor.ipAddress,
         },
         tx,
@@ -274,6 +284,7 @@ export class AdminProductsService {
           slug: true,
           status: true,
           publishedAt: true,
+          saleMode: true,
           productTypeId: true,
           variants: { select: { id: true } },
         },
@@ -355,6 +366,7 @@ export class AdminProductsService {
         });
       }
 
+      if (input.status === 'ACTIVE') await this.checkFiscalVariants(tx, id);
       await refreshMinPrice(tx, id);
       await this.audit.record(
         {
@@ -366,6 +378,9 @@ export class AdminProductsService {
             slug: input.slug,
             status: input.status,
             ...(existing.status !== input.status ? { previousStatus: existing.status } : {}),
+            ...(input.saleMode && input.saleMode !== existing.saleMode
+              ? { previousSaleMode: existing.saleMode, saleMode: input.saleMode }
+              : {}),
             ...(existing.slug !== input.slug ? { previousSlug: existing.slug } : {}),
             ...(existing.productTypeId !== input.productTypeId
               ? { productTypeId: input.productTypeId }
@@ -380,6 +395,34 @@ export class AdminProductsService {
     this.revalidation.notify('catalog');
     await this.announce(id, input, actor);
     return this.get(id);
+  }
+
+  private async checkFiscalVariants(tx: Prisma.TransactionClient, productId: string) {
+    if (!this.checkoutEnabled) return;
+    const click = this.payments.itemizedClick && this.payments.providerFor('CLICK') === 'CLICK';
+    const payme = this.payments.itemizedPayme && this.payments.providerFor('PAYME') === 'PAYME';
+    if (!click && !payme) return;
+    const variants = await tx.productVariant.findMany({
+      where: { productId, isActive: true, product: onlineProductWhere },
+      select: { sku: true, fiscalMxik: true, fiscalPackageCode: true, fiscalVatPercent: true },
+      orderBy: { position: 'asc' },
+    });
+    for (const variant of variants) {
+      let reason: string;
+      if (!variant.fiscalMxik || !variant.fiscalPackageCode || variant.fiscalVatPercent === null) {
+        reason = 'missing_fiscal_fields';
+      } else if (click && variant.fiscalPackageCode.length > CLICK_PACKAGE_CODE_MAX) {
+        reason = 'click_package_length';
+      } else {
+        continue;
+      }
+      throw new ApiException(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'FISCAL_DATA_MISSING',
+        'Check the receipt fields for this variant',
+        { details: { sku: variant.sku, reason } },
+      );
+    }
   }
 
   /** After a committed save: an active product with its announcement on gets its Telegram post. */
@@ -772,6 +815,7 @@ export class AdminProductsService {
       categoryId: input.categoryId,
       productTypeId: input.productTypeId,
       format: input.format,
+      ...(input.saleMode !== undefined && { saleMode: input.saleMode }),
       isFeatured: input.isFeatured,
       caffeineLevel: input.caffeineLevel,
       brewTempCelsius: input.brewTempCelsius,
@@ -864,6 +908,7 @@ export class AdminProductsService {
       attributes: toAttributeInputs(row.attributeValues),
       categoryId: row.categoryId,
       format: row.format,
+      saleMode: row.saleMode,
       isFeatured: row.isFeatured,
       caffeineLevel: row.caffeineLevel,
       brewTempCelsius: row.brewTempCelsius,

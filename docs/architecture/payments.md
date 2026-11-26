@@ -1,9 +1,9 @@
 # Payments
 
-How TERAN takes payment for an order: cash on delivery, Click, Payme and (later) bank cards.
+The local storefront is configured for product-only orders through CLICK and Payme. With delivery paused, checkout uses the product subtotal for both the payment and the fiscal receipt, and stores no delivery method or address. Historical orders retain their original totals and fulfilment steps.
 Everything here is implemented in `apps/api/src/payments` and verified by
-`apps/api/test/payments-demo.int-spec.ts`, `apps/api/test/payments-providers.int-spec.ts` and
-the unit tests next to the code. Setting up the real providers is described in
+`apps/api/test/payments-demo.int-spec.ts`, `apps/api/test/payments-providers.int-spec.ts`,
+`apps/api/test/checkout-order-only.int-spec.ts` and the unit tests next to the code. Setting up the real providers is described in
 [../deployment/payment-provider-setup.md](../deployment/payment-provider-setup.md).
 
 > **Status (2026-11-24).** All 39 Payme sandbox checks passed against TERAN's
@@ -15,6 +15,8 @@ the unit tests next to the code. Setting up the real providers is described in
 > showed the service as inactive. No live charge was made. See “Before going live”.
 
 On 2026-11-26 the local open storefront passed checkout with both provider protocols using fixture credentials. The browser returned before confirmation, then displayed the settled order automatically. Payme sale and refund receipts, CLICK fiscal submission and QR recovery after a lost response were verified in the local test database. These checks use simulated provider callbacks and do not move funds.
+
+The store inherits online sales from the Tea category. Staff can override the sale mode for one product. Each active pack of a published online product needs its receipt fields when an enabled live provider accepts itemized receipts. A mixed basket keeps each pack’s purchased price, quantity, MXIK, package code and VAT, even if staff subsequently edit the product.
 
 ## Principles
 
@@ -38,7 +40,7 @@ On 2026-11-26 the local open storefront passed checkout with both provider proto
 
 | Method (`PaymentMethod`) | Live provider | Live availability                                                        | Demo mode          |
 | ------------------------ | ------------- | ------------------------------------------------------------------------ | ------------------ |
-| `CASH_ON_DELIVERY`       | `CASH`        | always (staff record the cash)                                           | unchanged (`CASH`) |
+| `CASH_ON_DELIVERY`       | `CASH`        | when delivery is enabled (staff record the cash)                         | unchanged (`CASH`) |
 | `CLICK`                  | `CLICK`       | when `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY` are set | `DEMO`             |
 | `PAYME`                  | `PAYME`       | when `PAYME_MERCHANT_ID` and `PAYME_KEY` are set                         | `DEMO`             |
 | `CARD` (Visa)            | none yet      | **never** — no card gateway is integrated                                | `DEMO`             |

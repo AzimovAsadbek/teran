@@ -21,7 +21,7 @@ function variant(item: VariantDto): VariantDto {
 }
 
 export function summaryPrices<T extends ProductSummaryDto>(product: T): T {
-  if (sellsOnline(product.category.path)) return product;
+  if (sellsOnline(product)) return product;
   return {
     ...product,
     onSale: false,
@@ -32,7 +32,7 @@ export function summaryPrices<T extends ProductSummaryDto>(product: T): T {
 }
 
 export function detailPrices(product: ProductDetailDto): ProductDetailDto {
-  if (sellsOnline(product.category.path)) return product;
+  if (sellsOnline(product)) return product;
   return { ...summaryPrices(product), variants: product.variants.map(variant) };
 }
 

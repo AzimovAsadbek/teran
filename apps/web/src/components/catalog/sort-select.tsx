@@ -12,11 +12,11 @@ import { SORT_SELECT } from './filter-styles';
 export function SortSelect({
   value,
   query,
-  hasPricedTea,
+  hasPricedProducts,
 }: {
   value: ProductSort;
   query: string;
-  hasPricedTea: boolean;
+  hasPricedProducts: boolean;
 }) {
   const t = useTranslations('Catalog');
   const id = useId();
@@ -48,7 +48,7 @@ export function SortSelect({
           }}
           className={SORT_SELECT}
         >
-          {visibleSorts(hasPricedTea).map((sort) => (
+          {visibleSorts(hasPricedProducts).map((sort) => (
             <option key={sort} value={sort}>
               {t(`sortOptions.${sort}`)}
             </option>

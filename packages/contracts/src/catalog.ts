@@ -268,6 +268,7 @@ export const ratingSummarySchema = z.object({
 export type RatingSummaryDto = z.infer<typeof ratingSummarySchema>;
 
 export const productSummarySchema = z.object({
+  onlineOrderable: z.boolean().optional(),
   id: z.uuid(),
   slug: z.string(),
   name: z.string(),

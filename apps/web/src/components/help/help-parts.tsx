@@ -7,14 +7,14 @@ import { Blocks } from '@/components/content/long-form';
 import type { Block } from '@/content/types';
 import { helpCentre, type HelpArticle, type HelpCategory } from '@/content/pages/faq';
 import { getPathname, Link } from '@/i18n/navigation';
-import { showPrices } from '@/lib/site';
+import { showDelivery, showPrices } from '@/lib/site';
 import type { HelpSearchLabels } from './help-search';
 import type { HelpSearchEntry } from './match';
 import type { HelpNavCategory } from './help-shell';
 
 /** The help centre in the reader's language (the answers as they apply now: see faqFor). */
 export function helpCategories(locale: Locale): readonly HelpCategory[] {
-  return helpCentre(locale, !showPrices);
+  return helpCentre(locale, !showPrices, showDelivery);
 }
 
 export const categoryHref = (id: string) => `/faq/${id}`;

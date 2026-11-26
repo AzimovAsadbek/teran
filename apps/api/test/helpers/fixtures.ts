@@ -1,4 +1,4 @@
-import { LOCALES, buildSearchText, type UserRole } from '@teran/contracts';
+import { LOCALES, buildSearchText, type ProductSaleMode, type UserRole } from '@teran/contracts';
 import { Prisma } from '../../src/generated/prisma/client.js';
 import { hashPassword } from '../../src/auth/password.js';
 import { refreshMinPrice } from '../../src/catalog/product-pricing.js';
@@ -30,6 +30,7 @@ export async function createCategory(prisma: PrismaService, slug = unique('cat')
 
 export interface ProductFixtureOptions {
   categoryId: string;
+  saleMode?: ProductSaleMode;
   slug?: string;
   name?: string;
   status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
@@ -51,6 +52,7 @@ export async function createProduct(prisma: PrismaService, options: ProductFixtu
       slug,
       status: options.status ?? 'ACTIVE',
       categoryId: options.categoryId,
+      saleMode: options.saleMode,
       publishedAt:
         options.publishedAt === undefined ? new Date(Date.now() - 60_000) : options.publishedAt,
       translations: {

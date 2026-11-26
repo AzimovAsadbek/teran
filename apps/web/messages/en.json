@@ -579,7 +579,7 @@
     "landmark": "Landmark",
     "landmarkHint": "For example: next to the school, entrance 2.",
     "note": "Order note",
-    "notePlaceholder": "Extra information for the courier",
+    "notePlaceholder": "Anything else we should know about your order",
     "deliveryMethod": "Delivery method",
     "chooseRegionFirst": "Choose a region first.",
     "noMethodsForRegion": "Delivery to this region is not set up yet. Please contact us.",
@@ -612,7 +612,7 @@
     "loadError": "The data could not be loaded. Please refresh the page.",
     "thankYou": "Thank you! Your order has been received",
     "orderNumber": "Order number",
-    "orderPlacedText": "We will contact you shortly to confirm delivery.",
+    "orderPlacedText": "Your order has been received. You can follow its status here.",
     "saveLinkHint": "Keep the link to this page — you can follow your order status here.",
     "statusTitle": "Order status",
     "orderDetails": "Order details",
@@ -625,7 +625,7 @@
       "CONFIRMED": "Confirmed",
       "PROCESSING": "Being prepared",
       "SHIPPED": "On its way",
-      "DELIVERED": "Delivered",
+      "DELIVERED": "Completed",
       "CANCELLED": "Cancelled"
     },
     "paymentStatuses": {
@@ -752,8 +752,8 @@
     "resetUnavailable": "Password reset is not available yet. Please contact us.",
     "noAccount": "No account yet?",
     "haveAccount": "Already have an account?",
-    "checkoutLoginNote": "Your tea stays in your bag. Sign in or create an account to continue to checkout.",
-    "guestNote": "Track your orders and manage your delivery addresses in your account.",
+    "checkoutLoginNote": "Your items stay in your bag. Sign in or create an account to continue to checkout.",
+    "guestNote": "Sign in to follow your orders.",
     "welcome": "Welcome, {name}!",
     "orders": "My orders",
     "noOrders": "No orders yet.",
@@ -1129,6 +1129,11 @@
         "PROCESSING": "The order moves to “Being prepared”. The customer sees this on their order page.",
         "SHIPPED": "Mark it only once the order has been handed to the courier or sent.",
         "DELIVERED": "Mark it once the customer has received the order. Record a cash payment separately."
+      },
+      "completeOrder": {
+        "transitions": "Complete order",
+        "transitionTitles": "Complete this order?",
+        "transitionTexts": "Complete the order once the customer has received the items."
       }
     },
     "products": {
@@ -1199,6 +1204,15 @@
       "nameHint": "This is the name shoppers see.",
       "statusHint": "Draft is visible to staff only. Active shows it in the store. Archived hides it and keeps its data.",
       "chooseCategory": "Choose a category",
+      "saleMode": "How customers order",
+      "fiscalRequired": "Enter the MXIK, package code and VAT rate for {sku}.",
+      "fiscalPackageTooLong": "Use a CLICK package code of up to 20 digits for {sku}.",
+      "saleModeHint": "By default, only tea is sold online. For online sales, enter the price, MXIK, package code and VAT rate for each variant.",
+      "saleModes": {
+        "CATEGORY": "Use category default",
+        "ONLINE": "Show price and accept online payments",
+        "CONTACT": "Order by enquiry"
+      },
       "extra": "More details",
       "extraHint": "Optional: caffeine, collections and texts for search engines.",
       "seoHint": "Shown in Google results. When empty, the name and short description are used.",
@@ -1862,7 +1876,7 @@
       "CONFIRMED": "Confirmed",
       "PROCESSING": "Being packed",
       "SHIPPED": "On its way",
-      "DELIVERED": "Delivered",
+      "DELIVERED": "Completed",
       "CANCELLED": "Cancelled"
     },
     "illustrations": {
@@ -2117,7 +2131,7 @@
     "open": "Chat with us",
     "title": "TERAN chat",
     "close": "Close",
-    "greeting": "Hello! To learn about delivery, ordering or working together, pick a topic below or write to us directly.",
+    "greeting": "Hello! Choose a topic or write to us about your order or working together.",
     "shipping": "Delivery",
     "shippingMore": "More about delivery",
     "ordering": "Place an order",
@@ -2133,7 +2147,7 @@
     "privacy": "Privacy policy",
     "you": "You",
     "advisor": "TERAN",
-    "greetingAi": "Hello! I’m TERAN’s assistant. Ask about our teas, ordering, delivery or working together — I’ll show you the right products too.",
+    "greetingAi": "Hello! I’m TERAN’s assistant. Ask me about choosing tea, placing an order or working together.",
     "choose": "Choose a tea",
     "prompts": {
       "choose": "Help me choose a tea",

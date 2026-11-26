@@ -579,7 +579,7 @@
     "landmark": "Moʻljal",
     "landmarkHint": "Masalan: maktab yonida, 2-podyezd.",
     "note": "Buyurtmaga izoh",
-    "notePlaceholder": "Kuryer uchun qoʻshimcha maʼlumot",
+    "notePlaceholder": "Buyurtmangiz bo‘yicha qo‘shimcha ma’lumot",
     "deliveryMethod": "Yetkazib berish usuli",
     "chooseRegionFirst": "Avval hududni tanlang.",
     "noMethodsForRegion": "Bu hudud uchun yetkazib berish usuli hozircha sozlanmagan. Biz bilan bogʻlaning.",
@@ -612,7 +612,7 @@
     "loadError": "Maʼlumotlarni yuklab boʻlmadi. Sahifani yangilang.",
     "thankYou": "Rahmat! Buyurtmangiz qabul qilindi",
     "orderNumber": "Buyurtma raqami",
-    "orderPlacedText": "Yetkazib berishni tasdiqlash uchun tez orada siz bilan bogʻlanamiz.",
+    "orderPlacedText": "Buyurtmangiz qabul qilindi. Holatini shu sahifada kuzating.",
     "saveLinkHint": "Ushbu sahifa havolasini saqlab qoʻying — u orqali buyurtma holatini kuzatishingiz mumkin.",
     "statusTitle": "Buyurtma holati",
     "orderDetails": "Buyurtma tafsilotlari",
@@ -625,7 +625,7 @@
       "CONFIRMED": "Tasdiqlandi",
       "PROCESSING": "Tayyorlanmoqda",
       "SHIPPED": "Yoʻlda",
-      "DELIVERED": "Yetkazildi",
+      "DELIVERED": "Yakunlangan",
       "CANCELLED": "Bekor qilindi"
     },
     "paymentStatuses": {
@@ -752,8 +752,8 @@
     "resetUnavailable": "Parolni tiklash hozircha mavjud emas. Iltimos, biz bilan bogʻlaning.",
     "noAccount": "Hisobingiz yoʻqmi?",
     "haveAccount": "Hisobingiz bormi?",
-    "checkoutLoginNote": "Choyingiz savatda saqlanadi. Buyurtmani davom ettirish uchun hisobingizga kiring yoki yangi hisob oching.",
-    "guestNote": "Buyurtmalaringizni va yetkazish manzillaringizni hisobingizda boshqaring.",
+    "checkoutLoginNote": "Tanlagan mahsulotlaringiz savatda saqlanadi. Buyurtmani davom ettirish uchun hisobingizga kiring yoki yangi hisob oching.",
+    "guestNote": "Buyurtmalaringizni hisobingizda kuzating.",
     "welcome": "Xush kelibsiz, {name}!",
     "orders": "Buyurtmalarim",
     "noOrders": "Hozircha buyurtmalar yoʻq.",
@@ -1129,6 +1129,11 @@
         "PROCESSING": "Buyurtma «Tayyorlanmoqda» holatiga oʻtadi. Xaridor buni oʻz sahifasida koʻradi.",
         "SHIPPED": "Faqat buyurtma kuryerga topshirilgandan yoki joʻnatilgandan keyin belgilang.",
         "DELIVERED": "Xaridor buyurtmani qoʻlga olgandan keyin belgilang. Naqd toʻlovni alohida qayd eting."
+      },
+      "completeOrder": {
+        "transitions": "Buyurtmani yakunlash",
+        "transitionTitles": "Buyurtma yakunlandimi?",
+        "transitionTexts": "Xaridor mahsulotlarni olganidan keyin buyurtmani yakunlang."
       }
     },
     "products": {
@@ -1199,6 +1204,15 @@
       "nameHint": "Doʻkonda mahsulot shu nom bilan koʻrinadi.",
       "statusHint": "Qoralama — faqat xodimlarga koʻrinadi. Sotuvda — doʻkonda chiqadi. Arxivda — doʻkondan olinadi, maʼlumotlari saqlanadi.",
       "chooseCategory": "Turkumni tanlang",
+      "saleMode": "Buyurtma olish usuli",
+      "fiscalRequired": "{sku} uchun MXIK, qadoq kodi va QQS stavkasini kiriting.",
+      "fiscalPackageTooLong": "{sku} uchun CLICK qadoq kodi 20 raqamgacha bo‘lishi kerak.",
+      "saleModeHint": "Turkum bo‘yicha faqat choylar onlayn sotiladi. Onlayn sotuv uchun har bir variantning narxi, MXIK, qadoq kodi va QQS stavkasini kiriting.",
+      "saleModes": {
+        "CATEGORY": "Turkum bo‘yicha",
+        "ONLINE": "Saytda narx va onlayn to‘lov",
+        "CONTACT": "Aloqa orqali buyurtma"
+      },
       "extra": "Qoʻshimcha",
       "extraHint": "Toʻldirish shart emas: kofein, kolleksiyalar, qidiruv tizimlari uchun matnlar.",
       "seoHint": "Google natijalarida koʻrinadi. Boʻsh qolsa, nom va qisqa tavsif ishlatiladi.",
@@ -1862,7 +1876,7 @@
       "CONFIRMED": "Tasdiqlangan",
       "PROCESSING": "Yigʻilmoqda",
       "SHIPPED": "Yoʻlda",
-      "DELIVERED": "Yetkazilgan",
+      "DELIVERED": "Yakunlangan",
       "CANCELLED": "Bekor qilingan"
     },
     "illustrations": {
@@ -2117,7 +2131,7 @@
     "open": "Biz bilan suhbat",
     "title": "TERAN bilan suhbat",
     "close": "Yopish",
-    "greeting": "Assalomu alaykum! Yetkazib berish, buyurtma yoki hamkorlik haqida bilmoqchi boʻlsangiz, quyidan tanlang yoki bizga toʻgʻridan-toʻgʻri yozing.",
+    "greeting": "Salom! Buyurtma yoki hamkorlik haqida savolingiz bo‘lsa, mavzuni tanlang yoki bizga yozing.",
     "shipping": "Yetkazib berish",
     "shippingMore": "Yetkazib berish haqida batafsil",
     "ordering": "Buyurtma berish",
@@ -2133,7 +2147,7 @@
     "privacy": "Maxfiylik siyosati",
     "you": "Siz",
     "advisor": "TERAN",
-    "greetingAi": "Assalomu alaykum! Men TERAN yordamchisiman. Choylar, buyurtma, yetkazib berish yoki hamkorlik haqida soʻrang — mos mahsulotlarni ham koʻrsataman.",
+    "greetingAi": "Salom! Men TERAN yordamchisiman. Choy tanlash, buyurtma yoki hamkorlik haqida so‘rashingiz mumkin.",
     "choose": "Choy tanlash",
     "prompts": {
       "choose": "Menga choy tanlashga yordam bering",

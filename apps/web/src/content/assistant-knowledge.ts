@@ -48,7 +48,7 @@ function steps(list: readonly { title: string; text: string }[]): string {
  * The texts in one language. `byContact`: the store shows no prices and takes orders by phone and
  * messages (lib/site `showPrices` off), so ordering, payment and delivery read as they do then.
  */
-export function siteKnowledge(locale: Locale, byContact: boolean): string {
+export function siteKnowledge(locale: Locale, byContact: boolean, deliveryEnabled = true): string {
   const brand = brandCopy[locale];
   const values = brandValueLabels[locale];
   const delivery = deliveryPage[locale];
@@ -69,13 +69,15 @@ export function siteKnowledge(locale: Locale, byContact: boolean): string {
       `${BRAND_VALUES.map((value) => values[value]).join(' · ')}\n${PACKAGING.tagline} ${PACKAGING.slogan.join(' · ')}`,
     ].join('\n\n'),
     longForm(aboutPage[locale]),
-    [
-      `## ${ordering.title}`,
-      ordering.intro,
-      steps(ordering.steps),
-      ordering.notes.map((note) => `• ${note}`).join('\n'),
-    ].join('\n\n'),
-    faqFor(locale, byContact).map(questions).join('\n\n'),
+    deliveryEnabled
+      ? [
+          `## ${ordering.title}`,
+          ordering.intro,
+          steps(ordering.steps),
+          ordering.notes.map((note) => `• ${note}`).join('\n'),
+        ].join('\n\n')
+      : '',
+    faqFor(locale, byContact, deliveryEnabled).map(questions).join('\n\n'),
     longForm(returnsPolicy[locale]),
     [
       `## ${wholesale.title}`,

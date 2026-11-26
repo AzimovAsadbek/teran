@@ -1,3 +1,4 @@
+import { showDelivery } from './site';
 import type {
   ArticleSummaryDto,
   CategoryDto,
@@ -98,7 +99,7 @@ export const HELP_LINKS = [
   { href: '/contact', label: 'contact' },
   // The store finder: here (the "About" menu and the drawer) and in the footer.
   { href: '/stores', label: 'findStore' },
-  { href: '/delivery', label: 'delivery' },
+  ...(showDelivery ? [{ href: '/delivery', label: 'delivery' } as const] : []),
   { href: '/returns', label: 'returns' },
   { href: '/faq', label: 'faq' },
   { href: '/accessibility', label: 'accessibility' },

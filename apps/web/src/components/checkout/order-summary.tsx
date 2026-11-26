@@ -15,10 +15,12 @@ export function OrderSummary({
   cart,
   quote,
   quoteLoading,
+  deliveryEnabled,
 }: {
   cart: CartDto;
   quote: CheckoutQuoteDto | null;
   quoteLoading: boolean;
+  deliveryEnabled: boolean;
 }) {
   const t = useTranslations('Checkout');
   const tp = useTranslations('Product');
@@ -50,26 +52,30 @@ export function OrderSummary({
         ))}
       </ul>
       <dl className="mt-3 space-y-2 border-t border-line pt-4 text-body-sm">
-        <div className="flex justify-between gap-4">
-          <dt className="text-fg-muted">{t('subtotal')}</dt>
-          <dd>
-            <Price amount={quote?.subtotal ?? cart.subtotal} />
-          </dd>
-        </div>
-        <div className="flex justify-between gap-4">
-          <dt className="text-fg-muted">{t('delivery')}</dt>
-          <dd className="text-right">
-            {quote ? (
-              Number(quote.deliveryFee) === 0 ? (
-                <span className="font-semibold text-success">{t('free')}</span>
-              ) : (
-                <Price amount={quote.deliveryFee} />
-              )
-            ) : (
-              <span className="text-fg-subtle">{quoteLoading ? '…' : t('deliveryTbd')}</span>
-            )}
-          </dd>
-        </div>
+        {deliveryEnabled ? (
+          <>
+            <div className="flex justify-between gap-4">
+              <dt className="text-fg-muted">{t('subtotal')}</dt>
+              <dd>
+                <Price amount={quote?.subtotal ?? cart.subtotal} />
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-fg-muted">{t('delivery')}</dt>
+              <dd className="text-right">
+                {quote ? (
+                  Number(quote.deliveryFee) === 0 ? (
+                    <span className="font-semibold text-success">{t('free')}</span>
+                  ) : (
+                    <Price amount={quote.deliveryFee} />
+                  )
+                ) : (
+                  <span className="text-fg-subtle">{quoteLoading ? '…' : t('deliveryTbd')}</span>
+                )}
+              </dd>
+            </div>
+          </>
+        ) : null}
         {quote && Number(quote.discountTotal) > 0 ? (
           <div className="flex justify-between gap-4">
             <dt className="text-fg-muted">{t('discount')}</dt>
@@ -81,8 +87,8 @@ export function OrderSummary({
         <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
           <dt className="text-title text-fg">{t('total')}</dt>
           <dd aria-live="polite">
-            {quote ? (
-              <Price amount={quote.total} className="text-title-lg" />
+            {quote || !deliveryEnabled ? (
+              <Price amount={quote?.total ?? cart.subtotal} className="text-title-lg" />
             ) : (
               <span className="text-fg-subtle">—</span>
             )}

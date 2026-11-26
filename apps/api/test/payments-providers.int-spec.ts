@@ -1,6 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { checkoutOptionsSchema, orderSchema, placedOrderSchema } from '@teran/contracts';
+import {
+  checkoutOptionsSchema,
+  orderSchema,
+  placedOrderSchema,
+  type AdminProductDetail,
+} from '@teran/contracts';
 import { ClickFiscalService } from '../src/payments/providers/click-fiscal.service.js';
 import { PaymentsService } from '../src/payments/payments.service.js';
 import { createTestApp, signInShopper, type TestApp } from './helpers/app.js';
@@ -8,7 +13,9 @@ import {
   createCategory,
   createDeliveryMethod,
   createProduct,
+  createUser,
   resetDatabase,
+  TEST_PASSWORD,
 } from './helpers/fixtures.js';
 
 // Live mode with TEST-ONLY credentials: they exist only in this test process, never in any
@@ -88,12 +95,105 @@ describe('payment providers (live mode, simulated provider calls)', () => {
 
   const agent = () => request.agent(ctx.app.getHttpServer());
 
-  async function placeOrder(method: 'PAYME' | 'CLICK') {
+  it('requires complete fiscal details before staff publish a product for itemized online sales', async () => {
+    const category = await createCategory(ctx.prisma, 'teaware');
+    const product = await createProduct(ctx.prisma, { categoryId: category.id });
+    await ctx.prisma.productImage.create({
+      data: {
+        productId: product.id,
+        storageKey: 'test-cup-picture',
+        width: 320,
+        height: 320,
+        widths: [320],
+      },
+    });
+    const operator = await createUser(ctx.prisma, 'MANAGER');
+    const staff = agent();
+    await staff
+      .post(API + '/auth/login')
+      .send({ email: operator.email, password: TEST_PASSWORD })
+      .expect(200);
+    const path = API + '/admin/products/' + product.id;
+    const stored = (await staff.get(path).expect(200)).body as AdminProductDetail;
+    const enable = { ...stored, saleMode: 'ONLINE' };
+    const refused = await staff.put(path).send(enable).expect(422);
+    expect(refused.body).toMatchObject({
+      code: 'FISCAL_DATA_MISSING',
+      details: { sku: stored.variants[0]!.sku, reason: 'missing_fiscal_fields' },
+    });
+    expect((await staff.get(path)).body.saleMode).toBe('CATEGORY');
+    const fiscal = { mxik: '00000000000000003', packageCode: '0003', vatPercent: 0 };
+    const variant = { ...stored.variants[0]!, fiscal };
+    const tooLong = await staff
+      .put(path)
+      .send({
+        ...enable,
+        variants: [{ ...variant, fiscal: { ...fiscal, packageCode: '1'.repeat(21) } }],
+      })
+      .expect(422);
+    expect(tooLong.body.details.reason).toBe('click_package_length');
+    await staff
+      .put(path)
+      .send({ ...enable, variants: [variant] })
+      .expect(200);
+    expect(
+      (await agent().get(API + '/catalog/products/' + product.slug)).body.onlineOrderable,
+    ).toBe(true);
+    await staff
+      .put(path)
+      .send({ ...stored, saleMode: 'CONTACT' })
+      .expect(200);
+    expect(
+      (await agent().get(API + '/catalog/products/' + product.slug)).body.onlineOrderable,
+    ).toBe(false);
+  });
+
+  async function placeOrder(method: 'PAYME' | 'CLICK', secondVariantId?: string) {
     const browser = await signInShopper(ctx);
     await browser.post(`${API}/cart/items`).send({ variantId, quantity: 1 }).expect(201);
+    if (secondVariantId) {
+      await browser
+        .post(`${API}/cart/items`)
+        .send({ variantId: secondVariantId, quantity: 2 })
+        .expect(201);
+    }
     return placedOrderSchema.parse(
       (await browser.post(`${API}/checkout/orders`).send(checkoutBody(method)).expect(201)).body,
     );
+  }
+
+  async function placeMixedOrder(method: 'PAYME' | 'CLICK') {
+    const ceramics = await createCategory(ctx.prisma, 'ceramics');
+    const cup = await createProduct(ctx.prisma, {
+      categoryId: ceramics.id,
+      name: 'Cup',
+      saleMode: 'ONLINE',
+      variants: [{ price: '32000', stock: 6 }],
+    });
+    const id = cup.variants[0]!.id;
+    await ctx.prisma.productVariant.update({
+      where: { id },
+      data: {
+        weightGrams: null,
+        unitCount: 1,
+        fiscalMxik: '00000000000000003',
+        fiscalPackageCode: '0003',
+        fiscalVatPercent: 0,
+      },
+    });
+    const placed = await placeOrder(method, id);
+    expect(placed.order.total).toBe('149000.00');
+    // The receipt must still describe the actual sale after staff change the catalogue.
+    await ctx.prisma.product.update({
+      where: { id: cup.id },
+      data: {
+        saleMode: 'CONTACT',
+        variants: {
+          update: { where: { id }, data: { price: '90000', fiscalPackageCode: '0009' } },
+        },
+      },
+    });
+    return placed;
   }
 
   async function orderView(placed: { order: { number: string }; accessToken: string }) {
@@ -169,6 +269,37 @@ describe('payment providers (live mode, simulated provider calls)', () => {
     }
     const tiyin = (placed: { order: { total: string } }) =>
       Math.round(Number(placed.order.total) * 100);
+
+    it('returns the purchased price, quantity, MXIK and packaging for each product in a mixed order', async () => {
+      const placed = await placeMixedOrder('PAYME');
+      const checked = await rpc('CheckPerformTransaction', {
+        amount: tiyin(placed),
+        account: { order_id: placed.order.number },
+      });
+      expect(checked.result).toMatchObject({
+        allow: true,
+        detail: {
+          shipping: { price: 2500000 },
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              code: '00000000000000001',
+              package_code: '0001',
+              count: 1,
+              vat_percent: 12,
+              price: 6000000,
+            }),
+            expect.objectContaining({
+              code: '00000000000000003',
+              package_code: '0003',
+              count: 2,
+              vat_percent: 0,
+              price: 3200000,
+            }),
+          ]),
+        },
+      });
+      expect(checked.result?.detail).toHaveProperty('items.length', 2);
+    });
 
     it('sends the customer to Payme checkout with the order, amount in tiyin and return link', async () => {
       const placed = await placeOrder('PAYME');
@@ -605,9 +736,9 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       expect((await orderView(placed)).paymentStatus).toBe('PAID');
     });
 
-    it('submits one itemized CLICK receipt and recovers its QR after a lost response', async () => {
-      const placed = await placeOrder('CLICK');
-      const body = prepareBody(placed.order.number, '85000.00');
+    it('submits one mixed-product CLICK receipt and recovers its QR after a lost response', async () => {
+      const placed = await placeMixedOrder('CLICK');
+      const body = prepareBody(placed.order.number, placed.order.total);
       const prepare = await post('prepare', body);
       const complete = completeBody(body, prepare.merchant_prepare_id!);
       expect((await post('complete', complete)).error).toBe(0);
@@ -631,9 +762,9 @@ describe('payment providers (live mode, simulated provider calls)', () => {
         expect(payload).toMatchObject({
           service_id: 12345,
           payment_id: Number(body.click_trans_id),
-          received_card: 8500000,
-          items: [
-            {
+          received_card: 14900000,
+          items: expect.arrayContaining([
+            expect.objectContaining({
               SPIC: '00000000000000001',
               PackageCode: '0001',
               GoodPrice: 6000000,
@@ -642,16 +773,26 @@ describe('payment providers (live mode, simulated provider calls)', () => {
               VATPercent: 12,
               VAT: 642857,
               CommissionInfo: { TIN: '123456789' },
-            },
-            {
+            }),
+            expect.objectContaining({
+              SPIC: '00000000000000003',
+              PackageCode: '0003',
+              GoodPrice: 3200000,
+              Price: 6400000,
+              Amount: 2000,
+              VATPercent: 0,
+              VAT: 0,
+            }),
+            expect.objectContaining({
               SPIC: '00000000000000002',
               PackageCode: '0002',
               Price: 2500000,
               VATPercent: 0,
               VAT: 0,
-            },
-          ],
+            }),
+          ]),
         });
+        expect(payload.items).toHaveLength(3);
         const auth = new Headers(call[1]?.headers).get('Auth')!.split(':');
         expect(auth[1]).toBe(
           createHash('sha1')

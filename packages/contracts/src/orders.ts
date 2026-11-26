@@ -92,8 +92,17 @@ export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[
   CANCELLED: [],
 };
 
-export function canTransitionOrder(from: OrderStatus, to: OrderStatus): boolean {
-  return ORDER_STATUS_TRANSITIONS[from].includes(to);
+export function nextOrderStatuses(from: OrderStatus, hasDelivery = true): readonly OrderStatus[] {
+  if (!hasDelivery && from === 'PROCESSING') return ['DELIVERED', 'CANCELLED'];
+  return ORDER_STATUS_TRANSITIONS[from];
+}
+
+export function canTransitionOrder(
+  from: OrderStatus,
+  to: OrderStatus,
+  hasDelivery = true,
+): boolean {
+  return nextOrderStatuses(from, hasDelivery).includes(to);
 }
 
 // ─── Delivery methods ───────────────────────────────────────────────────────
@@ -126,6 +135,7 @@ export const paymentOptionSchema = z.object({
 export type PaymentOptionDto = z.infer<typeof paymentOptionSchema>;
 
 export const checkoutOptionsSchema = z.object({
+  deliveryEnabled: z.boolean().optional(),
   deliveryMethods: z.array(deliveryMethodSchema),
   /** Methods that can be chosen (live or demo). */
   paymentMethods: z.array(paymentMethodSchema),
@@ -157,7 +167,7 @@ export const checkoutSchema = z.object({
   idempotencyKey: z.uuid(),
   locale: localeSchema,
   customer: checkoutCustomerSchema,
-  delivery: checkoutDeliverySchema,
+  delivery: checkoutDeliverySchema.optional(),
   paymentMethod: paymentMethodSchema,
   note: optionalText(500),
   /** Total the customer reviewed. If the server total differs, the order is rejected with PRICE_CHANGED. */
@@ -171,8 +181,8 @@ export type CheckoutPayload = z.output<typeof checkoutSchema>;
 
 export const checkoutQuoteSchema = z.object({
   locale: localeSchema,
-  methodCode: z.string().trim().min(1).max(50),
-  regionCode: regionCodeSchema,
+  methodCode: z.string().trim().min(1).max(50).optional(),
+  regionCode: regionCodeSchema.optional(),
 });
 export type CheckoutQuoteInput = z.infer<typeof checkoutQuoteSchema>;
 
@@ -252,9 +262,9 @@ export const orderSchema = z.object({
   customerName: z.string(),
   customerPhone: z.string(),
   customerEmail: z.string().nullable(),
-  deliveryMethodName: z.string(),
-  regionCode: z.string(),
-  city: z.string(),
+  deliveryMethodName: z.string().nullable(),
+  regionCode: z.string().nullable(),
+  city: z.string().nullable(),
   addressLine: z.string().nullable(),
   landmark: z.string().nullable(),
   note: z.string().nullable(),

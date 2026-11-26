@@ -4,6 +4,8 @@ import { ApiException } from '../common/errors/api-exception.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { PaymentConfig } from './payment-config.js';
 
+export const CLICK_PACKAGE_CODE_MAX = 20;
+
 function unavailable(): never {
   throw new ApiException(
     HttpStatus.UNPROCESSABLE_ENTITY,
@@ -89,6 +91,7 @@ export async function fiscalPayload(
     };
   });
   const shipping = tiyin(order.deliveryFee);
+  if (shipping && !order.deliveryMethodName) unavailable();
   const total = items.reduce((sum, item) => sum + item.price * item.count, shipping);
   if (
     !items.length ||
@@ -100,7 +103,9 @@ export async function fiscalPayload(
   if (payme)
     return {
       receipt_type: 0,
-      ...(shipping ? { shipping: { title: order.deliveryMethodName, price: shipping } } : {}),
+      ...(shipping && order.deliveryMethodName
+        ? { shipping: { title: order.deliveryMethodName, price: shipping } }
+        : {}),
       items: items.map((item) => ({
         title: item.title,
         price: item.price,
@@ -112,7 +117,7 @@ export async function fiscalPayload(
     };
   const tin = config.clickCommissionTin;
   if (!tin || !config.click) unavailable();
-  if (shipping) {
+  if (shipping && order.deliveryMethodName) {
     const delivery: FiscalItem | null = config.fiscalDelivery;
     if (!delivery) unavailable();
     items.push({
@@ -131,7 +136,7 @@ export async function fiscalPayload(
     received_ecash: 0,
     received_card: total,
     items: items.map((item) => {
-      if (item.package_code.length > 20) unavailable();
+      if (item.package_code.length > CLICK_PACKAGE_CODE_MAX) unavailable();
       const gross = item.price * item.count;
       return {
         Name: Array.from(item.title).slice(0, 63).join(''),

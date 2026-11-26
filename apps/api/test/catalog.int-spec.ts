@@ -92,6 +92,50 @@ describe('catalogue', () => {
     expect(priced.items.map((item) => item.slug)).toEqual(['cheap']);
   });
 
+  it('uses the sale mode for prices, sorting, pagination and price filters in a mixed catalogue', async () => {
+    const other = await createCategory(ctx.prisma, 'ceramics');
+    await createProduct(ctx.prisma, { categoryId, slug: 'tea-default' });
+    await createProduct(ctx.prisma, {
+      categoryId,
+      slug: 'a-private',
+      saleMode: 'CONTACT',
+      variants: [{ price: '999999', stock: 1 }],
+    });
+    await createProduct(ctx.prisma, {
+      categoryId: other.id,
+      slug: 'z-inquiry',
+      variants: [{ price: '1000', stock: 2 }],
+    });
+    await createProduct(ctx.prisma, {
+      categoryId: other.id,
+      slug: 'new-cup',
+      saleMode: 'ONLINE',
+      variants: [{ price: '32000', stock: 2 }],
+    });
+
+    const list = async (query: string) =>
+      productListSchema.parse((await get('/catalog/products?' + query).expect(200)).body);
+    const first = await list('sort=price_asc&pageSize=3');
+    expect(
+      first.items.map(({ slug, onlineOrderable, priceFrom }) => [slug, onlineOrderable, priceFrom]),
+    ).toEqual([
+      ['new-cup', true, '32000.00'],
+      ['tea-default', true, '50000.00'],
+      ['a-private', false, '0.00'],
+    ]);
+    expect(first.facets.priceRange).toEqual({ min: '32000.00', max: '50000.00' });
+    expect((await list('sort=price_asc&pageSize=3&page=2')).items.map((item) => item.slug)).toEqual(
+      ['z-inquiry'],
+    );
+    expect((await list('minPrice=1&maxPrice=35000')).items.map((item) => item.slug)).toEqual([
+      'new-cup',
+    ]);
+    const detail = productDetailSchema.parse(
+      (await get('/catalog/products/a-private').expect(200)).body,
+    );
+    expect(detail.variants[0]).toMatchObject({ price: '0.00', compareAtPrice: null });
+  });
+
   it('matches Uzbek text regardless of the apostrophe character used', async () => {
     await createProduct(ctx.prisma, { categoryId, slug: 'mountain', name: 'Togʻ giyohlari' });
     for (const query of ['togʻ', "tog'", 'TOG‘', 'giyoh']) {

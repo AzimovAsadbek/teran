@@ -13,7 +13,8 @@ import { deliveryPage } from '@/content/pages/delivery';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { formatMoney } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
-import { showPrices } from '@/lib/site';
+import { redirect } from '@/i18n/navigation';
+import { showDelivery, showPrices } from '@/lib/site';
 
 /**
  * The page's copy. While the shop shows no prices it takes orders by phone and messengers, so the
@@ -159,6 +160,7 @@ async function ConfiguredOptions() {
  */
 export default async function DeliveryPage() {
   const locale = (await rootParams.locale()) as Locale;
+  if (!showDelivery) redirect({ href: '/faq/ordering', locale });
   const page = copyFor(locale);
 
   return (

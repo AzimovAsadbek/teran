@@ -41,7 +41,7 @@ import { namesFormat } from '@/lib/format';
 import { coverShareImage, pageMetadata, productSchema } from '@/lib/seo';
 import { ShareButton } from '@/components/product/share-button';
 import { packLabel } from '@/lib/format';
-import { sellsOnline } from '@/lib/site';
+import { sellsOnline, showDelivery } from '@/lib/site';
 
 export async function generateMetadata({
   params,
@@ -99,7 +99,7 @@ async function ProductView({
   // TERAN's own five: their stage, their name set like the pack, their colour (ADR-050/051).
   const code = teaCodeOf(product.slug);
   const packColour = code ? PACK_COLOURS[code] : null;
-  const priced = sellsOnline(product.category.path);
+  const priced = sellsOnline(product);
   const family = productFamily(product.illustrationKey, product.category.path);
   const FamilyIcon = family.icon;
   const measures = brewingMeasures(product.brewing, tb);
@@ -307,18 +307,20 @@ async function ProductView({
                       thumb={orderThumb(product, code)}
                     />
                   )}
-                  <p className="mt-3 flex items-start gap-2 text-body-sm text-fg-muted">
-                    <Truck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-jade-700" />
-                    <span>
-                      {t('deliveryTextByContact')}{' '}
-                      <Link
-                        href="/delivery"
-                        className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
-                      >
-                        {t('deliveryLink')}
-                      </Link>
-                    </span>
-                  </p>
+                  {(options?.deliveryEnabled ?? showDelivery) && (
+                    <p className="mt-3 flex items-start gap-2 text-body-sm text-fg-muted">
+                      <Truck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-jade-700" />
+                      <span>
+                        {t('deliveryTextByContact')}{' '}
+                        <Link
+                          href="/delivery"
+                          className="font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
+                        >
+                          {t('deliveryLink')}
+                        </Link>
+                      </span>
+                    </p>
+                  )}
                   <BusinessLine
                     text={t('businessLine')}
                     cta={wholesalePage[locale].formTitle}

@@ -27,8 +27,10 @@ const PROGRESS: readonly OrderStatus[] = [
 export async function OrderProgress({
   status,
   cancelReason = null,
+  hasDelivery,
 }: {
   status: OrderStatus;
+  hasDelivery: boolean;
   cancelReason?: OrderCancelReason | null;
 }) {
   const t = await getTranslations('Checkout');
@@ -43,10 +45,14 @@ export async function OrderProgress({
       </p>
     );
   }
-  const current = PROGRESS.indexOf(status);
+  const steps = hasDelivery ? PROGRESS : PROGRESS.filter((step) => step !== 'SHIPPED');
+  const current = steps.indexOf(status);
   return (
-    <ol aria-label={t('progressLabel')} className="grid grid-cols-5 gap-2">
-      {PROGRESS.map((step, index) => {
+    <ol
+      aria-label={t('progressLabel')}
+      className={cn('grid gap-2', hasDelivery ? 'grid-cols-5' : 'grid-cols-4')}
+    >
+      {steps.map((step, index) => {
         const done = index <= current;
         return (
           <li key={step} aria-current={index === current ? 'step' : undefined} className="min-w-0">
@@ -78,7 +84,11 @@ export async function OrderProgress({
 export async function OrderDetails({ order, locale }: { order: OrderDto; locale: Locale }) {
   const t = await getTranslations('Checkout');
   const tp = await getTranslations('Product');
-  const address = [regionName(order.regionCode, locale), order.city, order.addressLine]
+  const address = [
+    order.regionCode && regionName(order.regionCode, locale),
+    order.city,
+    order.addressLine,
+  ]
     .filter(Boolean)
     .join(', ');
 
@@ -131,18 +141,20 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
               <Price amount={order.subtotal} />
             </dd>
           </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-fg-muted">
-              {t('delivery')} · {order.deliveryMethodName}
-            </dt>
-            <dd>
-              {Number(order.deliveryFee) === 0 ? (
-                <span className="font-semibold text-success">{t('free')}</span>
-              ) : (
-                <Price amount={order.deliveryFee} />
-              )}
-            </dd>
-          </div>
+          {order.deliveryMethodName && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-fg-muted">
+                {t('delivery')} · {order.deliveryMethodName}
+              </dt>
+              <dd>
+                {Number(order.deliveryFee) === 0 ? (
+                  <span className="font-semibold text-success">{t('free')}</span>
+                ) : (
+                  <Price amount={order.deliveryFee} />
+                )}
+              </dd>
+            </div>
+          )}
           {Number(order.discountTotal) > 0 ? (
             <div className="flex justify-between gap-4">
               <dt className="text-fg-muted">{t('discount')}</dt>
@@ -162,10 +174,12 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
 
       <aside className="space-y-4">
         <InfoCard title={t('placedAt')}>{formatDateTime(order.createdAt, locale)}</InfoCard>
-        <InfoCard title={t('deliveryTo')}>
-          {address}
-          {order.landmark ? <span className="block text-fg-subtle">{order.landmark}</span> : null}
-        </InfoCard>
+        {order.deliveryMethodName && (
+          <InfoCard title={t('deliveryTo')}>
+            {address}
+            {order.landmark ? <span className="block text-fg-subtle">{order.landmark}</span> : null}
+          </InfoCard>
+        )}
         <InfoCard title={t('contactSummary')}>
           {order.customerName}
           <span className="block">{formatUzPhone(order.customerPhone)}</span>

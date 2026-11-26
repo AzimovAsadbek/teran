@@ -19,9 +19,9 @@ import { ZERO, toMoney, toMoneyOrNull } from '../common/money.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { asIllustrationKey, toImageDto, variantStockLevel } from '../catalog/catalog.mapper.js';
 import {
-  isRetailCategory,
+  isOnlineProduct,
   retailCategorySelect,
-  retailTeaWhere,
+  onlineProductWhere,
   visibleProductWhere,
 } from '../catalog/product-visibility.js';
 import { DeliveryService } from '../delivery/delivery.service.js';
@@ -132,7 +132,7 @@ export class CartService {
         where: {
           id: input.variantId,
           isActive: true,
-          product: { AND: [visibleProductWhere(), retailTeaWhere] },
+          product: { AND: [visibleProductWhere(), onlineProductWhere] },
         },
         select: { id: true, stockQuantity: true },
       });
@@ -188,7 +188,10 @@ export class CartService {
         where: {
           id: itemId,
           cartId: id,
-          variant: { isActive: true, product: { AND: [visibleProductWhere(), retailTeaWhere] } },
+          variant: {
+            isActive: true,
+            product: { AND: [visibleProductWhere(), onlineProductWhere] },
+          },
         },
         include: { variant: { select: { stockQuantity: true } } },
       });
@@ -233,7 +236,7 @@ export class CartService {
       const variants = await tx.productVariant.findMany({
         where: {
           id: { in: variantIds },
-          product: { AND: [visibleProductWhere(), retailTeaWhere] },
+          product: { AND: [visibleProductWhere(), onlineProductWhere] },
         },
         select: {
           id: true,
@@ -385,6 +388,7 @@ export class CartService {
 
     return {
       lines,
+      deliveryEnabled: this.delivery.enabled,
       itemCount,
       subtotal: toMoney(subtotal),
       currency: 'UZS',
@@ -397,8 +401,7 @@ export class CartService {
     return evaluateCartLine({
       requestedQuantity: item.quantity,
       productVisible:
-        isProductPublic(item.variant.product, now) &&
-        isRetailCategory(item.variant.product.category),
+        isProductPublic(item.variant.product, now) && isOnlineProduct(item.variant.product),
       variantActive: item.variant.isActive,
       stockQuantity: item.variant.stockQuantity,
     });

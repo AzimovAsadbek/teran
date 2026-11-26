@@ -80,11 +80,14 @@ jobs:
       - run: pnpm test:integration
 
   e2e:
-    name: End-to-end tests (${{ matrix.store }})
+    name: End-to-end tests (${{ matrix.scenario }})
     strategy:
       fail-fast: false
       matrix:
-        store: [open, closed]
+        include:
+          - { scenario: open, store: open, delivery: 'true' }
+          - { scenario: closed, store: closed, delivery: 'true' }
+          - { scenario: order-only, store: open, delivery: 'false' }
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     services:
@@ -103,6 +106,7 @@ jobs:
           --health-retries 20
     env:
       E2E_STORE_MODE: ${{ matrix.store }}
+      E2E_DELIVERY_ENABLED: ${{ matrix.delivery }}
       E2E_DATABASE_URL: postgresql://teran:ci-only-password@127.0.0.1:5432/teran_e2e?schema=public
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,7 +128,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ffmpeg
       - run: pnpm test:e2e
       - name: Restore the database and media from a snapshot
-        if: matrix.store == 'open'
+        if: matrix.scenario == 'open'
         env:
           BACKUP_PG_CONTAINER: ${{ job.services.postgres.id }}
           PGUSER: teran
@@ -136,7 +140,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report-${{ matrix.store }}
+          name: playwright-report-${{ matrix.scenario }}
           path: |
             e2e/playwright-report
             e2e/test-results

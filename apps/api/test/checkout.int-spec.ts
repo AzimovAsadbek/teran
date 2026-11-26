@@ -210,6 +210,29 @@ describe('cart and checkout', () => {
     expect(await ctx.prisma.order.count()).toBe(0);
   });
 
+  it('keeps an opted-in non-tea product through login and rechecks its sale mode before reserving stock', async () => {
+    const gifts = await createCategory(ctx.prisma, 'gifts');
+    const product = await createProduct(ctx.prisma, { categoryId: gifts.id });
+    const variantId = product.variants[0]!.id;
+    const guest = agent();
+    const add = () => guest.post(`${API}/cart/items`).send({ variantId, quantity: 2 });
+    await add().expect(404);
+    await ctx.prisma.product.update({ where: { id: product.id }, data: { saleMode: 'ONLINE' } });
+    await add().expect(201);
+    await signInShopper(ctx, guest);
+    expect((await guest.get(`${API}/cart`).expect(200)).body).toMatchObject({
+      itemCount: 2,
+      isCheckoutReady: true,
+    });
+    await ctx.prisma.product.update({ where: { id: product.id }, data: { saleMode: 'CONTACT' } });
+    expect((await guest.get(`${API}/cart`).expect(200)).body).toMatchObject({
+      isCheckoutReady: false,
+      lines: [{ issue: 'unavailable', unitPrice: '0.00', lineTotal: '0.00' }],
+    });
+    await guest.post(`${API}/checkout/orders`).send(checkoutBody()).expect(409);
+    expect(await ctx.prisma.inventoryMovement.count()).toBe(0);
+  });
+
   it('places an order with server-side totals, ignoring client-supplied prices', async () => {
     const product = await createProduct(ctx.prisma, {
       categoryId,

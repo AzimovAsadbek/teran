@@ -46,6 +46,7 @@ export class CheckoutController {
     @Query({ schema: localeQuerySchema }) query: LocaleQuery,
   ): Promise<CheckoutOptionsDto> {
     return {
+      deliveryEnabled: this.delivery.enabled,
       deliveryMethods: await this.delivery.listActive(query.locale),
       paymentMethods: this.payments.selectableMethods(),
       paymentOptions: this.payments.options(),

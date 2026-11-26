@@ -394,14 +394,43 @@ export const termsByContact: Localized<Record<ContactSection, Section>> = {
   },
 };
 
-/** The terms as they apply: the online shop's, or ordering by phone and messengers. */
-export function termsFor(byContact: boolean): Localized<LongFormContent> {
-  if (!byContact) return termsOfUse;
+const productOnlyTerms: Localized<{ prices: string; payment: string }> = {
+  uz: {
+    prices:
+      'Narxlar so‘mda ko‘rsatiladi. Tasdiqlashdan oldin tanlagan mahsulotlaringiz uchun jami summa ko‘rinadi.',
+    payment:
+      'Rasmiylashtirishda to‘lov usulini tanlang. To‘lov provayder sahifasida amalga oshiriladi. Biz telefon yoki xabar orqali karta ma’lumotlarini so‘ramaymiz.',
+  },
+  ru: {
+    prices:
+      'Цены указаны в сумах. Итоговая сумма за выбранные товары отображается до подтверждения заказа.',
+    payment:
+      'Выберите способ оплаты при оформлении заказа. Оплата проходит на странице платёжного сервиса. Мы не запрашиваем данные карты по телефону или в сообщениях.',
+  },
+  en: {
+    prices:
+      'Prices are in Uzbek sum (UZS). The total for the selected items is shown before you confirm.',
+    payment:
+      'Choose a payment method at checkout and pay on the provider’s page. We never ask for card details by phone or message.',
+  },
+};
+
+export function termsFor(byContact: boolean, deliveryEnabled = true): Localized<LongFormContent> {
+  if (!byContact && deliveryEnabled) return termsOfUse;
   const swap = (locale: Locale): LongFormContent => ({
     ...termsOfUse[locale],
-    sections: termsOfUse[locale].sections.map(
-      (section) => termsByContact[locale][section.id as ContactSection] ?? section,
-    ),
+    sections: termsOfUse[locale].sections
+      .filter((section) => deliveryEnabled || section.id !== 'delivery')
+      .map((section) => {
+        if (byContact) return termsByContact[locale][section.id as ContactSection] ?? section;
+        if (section.id === 'prices' || section.id === 'payment') {
+          return {
+            ...section,
+            blocks: [productOnlyTerms[locale][section.id], ...section.blocks.slice(1)],
+          };
+        }
+        return section;
+      }),
   });
   return { uz: swap('uz'), ru: swap('ru'), en: swap('en') };
 }

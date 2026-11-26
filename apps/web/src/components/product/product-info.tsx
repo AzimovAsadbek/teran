@@ -22,7 +22,7 @@ import { teaTint } from '@/components/brand/tea-stage';
 import { BRAND_VALUES, brandValueLabels, PACK_COLOURS, teaCodeOf } from '@/content/brand';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
-import { showPrices } from '@/lib/site';
+import { showDelivery, showPrices } from '@/lib/site';
 import { formatMoney, namesFormat } from '@/lib/format';
 import { imageSources } from '@/lib/navigation';
 import { ProductTabs, type ProductTab } from './product-tabs';
@@ -342,16 +342,18 @@ export async function DeliveryInfo({ options }: { options: CheckoutOptionsDto | 
   const locale = await getLocale();
   const currency = tc('currency.UZS');
 
+  const deliveryEnabled = options?.deliveryEnabled ?? showDelivery;
+  if (!deliveryEnabled && !options?.paymentMethods.length) return null;
   return (
     <section aria-labelledby="delivery-info" className="mt-8">
       <h2 id="delivery-info" className="text-label text-fg">
         {/* Payment is shown with prices only, so without them the heading names delivery alone. */}
-        {showPrices ? t('delivery') : t('deliveryOnly')}
+        {!deliveryEnabled ? tco('paymentSection') : showPrices ? t('delivery') : t('deliveryOnly')}
       </h2>
       <ul className="mt-2.5 divide-y divide-line-subtle rounded-card border border-line bg-surface text-body-sm">
         {/* While orders go by phone (no prices), delivery is agreed then: the configured
             methods' times and areas are not promised here (lib/site showPrices). */}
-        {showPrices && options && options.deliveryMethods.length > 0 ? (
+        {!deliveryEnabled ? null : showPrices && options && options.deliveryMethods.length > 0 ? (
           options.deliveryMethods.map((method) => (
             <li key={method.code} className="flex items-start gap-3 px-4 py-3">
               <Truck aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-accent-fg" />
@@ -401,12 +403,14 @@ export async function DeliveryInfo({ options }: { options: CheckoutOptionsDto | 
           </li>
         ) : null}
       </ul>
-      <Link
-        href="/delivery"
-        className="mt-3 inline-block text-body-sm font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
-      >
-        {t('deliveryLink')}
-      </Link>
+      {deliveryEnabled && (
+        <Link
+          href="/delivery"
+          className="mt-3 inline-block text-body-sm font-semibold text-brand underline decoration-brand/40 underline-offset-4 hover:decoration-brand"
+        >
+          {t('deliveryLink')}
+        </Link>
+      )}
     </section>
   );
 }

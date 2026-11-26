@@ -280,7 +280,7 @@ export async function FilterBar({
         </p>
         <div className="lg:self-start">
           <SortSelect
-            hasPricedTea={Boolean(facets.priceRange)}
+            hasPricedProducts={Boolean(facets.priceRange)}
             value={filters.sort}
             query={toSearchParams(filters)}
           />

@@ -120,6 +120,7 @@ services:
       MAIL_FROM: ${MAIL_FROM:-}
       # Online ordering; must match SHOW_PRICES (a storefront without prices takes no orders).
       CHECKOUT_ENABLED: ${CHECKOUT_ENABLED:-false}
+      CHECKOUT_DELIVERY_ENABLED: ${CHECKOUT_DELIVERY_ENABLED:-false}
       PAYMENT_METHODS_ENABLED: ${PAYMENT_METHODS_ENABLED:-CASH_ON_DELIVERY}
       PAYMENT_PROVIDER_MODE: ${PAYMENT_PROVIDER_MODE:-live}
       ALLOW_DEMO_PAYMENTS: ${ALLOW_DEMO_PAYMENTS:-false}
@@ -168,6 +169,7 @@ services:
         NEXT_PUBLIC_ENABLED_LOCALES: ${ENABLED_LOCALES:-uz,ru,en}
         NEXT_PUBLIC_DEMO_CONTENT: ${DEMO_CONTENT:-true}
         NEXT_PUBLIC_SEARCH_INDEXING: ${SEARCH_INDEXING:-auto}
+        NEXT_PUBLIC_CHECKOUT_DELIVERY_ENABLED: ${CHECKOUT_DELIVERY_ENABLED:-false}
         NEXT_PUBLIC_SHOW_PRICES: ${SHOW_PRICES:-false}
         # The bucket's public address, allowed in the content security policy for pictures and films.
         UPLOADS_ORIGIN: ${R2_PUBLIC_URL:-}

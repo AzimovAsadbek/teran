@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from '@/i18n/navigation';
 import { requireUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
+import { showDelivery } from '@/lib/site';
 import { formatDate } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 
@@ -57,12 +58,20 @@ async function Overview() {
         </Notice>
       ) : (
         <>
-          <ul className="grid grid-cols-3 gap-3">
+          <ul
+            className={
+              showDelivery || summary.addressesCount > 0
+                ? 'grid grid-cols-3 gap-3'
+                : 'grid grid-cols-2 gap-3'
+            }
+          >
             {(
               [
                 ['statOrders', summary.ordersCount, '/account/orders'],
                 ['statActive', summary.activeOrdersCount, '/account/orders?status=active'],
-                ['statAddresses', summary.addressesCount, '/account/addresses'],
+                ...(showDelivery || summary.addressesCount > 0
+                  ? [['statAddresses', summary.addressesCount, '/account/addresses'] as const]
+                  : []),
               ] as const
             ).map(([key, value, href]) => (
               <li key={key}>

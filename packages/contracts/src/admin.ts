@@ -11,7 +11,7 @@ import {
   type IllustrationKey,
   type ImageDto,
 } from './catalog.js';
-import type { CaffeineLevel, Locale, ProductFormat } from './constants.js';
+import type { CaffeineLevel, Locale, ProductFormat, ProductSaleMode } from './constants.js';
 import { mediaKindSchema, type MediaKind } from './content.js';
 import type { AdminTelegramStatus, Readiness, ReadinessCode } from './publishing.js';
 import { inquiryStatusSchema, type InquiryStatus } from './inquiries.js';
@@ -24,7 +24,7 @@ import {
   type PaymentStatus,
 } from './orders.js';
 import { passwordSchema, type UserRole } from './auth.js';
-import { REGION_CODES, type BusinessType } from './constants.js';
+import { PRODUCT_SALE_MODES, REGION_CODES, type BusinessType } from './constants.js';
 
 export const PRODUCT_STATUSES = ['DRAFT', 'ACTIVE', 'ARCHIVED'] as const;
 export const productStatusSchema = z.enum(PRODUCT_STATUSES);
@@ -137,6 +137,7 @@ export const productUpsertSchema = z
     slug: slugSchema,
     status: productStatusSchema,
     categoryId: z.uuid(),
+    saleMode: z.enum(PRODUCT_SALE_MODES).optional(),
     format: productFormatSchema,
     isFeatured: z.boolean(),
     caffeineLevel: caffeineLevelSchema.nullable(),
@@ -569,6 +570,7 @@ export interface AdminProductDetail {
   id: string;
   slug: string;
   status: ProductStatus;
+  saleMode: ProductSaleMode;
   productTypeId: string | null;
   attributes: ProductAttributeInput[];
   categoryId: string;
@@ -713,9 +715,9 @@ export interface AdminOrderDetail {
   customerPhone: string;
   customerEmail: string | null;
   customerAccountEmail: string | null;
-  deliveryMethodName: string;
-  regionCode: string;
-  city: string;
+  deliveryMethodName: string | null;
+  regionCode: string | null;
+  city: string | null;
   addressLine: string | null;
   landmark: string | null;
   note: string | null;

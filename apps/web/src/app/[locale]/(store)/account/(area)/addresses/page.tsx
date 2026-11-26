@@ -9,6 +9,7 @@ import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { requireUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
+import { showDelivery } from '@/lib/site';
 import { pageMetadata } from '@/lib/seo';
 import { ClientMessages } from '@/i18n/client-messages';
 
@@ -25,7 +26,10 @@ async function Addresses() {
   const addresses = await apiGetAsVisitor<AddressDto[]>('/account/addresses').catch(() => null);
   return (
     <div className="space-y-6">
-      <AccountPageHeader title={t('addresses')} text={t('addressesText')} />
+      <AccountPageHeader
+        title={t('addresses')}
+        text={showDelivery ? t('addressesText') : undefined}
+      />
       {addresses ? (
         // The address form shares the checkout's field labels.
         <ClientMessages pick={['Checkout']}>

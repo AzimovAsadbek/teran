@@ -326,6 +326,7 @@ export class AssistantService {
         owner,
         contact: settings.contact,
         stores: settings.stores,
+        deliveryEnabled: this.delivery.enabled,
         delivery,
         categories,
         collections,

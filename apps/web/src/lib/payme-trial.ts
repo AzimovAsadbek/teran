@@ -2,6 +2,7 @@ import 'server-only';
 import { createHmac } from 'node:crypto';
 import {
   paymentReturnSchema,
+  type CartDto,
   type Locale,
   type PlacedOrderDto,
   type ProductDetailDto,
@@ -19,7 +20,7 @@ export function paymeTrialEnabled() {
   return process.env.PAYME_TRIAL_ENABLED === 'true';
 }
 
-async function request(path: string, init?: RequestInit) {
+async function request(path: string, init?: RequestInit, allow: number[] = []) {
   if (!paymeTrialEnabled()) throw new Error('Trial disabled');
   const response = await fetch(API + path, {
     ...init,
@@ -28,7 +29,7 @@ async function request(path: string, init?: RequestInit) {
     cache: 'no-store',
     signal: AbortSignal.timeout(12000),
   });
-  if (!response.ok) throw new Error('Sandbox unavailable');
+  if (!response.ok && !allow.includes(response.status)) throw new Error('Sandbox unavailable');
   return response;
 }
 
@@ -48,8 +49,62 @@ function attemptKey(userId: string, nonce: string) {
   ].join('-');
 }
 
-/** One synthetic order on the sandbox's own stock and delivery method. */
-export async function startPaymeTrial(userId: string, nonce: string, locale: Locale) {
+function sandboxCookie(
+  response: Response,
+  name: 'teran_session' | 'teran_cart',
+): string | undefined {
+  return response.headers
+    .getSetCookie()
+    .map((value) => value.split(';')[0]!)
+    .find((pair) => {
+      const [key, value] = pair.split('=');
+      return (
+        (key === name || key === '__Host-' + name) && /^[A-Za-z0-9_-]{20,200}$/.test(value ?? '')
+      );
+    });
+}
+
+/** Each trial owns a sandbox-only account and cart. Retries return to the same unpaid order. */
+async function trialOrder(userId: string, nonce: string, locale: Locale): Promise<PlacedOrderDto> {
+  const idempotencyKey = attemptKey(userId, nonce);
+  const email = idempotencyKey + '@payme-sandbox.invalid';
+  const password = createHmac('sha256', process.env.API_INTERNAL_KEY!)
+    .update('payme-trial-password:' + idempotencyKey)
+    .digest('base64url');
+  const post = (body: unknown, cookie?: string): RequestInit => ({
+    method: 'POST',
+    headers: cookie ? { Cookie: cookie } : {},
+    body: JSON.stringify(body),
+  });
+  const created = await request(
+    '/auth/register',
+    post({ firstName: 'Sandbox', locale, email, password }),
+    [409],
+  );
+  const session = created.ok ? created : await request('/auth/login', post({ email, password }));
+  const sessionCookie = sandboxCookie(session, 'teran_session');
+  if (!sessionCookie) throw new Error('Sandbox login unavailable');
+  let cartCookie = sandboxCookie(session, 'teran_cart');
+  const cookies = () => [sessionCookie, cartCookie].filter(Boolean).join('; ');
+  const checkout = () =>
+    post(
+      {
+        idempotencyKey,
+        locale,
+        customer: { name: 'TERAN Sandbox', phone: '+998200000000' },
+        paymentMethod: 'PAYME',
+        expectedTotal: '1000.00',
+        acceptTerms: true,
+      },
+      cookies(),
+    );
+  if (!created.ok) {
+    const replay = await request('/checkout/orders', checkout(), [400, 409]);
+    if (replay.ok) return replay.json();
+    const failure = await replay.json();
+    if (failure.code !== 'CART_EMPTY' && failure.code !== 'PRICE_CHANGED')
+      throw new Error('Sandbox order unavailable');
+  }
   const product: ProductDetailDto = await (
     await request('/catalog/products/teran-payment-sandbox')
   ).json();
@@ -57,35 +112,25 @@ export async function startPaymeTrial(userId: string, nonce: string, locale: Loc
     (v) => v.sku === 'TERAN-SANDBOX-ONLY' && v.price === '1000.00' && v.currency === 'UZS',
   );
   if (!variant) throw new Error('Sandbox product unavailable');
-  const added = await request('/cart/items', {
-    method: 'POST',
-    body: JSON.stringify({ variantId: variant.id, quantity: 1 }),
-  });
-  const cookie = added.headers
-    .getSetCookie()
-    .map((v) => v.split(';')[0]!)
-    .find((v) => /^(?:__Host-)?teran_cart=[A-Za-z0-9_-]{20,200}$/.test(v));
-  if (!cookie) throw new Error('Sandbox cart unavailable');
-  const placed: PlacedOrderDto = await (
-    await request('/checkout/orders', {
-      method: 'POST',
-      headers: { Cookie: cookie },
-      body: JSON.stringify({
-        idempotencyKey: attemptKey(userId, nonce),
-        locale,
-        customer: { name: 'TERAN Sandbox', phone: '+998200000000' },
-        delivery: {
-          methodCode: 'sandbox-delivery',
-          regionCode: 'UZ-TK',
-          city: 'Toshkent',
-          addressLine: 'Sinov',
-        },
-        paymentMethod: 'PAYME',
-        expectedTotal: '1000.00',
-        acceptTerms: true,
-      }),
-    })
-  ).json();
+  const added = await request(
+    '/cart/items',
+    post({ variantId: variant.id, quantity: 1 }, cookies()),
+  );
+  cartCookie = sandboxCookie(added, 'teran_cart') ?? cartCookie;
+  if (!cartCookie) throw new Error('Sandbox cart unavailable');
+  const cart: CartDto = await added.json();
+  const line = cart.lines.find((item) => item.variantId === variant.id);
+  if (line && line.quantity > 1) {
+    await request('/cart/items/' + line.id, {
+      ...post({ quantity: 1 }, cookies()),
+      method: 'PATCH',
+    });
+  }
+  return (await request('/checkout/orders', checkout())).json();
+}
+
+export async function startPaymeTrial(userId: string, nonce: string, locale: Locale) {
+  const placed = await trialOrder(userId, nonce, locale);
   if (
     placed.order.total !== '1000.00' ||
     placed.order.currency !== 'UZS' ||

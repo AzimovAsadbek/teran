@@ -1,6 +1,6 @@
 import {
   ASSISTANT_LINKS,
-  isRetailTea,
+  isOnlineListing,
   REGIONS,
   type BrewingDto,
   type CategoryDto,
@@ -25,6 +25,7 @@ export interface SiteFacts {
   owner: string;
   contact: PublicSettingsDto['contact'];
   stores: PublicSettingsDto['stores'];
+  deliveryEnabled?: boolean;
   delivery: DeliveryMethodDto[];
   categories: CategoryDto[];
   collections: CollectionDto[];
@@ -97,8 +98,7 @@ function productEntry(product: KnowledgeProduct, prices: boolean): string {
         : variant.unitCount !== null
           ? `${variant.unitCount} pcs`
           : variant.sku;
-    const price =
-      prices && isRetailTea(product.category.path) ? `, ${formatSom(variant.price)}` : '';
+    const price = prices && isOnlineListing(product) ? `, ${formatSom(variant.price)}` : '';
     return `${size} (${STOCK[variant.stockLevel]}${price})`;
   });
   const details = product.attributes
@@ -192,7 +192,11 @@ export function knowledgeText(facts: SiteFacts): string {
         .join('\n')}`,
     );
   }
-  if (facts.delivery.length > 0) {
+  if (facts.deliveryEnabled === false) {
+    sections.push(
+      '## Current ordering policy\nDelivery is paused. Online checkout collects contact details and charges only for the selected products.',
+    );
+  } else if (facts.delivery.length > 0) {
     sections.push(
       `## Delivery methods\n${facts.delivery
         .map((method) => deliveryLine(method, locale, prices))

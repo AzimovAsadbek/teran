@@ -28,7 +28,9 @@ for (const [provider, device] of [
     await expect(main.getByRole('radio', { name: /Payme/ })).toBeVisible();
     await expect(main.getByRole('radio', { name: /Click/ })).toBeVisible();
     await main.getByLabel('Phone number').fill('90 555 44 33');
-    await main.getByRole('radio', { name: new RegExp('^' + provider + ' ') }).check();
+    const method = main.getByRole('radio', { name: provider, exact: true });
+    await expect(method).toHaveAccessibleDescription(/Demo · no money is charged/);
+    await method.check();
     await main.getByRole('checkbox', { name: /terms of use/ }).check();
     const placed = page.waitForResponse(
       (r) => r.url().includes('/checkout/orders') && r.request().method() === 'POST',

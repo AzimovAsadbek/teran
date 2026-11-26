@@ -64,8 +64,7 @@ Connect the isolated sandbox API to the storefront’s private `payme-trial` Com
 with the alias `payme-trial-api`. TERAN’s sandbox fixture uses the product `teran-payment-sandbox`,
 the variant `TERAN-SANDBOX-ONLY` at 1,000 UZS and `CHECKOUT_DELIVERY_ENABLED=false`. Enable online ordering for this fixture and enter the test item’s fiscal fields when testing itemized mode. Each attempt uses a private synthetic shopper in the isolated database. On 26 November Payme asked for three pending order IDs and each total in tiyin before referring the cashbox for activation. Create those orders on the provider-accessible sandbox shortly before their test, then send only the public order numbers and amounts. The fixture totals 100,000 tiyin per unit. Use the sandbox key and `https://test.paycom.uz` there, with outbound customer
 notifications disabled. Payme’s test callbacks must reach this same isolated API.
-Where the cashier shares its public callback with production, route only the exact sandbox
-authorization to this API and keep Payme IP validation on for both backends.
+TERAN's public `/api/v1/payments/payme` routes the sandbox authorization to the isolated API. Other requests reach the live API. Both validate the caller's address and credentials. When rotating `PAYME_TEST_KEY`, update the isolated API and the root-readable Nginx include `/etc/nginx/projects/teran/payme-backend.inc` together. Validate and reload Nginx, then run `CheckPerformTransaction` from Payme’s sandbox against a fresh unpaid sandbox order. The endpoint log records the upstream and HTTP status. Payme's JSON-RPC result identifies the outcome of the call.
 
 To withdraw the preview, turn off `PAYME_TRIAL_ENABLED` and recreate the web service.
 
@@ -109,16 +108,18 @@ For each sellable pack, enter its official 17-digit MXIK, package code and VAT p
 
 The five TERAN 400 g green tea pouches (XC2025, G8810, 8800, 8830 and 8009) use MXIK `00902001001000000` and package code `1653256` for a 400 g bag. The merchant letter specifies 12% VAT. The migration fills empty fiscal fields only when product, SKU, barcode and weight match. Check each future pack in the [Soliq catalogue](https://tasnif.soliq.uz/).
 
-Each provider has an independent receipt setting. Use `provider` when its cashbox handles the receipt, and `items` when the provider has enabled itemized receipts from the shop.
+CLICK and Payme issue TERAN's fiscal receipts. Set both fiscal modes to `items` so each provider receives the purchased lines, including the codes for any future product. The `provider` setting uses the provider's own preset receipt configuration.
 
-| Setting                                                                            | Value for itemized receipts                                                                              |
-| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `PAYME_FISCAL_MODE`                                                                | `items` makes Payme receive the purchased product lines on its initial check.                            |
-| `CLICK_FISCAL_MODE`                                                                | `items` for CLICK to fiscalize the order's lines. Confirm the cashbox's advance/sale setting with CLICK. |
-| `CLICK_MERCHANT_USER_ID`, `CLICK_COMMISSION_TIN`                                   | The Merchant API user and the TIN agreed with CLICK for CommissionInfo.                                  |
-| `CLICK_DELIVERY_MXIK`, `CLICK_DELIVERY_PACKAGE_CODE`, `CLICK_DELIVERY_VAT_PERCENT` | Only needed if paid delivery is reintroduced. Leave empty for product-only orders.                       |
+| Setting                                                                            | Value for itemized receipts                                                                        |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `PAYME_FISCAL_MODE`                                                                | `items` makes Payme receive the purchased product lines on its initial check.                      |
+| `CLICK_FISCAL_MODE`                                                                | `items` for CLICK Type 3. After a successful Complete, TERAN submits the purchased items to CLICK. |
+| `CLICK_MERCHANT_USER_ID`, `CLICK_COMMISSION_TIN`                                   | The Merchant API user and the TIN agreed with CLICK for CommissionInfo.                            |
+| `CLICK_DELIVERY_MXIK`, `CLICK_DELIVERY_PACKAGE_CODE`, `CLICK_DELIVERY_VAT_PERCENT` | Only needed if paid delivery is reintroduced. Leave empty for product-only orders.                 |
 
-On 26 November CLICK confirmed that TERAN can submit each item’s SPIC and PackageCode. The type of receipt configured for service 115697 and the issuer of a final receipt after an advance still await their confirmation. Payme said it would enable `SetFiscalData` and would refer the cashbox for activation after its three-order test.
+On 26 November 2026 CLICK activated service 115697 in Type 3 mode. Its cabinet showed an active service and a minimum payment of 1,000 UZS. CLICK confirmed that it generates the final receipt after receiving the item data. TERAN sends `submit_items` and retrieves the resulting QR link by CLICK payment ID. `submit_qrcode` is for a merchant that already issued its own receipt.
+
+Payme confirmed that the three-order sandbox test passed on the public callback and referred the cashbox for activation with merchant-provided item details. TERAN supplies those lines in `CheckPerformTransaction` and receives the fiscal result through `SetFiscalData`. Enable Payme at checkout after the cashbox manager confirms live activation.
 
 The API worker needs outbound HTTPS to `api.click.uz`. After a submission timeout it polls the existing payment for the QR. A record marked for review requires checking that payment in the merchant cabinet. The order stays paid while its fiscal receipt is pending. [CLICK fiscal API](https://docs.click.uz/merchant-api/fiscalization) · [Payme receipt callback](https://developer.help.paycom.uz/metody-merchant-api/setfiscaldata/)
 

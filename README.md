@@ -1,22 +1,21 @@
 # TERAN — online tea store
 
 Storefront and administration platform for TERAN® — Premium Chinese Tea (TERAN TRADE MChJ,
-Namangan, Uzbekistan). Shoppers
-browse the catalogue in Uzbek, Russian or English, fill a bag, and order with cash on delivery as
-a guest or with an account. Staff manage products, stock, orders, customers, enquiries, the
-journal, delivery prices and settings in a protected admin area.
+Namangan, Uzbekistan). Shoppers browse the catalogue in Uzbek, Russian or English and can add
+retail products to a bag as guests. They sign in to confirm an order and pay through an enabled
+provider. Contact-only products lead to an enquiry. Staff manage products, stock, orders,
+customers, enquiries, the journal and settings in a protected admin area.
 
-> **Demonstration mode.** The catalogue, prices, delivery fees and some texts are placeholders
-> until TERAN supplies real data, and the site tells visitors so and asks search engines not to
-> index it. See [demo mode](docs/development/demo-mode.md) and
-> [business information required](docs/business-information-required.md).
+> Demo content, public prices, payment providers and search indexing are separate settings.
+> For live checkout and fiscal receipts, see the [payment setup](docs/deployment/payment-provider-setup.md).
+> For seeded environments, see [demo mode](docs/development/demo-mode.md).
 
 ## Features
 
-- **Shopping:** catalogue with categories, collections, filters, sorting and search; product pages
-  with pack sizes, brewing guidance and structured data; a bag drawer; a server-priced checkout
-  with delivery by region; order status pages for guests and customers.
-- **Accounts:** registration, sign-in, profile, password change and reset, order history.
+- Shoppers can filter and search the catalogue, compare pack sizes, see brewing guidance,
+  manage their bag and track orders and payments. The server calculates totals. Delivery is configurable.
+- Customers can register, sign in, update their profile and password, and see order history.
+  Email password recovery requires an active mail transport.
 - **Administration:** dashboard and sales chart, products with images and translations,
   categories, collections, stock ledger, order workflow and cash recording, customers, staff
   roles, enquiries, newsletter export, journal, delivery methods, settings, audit log, CSV reports.

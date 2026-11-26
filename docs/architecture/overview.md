@@ -1,10 +1,11 @@
 # Architecture overview
 
 TERAN is a storefront and administration area for TERAN® — Premium Chinese Tea, a brand of TERAN
-TRADE MChJ in Namangan, Uzbekistan: catalogue,
-bag, cash-on-delivery checkout, customer accounts, enquiries, journal, and a staff area for
-products, stock, orders, customers, content and settings. Uzbek is the default language, with
-Russian and English.
+TRADE MChJ in Namangan, Uzbekistan. It includes a catalogue, guest bag, customer accounts,
+authenticated checkout, payment providers, enquiries and a journal. Staff manage products,
+stock, orders, customers, content and settings. Uzbek is the default language, with Russian
+and English also available. Each product can inherit its category’s sale policy, accept online
+orders or take contact enquiries. See [payment configuration](../deployment/payment-provider-setup.md).
 
 ```mermaid
 flowchart LR

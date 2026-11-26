@@ -2,6 +2,8 @@
 
 TERAN — O‘zbekistondagi choy savdosi uchun uch tilli vitrina va xodimlar boshqaruv paneli. Keyingi vazifani boshlashda tegishli oqimni quyidagi xaritadan top. Topilgan kamchiliklar, ularning tuzatishlari va test natijalari [2026-yil 21-noyabrdagi texnik tahlilda](docs/audit/2026-11-21-texnik-tahlil.md) berilgan.
 
+Jonli to‘lovlar, mahsulotlar, R2, baza zaxirasi va ochiq ishlarning 26-noyabrdagi holatini [loyiha hisobotidan](docs/audit/2026-11-26-loyiha-holati.md) ko‘r.
+
 ## Kodga qayerdan kirish kerak
 
 | Vazifa                               | Boshlash joyi                                                                                                        | Birga tekshiriladigan qism                                                                                                                                |

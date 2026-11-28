@@ -40,8 +40,8 @@ ports the server's Nginx already uses for the site) and kept in `.deploy.env`.
 - **Hosting location and personal data.** The store processes customers' names, phone numbers
   and addresses. Uzbek personal-data legislation includes data-localisation requirements for the
   personal data of citizens of Uzbekistan. Confirm with a lawyer where the server and its backups
-  may be located, and update the hosting named in the privacy policy
-  (`apps/web/src/content/pages/privacy.ts`, it still names the previous hosting) before going live.
+  may be located. Keep the hosting and service providers in the
+  [store privacy policy](../../apps/web/src/content/pages/privacy.ts) current whenever they change.
 - **Server.** Linux (x86-64 or arm64) with Docker Engine and the Compose plugin (v2.24 or newer),
   Git, `curl` (or `wget`) and Bash, run by a user allowed to use Docker (no root needed). 2 vCPU and
   4 GB RAM are enough to build and run the stack; building the web image is the most memory-hungry
@@ -52,8 +52,9 @@ ports the server's Nginx already uses for the site) and kept in `.deploy.env`.
   API; `deploy.sh` checks them. Nothing else is published.
 - **Firewall.** Inbound TCP 80 and 443 plus SSH only. Docker publishes on 127.0.0.1, so the
   application ports are not reachable from outside even where Docker bypasses the host firewall.
-- **Outbound access** from the API: Cloudflare R2 (when used), SMTP, the Telegram Bot API,
-  Google's Gemini API (the chat's AI assistant, when a key is set) and OpenStreetMap's geocoder
+- **Outbound access** from the API includes Cloudflare R2 (when used), SMTP, the Telegram Bot API,
+  Google's OAuth token and public key endpoints (customer sign-in), Google's Gemini API
+  (the chat's AI assistant, when a key is set) and OpenStreetMap's geocoder
   (the admin's store addresses). Payme and Click call the API. The optional CLICK fiscal worker also uses outbound HTTPS to `api.click.uz`.
 
 ## 2. Configuration
@@ -544,13 +545,16 @@ Old images stay on the server for rollbacks; remove the ones no longer needed yo
 | Service                          | Used for                                                    | Required                                                                |
 | -------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------- |
 | Cloudflare R2                    | Pictures and films (ADR-043)                                | Yes for the live shop (its media are there); optional for a new install |
-| SMTP server                      | Password-reset e-mails                                      | Optional (`MAIL_TRANSPORT=disabled`)                                    |
-| Telegram Bot API                 | Channel announcements                                       | Optional (`TELEGRAM_MODE`)                                              |
+| SMTP server                      | Customer verification codes and password-reset emails       | Production uses Resend over TLS on port 2465                            |
+| Telegram Bot API                 | Customer sign-in codes and channel announcements            | Separate bot credentials for sign-in and publishing                     |
+| Google OAuth                     | Customer sign-in                                            | Dedicated production client and HTTPS callback                          |
 | Google Gemini API                | The chat's AI assistant (ADR-055)                           | Optional (`GEMINI_API_KEY`, then Admin → Settings)                      |
 | Payme, Click                     | Online payments (they call the API)                         | Only with `CHECKOUT_ENABLED=true` and an online method                  |
 | OpenStreetMap (Nominatim, tiles) | Store address search in the admin area; the store map       | Yes for those features; no account                                      |
 | Google Fonts                     | Fonts, downloaded once at build time and served by the site | At build time only                                                      |
 | The server's Nginx and certbot   | HTTPS and routing (configured outside this repository)      | Yes                                                                     |
+
+The [customer sign-in guide](../architecture/customer-sign-in.md) lists the authentication settings, webhook command and production test results.
 
 ## 13. Removed integrations
 

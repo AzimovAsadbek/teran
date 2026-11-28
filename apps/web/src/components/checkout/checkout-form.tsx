@@ -16,7 +16,7 @@ import {
   type PaymentMethod,
   type PlacedOrderDto,
 } from '@teran/contracts';
-import { ChevronDown, ExternalLink, Lock } from 'lucide-react';
+import { ArrowRight, ChevronDown, ExternalLink, PencilLine } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { EmptyCart } from '@/components/cart/cart-drawer';
@@ -40,9 +40,12 @@ import { ApiError } from '@/lib/api/errors';
 import { formatMoney } from '@/lib/format';
 import { fieldErrorsFromApi, fieldErrorsFromZod, type FieldErrors } from '@/lib/forms';
 import { useApiErrorMessage } from '@/lib/use-api-error-message';
+import { siteUrl } from '@/lib/site';
 import { useValidationMessage } from '@/lib/use-validation-message';
 import { ChoiceCard } from './choice-card';
 import { OrderSummary } from './order-summary';
+import { PaymentMethodCard } from '@/components/payments/payment-method-card';
+import { ReceiptPanel } from '@/components/payments/receipt';
 
 interface Values {
   name: string;
@@ -129,6 +132,7 @@ export function CheckoutForm({
   const locale = useLocale() as Locale;
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const placing = useRef(false);
   const validationMessage = useValidationMessage();
   const { cart, status: cartStatus } = useCart();
   const deliveryEnabled = options.deliveryEnabled !== false;
@@ -265,7 +269,7 @@ export function CheckoutForm({
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting || !cart) return;
+    if (placing.current || !cart) return;
     setApiError(null);
     setPriceChangedTotal(null);
 
@@ -315,6 +319,7 @@ export function CheckoutForm({
       return;
     }
     setSummaryError(null);
+    placing.current = true;
     setSubmitting(true);
     try {
       const placed = await apiRequest<PlacedOrderDto>('/checkout/orders', {
@@ -324,14 +329,13 @@ export function CheckoutForm({
       setDestination(placed.payment?.redirectUrl ? 'payment' : 'order');
       cartActions.clear();
       if (placed.payment?.redirectUrl) {
-        // Online payment: continue on the provider's page (or the labelled demo page). The order
-        // is only marked paid when the provider confirms it to the API.
-        window.location.assign(placed.payment.redirectUrl);
+        router.replace(`/checkout/confirm/${placed.order.number}`);
         return;
       }
       router.replace(`/account/orders/${placed.order.number}?placed=1`);
     } catch (caught) {
       const failure = caught instanceof ApiError ? caught : new ApiError(0, null);
+      placing.current = false;
       setSubmitting(false);
       if (failure.code === 'UNAUTHENTICATED') {
         router.replace('/account/login?next=/checkout');
@@ -363,7 +367,7 @@ export function CheckoutForm({
   if (destination)
     return (
       <Notice role="status" className="mt-8">
-        {t(destination === 'payment' ? 'redirectingToPayment' : 'thankYou')}
+        {t(destination === 'payment' ? 'openingReview' : 'thankYou')}
       </Notice>
     );
   if (!cart) {
@@ -380,6 +384,14 @@ export function CheckoutForm({
     return (
       <div className="mt-8 rounded-panel border border-line bg-surface">
         <EmptyCart />
+        <div className="pb-5 text-center">
+          <Link
+            href="/account/orders"
+            className="inline-flex min-h-11 items-center font-semibold text-brand underline underline-offset-4"
+          >
+            {t('myOrders')}
+          </Link>
+        </div>
       </div>
     );
   }
@@ -390,17 +402,17 @@ export function CheckoutForm({
     label: region.name[locale],
   }));
   // Only cart problems (explained next to the button) disable it; missing input is reported on submit.
-  const canSubmit = cart.isCheckoutReady && !submitting;
+  const canSubmit = cart.isCheckoutReady && options.paymentMethods.length > 0 && !submitting;
   const submitLabel =
     values.paymentMethod && isOnlinePaymentMethod(values.paymentMethod)
-      ? t('continueToProvider', { provider: t(`paymentMethods.${values.paymentMethod}`) })
+      ? t('reviewOrder')
       : t('placeOrder');
 
   return (
-    <div className="mt-6 grid grid-cols-1 gap-6 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem] xl:gap-14">
+    <div className="mt-6 grid min-w-0 gap-6 sm:mt-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start lg:gap-12 xl:gap-16">
       {/* Mobile: the order summary collapses above the form. */}
-      <details className="group rounded-card border border-line bg-surface px-5 py-4 lg:hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-title-sm text-fg [&::-webkit-details-marker]:hidden">
+      <details className="group rounded-card border border-line border-l-[3px] border-l-brand bg-brand-soft/30 px-4 lg:hidden">
+        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-2 text-title-sm text-fg [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2">
             {t('summary')}
             <ChevronDown
@@ -408,7 +420,11 @@ export function CheckoutForm({
               className="h-4 w-4 transition-transform group-open:rotate-180"
             />
           </span>
-          {currentQuote ? <Price amount={currentQuote.total} /> : <Price amount={cart.subtotal} />}
+          {reviewedTotal ? (
+            <Price amount={reviewedTotal} />
+          ) : (
+            <span className="text-helper text-fg-muted">{t('totalPending')}</span>
+          )}
         </summary>
         <div className="mt-3">
           <OrderSummary
@@ -425,12 +441,12 @@ export function CheckoutForm({
         ref={formRef}
         onSubmit={onSubmit}
         noValidate
-        className="space-y-5"
+        className="min-w-0 space-y-7 sm:space-y-9"
         aria-busy={submitting}
       >
         <FormErrorSummary message={summaryError} />
 
-        <Section step={1} title={t('contactSection')}>
+        <Section title={t('contactSection')}>
           <TextField
             label={t('name')}
             name="name"
@@ -473,7 +489,7 @@ export function CheckoutForm({
         </Section>
 
         {deliveryEnabled ? (
-          <Section step={2} title={t('deliverySection')}>
+          <Section title={t('deliverySection')}>
             {addresses.length > 0 ? (
               <SelectField
                 label={t('savedAddress')}
@@ -605,34 +621,46 @@ export function CheckoutForm({
             </fieldset>
           </Section>
         ) : null}
-        <Section step={deliveryEnabled ? 3 : 2} title={t('paymentSection')}>
-          <fieldset aria-describedby={errors.paymentMethod ? 'payment-method-error' : undefined}>
-            <legend className="sr-only">{t('paymentSection')}</legend>
+        <Section title={t('paymentSection')}>
+          <fieldset
+            role="radiogroup"
+            aria-labelledby="payment-method-label"
+            aria-invalid={Boolean(errors.paymentMethod) || undefined}
+            tabIndex={-1}
+            aria-describedby={errors.paymentMethod ? 'payment-method-error' : undefined}
+          >
+            <legend id="payment-method-label" className="sr-only">
+              {t('paymentSection')}
+            </legend>
             <div className="space-y-2.5">
-              {options.paymentOptions.map(({ method: payment, availability }) => (
-                <ChoiceCard
-                  key={payment}
+              {options.paymentOptions.map((option) => (
+                <PaymentMethodCard
+                  key={option.method}
+                  option={option}
                   name="paymentMethod"
-                  value={payment}
-                  checked={values.paymentMethod === payment}
-                  onChange={(value) => set('paymentMethod', value as PaymentMethod)}
+                  checked={values.paymentMethod === option.method}
+                  onChange={() => set('paymentMethod', option.method)}
                   invalid={Boolean(errors.paymentMethod)}
-                  disabled={availability === 'unavailable'}
-                  title={t(`paymentMethods.${payment}`)}
-                  aside={
-                    availability === 'live' ? undefined : t(`paymentAvailability.${availability}`)
-                  }
-                  description={t(`paymentDescriptions.${payment}`)}
                 />
               ))}
             </div>
+            {options.paymentMethods.length === 0 && (
+              <Notice className="mt-4" role="status">
+                <p>{t('paymentOffline')}</p>
+                {['localhost', '127.0.0.1'].includes(new URL(siteUrl).hostname) && (
+                  <a
+                    className="mt-2 inline-flex font-semibold text-brand underline"
+                    href={
+                      'https://terantrade.uz' + (locale === 'uz' ? '' : '/' + locale) + '/catalog'
+                    }
+                  >
+                    {t('liveShop')}
+                  </a>
+                )}
+              </Notice>
+            )}
             {errors.paymentMethod ? (
               <FieldError id="payment-method-error">{error('paymentMethod')}</FieldError>
-            ) : null}
-            {options.paymentOptions.some((option) => option.availability === 'demo') ? (
-              <Notice tone="neutral" compact className="mt-3">
-                {t('paymentDemoNote')}
-              </Notice>
             ) : null}
             {values.paymentMethod && isOnlinePaymentMethod(values.paymentMethod) ? (
               <p className="mt-3 text-body-sm text-fg-muted">
@@ -642,7 +670,15 @@ export function CheckoutForm({
           </fieldset>
         </Section>
 
-        <Section step={deliveryEnabled ? 4 : 3} title={t('noteSection')}>
+        <details className="group border-b border-line pb-3" open={errors.note ? true : undefined}>
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-body-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
+            <PencilLine aria-hidden className="size-4" />
+            {t('addNote')}
+            <ChevronDown
+              aria-hidden
+              className="ml-auto size-4 motion-safe:transition-transform group-open:rotate-180"
+            />
+          </summary>
           <TextAreaField
             label={t('note')}
             name="note"
@@ -652,9 +688,9 @@ export function CheckoutForm({
             onChange={(event) => set('note', event.target.value)}
             error={error('note')}
           />
-        </Section>
+        </details>
 
-        <div className="space-y-4 rounded-panel border border-line bg-surface p-5 sm:p-7">
+        <div className="space-y-4 pb-2">
           <CheckboxField
             name="acceptTerms"
             checked={values.acceptTerms}
@@ -673,6 +709,14 @@ export function CheckoutForm({
           ) : apiErrorMessage ? (
             <Notice tone="danger" role="alert">
               {apiErrorMessage}{' '}
+              {apiError && (apiError.status === 0 || apiError.status >= 500) && (
+                <Link
+                  href="/account/orders"
+                  className="font-semibold text-brand underline underline-offset-4"
+                >
+                  {t('myOrders')}
+                </Link>
+              )}
               {apiError?.code === 'FISCAL_DATA_MISSING' ? (
                 <Link href="/contact" className="font-semibold underline underline-offset-2">
                   {t('contact')}
@@ -699,52 +743,39 @@ export function CheckoutForm({
             size="lg"
             disabled={!canSubmit}
             loading={submitting}
-            className="w-full"
+            className="h-auto min-h-13 w-full gap-2 px-4 py-3 whitespace-normal"
           >
-            {submitting ? null : <Lock aria-hidden className="h-4 w-4" />}
             {submitting
               ? t('placing')
               : reviewedTotal
                 ? `${submitLabel} · ${formatMoney(reviewedTotal, locale, currency)}`
                 : submitLabel}
+            {!submitting && <ArrowRight aria-hidden className="size-4 shrink-0" />}
           </Button>
         </div>
       </form>
 
-      <aside
-        aria-labelledby="checkout-summary"
-        className="hidden rounded-panel border border-line bg-surface p-6 shadow-soft lg:sticky lg:top-6 lg:block"
-      >
-        <h2 id="checkout-summary" className="text-display-sm text-fg">
-          {t('summary')}
-        </h2>
-        <div className="mt-4">
+      <aside className="hidden min-w-0 lg:sticky lg:top-6 lg:block">
+        <ReceiptPanel title={t('summary')}>
           <OrderSummary
             cart={cart}
             quote={currentQuote}
             quoteLoading={quoteLoading}
             deliveryEnabled={deliveryEnabled}
           />
-        </div>
+        </ReceiptPanel>
       </aside>
     </div>
   );
 }
 
-/** A numbered step of the form; the number is decoration, the heading names the section. */
-function Section({ step, title, children }: { step: number; title: string; children: ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-panel border border-line bg-surface p-5 sm:p-7">
-      <h2 className="flex items-center gap-3 text-display-sm text-fg">
-        <span
-          aria-hidden
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand font-sans text-helper font-semibold text-fg-inverse"
-        >
-          {step}
-        </span>
+    <section className="border-t border-line pt-5 sm:pt-6">
+      <h2 className="font-heading text-[1.45rem] leading-tight text-fg sm:text-[1.65rem]">
         {title}
       </h2>
-      <div className="mt-5 space-y-5">{children}</div>
+      <div className="mt-4 space-y-4 sm:mt-5">{children}</div>
     </section>
   );
 }

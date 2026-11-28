@@ -21,7 +21,7 @@ const request = {
 };
 
 describe('payment provider adapters', () => {
-  it('in demo mode offers only the simulated provider, linking to the demo page', () => {
+  it('in demo mode offers only the simulated provider, linking to the verified return page', () => {
     const adapters = paymentAdapters(
       config({
         mode: 'demo',
@@ -37,7 +37,7 @@ describe('payment provider adapters', () => {
     );
     expect(Object.keys(adapters)).toEqual(['DEMO']);
     expect(adapters.DEMO?.simulated).toBe(true);
-    expect(adapters.DEMO?.checkoutUrl(request)).toBe('/ru/payments/demo/secret-token');
+    expect(adapters.DEMO?.checkoutUrl(request)).toBe('/ru/payments/return/secret-token');
   });
 
   it('in live mode offers only providers with credentials, with their hosted pages', () => {

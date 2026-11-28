@@ -5,8 +5,8 @@ import { redirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
+import { CheckoutSteps, PaymentShell } from '@/components/payments/payment-ui';
 import { CheckoutForm } from '@/components/checkout/checkout-form';
-import { DemoNotice } from '@/components/ui/demo-notice';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPathname } from '@/i18n/navigation';
@@ -14,7 +14,7 @@ import { currentUser, requireUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { pageMetadata } from '@/lib/seo';
-import { showPrices } from '@/lib/site';
+import { isDemoContent, showPrices } from '@/lib/site';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await rootParams.locale()) as Locale;
@@ -52,9 +52,16 @@ export default async function CheckoutPage() {
   if (!showPrices) redirect(getPathname({ href: '/cart', locale: await getLocale() }));
   const t = await getTranslations('Checkout');
   return (
-    <div className="container-page pt-8 pb-section-sm sm:pt-10">
-      <h1 className="text-display-lg text-fg">{t('title')}</h1>
-      <DemoNotice className="mt-4 max-w-3xl" />
+    <PaymentShell>
+      <CheckoutSteps current="details" />
+      <h1 className="mt-4 font-heading text-[clamp(2.2rem,4vw,3.6rem)] leading-tight tracking-tight text-fg">
+        {t('title')}
+      </h1>
+      {isDemoContent && (
+        <p role="note" className="mt-3 max-w-2xl text-helper text-fg-subtle">
+          {t('demoPrices')}
+        </p>
+      )}
       <Suspense
         fallback={
           <div
@@ -68,6 +75,6 @@ export default async function CheckoutPage() {
       >
         <CheckoutLoader />
       </Suspense>
-    </div>
+    </PaymentShell>
   );
 }

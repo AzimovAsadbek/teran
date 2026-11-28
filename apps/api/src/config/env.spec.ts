@@ -12,7 +12,7 @@ describe('validateEnv', () => {
     expect(env.PORT).toBe(4100);
     expect(env.COOKIE_SECURE).toBe(false);
     expect(env.SMTP_HOST).toBeUndefined();
-    expect(env.PAYMENT_METHODS_ENABLED).toEqual(['CASH_ON_DELIVERY']);
+    expect(env.PAYMENT_METHODS_ENABLED).toEqual(['CLICK']);
   });
 
   it('fails fast with a readable message', () => {
@@ -55,7 +55,7 @@ describe('validateEnv', () => {
     ).toThrow(/REVALIDATE_SECRET/);
   });
 
-  it('keeps simulated payments out of production unless explicitly allowed', () => {
+  it('limits simulated checkout to the isolated test environment', () => {
     const production = {
       ...valid,
       NODE_ENV: 'production',
@@ -65,9 +65,13 @@ describe('validateEnv', () => {
       PAYMENT_PROVIDER_MODE: 'demo',
     };
     expect(() => validateEnv(production)).toThrow(/PAYMENT_PROVIDER_MODE/);
-    expect(validateEnv({ ...production, ALLOW_DEMO_PAYMENTS: 'true' }).PAYMENT_PROVIDER_MODE).toBe(
-      'demo',
+    expect(() => validateEnv({ ...production, ALLOW_DEMO_PAYMENTS: 'true' })).toThrow(
+      /PAYMENT_PROVIDER_MODE/,
     );
+    expect(
+      validateEnv({ ...valid, NODE_ENV: 'test', PAYMENT_PROVIDER_MODE: 'demo' })
+        .PAYMENT_PROVIDER_MODE,
+    ).toBe('demo');
     // Live is the default everywhere.
     expect(validateEnv(valid).PAYMENT_PROVIDER_MODE).toBe('live');
   });

@@ -7,10 +7,12 @@ import type {
   PaymentSessionDto,
   ReorderResultDto,
 } from '@teran/contracts';
-import { CreditCard, RefreshCw, ShoppingBag } from 'lucide-react';
+import { ArrowUpRight, RefreshCw, ShoppingBag } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
-import { ChoiceCard } from '@/components/checkout/choice-card';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { PaymentMethodCard } from '@/components/payments/payment-method-card';
+import { ProviderMark } from '@/components/payments/payment-ui';
+import { formatMoney } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
 import { cartActions } from '@/features/cart/cart-store';
@@ -29,6 +31,7 @@ export function PayOrder({
   token,
   options,
   current,
+  amount,
 }: {
   number: string;
   /** Guest order link secret; signed-in owners do not need it. */
@@ -36,10 +39,15 @@ export function PayOrder({
   /** Online methods that can be used now (live or demo). */
   options: PaymentOptionDto[];
   current: OnlinePaymentMethod | null;
+  amount: string;
 }) {
   const t = useTranslations('Checkout');
   const locale = useLocale() as Locale;
-  const [method, setMethod] = useState<string>(
+  const currency = useTranslations('Common')('currency.UZS');
+  const router = useRouter();
+  const sending = useRef(false);
+  const [choose, setChoose] = useState(false);
+  const [method, setMethod] = useState(
     current && options.some((option) => option.method === current)
       ? current
       : (options[0]?.method ?? ''),
@@ -47,70 +55,118 @@ export function PayOrder({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const errorMessage = useApiErrorMessage(error);
+  const chosen = options.find((option) => option.method === method) ?? options[0];
+
+  // A browser Back gesture can restore this exact pre-provider history entry, including its
+  // busy button. Reopen the verified order before offering another attempt.
+  useEffect(() => {
+    function restoreOrder() {
+      if (window.history.state?.teranPaymentOpened !== number) return;
+      const state = { ...window.history.state };
+      delete state.teranPaymentOpened;
+      window.history.replaceState(state, '');
+      router.replace(
+        token
+          ? `/orders/${number}?token=${encodeURIComponent(token)}`
+          : `/account/orders/${number}`,
+      );
+    }
+    restoreOrder();
+    window.addEventListener('pageshow', restoreOrder);
+    return () => window.removeEventListener('pageshow', restoreOrder);
+  }, [number, token, router]);
 
   async function pay() {
-    if (!method || pending) return;
+    if (!chosen || sending.current) return;
+    sending.current = true;
     setPending(true);
     setError(null);
     try {
       const session = await apiRequest<PaymentSessionDto>(`/orders/${number}/payments`, {
         method: 'POST',
-        body: { method, locale, ...(token ? { token } : {}) },
+        body: { method: chosen.method, locale, ...(token ? { token } : {}) },
       });
       if (session.redirectUrl) {
+        window.history.replaceState({ ...window.history.state, teranPaymentOpened: number }, '');
         window.location.assign(session.redirectUrl);
         return;
       }
-      window.location.reload();
+      sending.current = false;
+      setPending(false);
+      router.refresh();
     } catch (caught) {
+      sending.current = false;
       setError(caught instanceof ApiError ? caught : new ApiError(0, null));
       setPending(false);
+      if (caught instanceof ApiError && caught.status === 409) router.refresh();
     }
   }
 
-  if (options.length === 0) return null;
-  const chosen = options.find((option) => option.method === method);
+  if (!chosen) return <Notice tone="warning">{t('noPayments')}</Notice>;
   return (
-    <div className="space-y-3">
-      {options.length > 1 ? (
-        <fieldset className="space-y-2.5">
-          <legend className="mb-2 text-label text-fg">{t('paymentSection')}</legend>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ProviderMark method={chosen.method} name={t(`paymentMethods.${chosen.method}`)} />
+        {options.length > 1 && (
+          <button
+            type="button"
+            aria-expanded={choose}
+            disabled={pending}
+            onClick={() => setChoose(!choose)}
+            className="min-h-11 text-body-sm font-semibold text-brand underline underline-offset-4"
+          >
+            {t('changeMethod')}
+          </button>
+        )}
+      </div>
+      {choose && (
+        <fieldset className="space-y-2" disabled={pending}>
+          <legend className="mb-2 text-label">{t('paymentSection')}</legend>
           {options.map((option) => (
-            <ChoiceCard
+            <PaymentMethodCard
               key={option.method}
+              option={option}
               name="payMethod"
-              value={option.method}
-              checked={method === option.method}
-              onChange={setMethod}
-              title={t(`paymentMethods.${option.method}`)}
-              aside={option.availability === 'demo' ? t('paymentAvailability.demo') : undefined}
-              description={t(`paymentDescriptions.${option.method}`)}
+              checked={chosen.method === option.method}
+              onChange={() => setMethod(option.method)}
             />
           ))}
         </fieldset>
-      ) : null}
-      {errorMessage ? (
+      )}
+      {chosen.availability === 'demo' && (
+        <p className="text-helper font-semibold text-warning">{t('paymentDemoNote')}</p>
+      )}
+      {errorMessage && (
         <Notice tone="danger" role="alert">
           {errorMessage}
         </Notice>
-      ) : null}
-      <Button size="lg" onClick={() => void pay()} loading={pending} disabled={!method}>
-        {pending ? null : <CreditCard aria-hidden className="h-4 w-4" />}
+      )}
+      <Button
+        size="lg"
+        className="h-auto min-h-13 w-full gap-2 px-4 py-3 whitespace-normal"
+        onClick={() => void pay()}
+        loading={pending}
+      >
         {pending
           ? t('redirectingToPayment')
-          : t('payWith', { method: chosen ? t(`paymentMethods.${chosen.method}`) : '' })}
+          : t('payAmount', {
+              method: t(`paymentMethods.${chosen.method}`),
+              amount: formatMoney(amount, locale, currency),
+            })}
+        {!pending && <ArrowUpRight aria-hidden className="size-4 shrink-0" />}
       </Button>
     </div>
   );
 }
 
-/** Reloads the order (the provider's confirmation may have arrived meanwhile). */
+/** Refreshes the server-rendered order. The bounded schedule also covers a delayed callback. */
 export function CheckAgain() {
   const t = useTranslations('Checkout');
   const router = useRouter();
+  const [checking, startTransition] = useTransition();
   useEffect(() => {
     const refreshVisible = () => {
-      if (document.visibilityState === 'visible') router.refresh();
+      if (document.visibilityState === 'visible') startTransition(() => router.refresh());
     };
     const timers = [3000, 7500, 15000, 30000].map((delay) =>
       window.setTimeout(refreshVisible, delay),
@@ -122,9 +178,13 @@ export function CheckAgain() {
     };
   }, [router]);
   return (
-    <Button variant="secondary" size="sm" onClick={() => router.refresh()}>
-      <RefreshCw aria-hidden className="h-4 w-4" />
-      {t('checkAgain')}
+    <Button
+      variant="secondary"
+      onClick={() => startTransition(() => router.refresh())}
+      loading={checking}
+    >
+      {!checking && <RefreshCw aria-hidden className="size-4" />}
+      {t(checking ? 'checkingStatus' : 'checkAgain')}
     </Button>
   );
 }

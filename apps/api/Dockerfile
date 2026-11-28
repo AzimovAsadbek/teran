@@ -74,6 +74,7 @@ COPY --from=build /repo/packages/contracts/package.json ./packages/contracts/
 COPY --from=build /repo/packages/contracts/dist ./packages/contracts/dist
 COPY --from=build /repo/apps/api/package.json ./apps/api/
 COPY --from=build /repo/apps/api/dist ./apps/api/dist
+COPY --from=build /repo/apps/api/scripts/auth-telegram.ts ./apps/api/scripts/auth-telegram.ts
 # Package managers are not needed at runtime. Uploaded images and films are the only files the
 # server writes (films are made ready in /data/uploads/.processing); mount a persistent volume at
 # /data/uploads.

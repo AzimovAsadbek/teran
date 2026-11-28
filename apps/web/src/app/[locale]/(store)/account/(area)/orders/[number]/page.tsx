@@ -1,4 +1,4 @@
-import type { Locale, OrderDto } from '@teran/contracts';
+import { isOnlinePaymentMethod, type Locale, type OrderDto } from '@teran/contracts';
 import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -53,6 +53,10 @@ async function AccountOrder({
     );
   }
   if (!order) notFound();
+  const justPlaced =
+    query.placed === '1' &&
+    !isOnlinePaymentMethod(order.paymentMethod) &&
+    order.status === 'PENDING';
 
   return (
     <div className="space-y-6">
@@ -65,14 +69,12 @@ async function AccountOrder({
       </Link>
       <div>
         <p className="text-eyebrow text-accent-fg">
-          {query.placed === '1' ? t('orderTitle', { number: order.number }) : t('statusTitle')}
+          {justPlaced ? t('orderTitle', { number: order.number }) : t('statusTitle')}
         </p>
         <h1 className="text-display-lg mt-2 text-fg">
-          {query.placed === '1' ? t('thankYou') : t('orderTitle', { number: order.number })}
+          {justPlaced ? t('thankYou') : t('orderTitle', { number: order.number })}
         </h1>
-        {query.placed === '1' ? (
-          <p className="mt-3 text-body text-fg-muted">{t('orderPlacedText')}</p>
-        ) : null}
+        {justPlaced ? <p className="mt-3 text-body text-fg-muted">{t('orderPlacedText')}</p> : null}
       </div>
       {/* Paying again, checking again and ordering again read the checkout's texts. */}
       <ClientMessages pick={['Checkout']}>

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
+import { IdentityForm } from '@/components/account/identity-form';
 import { LoginForm } from '@/components/account/auth-forms';
 import { AuthTeaPanel } from '@/components/account/auth-tea-panel';
 import { ButtonLink } from '@/components/ui/button';
@@ -28,7 +29,7 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
   ]);
   const next = safeNextPath(query.next);
   const [user, features] = await Promise.all([currentUser(), getAuthFeatures().catch(() => null)]);
-  if (user) redirect(getPathname({ href: next, locale }));
+  if (user && query.reauth !== '1') redirect(getPathname({ href: next, locale }));
 
   const registerHref =
     next === '/account'
@@ -58,10 +59,19 @@ async function Login({ searchParams }: Pick<PageProps<'/[locale]/account/login'>
         ) : undefined
       }
     >
-      <LoginForm
-        next={next}
-        forgotPasswordHref={features?.passwordReset ? '/account/forgot-password' : null}
-      />
+      {staff ? (
+        <LoginForm
+          next={next}
+          forgotPasswordHref={features?.passwordReset ? '/account/forgot-password' : null}
+        />
+      ) : (
+        <IdentityForm
+          mode="login"
+          next={next}
+          features={features}
+          callbackError={typeof query.authError === 'string' ? query.authError : undefined}
+        />
+      )}
     </AuthCard>
   );
 }

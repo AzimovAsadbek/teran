@@ -56,6 +56,9 @@ export class MaintenanceService implements OnApplicationBootstrap, OnModuleDestr
       this.prisma.passwordResetToken.deleteMany({
         where: { OR: [{ usedAt: { not: null } }, { expiresAt: { lte: now } }] },
       }),
+      this.prisma.authChallenge.deleteMany({
+        where: { expiresAt: { lt: new Date(now.getTime() - 3600_000) } },
+      }),
     ]);
     const result = {
       sessions: sessions.count,

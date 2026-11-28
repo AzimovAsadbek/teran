@@ -7,6 +7,7 @@ import * as rootParams from 'next/root-params';
 import { connection } from 'next/server';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
+import { PaymentBadge, ProviderMark } from '@/components/payments/payment-ui';
 import { ButtonLink, buttonClasses } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -77,8 +78,9 @@ async function Trial({ searchParams }: Pick<PageProps<'/[locale]/payme-sinov'>, 
   const next = returnToken ? PAYME_TRIAL_PATH + '?receipt=' + returnToken : PAYME_TRIAL_PATH;
   return (
     <section className="container-page py-section-sm">
-      <div className="max-w-xl">
-        <h1 className="text-display-md text-fg">{t('title')}</h1>
+      <div className="mx-auto max-w-2xl rounded-card border border-line border-t-[3px] border-t-brand bg-surface p-5 shadow-soft sm:p-9">
+        <ProviderMark method="PAYME" name={orderText('paymentMethods.PAYME')} />
+        <h1 className="mt-5 font-heading text-[2rem] leading-tight text-fg">{t('title')}</h1>
         <p className="mt-4 text-body-lg text-fg-muted">{t('intro')}</p>
         {retry || (user && token && !receipt) ? (
           <Notice className="mt-5" tone="warning" role="alert">
@@ -88,7 +90,12 @@ async function Trial({ searchParams }: Pick<PageProps<'/[locale]/payme-sinov'>, 
         {receipt ? (
           <div className="mt-6 rounded-panel border border-line p-5" role="status">
             <p className="font-semibold">{t('order', { number: receipt.orderNumber })}</p>
-            <p className="mt-1">{orderText(`paymentStatuses.${receipt.paymentStatus}`)}</p>
+            <div className="mt-2">
+              <PaymentBadge
+                status={receipt.paymentStatus}
+                label={orderText(`paymentStatuses.${receipt.paymentStatus}`)}
+              />
+            </div>
             <a
               href={path + '?receipt=' + encodeURIComponent(token!)}
               className="mt-3 inline-block text-brand underline"

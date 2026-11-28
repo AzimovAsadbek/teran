@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { showDelivery } from '@/lib/site';
 import { CurrentYear } from './site-footer';
 
-/** Checkout header: back to the bag on the left, the wordmark in the centre, nothing else. */
+/** The shop link remains useful after the order has emptied the bag. */
 export async function CheckoutHeader() {
   const t = await getTranslations('Checkout');
   const tc = await getTranslations('Common');
@@ -13,19 +13,19 @@ export async function CheckoutHeader() {
     <header className="border-b border-line-subtle bg-canvas">
       <div className="container-page grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3 xl:h-[4.75rem]">
         <Link
-          href="/cart"
-          className="-ml-2 inline-flex h-11 items-center gap-2 justify-self-start rounded-control px-2 text-body-sm font-semibold text-brand transition-colors hover:bg-brand/[0.06]"
+          href="/catalog"
+          className="-ml-2 inline-flex h-11 min-w-11 items-center gap-2 justify-self-start rounded-control px-2 text-body-sm font-semibold text-brand transition-colors hover:bg-brand/[0.06]"
         >
           <ArrowLeft aria-hidden className="h-4 w-4" />
-          <span className="hidden sm:inline">{t('editCart')}</span>
-          <span className="sr-only sm:hidden">{t('editCart')}</span>
+          <span className="hidden sm:inline">{t('continueShopping')}</span>
+          <span className="sr-only sm:hidden">{t('continueShopping')}</span>
         </Link>
         <Link
           href="/"
           aria-label={`TERAN — ${tc('home')}`}
           className="flex justify-center rounded-control py-1"
         >
-          <Wordmark eager />
+          <Wordmark eager size="compact" />
         </Link>
         <span aria-hidden />
       </div>

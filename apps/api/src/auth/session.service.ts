@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import type { Env } from '../config/env.js';
 import { clearCookieOptions, cookieName, cookieOptions } from '../common/cookies.js';
 import { generateToken, sha256 } from '../common/crypto.js';
+import { ApiException } from '../common/errors/api-exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { RequestAuth } from './auth.types.js';
 
@@ -57,14 +58,17 @@ export class SessionService {
     const token: unknown = request.cookies?.[this.cookie];
     if (typeof token !== 'string' || token.length < 20 || token.length > 200) return null;
 
-    const session = await this.prisma.session.findUnique({
-      where: { tokenHash: sha256(token) },
+    const hash = sha256(token);
+    const session = await this.prisma.session.findFirst({
+      where: {
+        OR: [{ tokenHash: hash }, { previousTokenHash: hash, previousUntil: { gt: new Date() } }],
+      },
       include: { user: true },
     });
     if (!session || session.expiresAt <= new Date() || !session.user.isActive) return null;
 
     if (Date.now() - session.lastSeenAt.getTime() > TOUCH_INTERVAL_MS) {
-      await this.prisma.session.update({
+      await this.prisma.session.updateMany({
         where: { id: session.id },
         data: { lastSeenAt: new Date() },
       });
@@ -75,12 +79,40 @@ export class SessionService {
       userId: user.id,
       sessionId: session.id,
       role: user.role,
-      email: user.email,
+      email: user.email ?? user.contactEmail ?? '',
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
       locale: user.locale,
     };
+  }
+
+  /** Swap the current opaque credential, keeping the absolute expiry and a short interval for requests already in flight. */
+  async rotate(request: Request, response: Response) {
+    const raw: unknown = request.cookies?.[this.cookie];
+    if (typeof raw !== 'string' || !request.auth) throw ApiException.unauthenticated();
+    const hash = sha256(raw),
+      now = new Date();
+    const row = await this.prisma.session.findFirst({
+      where: { id: request.auth.sessionId, tokenHash: hash, expiresAt: { gt: now } },
+    });
+    if (!row) throw ApiException.conflict('CONFLICT', 'Session already refreshed');
+    const fresh = generateToken();
+    const changed = await this.prisma.session.updateMany({
+      where: { id: row.id, tokenHash: hash, expiresAt: { gt: now } },
+      data: {
+        tokenHash: sha256(fresh),
+        previousTokenHash: hash,
+        previousUntil: new Date(now.getTime() + 10_000),
+        lastSeenAt: now,
+      },
+    });
+    if (!changed.count) throw ApiException.conflict('CONFLICT', 'Session already refreshed');
+    response.cookie(
+      this.cookie,
+      fresh,
+      cookieOptions(this.secure, row.expiresAt.getTime() - now.getTime()),
+    );
   }
 
   /** The request presents a session cookie (valid or not). */

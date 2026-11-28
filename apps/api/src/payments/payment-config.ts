@@ -49,7 +49,7 @@ export class PaymentConfig {
     const deliveryEnabled = config.get('CHECKOUT_DELIVERY_ENABLED', { infer: true });
     this.enabled = config
       .get('PAYMENT_METHODS_ENABLED', { infer: true })
-      .filter((method) => deliveryEnabled || method !== 'CASH_ON_DELIVERY');
+      .filter((method) => method !== 'CARD' && (method !== 'CASH_ON_DELIVERY' || deliveryEnabled));
     this.webOrigin = config.get('WEB_ORIGIN', { infer: true });
 
     const paymeId = config.get('PAYME_MERCHANT_ID', { infer: true });
@@ -112,7 +112,12 @@ export class PaymentConfig {
 
   /** Every method the store presents, in the configured order, with how it can be used. */
   options(): PaymentOptionDto[] {
-    return this.enabled.map((method) => {
+    const displayed = new Set(this.enabled);
+    if (displayed.has('CLICK') || displayed.has('PAYME')) {
+      displayed.add('CLICK');
+      displayed.add('PAYME');
+    }
+    return [...displayed].map((method) => {
       const provider = this.providerFor(method);
       return {
         method,

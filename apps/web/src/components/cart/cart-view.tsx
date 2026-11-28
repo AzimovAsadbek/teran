@@ -3,6 +3,7 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
+import { ReceiptPanel } from '@/components/payments/receipt';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Notice } from '@/components/ui/notice';
 import { Price } from '@/components/ui/price';
@@ -70,13 +71,10 @@ export function CartView() {
         </section>
 
         <aside
-          aria-labelledby="cart-summary"
+          aria-label={t('summary')}
           className="space-y-4 lg:sticky lg:top-24 lg:col-span-5 xl:col-span-4"
         >
-          <div className="rounded-panel border border-line bg-surface p-6 shadow-soft">
-            <h2 id="cart-summary" className="text-display-sm text-fg">
-              {t('summary')}
-            </h2>
+          <ReceiptPanel title={t('summary')}>
             <p className="mt-1 text-body-sm text-fg-subtle">
               {t('itemCount', { count: cart.itemCount })}
             </p>
@@ -111,7 +109,7 @@ export function CartView() {
               {t('checkout')}
               <ArrowRight aria-hidden className="h-4 w-4" />
             </ButtonLink>
-          </div>
+          </ReceiptPanel>
 
           <FreeDeliveryProgress cart={cart} />
 

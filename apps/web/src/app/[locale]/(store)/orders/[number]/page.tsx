@@ -1,4 +1,4 @@
-import type { Locale, OrderDto } from '@teran/contracts';
+import { isOnlinePaymentMethod, type Locale, type OrderDto } from '@teran/contracts';
 import { CircleCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -56,7 +56,10 @@ async function OrderView({
     );
   }
 
-  const justPlaced = query.placed === '1';
+  const justPlaced =
+    query.placed === '1' &&
+    !isOnlinePaymentMethod(order.paymentMethod) &&
+    order.status === 'PENDING';
   return (
     <div className="space-y-8">
       {justPlaced ? (

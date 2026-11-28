@@ -1,3 +1,4 @@
+import { captureVerificationMail, registerShopper, registration } from './helpers/verification.js';
 import request from 'supertest';
 import { currentUserSchema } from '@teran/contracts';
 import { createTestApp, type TestApp } from './helpers/app.js';
@@ -17,6 +18,7 @@ describe('authentication and HTTP security', () => {
   });
 
   beforeEach(async () => {
+    vi.restoreAllMocks();
     await resetDatabase(ctx.prisma);
   });
 
@@ -24,16 +26,8 @@ describe('authentication and HTTP security', () => {
 
   it('registers, keeps the session in an HttpOnly cookie and signs out', async () => {
     const user = agent();
-    const registered = await user
-      .post(`${API}/auth/register`)
-      .send({
-        email: '  New.Customer@Example.com ',
-        password: 'a-strong-password',
-        firstName: 'Aziza',
-        locale: 'ru',
-      })
-      .expect(201);
-    expect(currentUserSchema.parse(registered.body)).toMatchObject({
+    const registered = await registerShopper(ctx, user, '  New.Customer@Example.com ');
+    expect(currentUserSchema.parse((await user.get(API + '/auth/me')).body)).toMatchObject({
       email: 'new.customer@example.com',
       role: 'CUSTOMER',
     });
@@ -44,26 +38,34 @@ describe('authentication and HTTP security', () => {
     const stored = await ctx.prisma.user.findUniqueOrThrow({
       where: { email: 'new.customer@example.com' },
     });
-    expect(stored.passwordHash).toMatch(/^\$argon2id\$/);
+    expect(stored.passwordHash).toBeNull();
+    expect(stored.emailVerifiedAt).toBeInstanceOf(Date);
 
     await user.get(`${API}/auth/me`).expect(200);
     await user.post(`${API}/auth/logout`).expect(204);
     await user.get(`${API}/auth/me`).expect(401);
   });
 
-  it('rejects duplicate registrations and weak passwords', async () => {
+  it('requires a verified email and a complete customer profile', async () => {
     await createUser(ctx.prisma, 'CUSTOMER', 'taken@example.com');
-    const duplicate = await agent()
-      .post(`${API}/auth/register`)
-      .send({ email: 'taken@example.com', password: 'a-strong-password', firstName: 'X' })
+    const mail = captureVerificationMail(ctx),
+      browser = agent();
+    const challenge = await browser
+      .post(API + '/auth/verification/start')
+      .send(registration('taken@example.com'))
+      .expect(202);
+    await browser
+      .post(API + '/auth/verification/confirm')
+      .send({ id: challenge.body.id, code: mail.codeFor('taken@example.com') })
       .expect(409);
-    expect(duplicate.body.code).toBe('EMAIL_TAKEN');
-
-    const weak = await agent()
-      .post(`${API}/auth/register`)
-      .send({ email: 'weak@example.com', password: 'short', firstName: 'X' })
+    await browser
+      .post(API + '/auth/verification/start')
+      .send({ ...registration('missing@example.com'), profile: { firstName: 'X' } })
       .expect(400);
-    expect(weak.body.issues[0]).toMatchObject({ path: 'password', message: 'password_too_short' });
+    await browser
+      .post(API + '/auth/register')
+      .send({ email: 'test@example.com' })
+      .expect(404);
   });
 
   it('gives the same error for unknown e-mails and wrong passwords', async () => {
@@ -97,8 +99,16 @@ describe('authentication and HTTP security', () => {
 
   it('hides password reset when e-mail is not configured, and never reveals accounts', async () => {
     const features = await agent().get(`${API}/auth/features`).expect(200);
-    // The test environment uses the log transport, so the flow is available here.
-    expect(features.body).toEqual({ passwordReset: true, registration: true });
+    expect(features.body).toMatchObject({
+      passwordReset: false,
+      registration: false,
+      emailOtp: false,
+    });
+    await agent()
+      .post(API + '/auth/password/forgot')
+      .send({ email: 'nobody@example.com' })
+      .expect(503);
+    captureVerificationMail(ctx);
     const response = await agent()
       .post(`${API}/auth/password/forgot`)
       .send({ email: 'nobody@example.com' })
@@ -107,6 +117,7 @@ describe('authentication and HTTP security', () => {
   });
 
   it('issues a reset token for an existing account only after answering', async () => {
+    captureVerificationMail(ctx);
     const user = await createUser(ctx.prisma, 'CUSTOMER', 'forgot@example.com');
     const response = await agent()
       .post(`${API}/auth/password/forgot`)

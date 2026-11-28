@@ -10,6 +10,8 @@ import { Check, CircleX } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { ProductImage } from '@/components/catalog/product-image';
+import { ReceiptTotals } from '@/components/payments/receipt';
+import { PaymentBadge } from '@/components/payments/payment-ui';
 import { Price } from '@/components/ui/price';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
@@ -71,7 +73,7 @@ export async function OrderProgress({
               )}
             >
               {done ? <Check aria-hidden className="hidden h-3.5 w-3.5 shrink-0 sm:block" /> : null}
-              <span className="truncate">{t(`statuses.${step}`)}</span>
+              <span className="break-words [overflow-wrap:anywhere]">{t(`statuses.${step}`)}</span>
             </span>
           </li>
         );
@@ -93,7 +95,7 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
     .join(', ');
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-start">
       <section
         aria-labelledby="order-items"
         className="rounded-panel border border-line bg-surface p-5 sm:p-7"
@@ -134,42 +136,23 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
             </li>
           ))}
         </ul>
-        <dl className="mt-2 space-y-2 border-t border-line pt-4 text-body-sm">
-          <div className="flex justify-between gap-4">
-            <dt className="text-fg-muted">{t('subtotal')}</dt>
-            <dd>
-              <Price amount={order.subtotal} />
-            </dd>
-          </div>
-          {order.deliveryMethodName && (
-            <div className="flex justify-between gap-4">
-              <dt className="text-fg-muted">
-                {t('delivery')} · {order.deliveryMethodName}
-              </dt>
-              <dd>
-                {Number(order.deliveryFee) === 0 ? (
-                  <span className="font-semibold text-success">{t('free')}</span>
-                ) : (
-                  <Price amount={order.deliveryFee} />
-                )}
-              </dd>
-            </div>
-          )}
-          {Number(order.discountTotal) > 0 ? (
-            <div className="flex justify-between gap-4">
-              <dt className="text-fg-muted">{t('discount')}</dt>
-              <dd>
-                <Price amount={order.discountTotal} />
-              </dd>
-            </div>
-          ) : null}
-          <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
-            <dt className="text-title text-fg">{t('total')}</dt>
-            <dd>
-              <Price amount={order.total} className="text-title-lg" />
-            </dd>
-          </div>
-        </dl>
+        <ReceiptTotals
+          subtotal={order.subtotal}
+          total={order.total}
+          discount={order.discountTotal}
+          deliveryLabel={
+            order.deliveryMethodName ? `${t('delivery')} · ${order.deliveryMethodName}` : undefined
+          }
+          delivery={
+            order.deliveryMethodName ? (
+              Number(order.deliveryFee) === 0 ? (
+                t('free')
+              ) : (
+                <Price amount={order.deliveryFee} />
+              )
+            ) : undefined
+          }
+        />
       </section>
 
       <aside className="space-y-4">
@@ -189,8 +172,11 @@ export async function OrderDetails({ order, locale }: { order: OrderDto; locale:
         </InfoCard>
         <InfoCard title={t('payment')}>
           {t(`paymentMethods.${order.paymentMethod}`)}
-          <span className="block text-fg-subtle">
-            {t(`paymentStatuses.${order.paymentStatus}`)}
+          <span className="mt-1 block">
+            <PaymentBadge
+              status={order.paymentStatus}
+              label={t(`paymentStatuses.${order.paymentStatus}`)}
+            />
           </span>
           {order.payments.length > 1 ||
           order.payments.some((payment) => payment.demo || payment.receipts?.length) ? (

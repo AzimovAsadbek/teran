@@ -5,7 +5,10 @@ import type { CookieOptions } from 'express';
  * when the cookie is Secure, has Path=/ and no Domain — so it cannot be set or shadowed by
  * another subdomain. Plain names are used for local HTTP development.
  */
-export function cookieName(base: 'teran_session' | 'teran_cart', secure: boolean): string {
+export function cookieName(
+  base: 'teran_session' | 'teran_cart' | 'teran_auth_flow',
+  secure: boolean,
+): string {
   return secure ? `__Host-${base}` : base;
 }
 

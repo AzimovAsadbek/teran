@@ -1,13 +1,8 @@
-import type {
-  AccountOrderListItem,
-  Locale,
-  OrderDto,
-  OrderStatus,
-  PaymentStatus,
-} from '@teran/contracts';
+import type { AccountOrderListItem, Locale, OrderDto, OrderStatus } from '@teran/contracts';
 import { ChevronRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { PaymentBadge } from '@/components/payments/payment-ui';
 import { Price } from '@/components/ui/price';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
@@ -20,14 +15,6 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, string> = {
   SHIPPED: 'bg-success-soft text-success',
   DELIVERED: 'bg-surface-inverse text-fg-inverse',
   CANCELLED: 'bg-surface-sunken text-fg-muted',
-};
-
-const PAYMENT_TONE: Partial<Record<PaymentStatus, string>> = {
-  PAID: 'text-success',
-  FAILED: 'text-danger',
-  EXPIRED: 'text-danger',
-  REQUIRES_ACTION: 'text-warning',
-  PROCESSING: 'text-warning',
 };
 
 export function AccountPageHeader({
@@ -84,15 +71,18 @@ export async function OrderRow({ order, locale }: { order: ListOrder; locale: Lo
   return (
     <Link
       href={`/account/orders/${order.number}`}
-      className="group -mx-3 flex items-center gap-4 rounded-control px-3 py-4 transition-colors hover:bg-surface-muted/70"
+      className="group -mx-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control px-3 py-4 transition-colors hover:bg-surface-muted/70"
     >
       <span className="min-w-0 flex-1">
         <span className="block text-title-sm text-fg">{order.number}</span>
         <span className="block text-body-sm text-fg-subtle">
           {formatDate(order.createdAt, locale)} · {t('itemCount', { count: order.itemCount })}
         </span>
-        <span className={cn('block text-caption font-semibold', PAYMENT_TONE[order.paymentStatus])}>
-          {tc(`paymentStatuses.${order.paymentStatus}`)}
+        <span className="mt-1 block">
+          <PaymentBadge
+            status={order.paymentStatus}
+            label={tc(`paymentStatuses.${order.paymentStatus}`)}
+          />
         </span>
       </span>
       <span

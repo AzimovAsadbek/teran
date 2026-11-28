@@ -19,6 +19,7 @@ import { CartService } from '../cart/cart.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { passwordResetEmail } from '../mail/templates.js';
 import { hashPassword, timingSafeDummyHash, verifyPassword } from './password.js';
+import { IdentityProviders } from './identity-providers.js';
 import { SessionService } from './session.service.js';
 
 const LOCK_THRESHOLD = 5;
@@ -28,7 +29,7 @@ const RESET_TOKEN_MINUTES = 60;
 export function toCurrentUser(user: User): CurrentUserDto {
   return {
     id: user.id,
-    email: user.email,
+    email: user.email ?? user.contactEmail ?? '',
     role: user.role,
     firstName: user.firstName,
     lastName: user.lastName,
@@ -61,48 +62,28 @@ export class AuthService {
     private readonly cart: CartService,
     private readonly mail: MailService,
     private readonly audit: AuditService,
+    private readonly providers: IdentityProviders,
   ) {}
 
   features(): AuthFeaturesDto {
-    return { passwordReset: this.mail.isEnabled, registration: true };
+    return {
+      passwordReset: this.mail.canDeliverCodes,
+      registration: this.mail.canDeliverCodes || this.providers.google || this.providers.telegram,
+      emailOtp: this.mail.canDeliverCodes,
+      google: this.providers.google,
+      telegram: this.providers.telegram,
+    };
   }
 
-  async register(
-    request: Request,
-    response: Response,
-    input: {
-      email: string;
-      password: string;
-      firstName: string;
-      lastName?: string;
-      phone?: string;
-      locale: Locale;
-    },
-  ): Promise<CurrentUserDto> {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: input.email },
-      select: { id: true },
-    });
-    if (existing) {
-      throw ApiException.conflict('EMAIL_TAKEN', 'An account with this e-mail already exists');
-    }
-    const user = await this.prisma.user.create({
-      data: {
-        email: input.email,
-        passwordHash: await hashPassword(input.password),
-        firstName: input.firstName,
-        lastName: input.lastName ?? null,
-        phone: input.phone ?? null,
-        locale: input.locale,
-        role: 'CUSTOMER',
-      },
-    });
-    // A browser that was signed in to another account starts clean, as on login.
-    if (request.auth) {
-      await this.sessions.destroy(request.auth.sessionId, response);
-    }
+  async signInVerified(request: Request, response: Response, user: User) {
+    if (!user.isActive || user.role !== 'CUSTOMER') throw invalidCredentials();
+    if (request.auth) await this.sessions.destroy(request.auth.sessionId, response);
+    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await this.startSession(request, response, user);
-    return toCurrentUser(user);
+  }
+
+  refresh(request: Request, response: Response) {
+    return this.sessions.rotate(request, response);
   }
 
   async login(request: Request, response: Response, input: LoginInput): Promise<CurrentUserDto> {
@@ -168,12 +149,19 @@ export class AuthService {
     userId: string,
     input: { firstName: string; lastName?: string; phone?: string; locale: Locale },
   ): Promise<CurrentUserDto> {
+    const existing = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { phone: true },
+    });
+    if (input.phone !== undefined && input.phone !== existing.phone)
+      throw ApiException.badRequest('VALIDATION_FAILED', 'Verify the new phone number first', {
+        reason: 'verification_required',
+      });
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
         firstName: input.firstName,
         lastName: input.lastName ?? null,
-        phone: input.phone ?? null,
         locale: input.locale,
       },
     });
@@ -200,7 +188,7 @@ export class AuthService {
   }
 
   async requestPasswordReset(email: string, locale: Locale): Promise<void> {
-    if (!this.mail.isEnabled) {
+    if (!this.mail.canDeliverCodes) {
       throw new ApiException(
         HttpStatus.SERVICE_UNAVAILABLE,
         'FEATURE_DISABLED',
@@ -214,7 +202,7 @@ export class AuthService {
     // Same response, and the same response time, whether or not the account exists: the token
     // and the e-mail are produced after the response has been sent.
     if (!user || !user.isActive) return;
-    void this.issuePasswordReset(user, locale);
+    void this.issuePasswordReset({ id: user.id, email }, locale);
   }
 
   private async issuePasswordReset(

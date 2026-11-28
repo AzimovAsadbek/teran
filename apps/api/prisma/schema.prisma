@@ -196,8 +196,11 @@ enum ReviewStatus {
 model User {
   id               String    @id @default(uuid(7)) @db.Uuid
   /// Always stored trimmed and lower-cased.
-  email            String    @unique
-  passwordHash     String
+  email            String?   @unique
+  contactEmail     String?
+  emailVerifiedAt  DateTime?
+  phoneVerifiedAt  DateTime?
+  passwordHash     String?
   role             UserRole  @default(CUSTOMER)
   firstName        String
   lastName         String?
@@ -211,6 +214,8 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  identities          AuthIdentity[]
+  authChallenges      AuthChallenge[]
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
   carts               Cart[]
@@ -248,18 +253,79 @@ model CustomerAddress {
 }
 
 model Session {
-  id         String   @id @default(uuid(7)) @db.Uuid
+  id                String    @id @default(uuid(7)) @db.Uuid
   /// SHA-256 of the opaque session token; the raw token only ever lives in the HttpOnly cookie.
-  tokenHash  String   @unique
-  userId     String   @db.Uuid
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt  DateTime
-  lastSeenAt DateTime @default(now())
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
+  tokenHash         String    @unique
+  userId            String    @db.Uuid
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt         DateTime
+  lastSeenAt        DateTime  @default(now())
+  ipAddress         String?
+  userAgent         String?
+  previousTokenHash String?   @unique
+  previousUntil     DateTime?
+  createdAt         DateTime  @default(now())
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+enum IdentityProvider {
+  GOOGLE
+  TELEGRAM
+}
+
+enum VerificationChannel {
+  EMAIL
+  TELEGRAM
+  GOOGLE
+}
+
+enum VerificationPurpose {
+  LOGIN
+  REGISTER
+  LINK
+  EMAIL_CHANGE
+  PHONE_CHANGE
+}
+
+model AuthIdentity {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  IdentityProvider
+  subject   String
+  createdAt DateTime         @default(now())
+
+  @@unique([provider, subject])
+  @@unique([userId, provider])
+}
+
+model AuthChallenge {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  channel     VerificationChannel
+  purpose     VerificationPurpose
+  browserHash String
+  scope       String
+  userId      String?             @db.Uuid
+  user        User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String?             @db.Uuid
+  email       String?
+  firstName   String?
+  lastName    String?
+  phone       String?
+  locale      Locale              @default(uz)
+  nextPath    String              @default("/account")
+  linkHash    String?             @unique
+  subject     String?
+  codeHash    String?
+  attempts    Int                 @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime            @default(now())
+
+  @@index([scope, createdAt])
+  @@index([channel, subject, createdAt])
   @@index([expiresAt])
 }
 

@@ -557,14 +557,8 @@ validate_env() {
 
   case "$(env_value PAYMENT_PROVIDER_MODE)" in
     '' | live) ;;
-    demo)
-      if [ "$(env_value ALLOW_DEMO_PAYMENTS)" != "true" ]; then
-        fail "PAYMENT_PROVIDER_MODE=demo production'da faqat ALLOW_DEMO_PAYMENTS=true bilan ishlaydi."
-        problems=$((problems + 1))
-      fi
-      ;;
     *)
-      fail "PAYMENT_PROVIDER_MODE live yoki demo bo'lishi kerak."
+      fail "Production muhitida PAYMENT_PROVIDER_MODE=live bo‘lishi kerak."
       problems=$((problems + 1))
       ;;
   esac

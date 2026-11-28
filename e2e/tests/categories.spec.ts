@@ -12,7 +12,9 @@ const API = '/api/v1';
 async function staffRequest(page: Page): Promise<APIRequestContext> {
   await page.goto('/en/account/login?next=/admin');
   await visible(page.getByRole('main').getByLabel('Email')).fill(E2E_ADMIN.email);
-  await visible(page.getByRole('main').getByLabel('Password')).fill(E2E_ADMIN.password);
+  await visible(page.getByRole('main').getByLabel('Password', { exact: true })).fill(
+    E2E_ADMIN.password,
+  );
   await page.getByRole('main').getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/en\/admin$/);
   return page.request;

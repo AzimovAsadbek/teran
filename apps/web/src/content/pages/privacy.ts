@@ -2,7 +2,7 @@ import type { Localized, LongFormContent } from '../types';
 
 /**
  * Privacy policy. It describes what this platform actually does (data collected by orders, the
- * account, forms and cookies) and where it runs (Vercel and Neon, Frankfurt). Details TERAN has not
+ * account, forms and cookies) and where the store keeps them. Details TERAN has not
  * supplied (its taxpayer number and full legal address) are left out rather than invented; a
  * lawyer should review the text, in particular against Uzbekistan's data-localisation rules.
  */
@@ -12,7 +12,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'How TERAN collects, uses and protects personal data when you shop, create an account or contact us.',
     intro:
-      'This policy explains which personal data the TERAN online store processes, why, for how long and what your rights are. Last updated: 23 October 2026.',
+      'This policy explains which personal data the TERAN online store processes, why, for how long and what your rights are. Updated on 28 November 2026.',
     sections: [
       {
         id: 'controller',
@@ -30,13 +30,13 @@ export const privacyPolicy: Localized<LongFormContent> = {
           {
             list: [
               'Orders: your name, phone number, optional e-mail address, delivery region, city, address and landmark, an optional note, the products ordered and the amounts.',
-              'Customer account (optional): e-mail address, name, optional phone number, preferred language and order history. Passwords are never stored in readable form, only as a one-way cryptographic hash.',
+              'Your customer account stores your name, e-mail address, phone number, language and order history. If you use a password, we store a one-way hash.',
               'Contact and business enquiries: the details you enter in the form (name, phone or e-mail, company, business type, region, message).',
               'Newsletter (optional): your e-mail address and preferred language.',
               'Technical data: the cookies listed below and server records needed for security, such as the time of a request and the IP address, which are kept only for a short time.',
             ],
           },
-          'We do not collect bank card data: the website itself takes no payments.',
+          'You enter payment details with the payment provider. TERAN receives the payment reference and status for your order.',
         ],
       },
       {
@@ -64,7 +64,10 @@ export const privacyPolicy: Localized<LongFormContent> = {
           {
             list: [
               'with the courier or delivery service that brings your order (name, phone number and address);',
-              'with the companies that host this website, its database and its files (Vercel Inc. and Neon) and, if enabled, send our e-mails, under confidentiality obligations;',
+              'Our hosting provider runs the store and its database. Cloudflare R2 stores product photos and videos.',
+              'If you choose Google sign-in, Google shares your account identifier, verified e-mail and name with TERAN so we can identify your account.',
+              'If you choose Telegram, our bot uses your Telegram identifier to send the code. If you share your contact in the bot, TERAN receives your phone number.',
+              'Resend receives your e-mail address and the message when we send a sign-in code or password reset link.',
               'with Google (the Gemini API) when you ask the chat’s AI assistant a question: the question and the conversation so far, without phone numbers or e-mail addresses, so that it can answer. We do not keep the conversation;',
               'with public authorities when the law requires it.',
             ],
@@ -75,7 +78,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'storage',
         heading: 'Where and how long we keep it',
         blocks: [
-          'Personal data is stored on our hosting providers’ servers in Frankfurt am Main, Germany (European Union).',
+          'TERAN stores customer accounts and orders in its production database and keeps encrypted backup copies.',
           {
             list: [
               'Orders: for the period required by accounting and tax law.',
@@ -103,6 +106,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
             list: [
               'Session cookie: keeps you signed in (up to 30 days; 12 hours for staff).',
               'Bag cookie: remembers the products in your bag (up to 30 days).',
+              'A sign-in cookie links a verification request to the browser that started it for up to 30 minutes.',
               'Language cookie (TERAN_LOCALE): remembers the language you chose (up to one year).',
             ],
           },
@@ -130,7 +134,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'Как TERAN собирает, использует и защищает персональные данные при покупках, регистрации и обращениях.',
     intro:
-      'Эта политика объясняет, какие персональные данные обрабатывает интернет-магазин TERAN, зачем, как долго и какие у вас права. Дата последнего обновления: 23.10.2026.',
+      'Эта политика объясняет, какие персональные данные обрабатывает интернет-магазин TERAN, зачем, как долго и какие у вас права. Обновлено 28 ноября 2026 года.',
     sections: [
       {
         id: 'controller',
@@ -148,13 +152,13 @@ export const privacyPolicy: Localized<LongFormContent> = {
           {
             list: [
               'Заказы: имя, номер телефона, e-mail (по желанию), область, город, адрес и ориентир доставки, комментарий (по желанию), заказанные товары и суммы.',
-              'Аккаунт покупателя (по желанию): e-mail, имя, телефон (по желанию), язык и история заказов. Пароли никогда не хранятся в открытом виде — только в виде необратимого криптографического хеша.',
+              'В аккаунте покупателя хранятся имя, фамилия, электронная почта, телефон, язык и история заказов. Если вы используете пароль, мы сохраняем его односторонний хеш.',
               'Обращения и запросы для бизнеса: данные, которые вы вводите в форму (имя, телефон или e-mail, компания, вид деятельности, регион, сообщение).',
               'Рассылка (по желанию): адрес e-mail и язык.',
               'Технические данные: файлы cookie, перечисленные ниже, и серверные записи, необходимые для безопасности, например время запроса и IP-адрес; они хранятся недолго.',
             ],
           },
-          'Мы не собираем данные банковских карт: сам сайт платежи не принимает.',
+          'Платёжные данные вы вводите у платёжного провайдера. TERAN получает номер и статус платежа по заказу.',
         ],
       },
       {
@@ -182,7 +186,10 @@ export const privacyPolicy: Localized<LongFormContent> = {
           {
             list: [
               'курьеру или службе доставки, которая привозит заказ (имя, телефон и адрес);',
-              'компаниям, которые размещают сайт, его базу данных и файлы (Vercel Inc. и Neon) и, если это включено, отправляют наши письма, — на условиях конфиденциальности;',
+              'Провайдер хостинга размещает магазин и его базу данных. Фотографии и видео товаров хранятся в Cloudflare R2.',
+              'При входе через Google сервис передаёт TERAN идентификатор аккаунта, подтверждённый адрес почты и имя, чтобы мы могли распознать ваш аккаунт.',
+              'При входе через Telegram наш бот использует ваш идентификатор Telegram для отправки кода. Если вы делитесь контактом в боте, TERAN получает ваш номер телефона.',
+              'Когда мы отправляем код для входа или ссылку для восстановления пароля, Resend получает адрес электронной почты и текст письма.',
               'компании Google (Gemini API), когда вы задаёте вопрос AI-помощнику в чате: вопрос и предыдущие сообщения беседы, без номеров телефонов и адресов электронной почты, чтобы он мог ответить. Мы не храним переписку;',
               'государственным органам, когда этого требует закон.',
             ],
@@ -193,7 +200,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'storage',
         heading: 'Где и как долго мы их храним',
         blocks: [
-          'Персональные данные хранятся на серверах наших хостинг-провайдеров во Франкфурте-на-Майне, Германия (Европейский союз).',
+          'TERAN хранит аккаунты покупателей и заказы в рабочей базе данных и создаёт зашифрованные резервные копии.',
           {
             list: [
               'Заказы: в течение срока, установленного законодательством о бухгалтерском и налоговом учёте.',
@@ -221,6 +228,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
             list: [
               'Cookie сеанса: сохраняет вход в аккаунт (до 30 дней; для сотрудников — 12 часов).',
               'Cookie корзины: запоминает товары в корзине (до 30 дней).',
+              'Cookie подтверждения входа связывает запрос с браузером, из которого вы его начали, на срок до 30 минут.',
               'Cookie языка (TERAN_LOCALE): запоминает выбранный язык (до одного года).',
             ],
           },
@@ -248,7 +256,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
     description:
       'TERAN xarid qilish, roʻyxatdan oʻtish va murojaat qilishda shaxsiy maʼlumotlarni qanday toʻplashi, ishlatishi va himoya qilishi haqida.',
     intro:
-      'Ushbu siyosat TERAN internet-doʻkoni qaysi shaxsiy maʼlumotlarga ishlov berishi, nima uchun va qancha muddat saqlashi hamda sizning huquqlaringiz haqida tushuntiradi. Oxirgi yangilanish sanasi: 23.10.2026.',
+      'Ushbu siyosat TERAN internet-doʻkoni qaysi shaxsiy maʼlumotlarga ishlov berishi, nima uchun va qancha muddat saqlashi hamda sizning huquqlaringiz haqida tushuntiradi. 2026-yil 28-noyabrda yangilangan.',
     sections: [
       {
         id: 'controller',
@@ -266,13 +274,13 @@ export const privacyPolicy: Localized<LongFormContent> = {
           {
             list: [
               'Buyurtmalar: ism, telefon raqami, elektron pochta (ixtiyoriy), yetkazib berish viloyati, shahri, manzili va moʻljali, izoh (ixtiyoriy), buyurtma qilingan mahsulotlar va summalar.',
-              'Xaridor hisobi (ixtiyoriy): elektron pochta, ism, telefon (ixtiyoriy), afzal til va buyurtmalar tarixi. Parollar hech qachon ochiq koʻrinishda saqlanmaydi — faqat qaytarib boʻlmaydigan kriptografik xesh sifatida.',
+              'Xaridor hisobida ism, familiya, elektron pochta, telefon raqami, tanlangan til va buyurtmalar tarixi saqlanadi. Paroldan foydalansangiz, uning bir tomonlama xeshi saqlanadi.',
               'Murojaatlar va biznes soʻrovlari: shaklga kiritgan maʼlumotlaringiz (ism, telefon yoki elektron pochta, kompaniya, faoliyat turi, hudud, xabar).',
               'Yangiliklar obunasi (ixtiyoriy): elektron pochta manzili va til.',
               'Texnik maʼlumotlar: quyida keltirilgan cookie fayllari va xavfsizlik uchun zarur server yozuvlari, masalan soʻrov vaqti va IP-manzil; ular qisqa muddat saqlanadi.',
             ],
           },
-          'Biz bank kartasi maʼlumotlarini toʻplamaymiz: saytning oʻzi toʻlov qabul qilmaydi.',
+          'Toʻlov maʼlumotlarini toʻlov provayderida kiritasiz. TERAN buyurtmangiz boʻyicha toʻlov raqami va holatini oladi.',
         ],
       },
       {
@@ -300,7 +308,10 @@ export const privacyPolicy: Localized<LongFormContent> = {
           {
             list: [
               'buyurtmani olib keladigan kuryer yoki yetkazib berish xizmatiga (ism, telefon va manzil);',
-              'saytni, uning maʼlumotlar bazasi va fayllarini joylashtiradigan (Vercel Inc. va Neon) hamda, agar yoqilgan boʻlsa, xatlarimizni yuboradigan kompaniyalarga — maxfiylik shartlari asosida;',
+              'Doʻkon va uning bazasini xosting provayderi joylashtiradi. Mahsulot rasmlari va videolari Cloudflare R2 da saqlanadi.',
+              'Google orqali kirishni tanlasangiz, hisobingizni aniqlash uchun Google TERANga hisob identifikatori, tasdiqlangan elektron pochta va ismingizni beradi.',
+              'Telegram orqali kirsangiz, bot kodni yuborish uchun Telegram identifikatoringizdan foydalanadi. Botda kontaktingizni ulashsangiz, TERAN telefon raqamingizni oladi.',
+              'Kirish kodi yoki parolni tiklash havolasi yuborilganda, Resend elektron pochta manzilingiz va xat matnini oladi.',
               'chatdagi AI yordamchiga savol berganingizda Google kompaniyasiga (Gemini API): javob bera olishi uchun savol va suhbatning oldingi xabarlari — telefon raqamlari va elektron pochta manzillarisiz. Biz suhbatni saqlamaymiz;',
               'qonun talab qilganda davlat organlariga.',
             ],
@@ -311,7 +322,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
         id: 'storage',
         heading: 'Maʼlumotlar qayerda va qancha muddat saqlanadi',
         blocks: [
-          'Shaxsiy maʼlumotlar xosting provayderlarimizning Germaniyaning Frankfurt-Mayn shahridagi (Yevropa Ittifoqi) serverlarida saqlanadi.',
+          'TERAN xaridor hisoblari va buyurtmalarni doʻkonning asosiy bazasida saqlaydi hamda shifrlangan zaxira nusxalarini yaratadi.',
           {
             list: [
               'Buyurtmalar: buxgalteriya va soliq qonunchiligida belgilangan muddat davomida.',
@@ -339,6 +350,7 @@ export const privacyPolicy: Localized<LongFormContent> = {
             list: [
               'Seans cookie fayli: hisobingizga kirganingizni saqlaydi (30 kungacha; xodimlar uchun 12 soat).',
               'Savat cookie fayli: savatdagi mahsulotlarni eslab qoladi (30 kungacha).',
+              'Kirishni tasdiqlash uchun cookie soʻrovni u boshlangan brauzer bilan 30 daqiqagacha bogʻlaydi.',
               'Til cookie fayli (TERAN_LOCALE): tanlangan tilni eslab qoladi (bir yilgacha).',
             ],
           },

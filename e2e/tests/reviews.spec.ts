@@ -1,3 +1,4 @@
+import { registerForm } from './support/verification.ts';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { field, signInAsAdmin, visible } from './support/admin.ts';
 
@@ -30,11 +31,7 @@ test.describe('product ratings and reviews (ADR-042)', () => {
     // A visitor is offered to register and comes straight back to the tea.
     await visible(reviews().getByRole('link', { name: 'Create an account' })).click();
     const email = `e2e-review-${Date.now()}@example.test`;
-    await field(page, /^First name/).fill('Malika');
-    await field(page, /^Email/).fill(email);
-    await field(page, /^Password$/).fill('e2e-password-123');
-    await field(page, /^Repeat password/).fill('e2e-password-123');
-    await page.getByRole('main').getByRole('button', { name: 'Create account' }).click();
+    await registerForm(page, 'Malika', email);
     await expect(page).toHaveURL(/\/en\/products\/classic-green-tea/);
 
     // Stars are required; then the rating is saved and shown at once. Keys rather than clicks: the

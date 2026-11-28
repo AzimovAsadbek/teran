@@ -49,7 +49,7 @@ export function paymentAdapters(
         code: 'DEMO',
         simulated: true,
         refunds: 'simulated',
-        checkoutUrl: ({ locale, token }) => config.sitePath(locale, `/payments/demo/${token}`),
+        checkoutUrl: ({ locale, token }) => config.sitePath(locale, `/payments/return/${token}`),
       },
     };
   }

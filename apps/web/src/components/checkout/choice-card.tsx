@@ -34,14 +34,14 @@ export function ChoiceCard({
   return (
     <label
       className={cn(
-        'flex cursor-pointer gap-3 rounded-control border px-4 py-3.5 transition-[border-color,box-shadow,background-color] duration-150',
+        'flex cursor-pointer items-start gap-3 rounded-card border px-4 py-3.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus motion-safe:transition-[border-color,box-shadow,background-color] motion-safe:duration-150',
         disabled
           ? 'cursor-not-allowed border-line bg-surface-muted/60 text-fg-subtle'
           : checked
             ? 'border-brand bg-brand-soft/40 shadow-[inset_0_0_0_1px_var(--color-brand)]'
             : invalid
               ? 'border-danger/60 bg-surface'
-              : 'border-line-strong/45 bg-surface hover:border-brand/50',
+              : 'border-line bg-surface hover:border-brand/50',
       )}
     >
       <input
@@ -53,15 +53,15 @@ export function ChoiceCard({
         aria-labelledby={`${id}-title`}
         aria-describedby={descriptions || undefined}
         onChange={() => onChange(value)}
-        className={cn(radioDotClasses, 'mt-0.5')}
+        className={cn(radioDotClasses, 'mt-1 shrink-0')}
       />
       <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
           <span id={`${id}-title`} className="text-title-sm text-fg">
             {title}
           </span>
           {aside ? (
-            <span id={`${id}-aside`} className="text-body-sm font-semibold text-fg">
+            <span id={`${id}-aside`} className="max-w-full text-helper font-semibold text-fg-muted">
               {aside}
             </span>
           ) : null}

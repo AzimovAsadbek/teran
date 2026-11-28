@@ -46,9 +46,9 @@ function checkoutBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** The secret from a demo payment page path ("/payments/demo/<token>"). */
+/** The secret from a demo payment page path ("/payments/return/<token>"). */
 function tokenOf(redirectUrl: string | null): string {
-  const match = /\/payments\/demo\/([A-Za-z0-9_-]+)$/.exec(redirectUrl ?? '');
+  const match = /\/payments\/return\/([A-Za-z0-9_-]+)$/.exec(redirectUrl ?? '');
   if (!match) throw new Error(`Not a demo payment link: ${redirectUrl}`);
   return match[1]!;
 }
@@ -117,7 +117,6 @@ describe('payments in demo mode', () => {
       { method: 'CASH_ON_DELIVERY', availability: 'live' },
       { method: 'CLICK', availability: 'demo' },
       { method: 'PAYME', availability: 'demo' },
-      { method: 'CARD', availability: 'demo' },
     ]);
     expect(options.onlinePaymentWindowMinutes).toBe(30);
   });
@@ -208,7 +207,7 @@ describe('payments in demo mode', () => {
       ).body,
     );
     expect(retry).toMatchObject({ method: 'PAYME', status: 'REQUIRES_ACTION', demo: true });
-    expect(retry.redirectUrl).toMatch(/^\/ru\/payments\/demo\//);
+    expect(retry.redirectUrl).toMatch(/^\/ru\/payments\/return\//);
     // Asking again while that attempt is waiting returns the same attempt.
     const same = paymentSessionSchema.parse(
       (
@@ -280,7 +279,7 @@ describe('payments in demo mode', () => {
     await browser
       .post(`${API}/orders/${placed.order.number}/payments`)
       .send({ method: 'CARD' })
-      .expect(201);
+      .expect(422);
 
     // The return page of an account order points to the account's order page.
     const landing = paymentReturnSchema.parse(
@@ -311,7 +310,7 @@ describe('payments in demo mode', () => {
     ).rejects.toThrow();
     // Concurrent restarts: one attempt is open afterwards.
     await Promise.allSettled(
-      ['CARD', 'PAYME', 'CARD'].map((method) =>
+      ['CLICK', 'PAYME', 'CLICK'].map((method) =>
         agent()
           .post(`${API}/orders/${placed.order.number}/payments`)
           .send({ method, token: placed.accessToken }),

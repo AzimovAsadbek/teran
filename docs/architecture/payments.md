@@ -43,18 +43,10 @@ The store inherits online sales from the Tea category. Staff can override the sa
 | `CASH_ON_DELIVERY`       | `CASH`        | when delivery is enabled (staff record the cash)                         | unchanged (`CASH`) |
 | `CLICK`                  | `CLICK`       | when `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY` are set | `DEMO`             |
 | `PAYME`                  | `PAYME`       | when `PAYME_MERCHANT_ID` and `PAYME_KEY` are set                         | `DEMO`             |
-| `CARD` (Visa)            | none yet      | **never** — no card gateway is integrated                                | `DEMO`             |
 
-`PAYMENT_METHODS_ENABLED` lists the methods the store presents, in order. `GET /checkout/options`
-returns each with its availability (`live`, `demo`, `unavailable`); checkout shows unavailable
-methods disabled ("Not available yet") and demo methods labelled "Demo · no money is charged".
-The API refuses an order or a payment attempt for a method that is not available
-(`PAYMENT_METHOD_UNAVAILABLE`), whatever the browser sends. The decision lives in one place:
-`PaymentConfig.providerFor()`.
+Set `PAYMENT_METHODS_ENABLED=CLICK` while the Payme cashbox awaits activation. The checkout shows CLICK and Payme whenever either online wallet is configured. Only an enabled wallet with complete credentials is selectable. A direct request for a disabled wallet or a bank card returns `PAYMENT_METHOD_UNAVAILABLE`. The source of this decision is `PaymentConfig.providerFor()`.
 
-Demo mode is refused at start-up in production unless `ALLOW_DEMO_PAYMENTS=true` records the
-decision explicitly (`apps/api/src/config/env.ts`). Half-configured providers (a Payme ID without
-a key, two of the three Click values) also stop the API at start-up.
+Development and production accept `PAYMENT_PROVIDER_MODE=live`. Isolated automated tests can use `NODE_ENV=test` with the deterministic provider. Half-configured live credentials fail startup.
 
 ## Payment attempts
 
@@ -71,7 +63,7 @@ method). `Order.paymentStatus` always mirrors the latest attempt.
 - Every status change is recorded in `PaymentEvent` (from, to, source — customer, provider, staff,
   system, demo — detail and acting staff member). Staff see this history in the admin order page.
 - Each online attempt has a secret link token (an HMAC of the attempt id with `APP_SECRET`; only
-  its SHA-256 is stored) for its return page and, in demo mode, its demo page.
+  its SHA-256 is stored) for its return page.
 
 ### State machine
 
@@ -124,11 +116,11 @@ until payment, cancellation or 12 hours after Payme's original timestamp.
 checkout ──POST /checkout/orders──► order + attempt (REQUIRES_ACTION)
    │                                 response.payment.redirectUrl
    ▼
-window.location → provider page (Click / Payme)  or  /payments/demo/<token> (demo)
+order review → provider checkout (CLICK or Payme)
    │                         │
    │        provider ──server to server──► /api/v1/payments/{payme|click/...}  → PAID / FAILED …
    ▼
-/payments/return/<token> ──► GET /payments/return ──► redirect to the order page
+/payments/return/<token> ──► GET /payments/return ──► verified payment status
                                                         (shows the status the API recorded)
 ```
 
@@ -151,21 +143,15 @@ lives in each provider's endpoint, because the protocols have nothing in common.
 | Responsibility    | Demo                              | Payme                                                                                   | Click                                                            |
 | ----------------- | --------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | Create session    | attempt + demo page link          | attempt + checkout link (`paymeCheckoutUrl`)                                            | attempt + payment link (`clickPaymentUrl`)                       |
-| Initiate checkout | `/payments/demo/<token>`          | `https://checkout.paycom.uz/<base64 params>`                                            | `https://my.click.uz/services/pay?…`                             |
+| Initiate checkout | `/payments/return/<token>`        | `https://checkout.paycom.uz/<base64 params>`                                            | `https://my.click.uz/services/pay?…`                             |
 | Verify callback   | secret link token                 | Basic auth with the cashbox key + documented IP range                                   | MD5 `sign_string` with the secret key                            |
 | Query status      | from the database                 | Payme pushes status (`CheckTransaction` is Payme → TERAN)                               | Click pushes status (Prepare/Complete)                           |
 | Cancel            | customer outcome on the demo page | Payme `CancelTransaction`; local attempts expire or are replaced                        | Complete with `error < 0`; local attempts expire or are replaced |
 | Refund            | staff "Record refund" (simulated) | made in the Payme cabinet → `CancelTransaction` on a performed transaction → `REFUNDED` | made in the Click cabinet, then staff "Record refund"            |
 
-## Demo provider
+## Isolated payment tests
 
-`PAYMENT_PROVIDER_MODE=demo`. The demo page (`/[locale]/payments/demo/[token]`) shows the order,
-amount and method, says plainly that it is a demonstration, never asks for card details, and offers
-four deterministic outcomes (`POST /payments/demo`): success → `PAID`, failure → `FAILED`
-(`DEMO_DECLINED`), cancel → `CANCELLED` (`CUSTOMER_CANCELLED`), pending → `PROCESSING`. Attempts are
-stored with provider `DEMO`; the order page, the account and the admin label them "Demo" / "Demo
-(simulated): no money moved". When the API runs in live mode the demo endpoints answer 404, so a
-leftover demo link can never complete a payment on a live site.
+In `NODE_ENV=test` with `PAYMENT_PROVIDER_MODE=demo`, the test adapter opens the same status page as a live checkout. Test code submits outcomes through `POST /payments/demo`. The API returns 404 for this endpoint in live mode. Old simulator links forward to the verified status page. Previous orders retain their original method and event history.
 
 ## Payme (Merchant API)
 
@@ -230,13 +216,7 @@ merchant_trans_id [+ merchant_prepare_id] + amount + action + sign_time)` over t
 
 ## Cards (Visa)
 
-No card acquirer or gateway is integrated, so `CARD` is unavailable in live mode (and the Visa
-label never implies otherwise). Options found in official sources (2026-10-14), none verified with
-a contract: Payme Business lists Visa/Mastercard acceptance for its own channels (whether Payme's
-hosted checkout shows Visa for a Merchant-API cashbox is not documented); Octo, Uzum Checkout and
-ATMOS offer hosted card pages with 3-D Secure; Click's merchant checkout documents Uzcard and
-Humo only. Integrating one means a new adapter behind the same `PaymentProvider` boundary, using a
-**hosted** payment page so TERAN stays within PCI DSS SAQ A (no card data on TERAN's servers).
+Direct bank cards are omitted from the storefront. Historical card attempts retain their original label in order records.
 
 ## Before going live
 
@@ -249,6 +229,4 @@ Humo only. Integrating one means a new adapter behind the same `PaymentProvider`
    its fiscal `detail` object. When Click issues the receipt, avoid issuing a duplicate.
    [Payme fiscal details](https://developer.help.paycom.uz/metody-merchant-api/checktransaction/) ·
    [Click receipt guidance](https://click.uz/ru/clickofd)
-4. Decide the card gateway, if cards are wanted.
-5. Keep `PAYMENT_PROVIDER_MODE=live` in production; never set `ALLOW_DEMO_PAYMENTS` on a site that
-   takes real orders.
+4. Set `PAYMENT_PROVIDER_MODE=live` and enable only wallets the merchant can use.

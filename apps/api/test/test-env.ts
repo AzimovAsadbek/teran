@@ -38,7 +38,11 @@ export const TEST_ENV: Record<string, string> = {
   // Payments: live mode without provider credentials (cash only) unless a suite overrides it.
   PAYMENT_PROVIDER_MODE: 'live',
   PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY',
-  ALLOW_DEMO_PAYMENTS: '',
+  AUTH_TELEGRAM_USERNAME: '',
+  AUTH_TELEGRAM_BOT_TOKEN: '',
+  AUTH_TELEGRAM_WEBHOOK_SECRET: '',
+  GOOGLE_CLIENT_ID: '',
+  GOOGLE_CLIENT_SECRET: '',
   ONLINE_PAYMENT_WINDOW_MINUTES: '30',
   PAYME_MERCHANT_ID: '',
   PAYME_KEY: '',

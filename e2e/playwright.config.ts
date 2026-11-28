@@ -20,8 +20,20 @@ export default defineConfig({
   ...(!checkoutOpen
     ? { testMatch: '**/closed-store.spec.ts' }
     : process.env.E2E_DELIVERY_ENABLED === 'false'
-      ? { testMatch: '**/order-only.spec.ts' }
-      : { testIgnore: ['**/closed-store.spec.ts', '**/order-only.spec.ts'] }),
+      ? {
+          testMatch: [
+            '**/order-only.spec.ts',
+            '**/payment-experience.spec.ts',
+            '**/identity.spec.ts',
+          ],
+        }
+      : {
+          testIgnore: [
+            '**/closed-store.spec.ts',
+            '**/order-only.spec.ts',
+            '**/payment-experience.spec.ts',
+          ],
+        }),
   // Orders change shared stock, so tests run one at a time for deterministic results.
   fullyParallel: false,
   workers: 1,

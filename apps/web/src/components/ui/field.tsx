@@ -1,12 +1,14 @@
 'use client';
 
-import { Check, CircleAlert } from 'lucide-react';
+import { Check, CircleAlert, Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   useEffect,
   useId,
   useRef,
+  useState,
   type ChangeEvent,
+  type ComponentPropsWithRef,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -90,7 +92,11 @@ export function FieldLabel({
 }) {
   const t = useTranslations('Common');
   return (
-    <label htmlFor={htmlFor} className={cn('mb-2 block text-label text-fg', className)}>
+    <label
+      id={`${htmlFor}-label`}
+      htmlFor={htmlFor}
+      className={cn('mb-2 block text-label text-fg', className)}
+    >
       {children}
       {required ? null : <span className="font-normal text-fg-subtle"> ({t('optional')})</span>}
     </label>
@@ -133,6 +139,35 @@ function HintAndError({
   );
 }
 
+function PasswordInput({ className, ...props }: ComponentPropsWithRef<'input'>) {
+  const t = useTranslations('Common');
+  const [visible, setVisible] = useState(false);
+  const action = t(visible ? 'hidePassword' : 'showPassword');
+  const Icon = visible ? EyeOff : Eye;
+  return (
+    <div className="relative">
+      <input
+        {...props}
+        type={visible ? 'text' : 'password'}
+        className={cn(className, 'min-h-11 pr-14 [&::-ms-reveal]:hidden')}
+      />
+      <button
+        type="button"
+        aria-label={action}
+        aria-controls={props.id}
+        aria-describedby={`${props.id}-label`}
+        title={action}
+        disabled={props.disabled}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setVisible((current) => !current)}
+        className="absolute top-1/2 right-0.5 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-control text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus disabled:opacity-50"
+      >
+        <Icon size={20} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 export function TextField({
   label,
   hint,
@@ -144,12 +179,13 @@ export function TextField({
 }: FieldChromeProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'id' | 'size'>) {
   const { id, hintId, errorId, describedBy } = useFieldIds(error, hint);
   const ref = useEarlyInput(input.value, input.onChange);
+  const Input = input.type === 'password' ? PasswordInput : 'input';
   return (
     <div className={className}>
       <FieldLabel htmlFor={id} required={required}>
         {label}
       </FieldLabel>
-      <input
+      <Input
         ref={ref}
         id={id}
         required={required}

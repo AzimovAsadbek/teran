@@ -26,7 +26,6 @@ export function ProfileForm({ user }: { user: CurrentUserDto }) {
   const [values, setValues] = useState({
     firstName: user.firstName,
     lastName: user.lastName ?? '',
-    phone: user.phone ? formatUzPhone(user.phone) : '',
     locale: user.locale as string,
   });
   const set = (key: keyof typeof values) => (event: { target: { value: string } }) =>
@@ -62,17 +61,6 @@ export function ProfileForm({ user }: { user: CurrentUserDto }) {
           onChange={set('lastName')}
           error={error('lastName')}
         />
-        <TextField
-          label={t('phone')}
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="+998 90 123 45 67"
-          value={values.phone}
-          onChange={set('phone')}
-          error={error('phone')}
-        />
         <SelectField
           label={t('language')}
           name="locale"
@@ -84,7 +72,12 @@ export function ProfileForm({ user }: { user: CurrentUserDto }) {
         />
       </div>
       <p className="text-body-sm text-fg-subtle">
-        {t('email')}: <span className="font-semibold text-fg">{user.email}</span>
+        {user.phone && (
+          <span className="mr-4">
+            {t('phone')} · {formatUzPhone(user.phone)}
+          </span>
+        )}
+        {t('email')} · <span className="font-semibold text-fg">{user.email}</span>
       </p>
       <ApiAlert message={form.apiErrorMessage} />
       {form.status === 'sent' ? <SuccessMessage>{t('saved')}</SuccessMessage> : null}

@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { AuthCard, AuthCardSkeleton } from '@/components/account/auth-card';
-import { RegisterForm } from '@/components/account/auth-forms';
+import { IdentityForm } from '@/components/account/identity-form';
+import { apiGetAsVisitor } from '@/lib/api/server';
 import { AuthTeaPanel } from '@/components/account/auth-tea-panel';
 import { ButtonLink } from '@/components/ui/button';
 import { getPathname } from '@/i18n/navigation';
@@ -38,9 +39,18 @@ async function Register({
   const [user, features] = await Promise.all([currentUser(), getAuthFeatures().catch(() => null)]);
   if (user) redirect(getPathname({ href: next, locale }));
 
+  const googleId =
+    typeof query.google === 'string' && /^[a-f0-9-]{36}$/.test(query.google)
+      ? query.google
+      : undefined;
+  const googleProfile = googleId
+    ? await apiGetAsVisitor<{ firstName: string; lastName: string; email: string }>(
+        '/auth/google/profile/' + googleId,
+      ).catch(() => null)
+    : null;
   const loginHref =
     next === '/account' ? '/account/login' : `/account/login?next=${encodeURIComponent(next)}`;
-  if (features?.registration === false) {
+  if (!features?.registration) {
     return (
       <AuthCard
         title={t('registerTitle')}
@@ -68,7 +78,14 @@ async function Register({
         </div>
       }
     >
-      <RegisterForm next={next} />
+      <IdentityForm
+        mode="register"
+        next={next}
+        features={features}
+        googleId={googleProfile ? googleId : undefined}
+        googleProfile={googleProfile ?? undefined}
+        callbackError={googleId && !googleProfile ? 'invalid' : undefined}
+      />
     </AuthCard>
   );
 }

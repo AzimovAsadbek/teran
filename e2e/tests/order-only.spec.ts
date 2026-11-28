@@ -1,3 +1,4 @@
+import { settleFixture } from './support/verification.ts';
 import { expect, test } from '@playwright/test';
 import { registerAtCheckout } from './support/checkout.ts';
 
@@ -35,16 +36,29 @@ for (const [provider, device] of [
     const placed = page.waitForResponse(
       (r) => r.url().includes('/checkout/orders') && r.request().method() === 'POST',
     );
-    await main.getByRole('button', { name: `Pay with ${provider} · 98,000 UZS` }).click();
+    let orderRequests = 0;
+    page.on('request', (req) => {
+      if (req.method() === 'POST' && req.url().endsWith('/checkout/orders')) orderRequests++;
+    });
+    await main.getByRole('button', { name: 'Review order · 98,000 UZS' }).dblclick();
+
     const orderResponse = await placed;
     expect(orderResponse.status()).toBe(201);
     expect(orderResponse.request().postDataJSON()).not.toHaveProperty('delivery');
-    await expect(page).toHaveURL(/\/en\/payments\/demo\//);
-    await page.getByRole('button', { name: 'Simulate a successful payment' }).click();
-    await page.getByRole('link', { name: 'Continue to the order' }).click();
+    await expect(page).toHaveURL(/\/en\/checkout\/confirm\/TRN-/);
+    await expect(main.getByRole('heading', { name: 'Confirm your payment' })).toBeVisible();
+    const { order: placedOrder } = await orderResponse.json();
+    await expect(main.getByText(placedOrder.number)).toBeVisible();
+    await page.reload();
+    await main.getByRole('button', { name: `Pay with ${provider} · 98,000 UZS` }).click();
+    await settleFixture(page, 'success');
+    await expect(main.getByRole('heading', { name: 'Payment received' })).toBeVisible();
+    await main.getByRole('link', { name: 'Order details' }).click();
     await expect(page).toHaveURL(/\/en\/account\/orders\/TRN-[A-Z0-9]{8}$/);
     const orderNumber = new URL(page.url()).pathname.split('/').pop();
     const order = await (await page.request.get('/api/v1/account/orders/' + orderNumber)).json();
+    expect(orderRequests).toBe(1);
+    expect(order.payments).toHaveLength(1);
     expect(order).toMatchObject({
       total: cart.subtotal,
       deliveryFee: '0.00',

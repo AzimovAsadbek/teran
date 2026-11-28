@@ -152,7 +152,9 @@ export class ReviewsService {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         ...pageArgs(query.page, query.pageSize),
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true, contactEmail: true },
+          },
           product: {
             select: {
               id: true,
@@ -180,7 +182,7 @@ export class ReviewsService {
       customer: {
         id: row.user.id,
         name: [row.user.firstName, row.user.lastName].filter(Boolean).join(' '),
-        email: row.user.email,
+        email: row.user.email ?? row.user.contactEmail ?? '',
       },
     }));
     return buildPaginated(items, total, query.page, query.pageSize);

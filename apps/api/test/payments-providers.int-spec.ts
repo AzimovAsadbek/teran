@@ -240,7 +240,6 @@ describe('payment providers (live mode, simulated provider calls)', () => {
       { method: 'CASH_ON_DELIVERY', availability: 'live' },
       { method: 'CLICK', availability: 'live' },
       { method: 'PAYME', availability: 'live' },
-      { method: 'CARD', availability: 'unavailable' },
     ]);
     const browser = await signInShopper(ctx);
     await browser.post(`${API}/cart/items`).send({ variantId, quantity: 1 }).expect(201);

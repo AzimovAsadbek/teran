@@ -1,3 +1,4 @@
+import { registerForm } from './support/verification.ts';
 import { registerAtCheckout } from './support/checkout.ts';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import {
@@ -656,12 +657,7 @@ test.describe('what visitors send reaches the admin area', () => {
     // A customer account.
     const customer = await storefront(browser);
     await customer.goto('/en/account/register');
-    const main = customer.getByRole('main');
-    await visible(main.getByLabel('First name')).fill('Propagation');
-    await visible(main.getByLabel('Email')).fill(`customer-${id}@example.test`);
-    await visible(main.getByLabel(/^Password$/)).fill(`pw-${id}-e2e-only`);
-    await visible(main.getByLabel('Repeat password')).fill(`pw-${id}-e2e-only`);
-    await main.getByRole('button', { name: 'Create account' }).click();
+    await registerForm(customer, 'Propagation', `customer-${id}@example.test`);
     await expect(customer).toHaveURL(/\/en\/account$/);
 
     await signInAsAdmin(page);
@@ -717,7 +713,9 @@ test.describe('what visitors send reaches the admin area', () => {
     const manager = await storefront(browser);
     await manager.goto('/en/account/login?next=/admin');
     await visible(manager.getByRole('main').getByLabel('Email')).fill(`manager-${id}@example.test`);
-    await visible(manager.getByRole('main').getByLabel('Password')).fill(`mgr-${id}-e2e-only`);
+    await visible(manager.getByRole('main').getByLabel('Password', { exact: true })).fill(
+      `mgr-${id}-e2e-only`,
+    );
     await manager.getByRole('main').getByRole('button', { name: 'Sign in' }).click();
     await expect(manager).toHaveURL(/\/en\/admin$/);
     // (The Orders link carries the number of new orders when there are any.)

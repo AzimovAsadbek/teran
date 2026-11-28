@@ -3,7 +3,6 @@
 import {
   forgotPasswordSchema,
   loginSchema,
-  registerSchema,
   resetPasswordSchema,
   type Locale,
 } from '@teran/contracts';
@@ -63,7 +62,7 @@ function mismatch(password: string, confirmation: string): FieldErrors {
 }
 
 /** After signing in or registering: show the bag the API merged into the account, then continue. */
-function useSignedIn(next: string) {
+export function useSignedIn(next: string) {
   const locale = useLocale() as Locale;
   const router = useRouter();
   return () => {
@@ -140,123 +139,6 @@ export function LoginForm({
         sending={form.status === 'sending'}
         label={t('login')}
         sendingLabel={t('loggingIn')}
-      />
-    </form>
-  );
-}
-
-const EMPTY_REGISTRATION = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  password: '',
-  confirmPassword: '',
-};
-
-export function RegisterForm({ next }: { next: string }) {
-  const t = useTranslations('Account');
-  const locale = useLocale() as Locale;
-  const message = useValidationMessage();
-  const formRef = useRef<HTMLFormElement>(null);
-  usePrimaryAction(formRef);
-  const form = useFormSubmission(formRef);
-  const signedIn = useSignedIn(next);
-  const [values, setValues] = useState(EMPTY_REGISTRATION);
-  const set = (key: keyof typeof values) => (event: { target: { value: string } }) =>
-    setValues((current) => ({ ...current, [key]: event.target.value }));
-  // An error leaves as soon as its field changes (form.errorsFor, on the submitted shape); the
-  // confirmation's, once the two passwords match.
-  const live = form.errorsFor({ ...values, confirmPassword: undefined, locale });
-  const error = (key: keyof typeof values) =>
-    key === 'confirmPassword'
-      ? values.password === values.confirmPassword
-        ? undefined
-        : message(form.errors.confirmPassword, values.confirmPassword)
-      : message(live[key], values[key]);
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const { confirmPassword, ...input } = values;
-    const ok = await form.submit(
-      registerSchema,
-      { ...input, locale },
-      '/auth/register',
-      mismatch(values.password, confirmPassword),
-    );
-    if (ok) signedIn();
-  }
-
-  return (
-    <form method="post" ref={formRef} onSubmit={onSubmit} noValidate className="space-y-5">
-      <FormErrorSummary message={form.summary} />
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField
-          label={t('firstName')}
-          name="firstName"
-          autoComplete="given-name"
-          required
-          value={values.firstName}
-          onChange={set('firstName')}
-          error={error('firstName')}
-        />
-        <TextField
-          label={t('lastName')}
-          name="lastName"
-          autoComplete="family-name"
-          value={values.lastName}
-          onChange={set('lastName')}
-          error={error('lastName')}
-        />
-      </div>
-      <TextField
-        label={t('email')}
-        name="email"
-        type="email"
-        inputMode="email"
-        autoComplete="email"
-        required
-        value={values.email}
-        onChange={set('email')}
-        error={error('email')}
-      />
-      <TextField
-        label={t('phone')}
-        name="phone"
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel"
-        placeholder="+998 90 123 45 67"
-        value={values.phone}
-        onChange={set('phone')}
-        error={error('phone')}
-      />
-      <TextField
-        label={t('password')}
-        name="password"
-        type="password"
-        autoComplete="new-password"
-        required
-        hint={t('passwordHint')}
-        value={values.password}
-        onChange={set('password')}
-        error={error('password')}
-      />
-      <TextField
-        label={t('confirmPassword')}
-        name="confirmPassword"
-        type="password"
-        autoComplete="new-password"
-        required
-        value={values.confirmPassword}
-        onChange={set('confirmPassword')}
-        error={error('confirmPassword')}
-      />
-      <ApiAlert message={form.apiErrorMessage} />
-      <SubmitButton
-        sending={form.status === 'sending'}
-        label={t('register')}
-        sendingLabel={t('registering')}
       />
     </form>
   );

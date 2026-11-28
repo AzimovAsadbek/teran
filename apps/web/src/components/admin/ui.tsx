@@ -12,6 +12,7 @@ import { buttonClasses } from '@/components/ui/button';
 import { inputClasses, SelectChevron, selectClasses } from '@/components/ui/controls';
 import { Notice } from '@/components/ui/notice';
 import { getPathname, Link } from '@/i18n/navigation';
+import { PaymentBadge } from '@/components/payments/payment-ui';
 import { cn } from '@/lib/cn';
 import { FilterFormShell } from './filter-form';
 import { Pill, type Tone } from './pill';
@@ -74,18 +75,6 @@ const ORDER_TONES: Record<OrderStatus, Tone> = {
   DELIVERED: 'dark',
   CANCELLED: 'muted',
 };
-const PAYMENT_TONES: Record<PaymentStatus, Tone> = {
-  PENDING: 'gold',
-  REQUIRES_ACTION: 'gold',
-  PROCESSING: 'blue',
-  PAID: 'leaf',
-  FAILED: 'danger',
-  EXPIRED: 'danger',
-  REFUND_PENDING: 'blue',
-  PARTIALLY_REFUNDED: 'muted',
-  REFUNDED: 'muted',
-  CANCELLED: 'muted',
-};
 const PRODUCT_TONES: Record<ProductStatus, Tone> = {
   DRAFT: 'gold',
   ACTIVE: 'leaf',
@@ -111,7 +100,7 @@ export async function OrderStatusPill({ status }: { status: OrderStatus }) {
 
 export async function PaymentStatusPill({ status }: { status: PaymentStatus }) {
   const t = await getTranslations('Checkout');
-  return <Pill tone={PAYMENT_TONES[status]}>{t(`paymentStatuses.${status}`)}</Pill>;
+  return <PaymentBadge status={status} label={t(`paymentStatuses.${status}`)} />;
 }
 
 export async function ProductStatusPill({ status }: { status: ProductStatus }) {

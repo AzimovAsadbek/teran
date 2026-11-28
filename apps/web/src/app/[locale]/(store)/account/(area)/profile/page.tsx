@@ -5,7 +5,7 @@ import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { ProfileForm } from '@/components/account/account-forms';
 import { AccountPageHeader, AccountPanel } from '@/components/account/account-ui';
-import { ChangeEmailForm } from '@/components/account/security-forms';
+import { ButtonLink } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { requireUser } from '@/lib/account';
 import { apiGetAsVisitor } from '@/lib/api/server';
@@ -39,9 +39,9 @@ async function Profile() {
       <AccountPanel title={t('profile')} text={t('profileText')}>
         <ProfileForm user={user} />
       </AccountPanel>
-      <AccountPanel title={t('emailTitle')} text={t('emailText')}>
-        <ChangeEmailForm email={user.email} />
-      </AccountPanel>
+      <ButtonLink href="/account/security" variant="secondary">
+        {t('identity.manage')}
+      </ButtonLink>
     </div>
   );
 }

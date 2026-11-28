@@ -1,10 +1,11 @@
-import type { AccountSessionDto, Locale } from '@teran/contracts';
+import type { AccountSessionDto, ConnectedMethodsDto, Locale } from '@teran/contracts';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import * as rootParams from 'next/root-params';
 import { Suspense } from 'react';
 import { ChangePasswordForm } from '@/components/account/account-forms';
 import { AccountPageHeader, AccountPanel } from '@/components/account/account-ui';
+import { IdentitySettings } from '@/components/account/identity-settings';
 import { SessionsPanel } from '@/components/account/security-forms';
 import { Notice } from '@/components/ui/notice';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,25 +20,45 @@ export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({ title: t('security'), href: '/account/security', locale, noIndex: true });
 }
 
-async function Security() {
+async function Security({
+  searchParams,
+}: Pick<PageProps<'/[locale]/account/security'>, 'searchParams'>) {
+  const query = await searchParams;
   const locale = (await rootParams.locale()) as Locale;
   const [t, tc] = await Promise.all([getTranslations('Account'), getTranslations('Checkout')]);
-  await requireUser(locale, '/account/security');
-  const [sessions, features] = await Promise.all([
+  const user = await requireUser(locale, '/account/security');
+  const [sessions, features, methods] = await Promise.all([
     apiGetAsVisitor<AccountSessionDto[]>('/account/sessions').catch(() => null),
     getAuthFeatures().catch(() => null),
+    apiGetAsVisitor<ConnectedMethodsDto>('/auth/connections').catch(() => null),
   ]);
 
   return (
     <div className="space-y-6">
       <AccountPageHeader title={t('security')} />
-      <AccountPanel title={t('changePassword')} text={t('passwordText')}>
-        <ChangePasswordForm />
-        {/* Only say that reset by e-mail works when the API reports that e-mail is configured. */}
-        <p className="mt-5 text-body-sm text-fg-subtle">
-          {features?.passwordReset ? t('resetAvailable') : t('resetNotAvailable')}
-        </p>
+      <AccountPanel title={t('identity.manage')}>
+        {methods ? (
+          <IdentitySettings
+            features={features}
+            methods={methods}
+            phone={user.phone}
+            callbackError={typeof query.authError === 'string' ? query.authError : undefined}
+          />
+        ) : (
+          <Notice tone="danger" role="alert">
+            {tc('loadError')}
+          </Notice>
+        )}
       </AccountPanel>
+      {methods?.password && (
+        <AccountPanel title={t('changePassword')} text={t('passwordText')}>
+          <ChangePasswordForm />
+          {/* Only say that reset by e-mail works when the API reports that e-mail is configured. */}
+          <p className="mt-5 text-body-sm text-fg-subtle">
+            {features?.passwordReset ? t('resetAvailable') : t('resetNotAvailable')}
+          </p>
+        </AccountPanel>
+      )}
       <AccountPanel title={t('sessionsTitle')} text={t('sessionsText')}>
         {sessions ? (
           <SessionsPanel sessions={sessions} />
@@ -51,7 +72,7 @@ async function Security() {
   );
 }
 
-export default function SecurityPage() {
+export default function SecurityPage({ searchParams }: PageProps<'/[locale]/account/security'>) {
   return (
     <Suspense
       fallback={
@@ -62,7 +83,7 @@ export default function SecurityPage() {
         </div>
       }
     >
-      <Security />
+      <Security searchParams={searchParams} />
     </Suspense>
   );
 }

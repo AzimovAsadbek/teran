@@ -1,3 +1,4 @@
+import { registerForm, settleFixture } from './support/verification.ts';
 import { registerAtCheckout } from './support/checkout.ts';
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -93,7 +94,7 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
     test.setTimeout(150_000);
     await visit(page, '/en/account/login?next=/admin');
     await page.getByRole('main').getByLabel('Email').fill(E2E_ADMIN.email);
-    await page.getByRole('main').getByLabel('Password').fill(E2E_ADMIN.password);
+    await page.getByRole('main').getByLabel('Password', { exact: true }).fill(E2E_ADMIN.password);
     await page.getByRole('main').getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/en\/admin$/);
     for (const path of [
@@ -128,11 +129,7 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
     test.setTimeout(150_000);
     await visit(page, '/en/account/register');
     const main = page.getByRole('main');
-    await main.getByLabel('First name').fill('Axe');
-    await main.getByLabel('Email').fill(`axe-${Date.now()}@example.test`);
-    await main.getByLabel(/^Password/).fill('axe-password-12345');
-    await main.getByLabel('Repeat password').fill('axe-password-12345');
-    await main.getByRole('button', { name: 'Create account' }).click();
+    await registerForm(page, 'Axe');
     await expect(page).toHaveURL(/\/en\/account$/);
     for (const path of [
       '/en/account',
@@ -159,12 +156,14 @@ test.describe('accessibility (axe, WCAG 2.2 AA)', () => {
     await main.getByLabel('Address', { exact: false }).first().fill('Axe street 1');
     await main.getByRole('radio', { name: /Payme/ }).check();
     await main.getByRole('checkbox', { name: /terms of use/ }).check();
+    await main.getByRole('button', { name: /^Review order · / }).click();
+    await expect(page).toHaveURL(/\/checkout\/confirm\/TRN-/);
     await main.getByRole('button', { name: /^Pay with Payme · / }).click();
-    await expect(page).toHaveURL(/\/en\/payments\/demo\//);
-    await page.waitForLoadState('networkidle');
-    await expectAccessible(page, 'demonstration payment page');
-    await page.getByRole('button', { name: 'Simulate a declined payment' }).click();
-    await page.getByRole('link', { name: 'Continue to the order' }).click();
+    await expectAccessible(page, 'payment status');
+    await settleFixture(page, 'failure');
+    await expect(main.getByRole('heading', { name: 'Payment unsuccessful' })).toBeVisible();
+    await expectAccessible(page, 'verified payment decline');
+    await main.getByRole('link', { name: 'Order details' }).click();
     await expect(page).toHaveURL(/\/en\/account\/orders\/TRN-/);
     await page.waitForLoadState('networkidle');
     await expectAccessible(page, 'order awaiting payment');

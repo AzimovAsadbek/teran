@@ -18,14 +18,12 @@ import { Throttle } from '@nestjs/throttler';
 import {
   accountOrdersQuerySchema,
   addressInputSchema,
-  changeEmailSchema,
   idSchema,
   localeQuerySchema,
   type AccountProfileDto,
   type AccountSessionDto,
   type AccountSummaryDto,
   type AddressDto,
-  type CurrentUserDto,
   type LocaleQuery,
   type OrderDto,
   type Paginated,
@@ -106,18 +104,6 @@ export class AccountController {
   @ApiOkResponse({ description: 'AccountProfileDto' })
   profile(@CurrentAuth() auth: RequestAuth): Promise<AccountProfileDto> {
     return this.account.profile(auth.userId);
-  }
-
-  @Post('email')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Change the sign-in e-mail (requires the current password)' })
-  @ApiOkResponse({ description: 'CurrentUserDto' })
-  changeEmail(
-    @CurrentAuth() auth: RequestAuth,
-    @Body({ schema: changeEmailSchema }) body: z.output<typeof changeEmailSchema>,
-  ): Promise<CurrentUserDto> {
-    return this.account.changeEmail(auth, body);
   }
 
   @Get('sessions')

@@ -62,7 +62,16 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         INTERNAL_API_KEY,
         COOKIE_SECURE: 'false',
         UPLOADS_DIR: E2E_UPLOADS_DIR,
-        MAIL_TRANSPORT: 'disabled',
+        MAIL_TRANSPORT: 'smtp',
+        SMTP_HOST: '127.0.0.1',
+        SMTP_PORT: '1025',
+        SMTP_SECURE: 'false',
+        MAIL_FROM: 'TERAN <auth@example.test>',
+        AUTH_TELEGRAM_USERNAME: '',
+        AUTH_TELEGRAM_BOT_TOKEN: '',
+        AUTH_TELEGRAM_WEBHOOK_SECRET: '',
+        GOOGLE_CLIENT_ID: '',
+        GOOGLE_CLIENT_SECRET: '',
         SWAGGER_ENABLED: 'false',
         // Every test runs from one IP; rate limiting is covered by the API integration tests.
         THROTTLE_DISABLED: 'true',
@@ -73,7 +82,10 @@ export function stackEnv(service: 'api' | 'web' | 'web-build'): Record<string, s
         CHECKOUT_DELIVERY_ENABLED: process.env.E2E_DELIVERY_ENABLED ?? 'true',
         // Online payments are simulated.
         PAYMENT_PROVIDER_MODE: 'demo',
-        PAYMENT_METHODS_ENABLED: 'CASH_ON_DELIVERY,CLICK,PAYME,CARD',
+        PAYMENT_METHODS_ENABLED:
+          process.env.E2E_DELIVERY_ENABLED === 'false'
+            ? 'CLICK,PAYME'
+            : 'CASH_ON_DELIVERY,CLICK,PAYME',
         // Telegram posts are composed and recorded, never sent: no bot or channel is contacted.
         TELEGRAM_MODE: 'dry-run',
       };

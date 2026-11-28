@@ -16,7 +16,6 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
-  registerSchema,
   resetPasswordSchema,
   updateProfileSchema,
   type AcceptedDto,
@@ -41,18 +40,6 @@ export class AuthController {
   @ApiOkResponse({ description: 'AuthFeaturesDto' })
   features(): AuthFeaturesDto {
     return this.auth.features();
-  }
-
-  @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60 * 60_000 } })
-  @ApiOperation({ summary: 'Create a customer account and sign in' })
-  @ApiOkResponse({ description: 'CurrentUserDto' })
-  register(
-    @Req() request: Request,
-    @Res({ passthrough: true }) response: Response,
-    @Body({ schema: registerSchema }) body: z.output<typeof registerSchema>,
-  ): Promise<CurrentUserDto> {
-    return this.auth.register(request, response, body);
   }
 
   @Post('login')

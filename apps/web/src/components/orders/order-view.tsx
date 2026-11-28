@@ -1,13 +1,13 @@
 import { isOnlinePaymentMethod, type Locale, type OrderDto } from '@teran/contracts';
-import { Clock } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { ButtonLink } from '@/components/ui/button';
-import { Notice } from '@/components/ui/notice';
+import { PaymentOutcome } from '@/components/payments/payment-outcome';
+import { Link } from '@/i18n/navigation';
 import { getCheckoutOptions } from '@/lib/data/content';
 import { formatDateTime } from '@/lib/format';
 import { showPrices } from '@/lib/site';
 import { OrderDetails, OrderProgress, OrderTimeline } from './order-details';
-import { CheckAgain, PayOrder, ReorderButton } from './order-actions';
+import { CheckAgain, ReorderButton } from './order-actions';
 
 /**
  * Everything about one order, for its customer (account page) or the holder of the guest link:
@@ -29,70 +29,51 @@ export async function OrderStatusView({
   const t = await getTranslations('Checkout');
   const cart = await getTranslations('Cart');
   const latest = order.payments.at(-1);
-  const confirming = latest?.status === 'PROCESSING' && !latest.demo;
-  const waitingForProvider =
-    latest?.status === 'REQUIRES_ACTION' &&
-    !latest.demo &&
-    isOnlinePaymentMethod(order.paymentMethod);
-  const options =
-    order.awaitingPayment && !confirming
-      ? ((await getCheckoutOptions(locale).catch(() => null))?.paymentOptions ?? []).filter(
-          (option) => isOnlinePaymentMethod(option.method) && option.availability !== 'unavailable',
-        )
-      : [];
-  const paidOnline = isOnlinePaymentMethod(order.paymentMethod) && order.paymentStatus === 'PAID';
+  const online = isOnlinePaymentMethod(order.paymentMethod);
+  const status = order.paymentStatus;
+  const polling =
+    online &&
+    (status === 'PROCESSING' ||
+      status === 'REFUND_PENDING' ||
+      (status === 'REQUIRES_ACTION' && !latest?.demo) ||
+      status === 'PENDING');
+  const canReview = order.awaitingPayment && !(status === 'PROCESSING' && !latest?.demo);
+  const available =
+    canReview &&
+    (await getCheckoutOptions(locale).catch(() => null))?.paymentOptions.some(
+      (option) => isOnlinePaymentMethod(option.method) && option.availability !== 'unavailable',
+    );
+  const reviewHref = `/checkout/confirm/${order.number}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
   return (
     <div className="space-y-6">
-      {order.awaitingPayment || (confirming && order.status === 'PENDING') ? (
-        <section
-          aria-labelledby="awaiting-payment"
-          className="rounded-panel border border-warning/30 bg-warning-soft/60 p-5 sm:p-7"
-        >
-          <h2 id="awaiting-payment" className="flex items-center gap-2 text-display-sm text-fg">
-            <Clock aria-hidden className="h-5 w-5 text-warning" />
-            {t('awaitingPaymentTitle')}
-          </h2>
-          {order.paymentDueAt && !confirming ? (
-            <p className="mt-2 text-body text-fg">
-              {t('awaitingPaymentText', { time: formatDateTime(order.paymentDueAt, locale) })}
+      {online && (
+        <PaymentOutcome order={order} heading="h2">
+          {order.paymentDueAt && canReview && (
+            <p className="mt-3 text-helper text-fg-muted">
+              {t('reservedUntil', { time: formatDateTime(order.paymentDueAt, locale) })}
             </p>
-          ) : null}
-          {latest && (latest.status === 'FAILED' || latest.status === 'CANCELLED') ? (
-            <Notice tone="warning" className="mt-4">
-              {t('paymentFailedText')}
-            </Notice>
-          ) : null}
-          {latest?.status === 'PROCESSING' || waitingForProvider ? (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <p className="text-body-sm text-fg-muted">
-                {t(waitingForProvider ? 'checkAfterPayment' : 'paymentProcessingText')}
-              </p>
-              <CheckAgain />
-            </div>
-          ) : null}
-          {latest?.demo ? (
-            <p className="mt-3 text-body-sm text-fg-muted">{t('paymentDemoNote')}</p>
-          ) : null}
-          {!confirming ? (
-            <div className="mt-5">
-              <PayOrder
-                number={order.number}
-                token={account ? null : token}
-                options={options}
-                current={isOnlinePaymentMethod(order.paymentMethod) ? order.paymentMethod : null}
-              />
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {paidOnline ? (
-        <Notice tone="success" role="status">
-          <span className="block font-semibold">{t('paymentReceived')}</span>
-          {latest?.demo ? <span className="block">{t('demoPaymentNote')}</span> : null}
-        </Notice>
-      ) : null}
+          )}
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            {polling && <CheckAgain />}
+            {available && (
+              <ButtonLink href={reviewHref} variant={polling ? 'secondary' : 'primary'}>
+                {t(
+                  status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED'
+                    ? 'retryPayment'
+                    : 'reviewOrder',
+                )}
+              </ButtonLink>
+            )}
+            <Link
+              href="/contact"
+              className="inline-flex min-h-11 items-center text-body-sm font-semibold text-brand underline underline-offset-4"
+            >
+              {t('support')}
+            </Link>
+          </div>
+        </PaymentOutcome>
+      )}
 
       <section
         aria-label={t('statusTitle')}

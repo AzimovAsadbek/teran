@@ -30,6 +30,7 @@ export function loggerParams(config: ConfigService<Env, true>): Params {
         paths: [
           'req.headers.cookie',
           'req.headers.authorization',
+          'req.headers["x-telegram-bot-api-secret-token"]',
           'res.headers["set-cookie"]',
           'password',
           '*.password',

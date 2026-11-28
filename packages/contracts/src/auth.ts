@@ -72,5 +72,8 @@ export const authFeaturesSchema = z.object({
   /** False until outgoing e-mail is configured, so the UI never offers a reset it cannot deliver. */
   passwordReset: z.boolean(),
   registration: z.boolean(),
+  emailOtp: z.boolean().optional(),
+  telegram: z.boolean().optional(),
+  google: z.boolean().optional(),
 });
 export type AuthFeaturesDto = z.infer<typeof authFeaturesSchema>;

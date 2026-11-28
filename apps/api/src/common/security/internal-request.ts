@@ -17,7 +17,7 @@ export function isInternalRequest(
   return typeof header === 'string' && digestsEqual(sha256(header), sha256(key));
 }
 
-const SECRET_QUERY_PARAMS = /([?&](?:token|accessToken)=)[^&#]*/gi;
+const SECRET_QUERY_PARAMS = /([?&](?:token|accessToken|code|state|id_token)=)[^&#]*/gi;
 
 /** Strips secrets carried in query strings (guest order links) before a URL is logged. */
 export function redactUrl(url: string | undefined): string | undefined {

@@ -1,3 +1,4 @@
+import { registerForm, loginByEmail, settleFixture } from './support/verification.ts';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { E2E_ADMIN } from '../scripts/e2e-env.ts';
 
@@ -13,8 +14,6 @@ function main(page: Page): Locator {
 function field(page: Page, label: string | RegExp): Locator {
   return visible(main(page).getByLabel(label));
 }
-
-const PASSWORD = 'e2e-journey-password-1';
 
 async function bagCount(page: Page): Promise<number> {
   const label = await page
@@ -59,11 +58,7 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   // 3. The header offers registration beside sign-in; the visitor creates an account.
   await visible(page.getByRole('banner').getByRole('link', { name: 'Register' })).click();
   await expect(page).toHaveURL(/\/en\/account\/register/);
-  await field(page, 'First name').fill('Journey');
-  await field(page, 'Email').fill(email);
-  await field(page, /^Password/).fill(PASSWORD);
-  await field(page, 'Repeat password').fill(PASSWORD);
-  await main(page).getByRole('button', { name: 'Create account' }).click();
+  await registerForm(page, 'Journey', email);
   await expect(page).toHaveURL(/\/en\/account$/);
 
   // 4. The bag is still there after registering, and the header shows the account menu.
@@ -81,29 +76,27 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   await click.check();
   await expect(visible(main(page).getByText(/Demo · no money is charged/))).toBeVisible();
   await visible(main(page).getByRole('checkbox', { name: /terms of use/ })).check();
+  await visible(main(page).getByRole('button', { name: /^Review order · .+UZS$/ })).click();
+  await expect(page).toHaveURL(/\/checkout\/confirm\/TRN-/);
   await visible(main(page).getByRole('button', { name: /^Pay with Click · .+UZS$/ })).click();
 
-  // 6. The demonstration payment page: no card details, a clear label; the payment is declined.
-  await expect(page).toHaveURL(/\/en\/payments\/demo\/[A-Za-z0-9_-]+$/);
-  await expect(visible(page.getByRole('heading', { name: 'Demonstration payment' }))).toBeVisible();
+  await settleFixture(page, 'failure');
   await expect(page.locator('input[autocomplete*="cc-"], input[name*="card"]')).toHaveCount(0);
-  await visible(page.getByRole('button', { name: 'Simulate a declined payment' })).click();
-  await expect(visible(page.getByText(/Simulated result: Payment failed/))).toBeVisible();
-  await visible(page.getByRole('link', { name: 'Continue to the order' })).click();
 
-  // 7. Back on the order: nothing is marked paid; the customer retries with another method.
-  await expect(page).toHaveURL(/\/en\/account\/orders\/TRN-[0-9A-Z]{8}$/);
+  // 7. A verified decline can be retried after reviewing the same order.
+  await expect(page).toHaveURL(/\/en\/payments\/return\//);
+  await expect(visible(page.getByRole('heading', { name: 'Payment unsuccessful' }))).toBeVisible();
+  await visible(main(page).getByRole('link', { name: 'Retry payment' })).click();
+  await expect(page).toHaveURL(/\/en\/checkout\/confirm\/TRN-/);
   const orderNumber = page.url().split('/').pop() ?? '';
-  await expect(visible(page.getByRole('heading', { name: 'Waiting for payment' }))).toBeVisible();
-  await expect(visible(page.getByText(/did not go through/))).toBeVisible();
+  await visible(main(page).getByRole('button', { name: 'Change payment method' })).click();
   await visible(main(page).getByRole('radio', { name: /Payme/ })).check();
-  await visible(main(page).getByRole('button', { name: 'Pay with Payme' })).click();
-  await expect(page).toHaveURL(/\/en\/payments\/demo\//);
-  await visible(page.getByRole('button', { name: 'Simulate a successful payment' })).click();
-  await expect(visible(page.getByText(/Simulated result: Paid/))).toBeVisible();
-  await visible(page.getByRole('link', { name: 'Continue to the order' })).click();
+  await visible(main(page).getByRole('button', { name: /^Pay with Payme ·/ })).click();
+  await settleFixture(page, 'success');
 
-  // 8. The order is stored and paid (as a demonstration: no money moved).
+  // 8. The order is stored and paid in the sandbox.
+  await expect(page).toHaveURL(/\/en\/payments\/return\//);
+  await visible(main(page).getByRole('link', { name: 'Order details' })).click();
   await expect(page).toHaveURL(new RegExp(`/en/account/orders/${orderNumber}$`));
   await expect(visible(page.getByText('Payment received'))).toBeVisible();
   await expect(visible(page.getByText(/no money was charged/))).toBeVisible();
@@ -131,7 +124,8 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
     visible(page.getByRole('banner').getByRole('link', { name: 'Sign in' })),
   ).toBeVisible();
   await expect(page.getByRole('banner').getByLabel('Account menu')).toHaveCount(0);
-  await signIn(page, email, PASSWORD, '/account/orders');
+  await page.goto('/en/account/login?next=/account/orders');
+  await loginByEmail(page, email);
   await expect(page).toHaveURL(/\/en\/account\/orders$/);
   await expect(
     visible(main(page).getByRole('link', { name: new RegExp(orderNumber) })),
@@ -141,11 +135,7 @@ test('visitor to paying customer, end to end', async ({ page, browser }) => {
   const other = await browser.newContext();
   const otherPage = await other.newPage();
   await otherPage.goto('/en/account/register');
-  await field(otherPage, 'First name').fill('Other');
-  await field(otherPage, 'Email').fill(`e2e-other-${Date.now()}@example.test`);
-  await field(otherPage, /^Password/).fill(PASSWORD);
-  await field(otherPage, 'Repeat password').fill(PASSWORD);
-  await main(otherPage).getByRole('button', { name: 'Create account' }).click();
+  await registerForm(otherPage, 'Other');
   await expect(otherPage).toHaveURL(/\/en\/account$/);
   await otherPage.goto(`/en/account/orders/${orderNumber}`);
   await expect(visible(otherPage.getByRole('heading', { name: 'Page not found' }))).toBeVisible();

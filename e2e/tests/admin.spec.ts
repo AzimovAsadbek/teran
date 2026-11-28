@@ -1,3 +1,4 @@
+import { registerForm } from './support/verification.ts';
 import { registerAtCheckout } from './support/checkout.ts';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
@@ -55,11 +56,7 @@ test.describe('administration', () => {
 
     const email = `e2e-customer-${Date.now()}@example.test`;
     await page.goto('/en/account/register');
-    await field(page, 'First name').fill('Customer');
-    await field(page, 'Email').fill(email);
-    await field(page, /^Password$/).fill('e2e-password-123');
-    await field(page, 'Repeat password').fill('e2e-password-123');
-    await page.getByRole('main').getByRole('button', { name: 'Create account' }).click();
+    await registerForm(page, 'Customer', email);
     await expect(page).toHaveURL(/\/en\/account$/);
 
     await page.goto('/en/admin');

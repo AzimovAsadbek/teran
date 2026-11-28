@@ -53,6 +53,7 @@ export class AdminPeopleService {
         select: {
           id: true,
           email: true,
+          contactEmail: true,
           firstName: true,
           lastName: true,
           phone: true,
@@ -64,7 +65,7 @@ export class AdminPeopleService {
     ]);
     const items = rows.map((row): AdminCustomer => ({
       id: row.id,
-      email: row.email,
+      email: row.email ?? row.contactEmail ?? '',
       firstName: row.firstName,
       lastName: row.lastName,
       phone: row.phone,
@@ -81,6 +82,7 @@ export class AdminPeopleService {
       select: {
         id: true,
         email: true,
+        contactEmail: true,
         firstName: true,
         lastName: true,
         phone: true,
@@ -94,7 +96,7 @@ export class AdminPeopleService {
     return {
       customer: {
         id: row.id,
-        email: row.email,
+        email: row.email ?? row.contactEmail ?? '',
         firstName: row.firstName,
         lastName: row.lastName,
         phone: row.phone,
@@ -120,7 +122,11 @@ export class AdminPeopleService {
         lastLoginAt: true,
       },
     });
-    return rows.map((row) => ({ ...row, lastLoginAt: row.lastLoginAt?.toISOString() ?? null }));
+    return rows.map((row) => ({
+      ...row,
+      email: row.email ?? '',
+      lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
+    }));
   }
 
   async createStaff(
@@ -220,6 +226,6 @@ export class AdminPeopleService {
         lastLoginAt: true,
       },
     });
-    return { ...row, lastLoginAt: row.lastLoginAt?.toISOString() ?? null };
+    return { ...row, email: row.email ?? '', lastLoginAt: row.lastLoginAt?.toISOString() ?? null };
   }
 }

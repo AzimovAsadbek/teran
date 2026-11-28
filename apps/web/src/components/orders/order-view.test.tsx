@@ -1,10 +1,14 @@
 import type { OrderDto, OrderPaymentDto } from '@teran/contracts';
 import { render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import messages from '../../../messages/en.json';
 import { expect, it, vi } from 'vitest';
 import { OrderStatusView } from './order-view';
 
 vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
-vi.mock('@/lib/data/content', () => ({ getCheckoutOptions: async () => ({ paymentOptions: [] }) }));
+vi.mock('@/lib/data/content', () => ({
+  getCheckoutOptions: async () => ({ paymentOptions: [{ method: 'CLICK', availability: 'live' }] }),
+}));
 vi.mock('./order-details', () => ({
   OrderDetails: () => null,
   OrderTimeline: () => null,
@@ -12,7 +16,6 @@ vi.mock('./order-details', () => ({
 }));
 vi.mock('./order-actions', () => ({
   CheckAgain: () => <button>Check status</button>,
-  PayOrder: () => <button>Pay</button>,
   ReorderButton: () => null,
 }));
 
@@ -61,25 +64,47 @@ async function show(
     total: '1000.00',
     currency: 'UZS',
   };
-  render(await OrderStatusView({ order, locale: 'en', token: null, account: false }));
+  render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      {await OrderStatusView({ order, locale: 'en', token: null, account: false })}
+    </NextIntlClientProvider>,
+  );
 }
 
 it('offers a status check when the customer returns before the first CLICK callback', async () => {
   await show('CLICK', 'REQUIRES_ACTION', true);
-  expect(screen.getByText('checkAfterPayment')).toBeVisible();
+  expect(screen.getByText(messages.Checkout.outcomeNotes.REQUIRES_ACTION)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Check status' })).toBeVisible();
-  expect(screen.queryByText('paymentReceived')).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Payment received' })).not.toBeInTheDocument();
 });
 
 it('keeps Payme confirmation visible after the storefront payment window closes', async () => {
   await show('PAYME', 'PROCESSING', false);
-  expect(screen.getByText('paymentProcessingText')).toBeVisible();
+  expect(screen.getByText(messages.Checkout.outcomeNotes.PROCESSING)).toBeVisible();
   expect(screen.getByRole('button', { name: 'Check status' })).toBeVisible();
-  expect(screen.queryByRole('button', { name: 'Pay' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'reviewOrder' })).not.toBeInTheDocument();
 });
 
 it('shows the receipt confirmation only after the server records the payment', async () => {
   await show('CLICK', 'PAID', false);
-  expect(screen.getByText('paymentReceived')).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Payment received' })).toBeVisible();
   expect(screen.queryByRole('button', { name: 'Check status' })).not.toBeInTheDocument();
 });
+
+it.each([
+  'FAILED',
+  'CANCELLED',
+  'EXPIRED',
+  'REFUND_PENDING',
+  'PARTIALLY_REFUNDED',
+  'REFUNDED',
+] as const)(
+  'shows the verified %s outcome and suppresses retries on a closed order',
+  async (status) => {
+    await show('PAYME', status, false);
+    expect(
+      screen.getByRole('heading', { name: messages.Checkout.outcomeTitles[status] }),
+    ).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'retryPayment' })).not.toBeInTheDocument();
+  },
+);

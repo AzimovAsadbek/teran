@@ -5,7 +5,7 @@ import { SkipLink } from '@/components/layout/skip-link';
 import { pickMessages, CHECKOUT_CLIENT_MESSAGES, type Messages } from '@/i18n/messages';
 
 /**
- * Distraction-free checkout: the wordmark, a way back to the bag and the policies, without the shop
+ * Distraction-free checkout: the wordmark, a way back to the shop and the policies, without the shop
  * navigation, search or promotions that could pull the customer away from finishing the order.
  */
 export default async function CheckoutLayout({ children }: LayoutProps<'/[locale]'>) {

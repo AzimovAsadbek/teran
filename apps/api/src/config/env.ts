@@ -73,6 +73,17 @@ const envObjectSchema = z.object({
   /** Test-only escape hatch so integration suites can exceed rate limits; rejected elsewhere. */
   THROTTLE_DISABLED: flag.default(false),
 
+  AUTH_TELEGRAM_BOT_TOKEN: z.string().min(16).optional(),
+  AUTH_TELEGRAM_USERNAME: z
+    .string()
+    .regex(/^[A-Za-z0-9_]{4,32}$/)
+    .optional(),
+  AUTH_TELEGRAM_WEBHOOK_SECRET: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{32,128}$/)
+    .optional(),
+  GOOGLE_CLIENT_ID: z.string().min(8).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(8).optional(),
   MAIL_TRANSPORT: z.enum(['disabled', 'log', 'smtp']).default('disabled'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(587),
@@ -80,6 +91,7 @@ const envObjectSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   MAIL_FROM: z.string().optional(),
+  MAIL_REPLY_TO: z.email().optional(),
 
   /**
    * Payment methods the store presents at checkout. An online method is only selectable when it can
@@ -87,15 +99,14 @@ const envObjectSchema = z.object({
    */
   PAYMENT_METHODS_ENABLED: commaList
     .pipe(z.array(z.enum(PAYMENT_METHODS)).min(1))
-    .default(['CASH_ON_DELIVERY']),
+    .default(['CLICK']),
 
   /**
    * How online payments are processed (docs/architecture/payments.md):
    * - live: by the real provider, and only for providers whose credentials are configured below.
    *   Card payments stay unavailable until a card gateway is integrated.
    * - demo: every enabled online method is simulated by the demo provider. No provider is
-   *   contacted, no money moves, and provider callbacks are refused. Refused in production unless
-   *   ALLOW_DEMO_PAYMENTS=true records that decision explicitly.
+   *   contacted. Available only to isolated test processes.
    */
   PAYMENT_PROVIDER_MODE: z.enum(['live', 'demo']).default('live'),
   /**
@@ -105,7 +116,6 @@ const envObjectSchema = z.object({
    */
   CHECKOUT_ENABLED: flag.default(false),
   CHECKOUT_DELIVERY_ENABLED: flag.default(false),
-  ALLOW_DEMO_PAYMENTS: flag.default(false),
   /** Minutes an online payment may stay unpaid before the order is cancelled and stock returned. */
   ONLINE_PAYMENT_WINDOW_MINUTES: z.coerce
     .number()
@@ -224,6 +234,30 @@ export const envSchema = z
           'R2 needs R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET and R2_PUBLIC_URL together',
       });
     }
+    const telegram = [
+      env.AUTH_TELEGRAM_BOT_TOKEN,
+      env.AUTH_TELEGRAM_USERNAME,
+      env.AUTH_TELEGRAM_WEBHOOK_SECRET,
+    ];
+    if (telegram.some(Boolean) && !telegram.every(Boolean))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AUTH_TELEGRAM_BOT_TOKEN'],
+        message: 'Configure the bot username, token and webhook secret together',
+      });
+    if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['GOOGLE_CLIENT_ID'],
+        message: 'Configure the Google client ID and secret together',
+      });
+    if (env.PAYMENT_PROVIDER_MODE === 'demo' && env.NODE_ENV !== 'test') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_PROVIDER_MODE'],
+        message: 'Simulated payments require an isolated test process.',
+      });
+    }
     if (env.NODE_ENV === 'production') {
       if (!env.COOKIE_SECURE) {
         ctx.addIssue({
@@ -244,14 +278,6 @@ export const envSchema = z
           code: 'custom',
           path: ['INTERNAL_API_KEY'],
           message: 'is required in production (shared with the web server)',
-        });
-      }
-      if (env.PAYMENT_PROVIDER_MODE === 'demo' && !env.ALLOW_DEMO_PAYMENTS) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['PAYMENT_PROVIDER_MODE'],
-          message:
-            '"demo" simulates payments; in production it also needs ALLOW_DEMO_PAYMENTS=true',
         });
       }
       for (const key of [

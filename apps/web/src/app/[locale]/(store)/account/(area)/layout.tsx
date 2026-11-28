@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { RefreshSession } from '@/components/account/refresh-session';
 import { AccountNav } from '@/components/account/account-nav';
 
 /**
@@ -8,6 +9,7 @@ import { AccountNav } from '@/components/account/account-nav';
 export default function AccountAreaLayout({ children }: { children: ReactNode }) {
   return (
     <div className="container-page pt-6 pb-section sm:pt-10">
+      <RefreshSession />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:gap-10 xl:gap-14">
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <AccountNav />

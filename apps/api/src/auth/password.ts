@@ -10,9 +10,13 @@ export function hashPassword(password: string): Promise<string> {
   return hash(password, ARGON2_OPTIONS);
 }
 
-export async function verifyPassword(passwordHash: string, password: string): Promise<boolean> {
+export async function verifyPassword(
+  passwordHash: string | null,
+  password: string,
+): Promise<boolean> {
   try {
-    return await verify(passwordHash, password);
+    const valid = await verify(passwordHash ?? (await timingSafeDummyHash()), password);
+    return passwordHash !== null && valid;
   } catch {
     // Malformed hash: treat as a failed verification rather than a server error.
     return false;

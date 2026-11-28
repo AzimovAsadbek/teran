@@ -12,15 +12,12 @@ In production Compose, `CHECKOUT_DELIVERY_ENABLED` configures both the API and t
 
 ## 1. Choose the mode
 
-| Situation                                    | Settings                                                                                                                                             |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Real shop offering delivery and cash         | `CHECKOUT_DELIVERY_ENABLED=true`, `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY`                                                                         |
-| Real shop with Click and/or Payme            | `PAYMENT_PROVIDER_MODE=live`, the provider credentials, `PAYMENT_METHODS_ENABLED=CLICK,PAYME`                                                        |
-| Demonstration site (no real payments at all) | `PAYMENT_PROVIDER_MODE=demo`, `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY,CLICK,PAYME,CARD`, and on a production build also `ALLOW_DEMO_PAYMENTS=true` |
+| Situation                            | Settings                                                                                      |
+| ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Real shop offering delivery and cash | `CHECKOUT_DELIVERY_ENABLED=true`, `PAYMENT_METHODS_ENABLED=CASH_ON_DELIVERY`                  |
+| Real shop with Click and/or Payme    | `PAYMENT_PROVIDER_MODE=live`, the provider credentials, `PAYMENT_METHODS_ENABLED=CLICK,PAYME` |
 
-Demo and live never mix: in demo mode every online method is simulated, no provider is contacted
-even if credentials are present, and provider callbacks are refused. Only use demo mode on a site
-whose orders are not real (with `DEMO_CONTENT=true`).
+During Payme activation, use `PAYMENT_METHODS_ENABLED=CLICK` with `PAYMENT_PROVIDER_MODE=live`. Add PAYME explicitly when the merchant authorizes its production cashbox. Automated fixtures run only with `NODE_ENV=test`.
 
 `ONLINE_PAYMENT_WINDOW_MINUTES` (default 30) is how long an unpaid online order keeps its stock
 before it is cancelled automatically.
@@ -130,7 +127,7 @@ The API worker needs outbound HTTPS to `api.click.uz`. After a submission timeou
 - [ ] Payme sandbox scenarios and Click playground or Postman scenarios passed on staging.
 - [ ] Confirm receipt handling with each provider. If TERAN supplies receipt lines, verify the
       MXIK, package codes and VAT for the teas being sold. See the [payments guide](../architecture/payments.md#before-going-live).
-- [ ] `PAYMENT_PROVIDER_MODE=live`; `ALLOW_DEMO_PAYMENTS` not set.
+- [ ] `PAYMENT_PROVIDER_MODE=live`.
 - [ ] `TRUST_PROXY_HOPS` correct (Payme address check).
 - [ ] One real low-value order paid and refunded through each provider, checked in the admin order
       page (payment history) and in the provider cabinet.

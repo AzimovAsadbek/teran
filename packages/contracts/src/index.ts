@@ -14,3 +14,5 @@ export * from './account.js';
 export * from './publishing.js';
 export * from './reviews.js';
 export * from './assistant.js';
+
+export * from './verification.js';

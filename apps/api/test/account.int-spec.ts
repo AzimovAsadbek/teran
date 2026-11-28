@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { captureVerificationMail, registerShopper } from './helpers/verification.js';
 import request from 'supertest';
 import {
   accountSessionSchema,
@@ -46,6 +47,7 @@ describe('customer account, persistent cart and cart migration', () => {
   });
 
   beforeEach(async () => {
+    vi.restoreAllMocks();
     await resetDatabase(ctx.prisma);
     categoryId = (await createCategory(ctx.prisma, 'tea')).id;
     await createDeliveryMethod(ctx.prisma, { code: 'courier', price: '25000' });
@@ -80,15 +82,7 @@ describe('customer account, persistent cart and cart migration', () => {
         where: { id: product.variants[0]!.id },
         data: { price: '47000' },
       });
-      await visitor
-        .post(`${API}/auth/register`)
-        .send({
-          email: 'new.customer@example.com',
-          password: TEST_PASSWORD,
-          firstName: 'Aziza',
-          locale: 'uz',
-        })
-        .expect(201);
+      await registerShopper(ctx, visitor, 'new.customer@example.com');
 
       const cart = await cartOf(visitor);
       expect(cart.itemCount).toBe(2);
@@ -488,20 +482,26 @@ describe('customer account, persistent cart and cart migration', () => {
       ).toHaveLength(1);
       expect(JSON.stringify(sessions)).not.toMatch(/"id"|tokenHash|ipAddress/);
 
-      const wrong = await laptop
-        .post(`${API}/account/email`)
-        .send({ newEmail: 'new@example.com', currentPassword: 'not-the-password' })
-        .expect(400);
-      expect(wrong.body.code).toBe('INVALID_CREDENTIALS');
-      const taken = await laptop
-        .post(`${API}/account/email`)
-        .send({ newEmail: 'taken@example.com', currentPassword: TEST_PASSWORD })
-        .expect(409);
-      expect(taken.body.code).toBe('EMAIL_TAKEN');
-
+      const mail = captureVerificationMail(ctx);
       await laptop
-        .post(`${API}/account/email`)
+        .post(API + '/account/email')
         .send({ newEmail: 'new@example.com', currentPassword: TEST_PASSWORD })
+        .expect(404);
+      const start = async (email: string) =>
+        laptop
+          .post(API + '/auth/verification/start')
+          .send({ purpose: 'EMAIL_CHANGE', channel: 'EMAIL', email, locale: 'en' })
+          .expect(202);
+      const taken = await start('taken@example.com');
+      await laptop
+        .post(API + '/auth/verification/confirm')
+        .send({ id: taken.body.id, code: mail.codeFor('taken@example.com') })
+        .expect(409);
+      const accepted = await start('new@example.com');
+      await phone.get(API + '/auth/me').expect(200);
+      await laptop
+        .post(API + '/auth/verification/confirm')
+        .send({ id: accepted.body.id, code: mail.codeFor('new@example.com') })
         .expect(200);
       await laptop.get(`${API}/auth/me`).expect(200);
       await phone.get(`${API}/auth/me`).expect(401);

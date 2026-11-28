@@ -105,7 +105,8 @@ export async function createUser(
   role: UserRole = 'CUSTOMER',
   email = `${unique('user')}@example.com`,
 ) {
-  return prisma.user.create({
+  const user = await prisma.user.create({
     data: { email, role, firstName: 'Test', passwordHash: await hashPassword(TEST_PASSWORD) },
   });
+  return { ...user, email };
 }

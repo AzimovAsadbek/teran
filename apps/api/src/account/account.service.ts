@@ -6,7 +6,6 @@ import {
   type AccountProfileDto,
   type AccountSessionDto,
   type AccountSummaryDto,
-  type CurrentUserDto,
   type Locale,
   type OrderDto,
   type OrderStatus,
@@ -22,14 +21,11 @@ import { CartService } from '../cart/cart.service.js';
 import { ApiException } from '../common/errors/api-exception.js';
 import { localeChain, pickTranslation } from '../common/i18n.js';
 import { toMoney } from '../common/money.js';
-import { uniqueConstraintName } from '../common/prisma-errors.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { orderInclude, toOrderDto } from '../orders/order.mapper.js';
 import { isAwaitingOnlinePayment } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SessionService } from '../auth/session.service.js';
-import { verifyPassword } from '../auth/password.js';
-import { toCurrentUser } from '../auth/auth.service.js';
 import type { RequestAuth } from '../auth/auth.types.js';
 
 const ACTIVE_STATUSES: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED'];
@@ -288,6 +284,7 @@ export class AccountService {
       where: { id: userId },
       select: {
         email: true,
+        contactEmail: true,
         firstName: true,
         lastName: true,
         phone: true,
@@ -297,7 +294,7 @@ export class AccountService {
       },
     });
     return {
-      email: user.email,
+      email: user.email ?? user.contactEmail ?? '',
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
@@ -319,33 +316,5 @@ export class AccountService {
 
   async signOutOtherDevices(auth: RequestAuth): Promise<{ revoked: number }> {
     return { revoked: await this.sessions.destroyOthers(auth.userId, auth.sessionId) };
-  }
-
-  /**
-   * Changes the sign-in e-mail after re-checking the current password. Other devices are signed
-   * out, as after a password change; this one stays signed in.
-   */
-  async changeEmail(
-    auth: RequestAuth,
-    input: { newEmail: string; currentPassword: string },
-  ): Promise<CurrentUserDto> {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: auth.userId } });
-    if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
-      throw ApiException.badRequest('INVALID_CREDENTIALS', 'The current password is not correct');
-    }
-    if (user.email === input.newEmail) return toCurrentUser(user);
-    try {
-      const updated = await this.prisma.user.update({
-        where: { id: user.id },
-        data: { email: input.newEmail },
-      });
-      await this.sessions.destroyOthers(user.id, auth.sessionId);
-      return toCurrentUser(updated);
-    } catch (error) {
-      if (uniqueConstraintName(error)?.includes('email')) {
-        throw ApiException.conflict('EMAIL_TAKEN', 'An account with this e-mail already exists');
-      }
-      throw error;
-    }
   }
 }
